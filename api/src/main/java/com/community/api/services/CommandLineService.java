@@ -357,5 +357,10 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new ServiceProviderRank(7L, "2c", "The INDIVIDUAL service provider's score is between 25-50 points", now, now, "SUPER_ADMIN"));
             entityManager.persist(new ServiceProviderRank(8L, "2d", "The INDIVIDUAL service provider's score is between 0-25 points", now, now, "SUPER_ADMIN"));
         }
+
+        if(count==0)
+        {
+            entityManager.persist(new Privileges(5,"ADD_RANDOM_IMAGE","Privilege to add random images which will be used in skillTest of Service Provider"));
+        } 
     }
 }
