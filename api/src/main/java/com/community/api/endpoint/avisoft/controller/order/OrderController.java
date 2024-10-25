@@ -111,7 +111,6 @@ public class OrderController
                 orderDTO = new OrderDTO(order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
@@ -211,19 +210,17 @@ public class OrderController
                 CustomOrderState orderState=entityManager.find(CustomOrderState.class,order.getId());
                 if(order!=null)
                 {
-                    orderDTO = new OrderDTO(
-                            order.getId(),
-                            order.getName(),
-                            order.getTotal(),
-                            order.getStatus(),
-                            order.getSubmitDate(),
-                            order.getOrderNumber(),
-                            order.getEmailAddress(),
-                            order.getCustomer().getId(),
-                            order.getSubTotal(),
-                            orderState.getOrderStateId()
-                    );
-
+               orderDTO = new OrderDTO(
+                        order.getId(),
+                        order.getName(),
+                        order.getTotal(),
+                        order.getSubmitDate(),
+                        order.getOrderNumber(),
+                        order.getEmailAddress(),
+                        order.getCustomer().getId(),
+                        order.getSubTotal(),
+                        orderState.getOrderStateId()
+                );
                 }
                 OrderItem orderItem=order.getOrderItems().get(0);
                 Long productId=Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());

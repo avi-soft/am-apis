@@ -251,7 +251,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-        } else {
+        }
+        else {
             if(!existingServiceProvider.getSkills().isEmpty())
             {
                 serviceProviderSkills=existingServiceProvider.getSkills();
@@ -296,6 +297,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setTechnicalExpertiseScore(0);
                 }
             }
+
 
         if (!infraList.isEmpty()) {
             for (int infra_id : infraList) {

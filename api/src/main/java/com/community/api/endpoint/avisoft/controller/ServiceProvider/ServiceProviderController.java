@@ -424,7 +424,6 @@ public class ServiceProviderController {
                         order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
