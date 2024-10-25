@@ -142,6 +142,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     String notifyingAuthority;
     @JsonProperty("post_name")
     String postName;
+    @JsonProperty("is_review_required")
+    Boolean isReviewRequired;
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate) throws Exception {
 
@@ -152,7 +154,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.active = product.isActive();
         this.quantity = product.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
-//        this.categoryName = product.getDefaultCategory().getName();
+        this.categoryName = product.getDefaultCategory().getName();
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.archived = 'N';
         this.createdDate = currentDate;
@@ -166,21 +168,25 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.displayTemplate = product.getDisplayTemplate();
         this.postName = addProductDto.getPostName();
+        this.isReviewRequired=addProductDto.getIsReviewRequired();
 
-        for(int i=0; i<addProductDto.getReservedCategory().size(); i++) {
+        if(addProductDto.getReservedCategory()!=null)
+        {
+            for(int i=0; i<addProductDto.getReservedCategory().size(); i++) {
 
-            CustomReserveCategory customReserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(i).reserveCategory);
+                CustomReserveCategory customReserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(i).reserveCategory);
 
-            ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
-            reserveCategoryDto.setProductId(product.getId());
-            reserveCategoryDto.setReserveCategoryId(addProductDto.getReservedCategory().get(i).getReserveCategory());
-            reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
-            reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
-            reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
-            reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
-            reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());
+                ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
+                reserveCategoryDto.setProductId(product.getId());
+                reserveCategoryDto.setReserveCategoryId(addProductDto.getReservedCategory().get(i).getReserveCategory());
+                reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
+                reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
+                reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
+                reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());
 
-            reserveCategoryDtoList.add(reserveCategoryDto);
+                reserveCategoryDtoList.add(reserveCategoryDto);
+            }
         }
 
         if(addProductDto.getPhysicalRequirement() != null) {
@@ -278,6 +284,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.examDateTo = customProduct.getExamDateTo();
         this.notifyingAuthority = customProduct.getNotifyingAuthority();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
+        this.createdDate = customProduct.getCreatedDate();
+        this.postName = customProduct.getPostName();
+        this.isReviewRequired=customProduct.getIsReviewRequired();
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
@@ -342,6 +351,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.state = customProduct.getState();
         this.notifyingAuthority = customProduct.getNotifyingAuthority();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
+        this.createdDate = customProduct.getCreatedDate();
+        this.postName = customProduct.getPostName();
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
@@ -401,6 +412,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customSubject = customProduct.getSubject();
         this.customGender = customProduct.getGenderSpecific();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
+        this.postName = customProduct.getPostName();
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();

@@ -21,6 +21,7 @@ import com.community.api.entity.Qualification;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.DistrictService;
+import com.community.api.services.GenderService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.ProductGenderPhysicalRequirementService;
 import com.community.api.services.ResponseService;
@@ -49,6 +50,7 @@ import com.community.api.services.ProductStateService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.ReserveCategoryDtoService;
 
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -106,6 +108,9 @@ public class ProductController extends CatalogEndpoint {
     ProductGenderPhysicalRequirementService productGenderPhysicalRequirementService;
 
     @Autowired
+    GenderService genderService;
+
+    @Autowired
     public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.entityManager = entityManager;
@@ -124,10 +129,14 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PostMapping("/add/{categoryId}")
-    public ResponseEntity<?> addProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long categoryId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> addProduct(
+            HttpServletRequest request,
+            @RequestBody AddProductDto addProductDto,
+            @PathVariable Long categoryId,
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
         try {
-
             if (!productService.addProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD PRODUCT", HttpStatus.FORBIDDEN);
             }
@@ -137,24 +146,30 @@ public class ProductController extends CatalogEndpoint {
             }
 
             Category category = productService.validateCategory(categoryId);
-            productService.addProductDtoValidation(addProductDto);
+
+            if (!saveDraft) {
+                productService.addProductDtoValidation(addProductDto);
+            }
+            else
+            {
+                productService.addProductDtoWithoutValidation(addProductDto);
+            }
 
             Product product = catalogService.createProduct(ProductType.PRODUCT);
-
-            product.setMetaTitle(addProductDto.getMetaTitle()); // Also adding the same metaTitle in the sku.name as this will generate the auto-url.
+            product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
             product.setMetaDescription(addProductDto.getMetaDescription());
 
-            product.setDefaultCategory(category); // This is Deprecated.
-            product.setCategory(category); // This will add both categoryId and productId to category_product_xref table.
+            product.setDefaultCategory(category);
+            product.setCategory(category);
 
-            product = catalogService.saveProduct(product); // Save or update the product with values from requestBody.
+            product = catalogService.saveProduct(product);
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String formattedDate = dateFormat.format(new Date());
             Date currentDate = dateFormat.parse(formattedDate);
 
-            Sku sku = catalogService.createSku(); // Create a new Sku Object
+            Sku sku = catalogService.createSku();
             sku.setActiveStartDate(addProductDto.getActiveStartDate());
             sku.setName(addProductDto.getMetaTitle());
             sku.setQuantityAvailable(addProductDto.getQuantity());
@@ -164,39 +179,95 @@ public class ProductController extends CatalogEndpoint {
 
             CustomJobGroup customJobGroup = productService.validateCustomJobGroup(addProductDto.getJobGroup());
             if (customJobGroup == null) {
-                ResponseService.generateErrorResponse("Custom job group not found.", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Custom job group not found.", HttpStatus.NOT_FOUND);
             }
 
-            CustomProductState customProductState = productStateService.getProductStateByName(PRODUCT_STATE_NEW);
-            if (customProductState == null) {
-                ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
-            }
+            CustomProductState customProductState=null;
+                if(!saveDraft)
+                {
+                    customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
+                    if (customProductState == null) {
+                        return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                    }
+                }
+                else if(saveDraft)
+                {
+                     customProductState= productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
+                    {
+                        if (customProductState == null) {
+                            return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                        }
+                    }
+                }
 
-            product.setDefaultSku(sku); // Set default SKU in the product
+                product.setDefaultSku(sku);
 
-            productService.validateReserveCategory(addProductDto);
-            CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
-            CustomSector customSector = productService.validateSector(addProductDto);
+                if(!saveDraft)
+                {
+                    productService.validateReserveCategory(addProductDto);
+                }
+                else if(saveDraft)
+                {
+                    if(addProductDto.getReservedCategory()!=null)
+                    {
+                        productService.validateReserveCategory(addProductDto);
+                    }
+                }
+                CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
+                CustomSector customSector = productService.validateSector(addProductDto);
 
-            productService.validateSelectionCriteria(addProductDto);
+                productService.validateSelectionCriteria(addProductDto);
+                Qualification  qualification  = productService.validateQualification(addProductDto);
+                CustomStream customStream = productService.validateStream(addProductDto);
+                CustomSubject customSubject = productService.validateSubject(addProductDto);
 
-            Qualification qualification = productService.validateQualification(addProductDto);
-            CustomStream customStream = productService.validateStream(addProductDto);
-            CustomSubject customSubject = productService.validateSubject(addProductDto);
+                productService.validateAdmitCardDates(addProductDto);
+                productService.validateModificationDates(addProductDto);
+                productService.validateLastDateToPayFee(addProductDto);
 
-            productService.validateAdmitCardDates(addProductDto);
-            productService.validateModificationDates(addProductDto);
-            productService.validateLastDateToPayFee(addProductDto);
+                if(!saveDraft)
+                {
+                    productService.validateLinks(addProductDto);
+                }
+                else if(saveDraft)
+                {
+                    if(addProductDto.getDownloadNotificationLink()!=null)
+                    {
+                        if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
+                            throw new IllegalArgumentException("Notification download link cannot be empty");
+                        }
+                        addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
+                    }
+                    if(addProductDto.getDownloadSyllabusLink()!=null)
+                    {
+                        if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
+                            throw new IllegalArgumentException("Syllabus download link cannot be empty.");
+                        }
+                        addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
+                    }
+                }
 
-            productService.validateLinks(addProductDto);
             productService.validateFormComplexity(addProductDto);
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
 
-            productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate); // Save external product with provided dates and get status code
-            productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-            productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+            productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+
+            if(!saveDraft)
+            {
+                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+            }
+            else if(saveDraft)
+
+            {
+                if(addProductDto.getReservedCategory()!=null)
+                {
+                    productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                    productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+                }
+            }
 
             CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
@@ -206,12 +277,28 @@ public class ProductController extends CatalogEndpoint {
                 notifyingAuthority = districtService.getStateByStateId(addProductDto.getState());
             }
 
-            productService.validatePhysicalRequirement(addProductDto);
-            productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
-
+            if(!saveDraft)
+            {
+                productService.validatePhysicalRequirement(addProductDto, null);
+                productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+            }
+            else if(saveDraft)
+            {
+                if(addProductDto.getPhysicalRequirement()!=null)
+                {
+                    productService.validatePhysicalRequirement(addProductDto, null);
+                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                }
+                if(reserveCategoryService!=null)
+                {
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                }else{
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                }
+                return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -225,7 +312,6 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     @PutMapping("/update/{productId}")
@@ -255,7 +341,7 @@ public class ProductController extends CatalogEndpoint {
             }
             productService.updateProductValidation(addProductDto, customProduct);
             if(addProductDto.getPhysicalRequirement() != null) {
-                productService.validatePhysicalRequirement(addProductDto);
+                productService.validatePhysicalRequirement(addProductDto, customProduct);
                 productService.deleteOldPhysicalRequirement(customProduct);
             }
 
@@ -291,6 +377,13 @@ public class ProductController extends CatalogEndpoint {
             }
             if(addProductDto.getPhysicalRequirement() != null) {
                 productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+            }
+            if(addProductDto.getGenderSpecific()!=null){
+                if(addProductDto.getGenderSpecific() == 0) {
+                    customProduct.setGenderSpecific(null);
+                }else{
+                    customProduct.setGenderSpecific(genderService.getGenderByGenderId(addProductDto.getGenderSpecific()));
+                }
             }
 
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
@@ -583,7 +676,7 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllProducts(
+    public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit) {
