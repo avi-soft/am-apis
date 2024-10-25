@@ -9,6 +9,7 @@ import lombok.Setter;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
@@ -32,6 +33,17 @@ public class CustomAdmin
     private String token;
     private int signedUp=0;
     private String created_at,updated_at,created_by, modified_by;
+
+    @ManyToMany
+    @JoinTable(
+            name = "custom_admin_privileges",
+            joinColumns = @JoinColumn(name = "custom_admin_id"),
+            inverseJoinColumns = @JoinColumn(name = "privilege_id"),
+            // Adding an extra join column for "role_id" using columnDefinition
+            uniqueConstraints = @UniqueConstraint(columnNames = {"custom_admin_id", "privilege_id", "role_id"})
+    )
+    @JoinColumn(name = "role_id")
+    private List<Privileges> privileges;
 
 
     public CustomAdmin(Long admin_id, int role, String password,String user_name, String mobileNumber,String country_code,int signedUp, String created_at, String created_by) {

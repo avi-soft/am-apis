@@ -1,6 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.EntityManager;
@@ -28,6 +30,10 @@ public class PrivilegeService {
     private ExceptionHandlingImplement exceptionHandling;
     @Autowired
     private ResponseService responseService;
+    @Autowired
+    JwtUtil jwtTokenUtil;
+    @Autowired
+    RoleService roleService;
     @Transactional
     public ResponseEntity<?> assignPrivilege(@RequestParam Integer privilege_id, @RequestParam Long id, @RequestParam Integer role_id) {
         try {
@@ -126,6 +132,21 @@ public class PrivilegeService {
             return Collections.emptyList();
         }
     }
+
+    public List<Integer> getCustomAdminPrivilegeQuery(Long customAdminId)
+    {
+        try
+        {
+            Query query= entityManager.createNativeQuery(Constant.CUSTOM_ADMIN_PRIVILEGE);
+            query.setParameter("custom_admin_id", customAdminId);
+            return query.getResultList();
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return Collections.emptyList();
+        }
+    }
     public List<Privileges> findAllPrivilegeList() {
         TypedQuery<Privileges> query = entityManager.createQuery(Constant.GET_ALL_PRIVILEGES,Privileges.class);
         return query.getResultList();
@@ -146,5 +167,60 @@ public class PrivilegeService {
             exceptionHandling.handleException(e);
             return Collections.emptyList();
         }
+    }
+
+    public List<Privileges> getCustomAdminPrivilege(Long customAdminId)
+    {
+        try
+        {
+            List<Integer>listOfPrivilegeId=getCustomAdminPrivilegeQuery(customAdminId);
+            List<Privileges>listOfPrivileges=new ArrayList<>();
+            for(int  privilege_id:listOfPrivilegeId)
+            {
+                Privileges privileges= entityManager.find(Privileges.class,privilege_id);
+                if(privileges!=null)
+                {
+                    listOfPrivileges.add(privileges);
+                }
+            }
+            return listOfPrivileges;
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return Collections.emptyList();
+        }
+    }
+
+    public boolean checkAuthority(@RequestHeader(value = "Authorization") String authHeader,String privilegeToAuthorize)
+    {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        String role = roleService.getRoleByRoleId(roleId).getRole_name();
+        Long userId = null;
+        if (role.equals(Constant.SERVICE_PROVIDER))
+        {
+            userId = jwtTokenUtil.extractId(jwtToken);
+            List<Privileges> privileges = getServiceProviderPrivilege(userId);
+
+            for (Privileges privilege : privileges) {
+                if (privilege.getPrivilege_name().equals(privilegeToAuthorize)) {
+                    return true;
+                }
+            }
+        }
+        else if(role.equals(Constant.SUPER_ADMIN)|| role.equals(Constant.ADMIN) || role.equals(Constant.roleAdminServiceProvider))
+        {
+            userId=jwtTokenUtil.extractId(jwtToken);
+            List<Privileges> privileges = getCustomAdminPrivilege(userId);
+            for(Privileges privilege : privileges)
+            {
+                if(privilege.getPrivilege_name().equals(privilegeToAuthorize))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

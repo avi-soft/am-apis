@@ -420,169 +420,53 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
 
-        if(count==0)
-        {
-            entityManager.persist(new Privileges(1,"ASSIGN_PRIVILEGE","Privilege to Assign a Privilege to a specific role"));
-            entityManager.persist(new Privileges(2,"REMOVE_PRIVILEGE","Privilege to Remove a Privilege from database"));
-            entityManager.persist(new Privileges(3,"CREATE_PRIVILEGE","Privilege to Create a new privilege"));
-            entityManager.persist(new Privileges(4, "GET_ALL_PRIVILEGES","Privilege to Retrieve all the privileges stored in the Database"));
+        if (count == 0) {
+            entityManager.persist(new Privileges(1, "ASSIGN_PRIVILEGE", "Privilege to assign a privilege to a specific role"));
+            entityManager.persist(new Privileges(2, "REMOVE_PRIVILEGE", "Privilege to remove a privilege from the database"));
+            entityManager.persist(new Privileges(3, "CREATE_PRIVILEGE", "Privilege to create a new privilege"));
+            entityManager.persist(new Privileges(4, "GET_ALL_PRIVILEGES", "Privilege to retrieve all privileges stored in the database"));
 
-            entityManager.persist(new Privileges(5,"ADD_ROLE","Privilege to add new Role"));
-            entityManager.persist(new Privileges(6,"GET_ROLES","Privilege to retrieve all Roles"));
+            entityManager.persist(new Privileges(5, "ADD_ROLE", "Privilege to add a new role"));
+            entityManager.persist(new Privileges(6, "GET_ROLES", "Privilege to retrieve all roles"));
 
-            entityManager.persist(new Privileges(7,"ADD_INFRAS","Privilege to ADD a new Infra"));
-            entityManager.persist(new Privileges(8,"RETRIEVE_INFRAS","Privilege to Retrieve all the Infras"));
+            entityManager.persist(new Privileges(7, "ADD_INFRAS", "Privilege to add a new infrastructure"));
 
-            entityManager.persist(new Privileges(9,"ADD_LANGUAGE","Privilege to Add Language"));
-            entityManager.persist(new Privileges(10,"RETRIEVE_LANGUAGES","Privilege to Retrieve all languages"));
-//            entityManager.persist(new Privileges(11,"ADD_LANGUAGE","Privilege to add language"));
+            entityManager.persist(new Privileges(8, "ADD_LANGUAGE", "Privilege to add language"));
 
-            entityManager.persist(new Privileges(12,"GET_ALL_DISTRICTS","Privilege to Retrieve all districts"));
+            entityManager.persist(new Privileges(9, "ADD_SKILLS", "Privilege to add skills"));
 
-            entityManager.persist(new Privileges(13,"ADD_SKILLS","Privilege to add skills"));
-            entityManager.persist(new Privileges(14,"GET_ALL_SKILLS","Privilege to Retrieve all skills"));
+            entityManager.persist(new Privileges(10, "ADD_CATEGORY", "Privilege to add a product category"));
+            entityManager.persist(new Privileges(11, "REMOVE_CATEGORY", "Privilege to remove a category"));
+            entityManager.persist(new Privileges(12, "UPDATE_CATEGORY", "Privilege to update a category"));
 
-            entityManager.persist(new Privileges(15,"GET_ALL_STATES","Privilege to Retrieve all states"));
+            entityManager.persist(new Privileges(13, "SET_REFERRER_FOR_CUSTOMER", "Privilege to set a referrer for a customer"));
 
-            entityManager.persist(new Privileges(16, "ADD_TO_CART", "Privilege to add items to the cart"));
-            entityManager.persist(new Privileges(17, "RETRIEVE_CART_ITEMS_COUNT", "Privilege to retrieve the count of items in the cart"));
-            entityManager.persist(new Privileges(18, "EMPTY_CART", "Privilege to empty the cart"));
-            entityManager.persist(new Privileges(19, "PREVIEW_CART_OF_CUSTOMER", "Privilege to preview the customer's cart"));
-            entityManager.persist(new Privileges(20, "REMOVE_ITEM_FROM_CART", "Privilege to remove items from the cart"));
-            entityManager.persist(new Privileges(21, "PLACE_ORDER", "Privilege to place an order"));
-            entityManager.persist(new Privileges(22, "CART_RECOVERY_LOG", "Privilege to view the cart recovery log"));
+            entityManager.persist(new Privileges(14, "CREATE_DOCUMENT_TYPE", "Privilege to create a document type"));
 
-            entityManager.persist(new Privileges(23, "ADD_CATEGORY", "Privilege to add a product category"));
-            entityManager.persist(new Privileges(24, "GET_ALL_CATEGORIES", "Privilege to retrieve all categories"));
-            entityManager.persist(new Privileges(25, "GET_PRODUCTS_BY_CATEGORY_ID", "Privilege to get products by category ID"));
-            entityManager.persist(new Privileges(26, "REMOVE_CATEGORY", "Privilege to remove a category"));
-            entityManager.persist(new Privileges(27, "UPDATE_CATEGORY", "Privilege to update a category"));
+            entityManager.persist(new Privileges(15, "ADD_PRODUCT", "Privilege to add a new product"));
+            entityManager.persist(new Privileges(16, "UPDATE_PRODUCT", "Privilege to update an existing product"));
+            entityManager.persist(new Privileges(17, "DELETE_PRODUCT", "Privilege to delete a product"));
 
-            entityManager.persist(new Privileges(28, "UPDATE_CUSTOMER", "Privilege to update customer information"));
-            entityManager.persist(new Privileges(29, "GET_CUSTOMER_DETAILS_BY_ID", "Privilege to retrieve customer details by customer ID"));
-            entityManager.persist(new Privileges(30, "UPLOAD_DOCUMENTS", "Privilege to upload customer documents"));
-            entityManager.persist(new Privileges(31, "UPDATE_USERNAME", "Privilege to update a customer’s username"));
-            entityManager.persist(new Privileges(32, "CREATE_OR_UPDATE_PASSWORD", "Privilege to create or update a password"));
-            entityManager.persist(new Privileges(33, "DELETE_CUSTOMER", "Privilege to delete a customer account"));
-            entityManager.persist(new Privileges(34, "ADD_ADDRESS", "Privilege to add an address"));
-            entityManager.persist(new Privileges(35, "RETRIEVE_ALL_ADDRESSES_OF_CUSTOMER", "Privilege to retrieve all addresses of a customer"));
-            entityManager.persist(new Privileges(36, "RETRIEVE_ADDRESS_DETAILS_OF_CUSTOMER", "Privilege to retrieve specific address details of a customer"));
-            entityManager.persist(new Privileges(37, "LOGOUT", "Privilege to log out the customer"));
-            entityManager.persist(new Privileges(38, "SAVE_FORM", "Privilege to save a form"));
-            entityManager.persist(new Privileges(39, "UNSAVE_FORM", "Privilege to unsave a form"));
-            entityManager.persist(new Privileges(40, "GET_SAVED_FORMS", "Privilege to retrieve saved forms"));
-            entityManager.persist(new Privileges(41, "GET_FILLED_FORMS_BY_CUSTOMER", "Privilege to retrieve filled forms by a customer"));
-            entityManager.persist(new Privileges(42, "GET_RECOMMENDED_FORMS", "Privilege to retrieve recommended forms"));
-            entityManager.persist(new Privileges(43, "GET_ALL_CUSTOMERS", "Privilege to retrieve all customers"));
-            entityManager.persist(new Privileges(44, "SET_REFERRER_FOR_CUSTOMER", "Privilege to set a referrer for a customer"));
+            entityManager.persist(new Privileges(18, "ADD_QUALIFICATION", "Privilege to add a new qualification"));
 
-            entityManager.persist(new Privileges(45, "CREATE_DOCUMENT_TYPE", "Privilege to create a document type"));
-            entityManager.persist(new Privileges(46, "GET_ALL_DOCUMENTS", "Privilege to retrieve all documents"));
-            entityManager.persist(new Privileges(47, "GET_DOCUMENT_OF_CUSTOMER", "Privilege to retrieve customer documents"));
-            entityManager.persist(new Privileges(48, "DOWNLOAD_FILE", "Privilege to download a file"));
+            entityManager.persist(new Privileges(19, "ADD_SECTOR", "Privilege to add a new sector"));
 
-            entityManager.persist(new Privileges(49, "GET_ALL_GENDERS", "Privilege to retrieve all gender options"));
-            entityManager.persist(new Privileges(50, "GET_GENDER_BY_ID", "Privilege to retrieve gender details by ID"));
+            entityManager.persist(new Privileges(20, "GET_COMPLETED_TEST_OF_SERVICE_PROVIDER", "Privilege to retrieve completed tests of a service provider"));
+            entityManager.persist(new Privileges(21, "GIVE_UPLOADED_IMAGE_SCORE", "Privilege to give a score to the uploaded image"));
 
-            entityManager.persist(new Privileges(51, "NOTIFY_CUSTOMER", "Privilege to notify a customer"));
-            entityManager.persist(new Privileges(52, "GET_ORDER_HISTORY", "Privilege to retrieve the customer’s order history"));
-            entityManager.persist(new Privileges(53, "SHOW_CLUBBED_ORDERS", "Privilege to show clubbed orders"));
-            entityManager.persist(new Privileges(54, "SHOW_ALL_ORDERS", "Privilege to show all orders"));
-            entityManager.persist(new Privileges(55, "ASSIGN_ORDER", "Privilege to assign an order to a service provider"));
-            entityManager.persist(new Privileges(56, "GET_ELIGIBLE_SERVICE_PROVIDER", "Privilege to retrieve eligible service providers for an order"));
-            entityManager.persist(new Privileges(57, "FIND_ORDER_STATUS", "Privilege to find the status of an order"));
-            entityManager.persist(new Privileges(58, "FIND_ORDER_STATE", "Privilege to find the state of an order"));
+            entityManager.persist(new Privileges(22, "UPDATE_STATUS_OF_SERVICE_PROVIDER", "Privilege to update the status of a service provider"));
 
-            entityManager.persist(new Privileges(59, "GET_ALL_APPLICATION_SCOPE", "Privilege to retrieve all application scopes"));
-            entityManager.persist(new Privileges(60, "GET_APPLICATION_SCOPE_BY_ID", "Privilege to retrieve an application scope by ID"));
+            entityManager.persist(new Privileges(23, "ADD_SERVICE_PROVIDERS_ADDRESS_TYPES", "Privilege to add service provider address types"));
 
-            entityManager.persist(new Privileges(61, "GET_ALL_JOB_GROUPS", "Privilege to retrieve all job groups"));
-            entityManager.persist(new Privileges(62, "GET_JOB_GROUP_BY_ID", "Privilege to retrieve job group details by ID"));
+            entityManager.persist(new Privileges(24, "ADD_STREAM", "Privilege to add a stream"));
 
-            entityManager.persist(new Privileges(63, "ADD_PRODUCT", "Privilege to add a new product"));
-            entityManager.persist(new Privileges(64, "UPDATE_PRODUCT", "Privilege to update an existing product"));
-            entityManager.persist(new Privileges(65, "GET_PRODUCT_BY_ID", "Privilege to retrieve a product by ID"));
-            entityManager.persist(new Privileges(66, "GET_ALL_PRODUCTS", "Privilege to retrieve all products"));
-            entityManager.persist(new Privileges(67, "DELETE_PRODUCT", "Privilege to delete a product"));
-            entityManager.persist(new Privileges(68, "GET_ALL_NEW_STATE_PRODUCTS", "Privilege to retrieve all products in the new state"));
-            entityManager.persist(new Privileges(69, "GET_ALL_LIVE_STATE_PRODUCTS", "Privilege to retrieve all products in the live state"));
-            entityManager.persist(new Privileges(70, "GET_FILTER_PRODUCTS", "Privilege to retrieve products with filters applied"));
-            entityManager.persist(new Privileges(71, "GET_ALL_PRODUCTS_CREATED_BY_SERVICE_PROVIDER", "Privilege to retrieve all products created by a service provider"));
+            entityManager.persist(new Privileges(25, "ADD_SUBJECT", "Privilege to add a subject"));
 
-            entityManager.persist(new Privileges(72, "GET_ALL_PRODUCT_REJECTION_STATUS", "Privilege to retrieve all product rejection statuses"));
-            entityManager.persist(new Privileges(73, "GET_PRODUCT_REJECTION_STATUS_BY_REJECTION_STATUS_ID", "Privilege to retrieve product rejection status by ID"));
+            entityManager.persist(new Privileges(26, "UPLOAD_IMAGE", "Privilege to upload an image"));
+            entityManager.persist(new Privileges(27, "UPLOAD_MULTIPLE_IMAGES", "Privilege to upload multiple images"));
 
-            entityManager.persist(new Privileges(74, "GET_ALL_PRODUCT_STATES", "Privilege to retrieve all product states"));
-            entityManager.persist(new Privileges(75, "GET_PRODUCT_STATE_BY_ID", "Privilege to retrieve product state by ID"));
-            entityManager.persist(new Privileges(76, "GET_PRODUCT_STATE_BY_NAME", "Privilege to retrieve product state by name"));
-
-            entityManager.persist(new Privileges(77, "GET_ALL_RESERVED_CATEGORIES", "Privilege to retrieve all reserved categories"));
-            entityManager.persist(new Privileges(78, "GET_RESERVED_CATEGORY_BY_ID", "Privilege to retrieve a reserved category by ID"));
-
-            entityManager.persist(new Privileges(79, "GET_ALL_QUALIFICATIONS", "Privilege to retrieve all qualifications"));
-            entityManager.persist(new Privileges(80, "ADD_QUALIFICATION", "Privilege to add a new qualification"));
-
-            entityManager.persist(new Privileges(81, "ADD_SECTOR", "Privilege to add a new sector"));
-            entityManager.persist(new Privileges(82, "GET_ALL_SECTORS", "Privilege to retrieve all sectors"));
-            entityManager.persist(new Privileges(83, "GET_SECTOR_BY_ID", "Privilege to retrieve sector details by ID"));
-
-            entityManager.persist(new Privileges(84, "ASSIGN_SKILL_TO_SERVICE_PROVIDER", "Privilege to assign skills to a service provider"));
-            entityManager.persist(new Privileges(85, "SAVE_OR_UPDATE_SERVICE_PROVIDER", "Privilege to save or update service provider information"));
-            entityManager.persist(new Privileges(86, "DELETE_SERVICE_PROVIDER", "Privilege to delete a service provider"));
-            entityManager.persist(new Privileges(87, "CREATE_OR_UPDATE_PASSWORD", "Privilege to create or update service provider password"));
-            entityManager.persist(new Privileges(88, "GET_SERVICE_PROVIDER", "Privilege to retrieve service provider details"));
-            entityManager.persist(new Privileges(89, "ADD_ADDRESS_OF_SERVICE_PROVIDER", "Privilege to add address for a service provider"));
-            entityManager.persist(new Privileges(90, "GET_ADDRESS_NAMES_OF_SERVICE_PROVIDER", "Privilege to retrieve address names of a service provider"));
-            entityManager.persist(new Privileges(91, "GET_ALL_SERVICE_PROVIDERS", "Privilege to retrieve all service providers"));
-            entityManager.persist(new Privileges(92, "GET_ALL_SERVICE_PROVIDERS_WITH_COMPLETED_TEST", "Privilege to retrieve service providers with completed tests"));
-            entityManager.persist(new Privileges(93, "FILTER_SERVICE_PROVIDER", "Privilege to filter service providers"));
-            entityManager.persist(new Privileges(94, "SHOW_REFERRED_CANDIDATES", "Privilege to show referred candidates"));
-            entityManager.persist(new Privileges(95, "GET_ALL_ORDER_REQUESTS_BY_SERVICE_PROVIDER", "Privilege to retrieve all order requests by a service provider"));
-            entityManager.persist(new Privileges(96, "ORDER_REQUEST_ACTION", "Privilege to take action on an order request"));
-            entityManager.persist(new Privileges(97, "COMPLETE_ORDER", "Privilege to complete an order"));
-
-            entityManager.persist(new Privileges(98, "GET_ALL_SERVICE_PROVIDER_RANK", "Privilege to retrieve all service provider ranks"));
-            entityManager.persist(new Privileges(99, "GET_SCORE_CARD", "Privilege to retrieve the score card of a service provider"));
-
-            entityManager.persist(new Privileges(100, "START_TEST", "Privilege to start a test for a service provider"));
-            entityManager.persist(new Privileges(101, "UPLOAD_RESIZED_IMAGE", "Privilege to upload a resized image"));
-            entityManager.persist(new Privileges(102, "SUBMIT_TYPED_TEXT", "Privilege to submit typed text for a typing test"));
-            entityManager.persist(new Privileges(103, "UPLOAD_SIGNATURE", "Privilege to upload a signature image"));
-            entityManager.persist(new Privileges(104, "GET_ALL_TESTS_OF_SERVICE_PROVIDER", "Privilege to retrieve all tests of a service provider"));
-            entityManager.persist(new Privileges(105, "GET_COMPLETED_TEST_OF_SERVICE_PROVIDER", "Privilege to retrieve completed tests of a service provider"));
-            entityManager.persist(new Privileges(106, "GIVE_UPLOADED_IMAGE_SCORE", "Privilege to give a score to the uploaded image"));
-
-            entityManager.persist(new Privileges(107, "GET_ALL_STATUS", "Privilege to retrieve all status types"));
-            entityManager.persist(new Privileges(108, "UPDATE_STATUS_OF_SERVICE_PROVIDER", "Privilege to update the status of a service provider"));
-
-            entityManager.persist(new Privileges(109, "GET_SERVICE_PROVIDERS_ADDRESS_TYPES", "Privilege to retrieve service provider address types"));
-            entityManager.persist(new Privileges(110, "ADD_SERVICE_PROVIDERS_ADDRESS_TYPES", "Privilege to add service provider address types"));
-
-            entityManager.persist(new Privileges(111, "ADD_STREAM", "Privilege to add a stream"));
-            entityManager.persist(new Privileges(112, "GET_ALL_STREAMS", "Privilege to retrieve all streams"));
-            entityManager.persist(new Privileges(113, "GET_STREAM_BY_ID", "Privilege to retrieve a stream by ID"));
-
-            entityManager.persist(new Privileges(114, "ADD_SUBJECT", "Privilege to add a subject"));
-            entityManager.persist(new Privileges(115, "GET_ALL_SUBJECTS", "Privilege to retrieve all subjects"));
-            entityManager.persist(new Privileges(116, "GET_SUBJECT_BY_ID", "Privilege to retrieve a subject by ID"));
-
-            entityManager.persist(new Privileges(117, "UPLOAD_IMAGE", "Privilege to upload an image"));
-            entityManager.persist(new Privileges(118, "UPLOAD_MULTIPLE_IMAGES", "Privilege to upload multiple images"));
-            entityManager.persist(new Privileges(119, "GET_ALL_IMAGES", "Privilege to retrieve all images"));
-
-            entityManager.persist(new Privileges(120, "ADD_TYPING_TEXTS", "Privilege to add typing test texts"));
-            entityManager.persist(new Privileges(121, "GET_ALL_TYPING_TEXTS", "Privilege to retrieve all typing test texts"));
-
-            entityManager.persist(new Privileges(122, "GET_ALL_TICKET_STATES", "Privilege to retrieve all ticket states"));
-            entityManager.persist(new Privileges(123, "GET_TICKET_STATE_BY_STATE_ID", "Privilege to retrieve ticket state by state ID"));
-
-            entityManager.persist(new Privileges(124, "GET_ALL_TICKET_STATUS", "Privilege to retrieve all ticket statuses"));
-            entityManager.persist(new Privileges(125, "GET_TICKET_STATUS_BY_ID", "Privilege to retrieve ticket status by ID"));
-
-            entityManager.persist(new Privileges(126, "GET_ALL_TICKET_TYPES", "Privilege to retrieve all ticket types"));
-            entityManager.persist(new Privileges(127, "GET_TICKET_TYPE_BY_ID", "Privilege to retrieve ticket type by ID"));
-
-            entityManager.persist(new Privileges(128, "CREATE_TICKET", "Privilege to create a ticket"));
+            entityManager.persist(new Privileges(28, "ADD_TYPING_TEXTS", "Privilege to add typing test texts"));
+            entityManager.persist(new Privileges(29,"ALL_PRIVILEGES","Privilege to assign all the privileges to a role"));
         }
     }
 }
