@@ -685,34 +685,11 @@ public class ProductController extends CatalogEndpoint {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
-
             String jwtToken = authHeader.substring(7);
 
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
-            List<CustomProduct> products = productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
-            long totalProducts = productService.countTotalProducts(roleId, userId);
-
-            if (products.isEmpty()) {
-                return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
-            }
-
-            List<CustomProductWrapper> responses = new ArrayList<>();
-            for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
-                    CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(customProduct);
-                    responses.add(wrapper);
-                }
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("products", responses);
-            response.put("currentPage", page);
-            response.put("totalItems", totalProducts);
-            response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
-
-            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
 
         }catch(IllegalArgumentException illegalArgumentException)
         {
