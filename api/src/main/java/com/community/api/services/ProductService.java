@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
+import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
@@ -24,6 +25,7 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -35,16 +37,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.*;
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
 
 import static com.community.api.component.Constant.*;
 import static com.community.api.component.Constant.PRODUCTNOTFOUND;
@@ -97,6 +91,8 @@ public class ProductService {
     ProductGenderPhysicalRequirementService productGenderPhysicalRequirementService;
     @PersistenceContext
     private EntityManager entityManager;
+    @Autowired
+    private ResponseService responseService;
 
     public void saveCustomProduct(Product product, AddProductDto addProductDto, CustomProductState productState, Role role, Long creatorUserId, Date modifiedDate, Date currentDate) {
 
@@ -475,10 +471,11 @@ public class ProductService {
         return query.getResultList();
     }
 
-    public List<CustomProduct> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit) {
         StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
+        List<CustomProduct> products=new ArrayList<>();
 
         // Check if the role exists
         if (roleId != null) {
@@ -494,7 +491,7 @@ public class ProductService {
                         .getSingleResult();
 
                 if (roleProductCount == 0) {
-                    throw new IllegalArgumentException("No product is created by role with id " + roleId);
+                    return ResponseService.generateSuccessResponse("No product is created by role with id " + roleId, Collections.emptyList(),HttpStatus.OK);
                 } else {
                     jpql.append("WHERE r.role_id = :roleId ");
                     queryParams.put("roleId", roleId);
@@ -507,7 +504,7 @@ public class ProductService {
                             .getSingleResult();
 
                     if (userProductCount == 0) {
-                        throw new IllegalArgumentException("No user with id " + userId + " has created any product");
+                        return ResponseService.generateSuccessResponse("No user with id " + userId + " has created any product",Collections.emptyList(),HttpStatus.OK);
                     } else {
                         jpql.append("AND p.userId = :userId ");
                         queryParams.put("userId", userId);
@@ -526,8 +523,28 @@ public class ProductService {
         int startPosition = page * limit;
         query.setFirstResult(startPosition);
         query.setMaxResults(limit);
+        products= query.getResultList();
 
-        return query.getResultList();
+        if (products.isEmpty()) {
+            return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
+        }
+        long totalProducts = countTotalProducts(roleId, userId);
+        List<CustomProductWrapper> responses = new ArrayList<>();
+        for (CustomProduct customProduct : products) {
+            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+                CustomProductWrapper wrapper = new CustomProductWrapper();
+                wrapper.wrapDetails(customProduct);
+                responses.add(wrapper);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("products", responses);
+        response.put("currentPage", page);
+        response.put("totalItems", totalProducts);
+        response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
+
+        return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
 
     public long countTotalProducts(Integer roleId, Long userId) {
