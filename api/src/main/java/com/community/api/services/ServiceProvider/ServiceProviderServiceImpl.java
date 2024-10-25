@@ -192,8 +192,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-        } else
-            existingServiceProvider.setSkills(null);
+        }
+        else {
+            if(!existingServiceProvider.getSkills().isEmpty())
+            {
+                serviceProviderSkills=existingServiceProvider.getSkills();
+
+            }
+            else
+                serviceProviderSkills=null;
+        }
         if (!infraList.isEmpty()) {
             for (int infra_id : infraList) {
                 ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);
@@ -203,6 +211,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
         }
+        else {
+            serviceProviderInfras=existingServiceProvider.getInfra();
+        }
         if (!languageList.isEmpty()) {
             for (int language_id : languageList) {
                 ServiceProviderLanguage serviceProviderLanguage = entityManager.find(ServiceProviderLanguage.class, language_id);
@@ -211,6 +222,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderLanguages.add(serviceProviderLanguage);
                 }
             }
+        }else {
+            serviceProviderLanguages=existingServiceProvider.getLanguages();
         }
         existingServiceProvider.setInfra(serviceProviderInfras);
         existingServiceProvider.setSkills(serviceProviderSkills);
@@ -266,6 +279,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(sharedUtilityService.isFutureDate(dob))
                 errorMessages.add("DOB cannot be in future");
         }
+        if(updates.containsKey("pan_number")&&((String)updates.get("pan_number")).isEmpty())
+            errorMessages.add("pan number cannot be empty");
         // Update only the fields that are present in the map using reflections
         for (Map.Entry<String, Object> entry : updates.entrySet()) {
             String fieldName = entry.getKey();

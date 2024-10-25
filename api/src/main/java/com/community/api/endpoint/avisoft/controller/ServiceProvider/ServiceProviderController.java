@@ -93,7 +93,7 @@ public class ServiceProviderController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error assigning skill: " + e.getMessage());
         }
     }
-
+    @Transactional
     @PatchMapping("save-service-provider")
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
         try {
@@ -420,7 +420,6 @@ public class ServiceProviderController {
                         order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
@@ -515,7 +514,7 @@ public class ServiceProviderController {
                 {
                     return ResponseService.generateErrorResponse("Selected order Status does not belong to this action",HttpStatus.BAD_REQUEST);
                 }
-                customOrderState.setOrderStatusId(Constant.ORDER_STATE_COMPLETED.getOrderStatusId());
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_COMPLETED.getOrderStateId());
                 customOrderState.setOrderStatusId(statusId);
                 entityManager.merge(customOrderState);
                 Map<String,Object>response=new HashMap<>();

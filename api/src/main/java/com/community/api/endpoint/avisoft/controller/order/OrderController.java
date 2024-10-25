@@ -104,7 +104,6 @@ public class OrderController
                 orderDTO = new OrderDTO(order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
@@ -135,7 +134,7 @@ public class OrderController
         }
     }
   @RequestMapping(value = "show-all-orders",method = RequestMethod.GET)
-    public ResponseEntity<?> showClubbedOrders( @RequestParam(defaultValue = "all") String orderStateId,
+    public ResponseEntity<?> showClubbedOrders( @RequestParam(defaultValue = "all") String orderState,
                                                 @RequestParam(defaultValue = "oldest-to-latest")String sort,
                                                 @RequestParam(defaultValue = "0")int page,
                                                @RequestParam(defaultValue = "5")int limit) {
@@ -144,7 +143,7 @@ public class OrderController
             int startPosition = page * limit;
             List<BigInteger> orderIds = null;
             Query query = null;
-            if (orderStateId.equals("all")) {
+            if (orderState.equals("all")) {
                 query = entityManager.createNativeQuery(Constant.GET_ALL_ORDERS);
                 query.setFirstResult(startPosition);
                 query.setMaxResults(limit);
@@ -153,7 +152,7 @@ public class OrderController
                 query = entityManager.createNativeQuery(Constant.SEARCH_ORDER_QUERY);
                 query.setFirstResult(startPosition);
                 query.setMaxResults(limit);
-                switch (orderStateId) {
+                switch (orderState) {
                     case "completed":
                         query.setParameter("orderStateId", Constant.ORDER_STATE_COMPLETED.getOrderStateId());
                         break;
@@ -208,7 +207,6 @@ public class OrderController
                         order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
