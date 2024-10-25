@@ -310,7 +310,7 @@ public class SharedUtilityService {
         return ValidationResult.SUCCESS;
 
     }
-
+    @Transactional
     public Map<String,Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider)
     {
         Map<String,Object>serviceProviderDetails=new HashMap<>();
@@ -365,6 +365,7 @@ public class SharedUtilityService {
         else {
             serviceProviderDetails.put("part_time_or_full_time",serviceProvider.getPartTimeOrFullTime());
             serviceProviderDetails.put("part_time_or_full_time_score",serviceProvider.getPartTimeOrFullTimeScore());
+            serviceProviderDetails.put("infra_scores",serviceProvider.getInfraScore());
         }
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());

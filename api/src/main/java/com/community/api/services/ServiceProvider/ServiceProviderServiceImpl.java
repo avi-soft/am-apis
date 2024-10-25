@@ -5,12 +5,6 @@ import com.community.api.component.JwtUtil;
 import com.community.api.entity.*;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
-import com.community.api.entity.ServiceProviderAddress;
-import com.community.api.entity.ServiceProviderAddressRef;
-import com.community.api.entity.ServiceProviderInfra;
-import com.community.api.entity.ServiceProviderLanguage;
-import com.community.api.entity.Skill;
-import com.community.api.entity.StateCode;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.DocumentType;
@@ -257,8 +251,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-        } else
-            existingServiceProvider.setSkills(null);
+        } else {
+            if(!existingServiceProvider.getSkills().isEmpty())
+            {
+                serviceProviderSkills=existingServiceProvider.getSkills();
+
+            }
+            else
+                serviceProviderSkills=null;
+        }
             TypedQuery<ScoringCriteria> typedQuery=  entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA,ScoringCriteria.class);
             List<ScoringCriteria> scoringCriteriaList = typedQuery.getResultList();
 
@@ -304,6 +305,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderInfras.add(serviceProviderInfrastructure);
                 }
             }
+        }else {
+            serviceProviderInfras=existingServiceProvider.getInfra();
         }
         if (!languageList.isEmpty()) {
             for (int language_id : languageList) {
@@ -313,6 +316,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderLanguages.add(serviceProviderLanguage);
                 }
             }
+        }else {
+            serviceProviderLanguages=existingServiceProvider.getLanguages();
         }
         existingServiceProvider.setInfra(serviceProviderInfras);
         existingServiceProvider.setSkills(serviceProviderSkills);
@@ -413,6 +418,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(sharedUtilityService.isFutureDate(dob))
                 errorMessages.add("DOB cannot be in future");
         }
+        if(updates.containsKey("pan_number")&&((String)updates.get("pan_number")).isEmpty())
+            errorMessages.add("pan number cannot be empty");
         // Update only the fields that are present in the map using reflections
         for (Map.Entry<String, Object> entry : updates.entrySet()) {
             String fieldName = entry.getKey();
@@ -500,6 +507,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             existingServiceProvider.setUser_name(username);
         }
         entityManager.merge(existingServiceProvider);
+
 
             if(updates.containsKey("work_experience_in_months"))
             {
@@ -645,6 +653,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             assignRank(existingServiceProvider,totalScore);
 
             Map<String,Object> serviceProviderMap=sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+
         return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
     }catch (NoSuchFieldException e)
         {
