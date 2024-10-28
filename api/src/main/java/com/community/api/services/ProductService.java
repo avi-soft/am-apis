@@ -519,6 +519,10 @@ public class ProductService {
                         .getSingleResult();
 
                 if (roleProductCount == 0) {
+                    if(showDraftProducts)
+                    {
+                        return ResponseService.generateSuccessResponse("No product is saved as draft by role with id " + roleId, Collections.emptyList(),HttpStatus.OK);
+                    }
                     return ResponseService.generateSuccessResponse("No product is created by role with id " + roleId, Collections.emptyList(),HttpStatus.OK);
                 } else {
                     jpql.append("WHERE r.role_id = :roleId ");
@@ -532,6 +536,10 @@ public class ProductService {
                             .getSingleResult();
 
                     if (userProductCount == 0) {
+                        if(showDraftProducts)
+                        {
+                            return ResponseService.generateSuccessResponse("No user with id " + userId + " has saved any product as draft",Collections.emptyList(),HttpStatus.OK);
+                        }
                         return ResponseService.generateSuccessResponse("No user with id " + userId + " has created any product",Collections.emptyList(),HttpStatus.OK);
                     } else {
                         jpql.append("AND p.userId = :userId ");
@@ -558,6 +566,10 @@ public class ProductService {
         query.setMaxResults(limit);
         products= query.getResultList();
 
+        if(showDraftProducts)
+        {
+            return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
+        }
         if (products.isEmpty()) {
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
