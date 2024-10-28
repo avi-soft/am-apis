@@ -149,7 +149,7 @@ public class Constant {
     public static final String EMAIL_REGEXP="^[\\w-\\.]+@[\\w-]+\\.[a-zA-Z]{2,}$";
     public static final String GET_ALL_ORDERS_OF_ONE_CUSTOMER="SELECT o from blc_ ";
     public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber";;
-
+    public static final String CHECK_FOR_REPEATED_REF="SELECT COUNT(*) FROM customer_referrer c WHERE c.customer_id = :customerId AND c.service_provider_id = :spId";
     public static final String GET_ALL_ORDERS="SELECT o.order_id FROM blc_order o WHERE o.order_status <> 'IN_PROCESS'";
     public static final String SEARCH_ORDER_QUERY="SELECT o.order_id FROM order_state o WHERE o.order_state_id =:orderStateId";
     public static final String GET_NEW_ORDERS="SELECT o.order_id FROM order_state o WHERE o.order_state_id = 1";
