@@ -675,30 +675,57 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
+//    @GetMapping("/get-all")
+//    public ResponseEntity<?> getAllProductsByServiceProvider(
+//            @RequestHeader(value = "Authorization") String authHeader,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int limit) {
+//
+//        try {
+//            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
+//            }
+//            String jwtToken = authHeader.substring(7);
+//
+//            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+//            Long userId = jwtTokenUtil.extractId(jwtToken);
+//            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
+//
+//        }catch(IllegalArgumentException illegalArgumentException)
+//        {
+//            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+//        }
+//        catch (Exception exception) {
+//            exceptionHandlingService.handleException(exception);
+//            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
     @GetMapping("/get-all")
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
-            String jwtToken = authHeader.substring(7);
 
+            String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
-            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
 
-        }catch(IllegalArgumentException illegalArgumentException)
-        {
+            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit,showDraftProducts);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 }

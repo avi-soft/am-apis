@@ -499,7 +499,7 @@ public class ProductService {
         return query.getResultList();
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts) {
         StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
@@ -544,6 +544,11 @@ public class ProductService {
             }
         }
 
+        if (showDraftProducts) {
+            jpql.append("AND p.productState.productState = :draftState ");
+            queryParams.put("draftState", "DRAFT");
+        }
+
         // Execute the query with pagination
         TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
         queryParams.forEach(query::setParameter);
@@ -556,7 +561,7 @@ public class ProductService {
         if (products.isEmpty()) {
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
-        long totalProducts = countTotalProducts(roleId, userId);
+        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
             if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
@@ -571,11 +576,15 @@ public class ProductService {
         response.put("currentPage", page);
         response.put("totalItems", totalProducts);
         response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
+        if(showDraftProducts)
+        {
+            return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully",response,HttpStatus.OK);
+        }
 
         return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
 
-    public long countTotalProducts(Integer roleId, Long userId) {
+    public long countTotalProducts(Integer roleId, Long userId, boolean showDraftProducts) {
         StringBuilder countJpql = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
@@ -596,6 +605,10 @@ public class ProductService {
                 }
             } else {
                 countJpql.append("WHERE 1=1 ");
+            }
+            if (showDraftProducts) {
+                countJpql.append("AND p.productState.productState = :draftState ");
+                queryParams.put("draftState", "DRAFT");
             }
         }
         TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
