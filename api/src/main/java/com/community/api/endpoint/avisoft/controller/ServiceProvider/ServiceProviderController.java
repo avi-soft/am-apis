@@ -419,18 +419,20 @@ public class ServiceProviderController {
             if (action.equals(Constant.SP_REQUEST_ACTION_VIEW)) {
                 Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                Map<String, Object> orderRequestDetail = new HashMap<>();
+                Map<String, Object> orderRequestDetail = new HashMap<>();Long assigneeId=null;
+                if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
+                    assigneeId=Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
                 OrderDTO orderDTO = new OrderDTO(
                         order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
                         order.getCustomer().getId(),
                         order.getSubTotal(),
-                        orderState.getOrderStateId() // Ensure this matches the expected order
+                        orderState.getOrderStateId(),
+                        assigneeId// Ensure this matches the expected order
                 );
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
