@@ -566,11 +566,11 @@ public class ProductService {
         query.setMaxResults(limit);
         products= query.getResultList();
 
-        if(showDraftProducts)
-        {
-            return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
-        }
         if (products.isEmpty()) {
+            if(showDraftProducts)
+            {
+                return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
