@@ -164,7 +164,7 @@ public class SharedUtilityService {
         {
             refSp.add(customerReferrer.getServiceProvider());
         }
-        customerDetails.put("referres",refSp);
+        /*customerDetails.put("referres",refSp);*/
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());

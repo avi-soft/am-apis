@@ -52,26 +52,20 @@ public class FileService {
     }
 
     public String getDownloadFileUrl(String filePath, HttpServletRequest request) {
-        try{
-            String normalizedFilePath = filePath.replace("\\", "/");
+        String normalizedFilePath = filePath.replace("\\", "/");
 
-            String[] pathSegments = normalizedFilePath.split("/");
-            StringBuilder encodedFilePath = new StringBuilder();
+        String[] pathSegments = normalizedFilePath.split("/");
+        StringBuilder encodedFilePath = new StringBuilder();
 
-            for (String segment : pathSegments) {
-                if (encodedFilePath.length() > 0) {
-                    encodedFilePath.append("/");
-                }
-                String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
-                encodedFilePath.append(encodedSegment);
+        for (String segment : pathSegments) {
+            if (encodedFilePath.length() > 0) {
+                encodedFilePath.append("/");
             }
-
-
-            return   this.getFileUrl(encodedFilePath.toString());
-        }catch (Exception e){
-            exceptionHandling.handleException(e);
-            return "Error fetching urls:  " + e.getMessage();
+            String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+            encodedFilePath.append(encodedSegment);
         }
+        System.out.println(fileServerUrl + "/" + encodedFilePath.toString() + " path");
+        return fileServerUrl + "/" + encodedFilePath.toString();
     }
     public String getFileUrl(String fullFilePath) {
         try {
