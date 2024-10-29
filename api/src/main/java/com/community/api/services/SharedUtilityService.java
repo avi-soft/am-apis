@@ -159,12 +159,12 @@ public class SharedUtilityService {
         customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
         customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
-        List<ServiceProviderEntity>refSp=new ArrayList<>();
-        for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
-        {
-            refSp.add(customerReferrer.getServiceProvider());
-        }
-        customerDetails.put("referres",refSp);
+        // List<ServiceProviderEntity>refSp=new ArrayList<>();
+        // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+        // {
+        //     refSp.add(customerReferrer.getServiceProvider());
+        // }
+        // customerDetails.put("referres",refSp);
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
@@ -365,6 +365,7 @@ public class SharedUtilityService {
         else {
             serviceProviderDetails.put("part_time_or_full_time",serviceProvider.getPartTimeOrFullTime());
             serviceProviderDetails.put("part_time_or_full_time_score",serviceProvider.getPartTimeOrFullTimeScore());
+            serviceProviderDetails.put("infra_scores",serviceProvider.getInfraScore());
         }
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());

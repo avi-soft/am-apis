@@ -251,7 +251,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-        } else {
+        }
+        else {
             if(!existingServiceProvider.getSkills().isEmpty())
             {
                 serviceProviderSkills=existingServiceProvider.getSkills();
@@ -296,6 +297,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setTechnicalExpertiseScore(0);
                 }
             }
+
 
         if (!infraList.isEmpty()) {
             for (int infra_id : infraList) {
@@ -1251,8 +1253,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public Object searchServiceProviderBasedOnGivenFields(String state,String district,String first_name,String last_name,String mobileNumber, Long test_status_id) {
 
         Map<String, Character> alias = new HashMap<>();
-        first_name=first_name.trim();
-        first_name=first_name.toLowerCase();
+        if(first_name!=null) {
+            first_name = first_name.trim();
+            first_name = first_name.toLowerCase();
+        }
+        if(last_name!=null) {
+            last_name = last_name.trim();
+            last_name = last_name.toLowerCase();
+        }
         alias.put("state", 'a');
         alias.put("district", 'a');
         alias.put("first_name", 's');

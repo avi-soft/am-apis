@@ -2,10 +2,15 @@ package com.community.api.endpoint.avisoft.controller.cart;
 
 import com.broadleafcommerce.rest.api.endpoint.BaseEndpoint;
 import com.community.api.component.Constant;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.ErrorResponse;
+import com.community.api.entity.OrderCustomerDetailsDTO;
+import com.community.api.entity.OrderDTO;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -15,11 +20,13 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.core.order.service.call.OrderItemRequest;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 import org.broadleafcommerce.profile.core.domain.Customer;
+import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.hibernate.validator.constraints.Currency;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,13 +73,19 @@ public class CartEndPoint extends BaseEndpoint {
     private SharedUtilityService sharedUtilityService;
     private ReserveCategoryService reserveCategoryService;
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
+    private OrderDTOService orderDTOService;
 
     // Setter-based injection
     @Autowired
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
-
+    @Autowired
+    public void setOrderDTOService(OrderDTOService orderDTOService) {
+        this.orderDTOService = orderDTOService;
+    }
+    @Autowired
+    private CustomerAddressFetcher addressFetcher;
     @Autowired
     public void setSharedUtilityService(SharedUtilityService sharedUtilityService) {
         this.sharedUtilityService = sharedUtilityService;
@@ -145,6 +158,8 @@ public class CartEndPoint extends BaseEndpoint {
                 if (cart == null) {
                     return ResponseService.generateErrorResponse("Cart Not Found", HttpStatus.NOT_FOUND);
                 }
+                if(cart.getOrderItems().isEmpty())
+                    return ResponseService.generateErrorResponse("Cart already empty",HttpStatus.OK);
                 if (cart.getStatus().equals(OrderStatus.IN_PROCESS)) {//ensuring its cart and not an order
                     List<OrderItem> items = cart.getOrderItems();
                     Iterator<OrderItem> iterator = items.iterator();
@@ -405,19 +420,18 @@ public class CartEndPoint extends BaseEndpoint {
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
-    public ResponseEntity<?> placeOrder(@PathVariable long customerId,@RequestBody Map<String,Object>map) {
+    public ResponseEntity<?> placeOrder(@PathVariable Long customerId,@RequestBody Map<String,Object>map) {
         try {
             CustomProduct customProduct=null;
-            Long id = Long.valueOf(customerId);
+           /* Long id = Long.valueOf(customerId);*/
             List<Long>orderItemIds=getLongList(map,"orderItemIds");
-            if(id==null)
+            if(customerId==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
             Map<String, Object> responseMap = new HashMap<>();
             List<Order> individualOrders = new ArrayList<>();
@@ -476,6 +490,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemName(product.getName());
                     Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
                     atrtributes.put("productId", product.getId().toString());
+                    atrtributes.put("assigneeSPId",customProduct.getUserId().toString());
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
@@ -510,11 +525,30 @@ public class CartEndPoint extends BaseEndpoint {
                     }
                 }
                 customCustomer.setNumberOfOrders(batchNumber);
+                ServiceProviderEntity refSp=entityManager.find(ServiceProviderEntity.class,customProduct.getUserId());
+                if(refSp!=null) {
+                    Query query=entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
+                    query.setParameter("customerId",customCustomer.getId());
+                    query.setParameter("spId",customProduct.getUserId());
+                    Integer result=((BigInteger) query.getSingleResult()).intValue();
+                    if(result==0) {
+                        CustomerReferrer customerReferrer = new CustomerReferrer();
+                        customerReferrer.setCustomer(customCustomer);
+                        customerReferrer.setServiceProvider(refSp);
+                        customerReferrer.setCreatedAt(LocalDateTime.now());
+                        customCustomer.getMyReferrer().add(customerReferrer);
+                    }
+                }
                 entityManager.merge(customCustomer);
                 entityManager.merge(cart);
-                return ResponseService.generateSuccessResponse("Order Placed", cart.getId(), HttpStatus.OK);
-        }catch (NumberFormatException e) {
-            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+                List<CombinedOrderDTO> orderDTOS=new ArrayList<>();
+                for(Order order:individualOrders)
+                {
+                    CustomOrderState orderState=entityManager.find(CustomOrderState.class,order.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customerId,customer.getFirstName()+" "+customCustomer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                    orderDTOS.add(orderDTOService.wrapOrder(order,orderState,null,customerDetailsDTO));
+                }
+                return ResponseService.generateSuccessResponse("Order Placed", orderDTOS, HttpStatus.OK);
         } catch (Exception e) {
 
             exceptionHandling.handleException(e);
