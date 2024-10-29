@@ -52,44 +52,37 @@ public class FileService {
     }
 
     public String getDownloadFileUrl(String filePath, HttpServletRequest request) {
-        try{
-            String normalizedFilePath = filePath.replace("\\", "/");
+        String normalizedFilePath = filePath.replace("\\", "/");
 
-            String[] pathSegments = normalizedFilePath.split("/");
-            StringBuilder encodedFilePath = new StringBuilder();
+        String[] pathSegments = normalizedFilePath.split("/");
+        StringBuilder encodedFilePath = new StringBuilder();
 
-            for (String segment : pathSegments) {
-                if (encodedFilePath.length() > 0) {
-                    encodedFilePath.append("/");
-                }
-                String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
-                encodedFilePath.append(encodedSegment);
+        for (String segment : pathSegments) {
+            if (encodedFilePath.length() > 0) {
+                encodedFilePath.append("/");
             }
-
-
-            return   this.getFileUrl(encodedFilePath.toString());
-        }catch (Exception e){
-            exceptionHandling.handleException(e);
-            return "Error fetching urls:  " + e.getMessage();
+            String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+            encodedFilePath.append(encodedSegment);
         }
+        return fileServerUrl + "/" + encodedFilePath.toString();
     }
     public String getFileUrl(String fullFilePath) {
         try {
             String formattedPath = fullFilePath.replace("\\", "/");
             String encodedPath = URLEncoder.encode(formattedPath, StandardCharsets.UTF_8.toString());
-    
+
             String fileUrlApi = fileServerUrl + "/files/file-url?filePath=" + encodedPath;
-    
-    
+
+
             RestTemplate restTemplate = new RestTemplate();
-    
+
             HttpHeaders headers = new HttpHeaders();
             headers.add("ngrok-skip-browser-warning", "true");
-    
+
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-    
+
             ResponseEntity<String> response = restTemplate.exchange(fileUrlApi, HttpMethod.GET, entity, String.class);
-    
+
             if (response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
             } else {

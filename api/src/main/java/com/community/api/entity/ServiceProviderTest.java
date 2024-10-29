@@ -35,6 +35,11 @@ public class ServiceProviderTest {
     @JsonIgnore
     private byte[] resized_image_data;
 
+    @Lob
+    @Basic(fetch = FetchType.EAGER)
+    @Column(name = "uploaded_pdf", nullable = true)
+    @JsonIgnore
+    private byte[] uploaded_pdf;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "resized_image_id", nullable = true)

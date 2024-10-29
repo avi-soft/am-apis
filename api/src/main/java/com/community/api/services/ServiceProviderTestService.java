@@ -51,6 +51,12 @@ public class ServiceProviderTestService {
     @Value("${skill.test.required.image.size.min}")
     private String minImageSize;
 
+    @Value("${skill.test.required.pdf.size.min}")
+    private String minPdfSize;
+
+    @Value("${skill.test.required.pdf.size.max}")
+    private String maxPdfSize;
+
     public ServiceProviderTestService(EntityManager entityManager,ExceptionHandlingImplement exceptionHandlingImplement) {
         this.entityManager = entityManager;
         this.exceptionHandlingImplement=exceptionHandlingImplement;
@@ -228,6 +234,82 @@ public class ServiceProviderTestService {
     }
 
     @Transactional
+    public Map<String,Object> uploadPdf(Long serviceProviderId,Long testId,MultipartFile pdfFile,HttpServletRequest request) throws Exception {
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+        if (serviceProvider == null) {
+            throw new EntityDoesNotExistsException("Service Provider not found");
+        }
+
+        // Find the specific test for the service provider
+        ServiceProviderTest test = null;
+        List<ServiceProviderTest> serviceProviderTestList = serviceProvider.getServiceProviderTests();
+        for (ServiceProviderTest serviceProviderTest : serviceProviderTestList) {
+            if (testId.equals(serviceProviderTest.getTest_id())) {
+                test = serviceProviderTest;
+                break;
+            }
+        }
+        if (test == null) {
+            throw new EntityNotFoundException("Test not found with id: " + testId);
+        }
+        long minSizePdfBytes = ImageSizeConfig.convertToBytes(minPdfSize);
+        long maxSizePdfBytes= ImageSizeConfig.convertToBytes(maxPdfSize);
+
+        if(!isValidPdfFormat(pdfFile.getBytes()))
+        {
+            throw new IllegalArgumentException("Invalid file type. It should be a pdf file");
+        }
+
+        // Validate pdf size
+        if (pdfFile.getSize() < minSizePdfBytes || pdfFile.getSize() > maxSizePdfBytes) {
+            throw new IllegalArgumentException("Pdf size should be between " + minPdfSize + " and " + maxPdfSize);
+        }
+
+        ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
+        Map<String, Object> responseBody = savedResponse.getBody();
+
+        if (savedResponse.getStatusCode() != HttpStatus.OK) {
+            throw new Exception("Error uploading pdf: " + responseBody.get("message"));
+        }
+        test.setUploaded_pdf(pdfFile.getBytes());
+
+        // If successful, update the ServiceProviderTest with the image details
+//        String fileName = pdfFile.getOriginalFilename();
+//        ResizedImage resizedImage = test.getResized_image();
+//        if (resizedImage == null) {
+//            resizedImage = new ResizedImage();
+//            resizedImage = entityManager.merge(resizedImage); // Persist the new Image entity
+//            test.setResized_image(resizedImage);
+//        }
+
+
+        String db_path ="avisoftdocument/SERVICE_PROVIDER/PDF/Uploaded_Pdfs";
+        String dbPath=db_path+File.separator+ pdfFile.getOriginalFilename();
+
+        String fileUrl = fileService.getFileUrl(dbPath, request);
+
+        fileUploadService.uploadFileOnFileServer(pdfFile, "Uploaded_Pdfs", "PDF", "SERVICE_PROVIDER");
+//        // Set file metadata in the ResizedImage object
+//        resizedImage.setFile_name(fileName);
+//        resizedImage.setFile_type(resizedFile.getContentType());
+//        resizedImage.setFile_path(dbPath);
+//        resizedImage.setImage_data(resizedFile.getBytes());
+//        resizedImage.setServiceProvider(serviceProvider);
+
+//        boolean isPdfValid = validateResizedImage(test);
+//        if (!isPdfValid) {
+//            throw new IllegalArgumentException("Uploaded image is different from expected image");
+//        }
+        entityManager.merge(test);
+        Map<String, Object> response = new HashMap<>();
+        response.put("test", test);
+        response.put("pdfUrl", fileUrl);
+
+        return response;
+
+    }
+
+    @Transactional
     public ServiceProviderTest submitTypedText(Long serviceProviderId,Long testId, String typedText) throws Exception {
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if(serviceProvider==null)
@@ -310,6 +392,15 @@ public class ServiceProviderTestService {
         }
         if (test == null) {
             throw new EntityNotFoundException("Service Provider Test not found");
+        }
+
+        if(signatureFile==null)
+        {
+            throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
+        }
+        if(test.getResized_image()==null || test.getSubmitted_text()==null || test.getUploaded_pdf()==null)
+        {
+            throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
         }
 
         // Check the MIME type of the file
@@ -555,6 +646,22 @@ public class ServiceProviderTestService {
         }
     }
 
+//    private boolean validatePdfImage(ServiceProviderTest test)
+//    {
+//        Image downloadedImage = test.getDownloaded_image();
+//        if (downloadedImage == null || downloadedImage.getImage_data() == null) {
+//            throw new IllegalStateException("Downloaded image or its data is missing");
+//        }
+//
+//        byte[] downloadedImageData = downloadedImage.getImage_data();
+//        byte[] pdfData = test.getUploaded_pdf();
+//        try {
+//            return areImagesVisuallyIdentical(downloadedImageData, pdfData);
+//        } catch (IOException e) {
+//            throw new IllegalStateException("Error comparing pdf with downloaded image", e);
+//        }
+//    }
+
     private Image getRandomImage() {
         // Fetch a random Image entity from the database
         long count = (long) entityManager.createQuery("SELECT COUNT(i) FROM Image i").getSingleResult();
@@ -658,6 +765,16 @@ public class ServiceProviderTestService {
         int b2 = rgb2 & 0xff;
         return Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
     }
+
+    public static boolean isValidPdfFormat(byte[] pdfData) {
+        if (pdfData == null || pdfData.length < 4) {
+            return false;
+        }
+//         Check for the PDF signature (starts with "%PDF" in ASCII)
+        String pdfSignature = new String(pdfData, 0, 4);
+        return pdfSignature.equals("%PDF");
+    }
+
     public ServiceProviderRank assignRankingForProfessional(Integer totalScore) {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
