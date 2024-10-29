@@ -96,7 +96,10 @@ public class OrderController
                 return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);
             String orderNumber = "O-"+customerId+"%"; // Use % for wildcard search
             int startPosition=page*limit;
-            Query query = entityManager.createNativeQuery(Constant.GET_ORDERS_USING_CUSTOMER_ID);
+            String queryString=Constant.GET_ORDERS_USING_CUSTOMER_ID;
+            if(sort.equals("latest-to-oldest"))
+                queryString=queryString+" ORDER BY order_id DESC";
+            Query query = entityManager.createNativeQuery(queryString);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
             query.setParameter("orderNumber", orderNumber);
@@ -153,14 +156,20 @@ public class OrderController
             Query query = null;
             OrderStateRef orderStateRef=entityManager.find(OrderStateRef.class,orderState);
             if (orderState.equals(9)) {
-                query = entityManager.createNativeQuery(Constant.GET_ALL_ORDERS);
+                String queryString=Constant.GET_ALL_ORDERS;
+                if(sort.equals("latest-to-oldest"))
+                   queryString=queryString+" ORDER BY order_id DESC";
+                query = entityManager.createNativeQuery(queryString);
                 query.setFirstResult(startPosition);
                 query.setMaxResults(limit);
                 orderIds = query.getResultList();
             } else {
                 if(orderStateRef==null)
                     return ResponseService.generateErrorResponse("Invalid orderState provided",HttpStatus.BAD_REQUEST);
-                query = entityManager.createNativeQuery(Constant.SEARCH_ORDER_QUERY);
+                String queryString=Constant.SEARCH_ORDER_QUERY;
+                if(sort.equals("latest-to-oldest"))
+                   queryString=queryString+" ORDER BY order_id DESC";
+                query = entityManager.createNativeQuery(queryString);
                 query.setFirstResult(startPosition);
                 query.setMaxResults(limit);
                 query.setParameter("orderStateId",orderState);
@@ -198,12 +207,7 @@ public class OrderController
                     orderDetails.add(orderDTOService.wrapOrder(order,orderState,null,customerDetailsDTO));
                 }
             }
-            if(sort.equals("latest-to-oldest"))
-                sortOrdersByDate(orderDetails);
-            else if(!sort.equals("oldest-to-latest"))
-                return ResponseService.generateErrorResponse("Invalid sort option",HttpStatus.BAD_REQUEST);
-            orderMap.put("orderList",orderDetails);
-            return ResponseService.generateSuccessResponse("Orders",orderMap,HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Orders",orderDetails,HttpStatus.OK);
         }catch (Exception e)
         {
             exceptionHandling.handleException(e);
