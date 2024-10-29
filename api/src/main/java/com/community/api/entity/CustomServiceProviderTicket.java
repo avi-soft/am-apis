@@ -1,8 +1,11 @@
 package com.community.api.entity;
 
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -11,6 +14,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.Date;
 
@@ -50,8 +54,9 @@ public class CustomServiceProviderTicket {
     @Column(name = "modified_by")
     private Long modifierId;
 
-    @Column(name = "ticket_assign_to")
-    private Long assignTo;
+    @ManyToOne
+    @JoinColumn(name = "ticket_assign_to")
+    private ServiceProviderEntity assignTo;
 
     @Column(name = "target_completion_time")
     private Date targetCompletionDate;
@@ -59,4 +64,7 @@ public class CustomServiceProviderTicket {
     @Column(name = "ticket_assign_time")
     private Date ticketAssignDate;
 
+    @OneToOne
+    @JoinColumn(name = "ORDER_ID")
+    private OrderImpl order;
 }

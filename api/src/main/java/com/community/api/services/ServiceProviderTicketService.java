@@ -15,6 +15,7 @@ import com.community.api.entity.OrderStateRef;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.slf4j.Logger;
@@ -50,6 +51,18 @@ public class ServiceProviderTicketService {
     OrderService orderService;
 
     @Autowired
+    TicketStateService ticketStateService;
+
+    @Autowired
+    TicketTypeService ticketTypeService;
+
+    @Autowired
+    TicketStatusService ticketStatusService;
+
+    @Autowired
+    ProductService productService;
+
+    @Autowired
     EntityManager entityManager;
 
     public void randomBindingTicketAllocation() {
@@ -63,7 +76,9 @@ public class ServiceProviderTicketService {
             logger.info("Total Orders at the moments are: " + customOrders.size());
 
             List<Order> orders = new ArrayList<>();
+            boolean assigned = false;
             for(CustomOrderState customOrderState: customOrders) {
+                assigned = false;
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 String jsonString = objectMapper.writeValueAsString(customOrderState);
@@ -90,9 +105,36 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
                         createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
-                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto);
+                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order);
+                        serviceProviderTicket.setModifiedDate(new Date());
+                        serviceProviderTicket.setTicketAssignDate(new Date());
+                        serviceProviderTicket.setAssignTo(serviceProvider);
+                        assigned = true;
+                        break;
                     }
 
+                }
+                // now search for creator of product.
+                if(!assigned) {
+                    System.out.println("HERE");
+                    Long productId=Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                    CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
+
+                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+                    if(serviceProvider.getIsActive() ) {
+                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                        CreateTicketDto createTicketDto = new CreateTicketDto();
+                        createTicketDto.setTicketState(1L);
+                        createTicketDto.setTicketType(1L);
+                        createTicketDto.setTicketStatus(1L);
+                        createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
+                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order);
+                        serviceProviderTicket.setModifiedDate(new Date());
+                        serviceProviderTicket.setTicketAssignDate(new Date());
+                        serviceProviderTicket.setAssignTo(serviceProvider);
+                        assigned = true;
+                        break;
+                    }
                 }
 
                 Long pid= Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
@@ -106,7 +148,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto) throws Exception {
+    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order) throws Exception {
         try{
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
 
@@ -130,6 +172,15 @@ public class ServiceProviderTicketService {
 
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
+            customServiceProviderTicket.setOrder(order);
+
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+            CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+
+            customServiceProviderTicket.setTicketState(ticketState);
+            customServiceProviderTicket.setTicketType(ticketType);
+            customServiceProviderTicket.setTicketStatus(ticketStatus);
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
