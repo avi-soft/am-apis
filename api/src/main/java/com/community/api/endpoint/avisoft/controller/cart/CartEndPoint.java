@@ -218,7 +218,6 @@ public class CartEndPoint extends BaseEndpoint {
                         HttpStatus.BAD_REQUEST
                 );
             }
-
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null) {
                 cart = orderService.createNewCartForCustomer(customer);
@@ -309,12 +308,13 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
         try {
+
             List<OrderItem>archievedItems=new ArrayList<>();
             Long id = Long.valueOf(customerId);
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
             Double subTotal = 0.0;
-            double platformFee=0.0;
+            Double platformfee=0.0;
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -342,15 +342,18 @@ public class CartEndPoint extends BaseEndpoint {
                         }
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer);
                         products.add(productDetails);
+                        platformfee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
                         if(customProduct!=null)
-                            platformFee=platformFee+customProduct.getPlatformFee();
-                        subTotal = subTotal + productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), 1L).getFee();
+                            platformfee=platformfee+platformfee;
+                        if(platformfee==null)
+                            platformfee=0.0;
+                        subTotal = subTotal + platformfee;
                     }
                 }
                 response.put("cart_id", cart.getId());
                 response.put("products", products.toArray());
                 response.put("sub_total", subTotal);
-                response.put("total_platform_fee", platformFee);
+                response.put("total_platform_fee", platformfee);
                 for(OrderItem orderItem:archievedItems)
                 {
                     cart.getOrderItems().remove(orderItem);
@@ -494,10 +497,15 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
-                    Money subTotal=new Money(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee());
+                    Double platformFee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
+                    if(platformFee==null)
+                        platformFee=0.0;
+                    Money subTotal=new Money(platformFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-"+customer.getId()+"-B-"+batchNumber);
-                    Money total=new Money(customProduct.getPlatformFee());
+                    Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId());
+                    totalCost=totalCost+platformFee;
+                    Money total=new Money(totalCost);
                     individualOrder.setTotal(total);
                     LocalDateTime localDateTime = LocalDateTime.now();
                     Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
