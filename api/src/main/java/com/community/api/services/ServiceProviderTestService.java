@@ -48,14 +48,26 @@ public class ServiceProviderTestService {
     @Autowired
     private ExceptionHandlingImplement exceptionHandlingImplement;
 
-    @Value("${skill.test.required.image.size.min}")
-    private String minImageSize;
+    private String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
 
-    @Value("${skill.test.required.pdf.size.min}")
-    private String minPdfSize;
+    private String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_RESIZED_IMAGE_SIZE);
 
-    @Value("${skill.test.required.pdf.size.max}")
-    private String maxPdfSize;
+    private String minSignatureImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_SIGNATURE_IMAGE_SIZE);
+
+    private String maxSignatureImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_SIGNATURE_IMAGE_SIZE);
+
+    private String minPdfSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_PDF_SIZE);
+
+    private String maxPdfSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_PDF_SIZE);
+
+    @Value("${image.validation.targetWidth}")
+    private float targetWidth;
+
+    @Value("${image.validation.targetHeight}")
+    private float targetHeight;
+
+    @Value("${image.validation.tolerance}")
+    private float tolerance;
 
     public ServiceProviderTestService(EntityManager entityManager,ExceptionHandlingImplement exceptionHandlingImplement) {
         this.entityManager = entityManager;
@@ -81,14 +93,19 @@ public class ServiceProviderTestService {
             {
                 ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
                 String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-                String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
                 String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
                 Map<String, Object> response = new HashMap<>();
                 response.put("test", test);
                 response.put("imageValidation", imageValidation);
                 response.put("downloadImageUrl", imageUrl);
-                response.put("requiredMinImageSize",minImageSize);
-                response.put("requiredMaxImageSize",maxImageSize);
+                response.put("minResizedImageSize",minImageSize);
+                response.put("maxResizedImageSize",maxImageSize);
+                response.put("minSignatureImageSize",minSignatureImageSize);
+                response.put("maxSignatureImageSize",maxSignatureImageSize);
+                response.put("minPdfSize",minPdfSize);
+                response.put("maxPdfSize",maxPdfSize);
+                response.put("requiredSignatureImageWidth",targetWidth);
+                response.put("requiredSignatureImageHeight",targetHeight);
                 return response;
             }
             if(serviceProvider.getTestStatus().getTest_status_id().equals(testStatus) )
@@ -128,14 +145,19 @@ public class ServiceProviderTestService {
         entityManager.merge(serviceProvider);
 
         String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-        String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
         String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
         Map<String, Object> response = new HashMap<>();
         response.put("test", test);
         response.put("imageValidation", imageValidation);
         response.put("downloadImageUrl", imageUrl);
-        response.put("requiredMinImageSize",minImageSize);
-        response.put("requiredMaxImageSize",maxImageSize);
+        response.put("minResizedImageSize",minImageSize);
+        response.put("maxResizedImageSize",maxImageSize);
+        response.put("minSignatureImageSize",minSignatureImageSize);
+        response.put("maxSignatureImageSize",maxSignatureImageSize);
+        response.put("minPdfSize",minPdfSize);
+        response.put("maxPdfSize",maxPdfSize);
+        response.put("requiredSignatureImageWidth",targetWidth);
+        response.put("requiredSignatureImageHeight",targetHeight);
 
         return response;
     }
@@ -163,7 +185,6 @@ public class ServiceProviderTestService {
         }
 
         test.setIs_image_test_passed(false);
-        long minSizeInBytes = ImageSizeConfig.convertToBytes(minImageSize);
 
         if(!documentStorageService.isValidFileType(resizedFile))
         {
@@ -171,15 +192,10 @@ public class ServiceProviderTestService {
         }
 
         // Validate image size
-        if (resizedFile.getSize() < minSizeInBytes || resizedFile.getSize() > Constant.MAX_FILE_SIZE) {
-            String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
+        if (resizedFile.getSize() < Constant.MIN_RESIZED_IMAGE_SIZE || resizedFile.getSize() > Constant.MAX_FILE_SIZE) {
             test.setIs_image_test_passed(false);
             entityManager.merge(test);
-
-
             throw new IllegalArgumentException("Resized image size should be between " + minImageSize + " and " + maxImageSize);
-
-
         }
 
         // Validate the image size using saveDocuments method logic
@@ -206,6 +222,7 @@ public class ServiceProviderTestService {
         String fileUrl = fileService.getFileUrl(dbPath, request);
 
         fileUploadService.uploadFileOnFileServer(resizedFile, "Resized_Images", "Resized", "SERVICE_PROVIDER");
+
         // Set file metadata in the ResizedImage object
         resizedImage.setFile_name(fileName);
         resizedImage.setFile_type(resizedFile.getContentType());
@@ -252,8 +269,6 @@ public class ServiceProviderTestService {
         if (test == null) {
             throw new EntityNotFoundException("Test not found with id: " + testId);
         }
-        long minSizePdfBytes = ImageSizeConfig.convertToBytes(minPdfSize);
-        long maxSizePdfBytes= ImageSizeConfig.convertToBytes(maxPdfSize);
 
         if(!isValidPdfFormat(pdfFile.getBytes()))
         {
@@ -261,7 +276,7 @@ public class ServiceProviderTestService {
         }
 
         // Validate pdf size
-        if (pdfFile.getSize() < minSizePdfBytes || pdfFile.getSize() > maxSizePdfBytes) {
+        if (pdfFile.getSize() < Constant.MIN_PDF_SIZE || pdfFile.getSize() > Constant.MAX_PDF_SIZE) {
             throw new IllegalArgumentException("Pdf size should be between " + minPdfSize + " and " + maxPdfSize);
         }
 
@@ -271,17 +286,13 @@ public class ServiceProviderTestService {
         if (savedResponse.getStatusCode() != HttpStatus.OK) {
             throw new Exception("Error uploading pdf: " + responseBody.get("message"));
         }
-        test.setUploaded_pdf(pdfFile.getBytes());
-
-        // If successful, update the ServiceProviderTest with the image details
-//        String fileName = pdfFile.getOriginalFilename();
-//        ResizedImage resizedImage = test.getResized_image();
-//        if (resizedImage == null) {
-//            resizedImage = new ResizedImage();
-//            resizedImage = entityManager.merge(resizedImage); // Persist the new Image entity
-//            test.setResized_image(resizedImage);
-//        }
-
+        String fileName = pdfFile.getOriginalFilename();
+        UploadedPdf uploadedPdf = test.getUploadedPdf();
+        if (uploadedPdf == null) {
+            uploadedPdf = new UploadedPdf();
+            uploadedPdf = entityManager.merge(uploadedPdf); // Persist the new Pdf entity
+            test.setUploadedPdf(uploadedPdf);
+        }
 
         String db_path ="avisoftdocument/SERVICE_PROVIDER/PDF/Uploaded_Pdfs";
         String dbPath=db_path+File.separator+ pdfFile.getOriginalFilename();
@@ -289,22 +300,18 @@ public class ServiceProviderTestService {
         String fileUrl = fileService.getFileUrl(dbPath, request);
 
         fileUploadService.uploadFileOnFileServer(pdfFile, "Uploaded_Pdfs", "PDF", "SERVICE_PROVIDER");
-//        // Set file metadata in the ResizedImage object
-//        resizedImage.setFile_name(fileName);
-//        resizedImage.setFile_type(resizedFile.getContentType());
-//        resizedImage.setFile_path(dbPath);
-//        resizedImage.setImage_data(resizedFile.getBytes());
-//        resizedImage.setServiceProvider(serviceProvider);
 
-//        boolean isPdfValid = validateResizedImage(test);
-//        if (!isPdfValid) {
-//            throw new IllegalArgumentException("Uploaded image is different from expected image");
-//        }
+        // Set file metadata in the ResizedImage object
+        uploadedPdf.setFile_name(fileName);
+        uploadedPdf.setFile_type(pdfFile.getContentType());
+        uploadedPdf.setFile_path(dbPath);
+        uploadedPdf.setPdf_data(pdfFile.getBytes());
+        uploadedPdf.setServiceProvider(serviceProvider);
+
         entityManager.merge(test);
         Map<String, Object> response = new HashMap<>();
         response.put("test", test);
         response.put("pdfUrl", fileUrl);
-
         return response;
 
     }
@@ -394,11 +401,11 @@ public class ServiceProviderTestService {
             throw new EntityNotFoundException("Service Provider Test not found");
         }
 
-        if(signatureFile==null)
+        if(signatureFile==null|| signatureFile.isEmpty())
         {
             throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
         }
-        if(test.getResized_image()==null || test.getSubmitted_text()==null || test.getUploaded_pdf()==null)
+        if(test.getResized_image()==null || test.getSubmitted_text()==null || test.getUploadedPdf()==null)
         {
             throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
         }
@@ -409,17 +416,14 @@ public class ServiceProviderTestService {
             throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
         }
 
-        long minSizeInBytes = ImageSizeConfig.convertToBytes(minImageSize);
-        validateImageDimension(signatureFile.getBytes());
-//        long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
+        validateImageDimension(signatureFile.getBytes(), targetWidth, targetHeight, tolerance);
 
         // Validate image size
-        if (signatureFile.getSize() < minSizeInBytes || signatureFile.getSize() > Constant.MAX_FILE_SIZE) {
-            String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
+        if (signatureFile.getSize() < Constant.MIN_SIGNATURE_IMAGE_SIZE || signatureFile.getSize() > Constant.MAX_FILE_SIZE) {
             test.setIs_image_test_passed(false);
             entityManager.merge(test);
 
-            throw new IllegalArgumentException("Signature image size should be between " + minImageSize + " and " + maxImageSize);
+            throw new IllegalArgumentException("Signature image size should be between " + minSignatureImageSize + " and " + maxSignatureImageSize);
         }
         // Use the saveDocuments method to validate and store the signature image
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(signatureFile, "Signature Image", serviceProviderId, "SERVICE_PROVIDER");
@@ -470,35 +474,31 @@ public class ServiceProviderTestService {
         return response;
     }
 
-    public void validateImageDimension(byte[] signatureImageData)
-    {
+    public void validateImageDimension(byte[] signatureImageData, float targetWidth, float targetHeight, float tolerance) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
             if (image == null) {
                 throw new IllegalArgumentException("Unable to read the image file.");
             }
 
-            // Get the DPI (you may need to determine how to retrieve this)
-            // Assuming 300 DPI for example; adjust as necessary based on your needs
-            float dpiX = 300; // Replace with actual DPI if available
-            float dpiY = 300; // Replace with actual DPI if available
+            float dpiX = 300;
+            float dpiY = 300;
 
             // Calculate dimensions in mm
             float widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
             float heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
-            System.out.println("---------------------------------");
-            System.out.println(widthInMM);
-            System.out.println(heightInMM);
 
-            // Check the dimensions against the specified criteria
-            boolean isValidWidth = (widthInMM <= 30) ||
-                    (widthInMM >= 29.5 && widthInMM <= 30.4);
-            boolean isValidHeight = (heightInMM <= 60) ||
-                    (heightInMM >= 59.5 && heightInMM <= 60.4);
+            // Check if width and height are within the acceptable range (target ± tolerance)
+            boolean isWidthValid =
+                    (widthInMM >= (targetWidth - tolerance) && widthInMM <= (targetWidth + tolerance));
+            boolean isHeightValid =
+                    (heightInMM >= (targetHeight - tolerance) && heightInMM <= (targetHeight + tolerance));
 
-            System.out.println();
-            if (!isValidWidth || !isValidHeight) {
-                throw new IllegalArgumentException("Signature image dimensions must be below 30 mm x 60 mm, or within the specified ranges.");
+            if (!isWidthValid || !isHeightValid) {
+                throw new IllegalArgumentException(
+                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm.",
+                                targetWidth, targetHeight, tolerance)
+                );
             }
         } catch (IOException e) {
             throw new IllegalArgumentException("Error reading the signature image: " + e.getMessage(), e);
@@ -569,11 +569,13 @@ public class ServiceProviderTestService {
         String downloadedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_image().getFile_path(),request);
         String resizedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getResized_image().getFile_path(),request);
         String signatureImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getSignature_image().getFile_path(),request);
+        String pdfUrl=fileService.getFileUrl(serviceProviderTestToReturn.getUploadedPdf().getFile_path(),request);
         Map<String,Object> completedTestMap= new HashMap<>();
         completedTestMap.put("completed_test",serviceProviderTestToReturn);
         completedTestMap.put("downloaded_image_url",downloadedImageUrl);
         completedTestMap.put("resized_image_url",resizedImageUrl);
         completedTestMap.put("signature_image_url",signatureImageUrl);
+        completedTestMap.put("uploaded_pdf_url",pdfUrl);
 
         return ResponseService.generateSuccessResponse("Completed test is found",completedTestMap,HttpStatus.OK);
     }
@@ -681,22 +683,6 @@ public class ServiceProviderTestService {
             throw new IllegalStateException("Error comparing images", e);
         }
     }
-
-//    private boolean validatePdfImage(ServiceProviderTest test)
-//    {
-//        Image downloadedImage = test.getDownloaded_image();
-//        if (downloadedImage == null || downloadedImage.getImage_data() == null) {
-//            throw new IllegalStateException("Downloaded image or its data is missing");
-//        }
-//
-//        byte[] downloadedImageData = downloadedImage.getImage_data();
-//        byte[] pdfData = test.getUploaded_pdf();
-//        try {
-//            return areImagesVisuallyIdentical(downloadedImageData, pdfData);
-//        } catch (IOException e) {
-//            throw new IllegalStateException("Error comparing pdf with downloaded image", e);
-//        }
-//    }
 
     private Image getRandomImage() {
         // Fetch a random Image entity from the database

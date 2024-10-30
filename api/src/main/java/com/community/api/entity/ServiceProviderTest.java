@@ -29,17 +29,15 @@ public class ServiceProviderTest {
     @JoinColumn(name = "downloaded_image_id", nullable = true)
     private Image downloaded_image;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name="pdf_id",nullable = true)
+    private UploadedPdf uploadedPdf;
+
     @Lob
     @Basic(fetch = FetchType.EAGER)
     @Column(name = "resized_image_data")
     @JsonIgnore
     private byte[] resized_image_data;
-
-    @Lob
-    @Basic(fetch = FetchType.EAGER)
-    @Column(name = "uploaded_pdf", nullable = true)
-    @JsonIgnore
-    private byte[] uploaded_pdf;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "resized_image_id", nullable = true)
