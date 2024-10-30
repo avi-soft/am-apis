@@ -1126,9 +1126,9 @@ public class ProductService {
             if (customProduct == null || ((Status) customProduct).getArchived() == 'Y') {
                 throw new IllegalArgumentException(PRODUCTNOTFOUND);
             }
-            if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && !customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW)) {
-                throw new IllegalArgumentException("PRODUCT CAN ONLY BE MODIFIED IF IT IS IN NEW AND MODIFIED STATE");
-            }
+            // if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && !customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW)) {
+            //     throw new IllegalArgumentException("PRODUCT CAN ONLY BE MODIFIED IF IT IS IN NEW AND MODIFIED STATE");
+            // }
             Long userId = null;
             if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN)) {
                 return true;
@@ -2037,14 +2037,17 @@ public class ProductService {
                     }
                     throw new IllegalArgumentException("Not have privilege to perform action.");
                 } else if (role.equals(Constant.ADMIN) || role.equals(Constant.SUPER_ADMIN)) {
-                    if (addProductDto.getRejectionStatus() == null) {
-                        throw new IllegalArgumentException("REJECTION STATE CANNOT BE NULL IF PRODUCT IS REJECTED");
+                    if (customProductState.getProductState().equals("REJECTED")) {
+                        if(addProductDto.getRejectionStatus() == null) {
+                            throw new IllegalArgumentException("REJECTION STATE CANNOT BE NULL IF PRODUCT IS REJECTED");
+                        } else {
+                            CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(addProductDto.getRejectionStatus());
+                            if (productRejectionStatus == null) {
+                                throw new IllegalArgumentException("NO PRODUCT REJECTION STATUS IS FOUND");
+                            }
+                            customProduct.setRejectionStatus(productRejectionStatus);
+                        }
                     }
-                    CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(addProductDto.getRejectionStatus());
-                    if (productRejectionStatus == null) {
-                        throw new IllegalArgumentException("NO PRODUCT REJECTION STATUS IS FOUND");
-                    }
-                    customProduct.setRejectionStatus(productRejectionStatus);
                     customProduct.setProductState(customProductState);
 
                     return true;
