@@ -410,6 +410,7 @@ public class ServiceProviderTestService {
         }
 
         long minSizeInBytes = ImageSizeConfig.convertToBytes(minImageSize);
+        validateImageDimension(signatureFile.getBytes());
 //        long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
 
         // Validate image size
@@ -467,6 +468,41 @@ public class ServiceProviderTestService {
         response.put("signatureImageUrl", fileUrl);
 
         return response;
+    }
+
+    public void validateImageDimension(byte[] signatureImageData)
+    {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
+            if (image == null) {
+                throw new IllegalArgumentException("Unable to read the image file.");
+            }
+
+            // Get the DPI (you may need to determine how to retrieve this)
+            // Assuming 300 DPI for example; adjust as necessary based on your needs
+            float dpiX = 300; // Replace with actual DPI if available
+            float dpiY = 300; // Replace with actual DPI if available
+
+            // Calculate dimensions in mm
+            float widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
+            float heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
+            System.out.println("---------------------------------");
+            System.out.println(widthInMM);
+            System.out.println(heightInMM);
+
+            // Check the dimensions against the specified criteria
+            boolean isValidWidth = (widthInMM <= 30) ||
+                    (widthInMM >= 29.5 && widthInMM <= 30.4);
+            boolean isValidHeight = (heightInMM <= 60) ||
+                    (heightInMM >= 59.5 && heightInMM <= 60.4);
+
+            System.out.println();
+            if (!isValidWidth || !isValidHeight) {
+                throw new IllegalArgumentException("Signature image dimensions must be below 30 mm x 60 mm, or within the specified ranges.");
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Error reading the signature image: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
