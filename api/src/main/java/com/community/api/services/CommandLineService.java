@@ -51,6 +51,31 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
         }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketState c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketState(1L, "TO-DO", "Ticket is not assigned to any service provider"));
+            entityManager.persist(new CustomTicketState(2L, "IN-PROGRESS", "It's under progress"));
+            entityManager.persist(new CustomTicketState(3L, "ON-HOLD", "It's on hold"));
+            entityManager.persist(new CustomTicketState(4L, "IN-REVIEW", "It's rejected"));
+            entityManager.persist(new CustomTicketState(5L, "CLOSE", "Closed successfully"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketStatus c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketStatus(1L, "NOT-REACHABLE", "User is unreachable"));
+            entityManager.persist(new CustomTicketStatus(2L, "VALIDATING-DOCUMENT", "Validating documents"));
+            entityManager.persist(new CustomTicketStatus(3L, "MISSING-DOCUMENT", "Missing documents"));
+            entityManager.persist(new CustomTicketStatus(4L, "USER-NOT-REACHABLE", "User Not reachable"));
+            entityManager.persist(new CustomTicketStatus(5L, "UPLOADING-DOCUMENT", "Uploading documents"));
+            entityManager.persist(new CustomTicketStatus(6L, "FILLING-PERSONAL-DETAILS", "Filling personal details"));
+            entityManager.persist(new CustomTicketStatus(7L, "SOME-OTHER-STATUS", "Some other status"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketType c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketType(1L, "PRIMARY", "Primary ticket of SP"));
+            entityManager.persist(new CustomTicketType(2L, "REVIEW-TICKET", "Review ticket of SP"));
+            entityManager.persist(new CustomTicketType(3L, "MISCELLANEOUS", "Miscellaneous (any other ticket)"));
+        }
+
         if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
             entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
             entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));

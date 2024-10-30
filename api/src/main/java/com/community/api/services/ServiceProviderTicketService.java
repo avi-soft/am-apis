@@ -71,7 +71,7 @@ public class ServiceProviderTicketService {
             List<Map<String,Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null,null,null,null,null, 1L);
 
             // later will do order which are in particular state. (write now just fetching which are in state 2).
-            OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(2);
+            OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
             logger.info("Total Orders at the moments are: " + customOrders.size());
 
@@ -116,7 +116,7 @@ public class ServiceProviderTicketService {
                 }
                 // now search for creator of product.
                 if(!assigned) {
-                    System.out.println("HERE");
+                    System.out.println("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
                     Long productId=Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
@@ -129,6 +129,9 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketStatus(1L);
                         createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order);
+
+                        System.out.println("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
+
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
                         serviceProviderTicket.setAssignTo(serviceProvider);
