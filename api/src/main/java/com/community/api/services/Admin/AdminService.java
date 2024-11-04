@@ -113,35 +113,37 @@ public class AdminService
                 countryCode = Constant.COUNTRY_CODE;
             }
 
+            CustomAdmin customAdmin=null;
             if (username != null) {
-                CustomAdmin customAdmin = findAdminByUsername(username);
+                customAdmin = findAdminByUsername(username);
+                System.out.println(customAdmin);
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("No records found ", HttpStatus.NOT_FOUND);
 
                 }
-                mobileNumber = customAdmin.getMobileNumber();
             }
-            else if (mobileNumber == null || mobileNumber.isEmpty()) {
+            else if (mobileNumber!=null) {
 
-//                if (mobileNumber == null || mobileNumber.isEmpty()) {
-                return responseService.generateErrorResponse("mobile number can not be null ", HttpStatus.BAD_REQUEST);
+                if (!serviceProviderService.isValidMobileNumber(mobileNumber)) {
+                    return responseService.generateErrorResponse("Invalid mobile number ", HttpStatus.BAD_REQUEST);
+
+                }
+                if (mobileNumber.startsWith("0"))
+                    mobileNumber = mobileNumber.substring(1);
+                 customAdmin = findAdminByPhone(mobileNumber, countryCode);
 
             }
-
-            if (!serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return responseService.generateErrorResponse("Invalid mobile number ", HttpStatus.BAD_REQUEST);
-
+            else if(username==null && mobileNumber==null)
+            {
+                return ResponseService.generateErrorResponse("Both username and mobileNumber cannot be null. Please Provide at least one field",HttpStatus.BAD_REQUEST);
             }
-            if (mobileNumber.startsWith("0"))
-                mobileNumber = mobileNumber.substring(1);
-            CustomAdmin existingAdmin = findAdminByPhone(mobileNumber, countryCode);
 
-            if (existingAdmin == null) {
+            if (customAdmin == null) {
                 return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.UNAUTHORIZED);
 
             }
 
-            String storedOtp = existingAdmin.getOtp();
+            String storedOtp = customAdmin.getOtp();
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenAdmin_" + mobileNumber;
@@ -151,12 +153,12 @@ public class AdminService
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
-                existingAdmin.setOtp(null);
-                entityManager.merge(existingAdmin);
+                customAdmin.setOtp(null);
+                entityManager.merge(customAdmin);
 
 
-                String existingToken = existingAdmin.getToken();
-                Map<String,Object> serviceProviderResponse= sharedUtilityService.adminDetailsMap(existingAdmin);
+                String existingToken = customAdmin.getToken();
+                Map<String,Object> serviceProviderResponse= sharedUtilityService.adminDetailsMap(customAdmin);
 
                 if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
 
@@ -166,15 +168,14 @@ public class AdminService
 
                     return ResponseEntity.ok(responseBody);
                 } else {
-                    String newToken = jwtUtil.generateToken(existingAdmin.getAdmin_id(), role, ipAddress, userAgent);
-//                    session.setAttribute(tokenKey, newToken);
+                    String newToken = jwtUtil.generateToken(customAdmin.getAdmin_id(), role, ipAddress, userAgent);
 
-                    existingAdmin.setToken(newToken);
-                    entityManager.persist(existingAdmin);
+                    customAdmin.setToken(newToken);
+                    entityManager.persist(customAdmin);
                     Map<String, Object> responseBody = createAuthResponseForAdmin(newToken, serviceProviderResponse).getBody();
-                    if(existingAdmin.getSignedUp()==0) {
-                        existingAdmin.setSignedUp(1);
-                        entityManager.merge(existingAdmin);
+                    if(customAdmin.getSignedUp()==0) {
+                        customAdmin.setSignedUp(1);
+                        entityManager.merge(customAdmin);
                         responseBody.put("message", "User has been signed up");
                     }
                     return ResponseEntity.ok(responseBody);
