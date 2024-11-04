@@ -8,6 +8,7 @@ import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,6 +58,33 @@ public class ServiceProviderTestController {
         {
             Map<String,Object> test = testService.uploadResizedImages(serviceProviderId,testId, resizedImage,request);
             return responseService.generateResponse(HttpStatus.OK,"Image is uploaded",test);
+        }
+        catch (EntityDoesNotExistsException e)
+        {
+            return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
+        }
+        catch (EntityNotFoundException e)
+        {
+            return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
+        }
+        catch (IllegalArgumentException e)
+        {
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/upload-pdf/{serviceProviderId}/{testId}")
+    public ResponseEntity<?> uploadPdfImage(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("pdfFile")MultipartFile pdfFile , HttpServletRequest request)
+    {
+        try
+        {
+            Map<String,Object> test = testService.uploadPdf(serviceProviderId,testId, pdfFile,request);
+            return responseService.generateResponse(HttpStatus.OK,"Pdf is uploaded",test);
         }
         catch (EntityDoesNotExistsException e)
         {
