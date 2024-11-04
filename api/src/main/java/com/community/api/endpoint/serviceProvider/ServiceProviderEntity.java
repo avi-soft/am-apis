@@ -129,6 +129,7 @@ public class ServiceProviderEntity  {
 
     @Nullable
     private Boolean isCFormAvailable;
+    @Nullable
     private String registration_number;
 
     @Nullable
@@ -222,6 +223,7 @@ public class ServiceProviderEntity  {
     @Column
     private Integer totalSkillTestPoints;
 
+    @JsonIgnore
     @JsonBackReference
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrals = new ArrayList<>();
@@ -236,6 +238,13 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "service_provider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QualificationDetails> qualificationDetailsList;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderRequest> orderRequests;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ServiceProviderAcceptedOrders> acceptedOrders;
     @Column(name="is_active")
     private Boolean isActive;
 

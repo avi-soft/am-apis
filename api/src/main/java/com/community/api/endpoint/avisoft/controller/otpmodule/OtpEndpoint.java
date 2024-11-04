@@ -93,7 +93,6 @@ public class OtpEndpoint {
             String mobileNumber = customerDetails.getMobileNumber().startsWith("0")
                     ? customerDetails.getMobileNumber().substring(1)
                     : customerDetails.getMobileNumber();
-
             String countryCode = customerDetails.getCountryCode() == null || customerDetails.getCountryCode().isEmpty()
                     ? Constant.COUNTRY_CODE
                     : customerDetails.getCountryCode();
@@ -180,6 +179,7 @@ public class OtpEndpoint {
 
                 String storedOtp = existingCustomer.getOtp();
                 String ipAddress = request.getRemoteAddr();
+
                 String userAgent = request.getHeader("User-Agent");
                 String tokenKey = "authToken_" + mobileNumber;
                 Customer customer = customerService.readCustomerById(existingCustomer.getId());

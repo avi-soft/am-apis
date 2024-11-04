@@ -1,3 +1,4 @@
+
 package com.community.api.services;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
@@ -42,7 +43,7 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // Check if data already exists to avoid duplication
+
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomProductState(1L, "NEW", "New State."));
             entityManager.persist(new CustomProductState(2L, "MODIFIED", "Modified State."));
@@ -50,6 +51,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(4L, "REJECTED", "Rejected State."));
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
+            entityManager.persist(new CustomProductState(7L,"DRAFT", "Draft State."));
         }
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomJobGroup c", Long.class).getSingleResult() == 0) {
@@ -370,7 +372,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,now,"SUPER_ADMIN"));
         }
 
-         count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
+        count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
 
         if (count == 0) {
 
@@ -397,15 +399,25 @@ public class CommandLineService implements CommandLineRunner {
             entityManager .merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
 
             //Infra Scoring (For individual)
-            entityManager.merge(new ScoringCriteria(13L,"Infrastructure","Service Provider having Equal to 5 or more than 5 infrastructures",20));
-            entityManager.merge(new ScoringCriteria(14L,"Infrastructure","Service Provider having between 2 and 4 infrastructures",10));
-            entityManager.merge(new ScoringCriteria(15L,"Infrastructure","Service Provider having 1 infrastructure",5));
-            entityManager.merge(new ScoringCriteria(16L,"Infrastructure","Service Provider having 0 infrastructure",0));
+            entityManager.merge(new ScoringCriteria(13L, "Infrastructure", "Service Provider having Equal to 5 or more than 5 infrastructures", 20));
+            entityManager.merge(new ScoringCriteria(14L, "Infrastructure", "Service Provider having between 2 and 4 infrastructures", 10));
+            entityManager.merge(new ScoringCriteria(15L, "Infrastructure", "Service Provider having 1 infrastructure", 5));
+            entityManager.merge(new ScoringCriteria(16L, "Infrastructure", "Service Provider having 0 infrastructure", 0));
 
             //PartTimeOrFullTime Scoring (For Individual)
-            entityManager.merge(new ScoringCriteria(17L,"PartTimeOrFullTime","Service Provider who is Full time",10));
-            entityManager.merge(new ScoringCriteria(18L,"PartTimeOrFullTime","Service Provider who is Part time",0));
+            entityManager.merge(new ScoringCriteria(17L, "PartTimeOrFullTime", "Service Provider who is Full time", 10));
+            entityManager.merge(new ScoringCriteria(18L, "PartTimeOrFullTime", "Service Provider who is Part time", 0));
         }
 
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
+            entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
+            entityManager.persist(new OrderStateRef(3, "UNASSIGNED", "Order is unassigned."));
+            entityManager.persist(new OrderStateRef(4, "ASSIGNED", "Order assigned."));
+            entityManager.persist(new OrderStateRef(5, "RETURNED", "Order returned."));
+            entityManager.persist(new OrderStateRef(6, "IN_PROGRESS", "Order is in progress."));
+            entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
+            entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
+        }
     }
 }

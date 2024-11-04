@@ -285,12 +285,35 @@ public class AdminService
 
 
                 return ResponseEntity.ok(responseBody);
-
-
             }
         } else {
             return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
         }
     }
 
+    @Transactional
+    public ResponseEntity<?> loginAdminWithUsernameAndOTP(String username, HttpSession session) {
+        try {
+            if (username == null) {
+                return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+
+            }
+            CustomAdmin existingAdmin = findAdminByUsername(username);
+            if (existingAdmin == null) {
+                return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+
+
+            }
+            if (existingAdmin.getMobileNumber() == null) {
+                return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+            }
+            String countryCode = existingAdmin.getCountry_code();
+            if (countryCode == null)
+                countryCode = Constant.COUNTRY_CODE;
+            return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 }
