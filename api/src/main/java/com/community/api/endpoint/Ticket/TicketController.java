@@ -60,14 +60,13 @@ public class TicketController {
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
-            serviceProviderTicketService.randomBindingTicketAllocation();
+            serviceProviderTicketService.autoAssigner();
             return ResponseService.generateSuccessResponse("DONE TILL HERE",null, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     @PostMapping("/add")
