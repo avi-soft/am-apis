@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller;
 
 import com.community.api.entity.Image;
 import com.community.api.entity.TypingText;
+import com.community.api.services.PrivilegeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.TypingTextService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -16,10 +17,12 @@ public class TypingTextController
 {
     private final TypingTextService typingTextService;
     private final ExceptionHandlingImplement exceptionHandling;
+    private final PrivilegeService privilegeService;
 
-    public TypingTextController(TypingTextService typingTextService,ExceptionHandlingImplement exceptionHandling) {
+    public TypingTextController(TypingTextService typingTextService,ExceptionHandlingImplement exceptionHandling,PrivilegeService privilegeService) {
         this.typingTextService = typingTextService;
         this.exceptionHandling=exceptionHandling;
+        this.privilegeService=privilegeService;
     }
 
     @GetMapping("/get-all")
@@ -34,10 +37,14 @@ public class TypingTextController
     }
 
     @PostMapping("/add-all")
-    public ResponseEntity<?> addAllRandomImages(@RequestBody List<TypingText> typingTexts)
+    public ResponseEntity<?> addAllRandomImages(@RequestBody List<TypingText> typingTexts,@RequestHeader(value = "Authorization") String authHeader)
     {
         try
         {
+            if(!privilegeService.checkAuthority(authHeader,"ADD_TYPING_TEXTS"))
+            {
+                return ResponseService.generateErrorResponse("Unauthorized User to Add Typing Text",HttpStatus.UNAUTHORIZED);
+            }
             List<?> randomTypingTexts= typingTextService.addAllRandomTypingTexts(typingTexts);
             return ResponseService.generateSuccessResponse("The Typing Texts are added successfully",randomTypingTexts, HttpStatus.CREATED);
         }

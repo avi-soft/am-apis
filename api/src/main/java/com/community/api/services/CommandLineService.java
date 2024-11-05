@@ -32,7 +32,7 @@ import java.time.format.DateTimeFormatter;
 import static org.broadleafcommerce.common.util.sql.importsql.DemoSqlServerSingleLineSqlCommandExtractor.CURRENT_TIMESTAMP;
 
 @Component
-public class CommandLineService implements CommandLineRunner {
+public class    CommandLineService implements CommandLineRunner {
 
     @Autowired
     private EntityManager entityManager;
@@ -420,10 +420,12 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
 
-        if (count == 0) {
-            entityManager.persist(new Privileges(1, "ASSIGN_PRIVILEGE", "Privilege to assign a privilege to a specific role"));
-            entityManager.persist(new Privileges(2, "REMOVE_PRIVILEGE", "Privilege to remove a privilege from the database"));
-            entityManager.persist(new Privileges(3, "CREATE_PRIVILEGE", "Privilege to create a new privilege"));
+        if (entityManager.createQuery("SELECT COUNT(o) FROM Privileges o", Long.class).getSingleResult() == 0) {
+
+            entityManager.persist(new Privileges(1, "ADD_PRODUCT", "Privilege to add a new product"));
+            entityManager.persist(new Privileges(2, "UPDATE_PRODUCT", "Privilege to update an existing product"));
+            entityManager.persist(new Privileges(3, "DELETE_PRODUCT", "Privilege to delete a product"));
+
             entityManager.persist(new Privileges(4, "GET_ALL_PRIVILEGES", "Privilege to retrieve all privileges stored in the database"));
 
             entityManager.persist(new Privileges(5, "ADD_ROLE", "Privilege to add a new role"));
@@ -443,9 +445,9 @@ public class CommandLineService implements CommandLineRunner {
 
             entityManager.persist(new Privileges(14, "CREATE_DOCUMENT_TYPE", "Privilege to create a document type"));
 
-            entityManager.persist(new Privileges(15, "ADD_PRODUCT", "Privilege to add a new product"));
-            entityManager.persist(new Privileges(16, "UPDATE_PRODUCT", "Privilege to update an existing product"));
-            entityManager.persist(new Privileges(17, "DELETE_PRODUCT", "Privilege to delete a product"));
+            entityManager.persist(new Privileges(15, "ASSIGN_PRIVILEGE", "Privilege to assign a privilege to a specific role"));
+            entityManager.persist(new Privileges(16, "REMOVE_PRIVILEGE", "Privilege to remove a privilege from the database"));
+            entityManager.persist(new Privileges(17, "CREATE_PRIVILEGE", "Privilege to create a new privilege"));
 
             entityManager.persist(new Privileges(18, "ADD_QUALIFICATION", "Privilege to add a new qualification"));
 

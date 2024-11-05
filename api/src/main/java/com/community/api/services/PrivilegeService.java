@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -58,8 +59,24 @@ public class PrivilegeService {
                     return responseService.generateErrorResponse("Privilage already assigned", HttpStatus.UNAUTHORIZED);
                 serviceProvider.setPrivileges(spPrivileges);
                 entityManager.merge(serviceProvider);
-                return responseService.generateSuccessResponse("Privilege assigned successfully",serviceProvider, HttpStatus.OK);
-            } else
+                return responseService.generateSuccessResponse("Privilege assigned successfully to the Service Provider",serviceProvider, HttpStatus.OK);
+            }
+            else if(role.getRole_name().equals(Constant.ADMIN)|| role.getRole_name().equals(Constant.SUPER_ADMIN) || role.getRole_name().equals(Constant.roleAdminServiceProvider))
+            {
+                CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, id);
+                if (customAdmin == null) {
+                    return responseService.generateErrorResponse("Error assigning privilege : " + role.getRole_name().equals("CUSTOM_ADMIN") + " not found", HttpStatus.NOT_FOUND);
+                }
+                List<Privileges> customAdminPrivileges = customAdmin.getPrivileges();
+                if (!customAdminPrivileges.contains(privilege))
+                    customAdminPrivileges.add(privilege);
+                else
+                    return responseService.generateErrorResponse("Privilage already assigned", HttpStatus.UNAUTHORIZED);
+                customAdmin.setPrivileges(customAdminPrivileges);
+                entityManager.merge(customAdmin);
+                return responseService.generateSuccessResponse("Privilege assigned successfully to the Custom Admin",customAdmin, HttpStatus.OK);
+            }
+            else
                 return responseService.generateErrorResponse("No records found for given details", HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -192,7 +209,7 @@ public class PrivilegeService {
         }
     }
 
-    public boolean checkAuthority(@RequestHeader(value = "Authorization") String authHeader,String privilegeToAuthorize)
+    public boolean checkAuthority( String authHeader,String privilegeToAuthorize)
     {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);

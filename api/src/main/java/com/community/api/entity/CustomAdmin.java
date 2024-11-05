@@ -33,16 +33,20 @@ public class CustomAdmin
     private String token;
     private int signedUp=0;
     private String created_at,updated_at,created_by, modified_by;
+//
+//    @ManyToMany
+//    @JoinTable(
+//            name = "custom_admin_privileges",
+//            joinColumns = @JoinColumn(name = "custom_admin_id"),
+//            inverseJoinColumns = @JoinColumn(name = "privilege_id"),
+//            uniqueConstraints = @UniqueConstraint(columnNames = {"custom_admin_id", "privilege_id"})
+//    )
 
     @ManyToMany
     @JoinTable(
             name = "custom_admin_privileges",
             joinColumns = @JoinColumn(name = "custom_admin_id"),
-            inverseJoinColumns = @JoinColumn(name = "privilege_id"),
-            // Adding an extra join column for "role_id" using columnDefinition
-            uniqueConstraints = @UniqueConstraint(columnNames = {"custom_admin_id", "privilege_id", "role_id"})
-    )
-    @JoinColumn(name = "role_id")
+            inverseJoinColumns = @JoinColumn(name = "privilege_id"))
     private List<Privileges> privileges;
 
 
