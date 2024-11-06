@@ -43,18 +43,17 @@ public class TwilioService {
     private EntityManager entityManager;
     private HttpSession httpSession;
     @Autowired
-    private  ServiceProviderServiceImpl serviceProviderService;
+    private ServiceProviderServiceImpl serviceProviderService;
     @Autowired
 
     private CustomerService customerService;
 
-    public TwilioService(ExceptionHandlingImplement exceptionHandlingImplement,CustomCustomerService customCustomerService,EntityManager entityManager,HttpSession httpSession,CustomerService customerService)
-    {
-         this.exceptionHandling = exceptionHandlingImplement;
-         this.customCustomerService = customCustomerService;
-         this.entityManager = entityManager;
-         this.httpSession= httpSession;
-         this.customerService=customerService;
+    public TwilioService(ExceptionHandlingImplement exceptionHandlingImplement, CustomCustomerService customCustomerService, EntityManager entityManager, HttpSession httpSession, CustomerService customerService) {
+        this.exceptionHandling = exceptionHandlingImplement;
+        this.customCustomerService = customCustomerService;
+        this.entityManager = entityManager;
+        this.httpSession = httpSession;
+        this.customerService = customerService;
     }
 
     @Transactional
@@ -94,7 +93,7 @@ public class TwilioService {
                 entityManager.persist(customerDetails);
                 return ResponseEntity.ok(Map.of(
                         "otp", otp,
-                         "message", "Otp has been sent successfully on " + maskedNumber
+                        "message", "Otp has been sent successfully on " + maskedNumber
                 ));
             } else if (serviceProvider != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
@@ -108,7 +107,7 @@ public class TwilioService {
                 return ResponseEntity.ok(Map.of(
 
                         "otp", otp,
-                         "message", "Otp has been sent successfully on " + maskedNumber
+                        "message", "Otp has been sent successfully on " + maskedNumber
                 ));
             }
 
@@ -144,7 +143,7 @@ public class TwilioService {
         }
     }
 
-    public synchronized String genereateMaskednumber(String mobileNumber){
+    public synchronized String genereateMaskednumber(String mobileNumber) {
         String lastFourDigits = mobileNumber.substring(mobileNumber.length() - 4);
 
         int numXs = mobileNumber.length() - 4;
@@ -156,9 +155,8 @@ public class TwilioService {
         String mask = maskBuilder.toString();
 
         String maskedNumber = mask + lastFourDigits;
-        return  maskedNumber;
+        return maskedNumber;
     }
-
 
 
     private synchronized String generateOTP() {
@@ -172,9 +170,9 @@ public class TwilioService {
     public boolean setotp(String mobileNumber, String countryCode) {
         CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode);
 
-        if(existingCustomer!=null){
+        if (existingCustomer != null) {
             String storedOtp = existingCustomer.getOtp();
-            if(storedOtp!=null){
+            if (storedOtp != null) {
                 existingCustomer.setOtp(null);
                 entityManager.merge(existingCustomer);
                 return true;

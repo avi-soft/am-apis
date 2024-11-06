@@ -5,12 +5,6 @@ import com.community.api.component.JwtUtil;
 import com.community.api.entity.*;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
-import com.community.api.entity.ServiceProviderAddress;
-import com.community.api.entity.ServiceProviderAddressRef;
-import com.community.api.entity.ServiceProviderInfra;
-import com.community.api.entity.ServiceProviderLanguage;
-import com.community.api.entity.Skill;
-import com.community.api.entity.StateCode;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.DocumentType;
@@ -257,8 +251,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
-        } else
-            existingServiceProvider.setSkills(null);
+        }
+        else {
+            if(!existingServiceProvider.getSkills().isEmpty())
+            {
+                serviceProviderSkills=existingServiceProvider.getSkills();
+
+            }
+            else
+                serviceProviderSkills=null;
+        }
             TypedQuery<ScoringCriteria> typedQuery=  entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA,ScoringCriteria.class);
             List<ScoringCriteria> scoringCriteriaList = typedQuery.getResultList();
 
@@ -296,6 +298,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
+
         if (!infraList.isEmpty()) {
             for (int infra_id : infraList) {
                 ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);
@@ -304,6 +307,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderInfras.add(serviceProviderInfrastructure);
                 }
             }
+        }else {
+            serviceProviderInfras=existingServiceProvider.getInfra();
         }
         if (!languageList.isEmpty()) {
             for (int language_id : languageList) {
@@ -313,6 +318,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderLanguages.add(serviceProviderLanguage);
                 }
             }
+        }else {
+            serviceProviderLanguages=existingServiceProvider.getLanguages();
         }
         existingServiceProvider.setInfra(serviceProviderInfras);
         existingServiceProvider.setSkills(serviceProviderSkills);
@@ -320,7 +327,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if(existingServiceProvider.getType().equalsIgnoreCase("INDIVIDUAL"))
             {
-                if(updates.containsKey("infra_list"))
+                if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && !((List<?>) updates.get("infra_list")).isEmpty())
                 {
                     List<ServiceProviderInfra> infrastructures=existingServiceProvider.getInfra();
                     int totalInfras=infrastructures.size();
@@ -336,7 +343,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras>=2 && totalInfras<=4)
+                    else if(totalInfras>=2 && totalInfras<=4)
                     {
                         scoringCriteriaToMap=traverseListOfScoringCriteria(14L,scoringCriteriaList,existingServiceProvider);
                         if(scoringCriteriaToMap==null)
@@ -348,7 +355,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras==1)
+                    else if(totalInfras==1)
                     {
                         scoringCriteriaToMap=traverseListOfScoringCriteria(15L,scoringCriteriaList,existingServiceProvider);
                         if(scoringCriteriaToMap==null)
@@ -360,17 +367,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras==0)
-                    {
-                        scoringCriteriaToMap=traverseListOfScoringCriteria(16L,scoringCriteriaList,existingServiceProvider);
-                        if(scoringCriteriaToMap==null)
-                        {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
-                        }
-                        else {
-                            existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
-                            scoringCriteriaToMap=null;
-                        }
+                }
+                else if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && ((List<?>) updates.get("infra_list")).isEmpty()) {
+                    scoringCriteriaToMap = traverseListOfScoringCriteria(16L, scoringCriteriaList, existingServiceProvider);
+                    if (scoringCriteriaToMap == null) {
+                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                    } else {
+                        existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
+                        scoringCriteriaToMap=null;
                     }
                 }
 
@@ -413,6 +417,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(sharedUtilityService.isFutureDate(dob))
                 errorMessages.add("DOB cannot be in future");
         }
+        if(updates.containsKey("pan_number")&&((String)updates.get("pan_number")).isEmpty())
+            errorMessages.add("pan number cannot be empty");
         // Update only the fields that are present in the map using reflections
         for (Map.Entry<String, Object> entry : updates.entrySet()) {
             String fieldName = entry.getKey();
@@ -500,6 +506,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             existingServiceProvider.setUser_name(username);
         }
         entityManager.merge(existingServiceProvider);
+
 
             if(updates.containsKey("work_experience_in_months"))
             {
@@ -645,6 +652,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             assignRank(existingServiceProvider,totalScore);
 
             Map<String,Object> serviceProviderMap=sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+
         return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
     }catch (NoSuchFieldException e)
         {
@@ -1242,8 +1250,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public Object searchServiceProviderBasedOnGivenFields(String state,String district,String first_name,String last_name,String mobileNumber, Long test_status_id) {
 
         Map<String, Character> alias = new HashMap<>();
-        first_name=first_name.trim();
-        first_name=first_name.toLowerCase();
+        if(first_name!=null) {
+            first_name = first_name.trim();
+            first_name = first_name.toLowerCase();
+        }
+        if(last_name!=null) {
+            last_name = last_name.trim();
+            last_name = last_name.toLowerCase();
+        }
         alias.put("state", 'a');
         alias.put("district", 'a');
         alias.put("first_name", 's');
