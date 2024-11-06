@@ -65,6 +65,8 @@ public class AdminService
     private RateLimiterService rateLimiterService;
     @Autowired
     private SharedUtilityService sharedUtilityService;
+    @Autowired
+    private RoleService roleService;
     public CustomAdmin findAdminByPhone(String mobile_number, String countryCode) {
 
         return entityManager.createQuery(Constant.PHONE_QUERY_ADMIN, CustomAdmin.class)
@@ -293,25 +295,69 @@ public class AdminService
     }
 
     @Transactional
-    public ResponseEntity<?> loginAdminWithUsernameAndOTP(String username, HttpSession session) {
+    public ResponseEntity<?> loginAdminWithUsernameAndOTP(String username, HttpSession session, String role) {
         try {
             if (username == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
             }
             CustomAdmin existingAdmin = findAdminByUsername(username);
-            if (existingAdmin == null) {
-                return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+            if(role.equals(Constant.ADMIN))
+            {
+                if (existingAdmin.getRole() ==2) {
+                    if (existingAdmin == null) {
+                        return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    }
+                    if (existingAdmin.getMobileNumber() == null) {
+                        return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                    }
 
+                    String countryCode = existingAdmin.getCountry_code();
+                    if (countryCode == null)
+                        countryCode = Constant.COUNTRY_CODE;
+                    return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+                }
+            }
+            else if(role.equals(Constant.SUPER_ADMIN))
+            {
+                if (existingAdmin.getRole() ==1) {
+                    if (existingAdmin == null) {
+                        return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    }
+                    if (existingAdmin.getMobileNumber() == null) {
+                        return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                    }
 
+                    String countryCode = existingAdmin.getCountry_code();
+                    if (countryCode == null)
+                        countryCode = Constant.COUNTRY_CODE;
+                    return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+                }
             }
-            if (existingAdmin.getMobileNumber() == null) {
-                return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
-            }
-            String countryCode = existingAdmin.getCountry_code();
-            if (countryCode == null)
-                countryCode = Constant.COUNTRY_CODE;
-            return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+
+            //for adminService Provider role
+                if (existingAdmin.getRole() ==3) {
+                    if (existingAdmin == null) {
+                        return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    }
+                    if (existingAdmin.getMobileNumber() == null) {
+                        return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                    }
+
+                    String countryCode = existingAdmin.getCountry_code();
+                    if (countryCode == null)
+                        countryCode = Constant.COUNTRY_CODE;
+                    return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+                }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);

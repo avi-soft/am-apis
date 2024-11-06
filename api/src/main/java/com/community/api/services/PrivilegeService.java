@@ -35,49 +35,103 @@ public class PrivilegeService {
     JwtUtil jwtTokenUtil;
     @Autowired
     RoleService roleService;
+
     @Transactional
-    public ResponseEntity<?> assignPrivilege(@RequestParam Integer privilege_id, @RequestParam Long id, @RequestParam Integer role_id) {
+    public ResponseEntity<?> assignPrivilegeToMultipleUsers(@RequestParam Integer privilege_id, @RequestParam List<Long> ids, @RequestParam Integer role_id) {
         try {
-            if (privilege_id == null || id == null || role_id == null) {
-                return responseService.generateErrorResponse("Empty details", HttpStatus.BAD_REQUEST);
+            if (privilege_id == null || ids == null || ids.isEmpty() || role_id == null) {
+                return responseService.generateErrorResponse("Empty or invalid details", HttpStatus.BAD_REQUEST);
             }
+
             Privileges privilege = entityManager.find(Privileges.class, privilege_id);
             if (privilege == null)
                 return responseService.generateErrorResponse("Privilege not found", HttpStatus.NOT_FOUND);
+
             Role role = entityManager.find(Role.class, role_id);
             if (role == null)
                 return responseService.generateErrorResponse("Specified role not found", HttpStatus.NOT_FOUND);
+
+            List<ServiceProviderEntity> serviceProviderEntities=new ArrayList<>();
+            List<CustomAdmin> customAdminList=new ArrayList<>();
+            for (Long id : ids) {
+                if (role.getRole_name().equals("SERVICE_PROVIDER"))
+                {
+                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, id);
+                    if (serviceProvider == null) {
+                        return responseService.generateErrorResponse("Service Provider with ID " + id + " not found", HttpStatus.NOT_FOUND);
+                    }
+                    List<Privileges> spPrivileges = serviceProvider.getPrivileges();
+                    if (!spPrivileges.contains(privilege)) {
+                        spPrivileges.add(privilege);
+                        serviceProvider.setPrivileges(spPrivileges);
+                        entityManager.merge(serviceProvider);
+                    }
+                    serviceProviderEntities.add(serviceProvider);
+                }
+                else if (role.getRole_name().equals(Constant.ADMIN))
+                {
+                    CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, id);
+                    if (customAdmin == null) {
+                        return responseService.generateErrorResponse("Custom Admin with ID " + id + " not found", HttpStatus.NOT_FOUND);
+                    }
+                    if (customAdmin.getRole() ==2) {
+                        List<Privileges> customAdminPrivileges = customAdmin.getPrivileges();
+                        if (!customAdminPrivileges.contains(privilege)) {
+                            customAdminPrivileges.add(privilege);
+                            customAdmin.setPrivileges(customAdminPrivileges);
+                            entityManager.merge(customAdmin);
+                        }
+                        customAdminList.add(customAdmin);
+                    }
+                    else{
+                       return responseService.generateErrorResponse("Custom Admin with ID " + id + " does not have "+ role.getRole_name()+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(role.getRole_name().equals(Constant.SUPER_ADMIN) ) {
+                    CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, id);
+                    if (customAdmin == null) {
+                        return responseService.generateErrorResponse("Custom Admin with ID " + id + " not found", HttpStatus.NOT_FOUND);
+                    }
+                    if (customAdmin.getRole() ==1) {
+                        List<Privileges> customAdminPrivileges = customAdmin.getPrivileges();
+                        if (!customAdminPrivileges.contains(privilege)) {
+                            customAdminPrivileges.add(privilege);
+                            customAdmin.setPrivileges(customAdminPrivileges);
+                            entityManager.merge(customAdmin);
+                        }
+                        customAdminList.add(customAdmin);
+                    }
+                    else{
+                        return responseService.generateErrorResponse("Custom Admin with ID " + id + " does not have "+ role.getRole_name()+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(role.getRole_name().equals(Constant.roleAdminServiceProvider))
+                {
+                    CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, id);
+                    if (customAdmin == null) {
+                        return responseService.generateErrorResponse("Custom Admin with ID " + id + " not found", HttpStatus.NOT_FOUND);
+                    }
+                    if (customAdmin.getRole() ==3) {
+                        List<Privileges> customAdminPrivileges = customAdmin.getPrivileges();
+                        if (!customAdminPrivileges.contains(privilege)) {
+                            customAdminPrivileges.add(privilege);
+                            customAdmin.setPrivileges(customAdminPrivileges);
+                            entityManager.merge(customAdmin);
+                        }
+                        customAdminList.add(customAdmin);
+                    }
+                    else{
+                        return responseService.generateErrorResponse("Custom Admin with ID " + id + " does not have "+ role.getRole_name()+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else{
+                    return responseService.generateErrorResponse("No valid records found for given details", HttpStatus.NOT_FOUND);
+                }
+            }
             if (role.getRole_name().equals("SERVICE_PROVIDER")) {
-                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, id);
-                if (serviceProvider == null) {
-                    return responseService.generateErrorResponse("Error assigning privilege : " + role.getRole_name().equals("SERVICE_PROVIDER") + " not found", HttpStatus.NOT_FOUND);
-                }
-                List<Privileges> spPrivileges = serviceProvider.getPrivileges();
-                if (!spPrivileges.contains(privilege))
-                    spPrivileges.add(privilege);
-                else
-                    return responseService.generateErrorResponse("Privilage already assigned", HttpStatus.UNAUTHORIZED);
-                serviceProvider.setPrivileges(spPrivileges);
-                entityManager.merge(serviceProvider);
-                return responseService.generateSuccessResponse("Privilege assigned successfully to the Service Provider",serviceProvider, HttpStatus.OK);
+                return responseService.generateSuccessResponse("Privilege assigned successfully to the specified users", serviceProviderEntities, HttpStatus.OK);
             }
-            else if(role.getRole_name().equals(Constant.ADMIN)|| role.getRole_name().equals(Constant.SUPER_ADMIN) || role.getRole_name().equals(Constant.roleAdminServiceProvider))
-            {
-                CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, id);
-                if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Error assigning privilege : " + role.getRole_name().equals("CUSTOM_ADMIN") + " not found", HttpStatus.NOT_FOUND);
-                }
-                List<Privileges> customAdminPrivileges = customAdmin.getPrivileges();
-                if (!customAdminPrivileges.contains(privilege))
-                    customAdminPrivileges.add(privilege);
-                else
-                    return responseService.generateErrorResponse("Privilage already assigned", HttpStatus.UNAUTHORIZED);
-                customAdmin.setPrivileges(customAdminPrivileges);
-                entityManager.merge(customAdmin);
-                return responseService.generateSuccessResponse("Privilege assigned successfully to the Custom Admin",customAdmin, HttpStatus.OK);
-            }
-            else
-                return responseService.generateErrorResponse("No records found for given details", HttpStatus.NOT_FOUND);
+                return responseService.generateSuccessResponse("Privilege assigned successfully to the specified users", customAdminList, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error assigning privilege", HttpStatus.INTERNAL_SERVER_ERROR);
