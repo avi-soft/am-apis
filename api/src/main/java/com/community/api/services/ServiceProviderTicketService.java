@@ -12,6 +12,7 @@ import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderStateRef;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
@@ -28,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +63,9 @@ public class ServiceProviderTicketService {
 
     @Autowired
     EntityManager entityManager;
+
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
 
     public void autoAssigner() throws Exception {
         try{
@@ -280,8 +285,14 @@ public class ServiceProviderTicketService {
             logger.info("Total Service Provider: " + availableServiceProvider.size());
 
             List<Order> assignedOrders = new ArrayList<>();
+            System.out.println("custom orders size is: " + customOrders.size());
 
-            for (CustomOrderState customOrderState : customOrders) {
+
+            Iterator<CustomOrderState> iterator = customOrders.iterator();
+
+            while (iterator.hasNext()) {
+
+                CustomOrderState customOrderState = iterator.next();
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 String jsonString = objectMapper.writeValueAsString(customOrderState);
@@ -313,13 +324,12 @@ public class ServiceProviderTicketService {
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
-                        customOrders.remove(customOrderState);
+                        iterator.remove();
                         assignedOrders.add(order);
 
                         System.out.println("Order Found4");
                         // Link that ticket to the service provider and increment its ticketAllocated and everthing.
                         availableServiceProvider.remove(serviceProviderMap);
-                        assignedOrders.add(order);
                         break;
                     }
 
@@ -335,6 +345,17 @@ public class ServiceProviderTicketService {
 
 
         } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
+        try{
+            String sql = "SELECT * FROM custom_service_provider_ticket";
+            return entityManager.createNativeQuery(sql, CustomServiceProviderTicket.class).getResultList();
+        } catch(Exception exception) {
+            exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
         }
     }

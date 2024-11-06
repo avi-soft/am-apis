@@ -15,13 +15,16 @@ import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import jsinterop.annotations.JsOverlay;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
@@ -30,6 +33,7 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -65,6 +69,33 @@ public class TicketController {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
+    @GetMapping("/get-all-tickets")
+    public ResponseEntity<?> retrieveTickets() {
+        try{
+            return ResponseService.generateSuccessResponse("Tickets Found", serviceProviderTicketService.getAllTickets(), HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
+    @GetMapping("/filter-tickets")
+    public ResponseEntity<?> getFilterTickets(
+            @RequestParam(value = "date_created_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
+            @RequestParam(value = "date_created_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
+            @RequestParam(value = "state", required = false) List<Long> state,
+            @RequestParam(value = "type", required = false) List<Long> type,
+            @RequestParam(value = "service_provider_id", required = false) List<Long> serviceProvider)
+    {
+        try {
+
+        } catch (Exception exception) {
+
         }
     }
 
