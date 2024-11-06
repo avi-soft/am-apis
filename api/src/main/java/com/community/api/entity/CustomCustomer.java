@@ -230,6 +230,9 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
+    @JsonBackReference
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BankDetails> bankDetails = new ArrayList<>();
 
     @Column(name = "order_count")
     private Integer numberOfOrders;

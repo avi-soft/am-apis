@@ -64,6 +64,7 @@
         <class>com.community.api.entity.CustomOrderState</class>
         <class>com.community.api.entity.OrderStateRef</class>
         <class>com.community.api.entity.CustomOrderStatus</class>
+        <class>com.community.api.entity.BankDetails</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
