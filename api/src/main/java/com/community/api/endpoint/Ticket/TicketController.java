@@ -1,13 +1,17 @@
 package com.community.api.endpoint.Ticket;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.Privileges;
 import com.community.api.services.ProductService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderTicketService;
 import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
@@ -57,6 +61,12 @@ public class TicketController {
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
+    @Autowired
+    JwtUtil jwtTokenUtil;
+
+    @Autowired
+    RoleService roleService;
+
     @PersistenceContext
     EntityManager entityManager;
 
@@ -86,16 +96,46 @@ public class TicketController {
     @Transactional
     @GetMapping("/filter-tickets")
     public ResponseEntity<?> getFilterTickets(
+            @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "date_created_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
             @RequestParam(value = "date_created_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "state", required = false) List<Long> state,
-            @RequestParam(value = "type", required = false) List<Long> type,
-            @RequestParam(value = "service_provider_id", required = false) List<Long> serviceProvider)
+            @RequestParam(value = "type", required = false) List<Long> type)
     {
         try {
 
-        } catch (Exception exception) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+            if(dateFrom != null) {
+                String formattedDateFrom = dateFormat.format(dateFrom);
+                dateFrom = dateFormat.parse(formattedDateFrom);
+            }
+            if(dateTo != null) {
+                String formattedDateTo = dateFormat.format(dateTo);
+                dateTo = dateFormat.parse(formattedDateTo);
+            }
 
+            String jwtToken = authHeader.substring(7);
+
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+
+            Long userId = null;
+
+            if (role.equals(Constant.SERVICE_PROVIDER)) {
+
+                userId = jwtTokenUtil.extractId(jwtToken);
+            }
+
+            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, dateFrom, dateTo);
+
+            if (tickets.isEmpty()) {
+                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
+            }
+            return ResponseService.generateSuccessResponse("Tickets Found", tickets, HttpStatus.OK);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

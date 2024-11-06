@@ -5,6 +5,8 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -14,6 +16,7 @@ import com.community.api.entity.OrderStateRef;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -24,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -360,4 +364,55 @@ public class ServiceProviderTicketService {
         }
     }
 
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Date dateFrom, Date dateTo) throws Exception {
+        try {
+            // Initialize the JPQL query
+            StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
+                    .append("WHERE 1=1 "); // Use this to simplify appending conditions
+
+            // List to hold query parameters
+            List<CustomTicketState> customTicketStates = new ArrayList<>();
+            List<CustomTicketType> customTicketTypes = new ArrayList<>();
+
+            // Conditionally build the query
+            if (states != null && !states.isEmpty()) {
+                for (Long id : states) {
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(id);
+                    if (ticketState == null) {
+                        throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
+                    }
+                    customTicketStates.add(ticketState);
+                }
+                jpql.append("AND c.ticketState IN :states ");
+            }
+
+            if (types != null && !types.isEmpty()) {
+                for (Long id : types) {
+                    CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(id);
+                    if (ticketType == null) {
+                        throw new IllegalArgumentException("NO TICKET TYPE FOUND WITH THIS ID: " + id);
+                    }
+                    customTicketTypes.add(ticketType);
+                }
+                jpql.append("AND c.ticketType IN :types ");
+            }
+
+            // Create the query with the final JPQL string
+            TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
+
+            // Set parameters
+            if (!customTicketStates.isEmpty()) {
+                query.setParameter("states", customTicketStates);
+            }
+            if (!customTicketTypes.isEmpty()) {
+                query.setParameter("types", customTicketTypes);
+            }
+
+            // Execute and return the result
+            return query.getResultList();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
 }
