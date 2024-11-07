@@ -315,10 +315,10 @@ public class ServiceProviderController {
                                                    @RequestParam(required = false) String mobileNumber,
                                                    @RequestParam(required = false) Long test_status_id) {
         try {
-            /*if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
+            if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
             {
                 return ResponseService.generateErrorResponse("Need to provide atleast one search filter",HttpStatus.BAD_REQUEST);
-            }*/
+            }
             return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);

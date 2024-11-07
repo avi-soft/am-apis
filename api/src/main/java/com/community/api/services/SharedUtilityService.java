@@ -168,7 +168,7 @@ public class SharedUtilityService {
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
-        customerDetails.put("mothersName", customCustomer.getMothersName());
+        customerDetails.put("mothersName", customCustomer.getMotherName());
         customerDetails.put("panNumber",customCustomer.getPanNumber());
         customerDetails.put("nationality",customCustomer.getNationality());
         customerDetails.put("dob", customCustomer.getDob());
@@ -179,7 +179,6 @@ public class SharedUtilityService {
         customerDetails.put("domicile", customCustomer.getDomicile());
         customerDetails.put("documents",customCustomer.getDocuments());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-        customerDetails.put("mothers_name", customCustomer.getMothersName());
         customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
         customerDetails.put("height_cms", customCustomer.getHeightCms());
@@ -344,7 +343,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("service_provider_status",serviceProvider.getTestStatus());
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
-
+        serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
         /* serviceProviderDetails.put("skills", serviceProvider.getSkills());*/
        /* serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());*/

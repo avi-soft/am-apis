@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import javax.persistence.*;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +51,6 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "nationality")
     private String nationality;
-
-    @Column(name = "mother_name")
-    private String mothersName;
 
     @Nullable
     @Column(name = "date_of_birth")
@@ -123,6 +121,10 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "category_issue_date")
     private String categoryValidUpto;
+ 
+    @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
+    @Column(name = "mother_name")
+    private String motherName;
 
     @Column(name="religion")
     private String religion;
