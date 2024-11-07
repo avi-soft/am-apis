@@ -65,6 +65,8 @@ public class AdminService
     private RateLimiterService rateLimiterService;
     @Autowired
     private SharedUtilityService sharedUtilityService;
+    @Autowired
+    private RoleService roleService;
     public CustomAdmin findAdminByPhone(String mobile_number, String countryCode) {
 
         return entityManager.createQuery(Constant.PHONE_QUERY_ADMIN, CustomAdmin.class)
@@ -116,6 +118,27 @@ public class AdminService
             CustomAdmin customAdmin=null;
             if (username != null) {
                 customAdmin = findAdminByUsername(username);
+                if(roleService.findRoleName(role).equals(Constant.ADMIN))
+                {
+                    if(customAdmin.getRole()!=2)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ username+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(roleService.findRoleName(role).equals(Constant.SUPER_ADMIN))
+                {
+                    if(customAdmin.getRole()!=1)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ username+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
+                {
+                    if(customAdmin.getRole()!=3)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ username+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
                 System.out.println(customAdmin);
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("No records found ", HttpStatus.NOT_FOUND);
@@ -130,7 +153,28 @@ public class AdminService
                 }
                 if (mobileNumber.startsWith("0"))
                     mobileNumber = mobileNumber.substring(1);
-                 customAdmin = findAdminByPhone(mobileNumber, countryCode);
+                customAdmin = findAdminByPhone(mobileNumber, countryCode);
+                if(roleService.findRoleName(role).equals(Constant.ADMIN))
+                {
+                    if(customAdmin.getRole()!=2)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ mobileNumber+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(roleService.findRoleName(role).equals(Constant.SUPER_ADMIN))
+                {
+                    if(customAdmin.getRole()!=1)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ mobileNumber+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else if(roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
+                {
+                    if(customAdmin.getRole()!=3)
+                    {
+                        return responseService.generateErrorResponse("Custom Admin with username "+ mobileNumber+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
+                    }
+                }
 
             }
             else if(username==null && mobileNumber==null)
@@ -194,7 +238,7 @@ public class AdminService
     private ResponseEntity<Map<String, Object>> createAuthResponseForAdmin(String token, Map<String,Object> adminEntity) {
         Map<String, Object> responseBody = new HashMap<>();
         Map<String, Object> data = new HashMap<>();
-            data.put("customAdminDetails",adminEntity);
+        data.put("customAdminDetails",adminEntity);
         responseBody.put("status_code", HttpStatus.OK.value());
         responseBody.put("data", data);
         responseBody.put("token", token);
@@ -293,25 +337,69 @@ public class AdminService
     }
 
     @Transactional
-    public ResponseEntity<?> loginAdminWithUsernameAndOTP(String username, HttpSession session) {
+    public ResponseEntity<?> loginAdminWithUsernameAndOTP(String username, HttpSession session, String role) {
         try {
             if (username == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
             }
             CustomAdmin existingAdmin = findAdminByUsername(username);
-            if (existingAdmin == null) {
-                return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+            if(role.equals(Constant.ADMIN))
+            {
+                if (existingAdmin.getRole() ==2) {
+                    if (existingAdmin == null) {
+                        return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    }
+                    if (existingAdmin.getMobileNumber() == null) {
+                        return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                    }
 
+                    String countryCode = existingAdmin.getCountry_code();
+                    if (countryCode == null)
+                        countryCode = Constant.COUNTRY_CODE;
+                    return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+                }
+            }
+            else if(role.equals(Constant.SUPER_ADMIN))
+            {
+                if (existingAdmin.getRole() ==1) {
+                    if (existingAdmin == null) {
+                        return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    }
+                    if (existingAdmin.getMobileNumber() == null) {
+                        return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                    }
 
+                    String countryCode = existingAdmin.getCountry_code();
+                    if (countryCode == null)
+                        countryCode = Constant.COUNTRY_CODE;
+                    return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+                }
             }
-            if (existingAdmin.getMobileNumber() == null) {
-                return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+
+            //for adminService Provider role
+            if (existingAdmin.getRole() ==3) {
+                if (existingAdmin == null) {
+                    return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                }
+                if (existingAdmin.getMobileNumber() == null) {
+                    return responseService.generateErrorResponse("No mobile Number registerd for this account", HttpStatus.NOT_FOUND);
+                }
+
+                String countryCode = existingAdmin.getCountry_code();
+                if (countryCode == null)
+                    countryCode = Constant.COUNTRY_CODE;
+                return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
             }
-            String countryCode = existingAdmin.getCountry_code();
-            if (countryCode == null)
-                countryCode = Constant.COUNTRY_CODE;
-            return (sendOtpForAdmin(existingAdmin.getMobileNumber(), countryCode, session));
+            else{
+                return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ role+" role", HttpStatus.BAD_REQUEST);
+            }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);

@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Account;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
+import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 
 import com.community.api.services.*;
@@ -277,18 +278,60 @@ public class AccountEndPoint {
                     return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                 }
 
-            } else if (roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
-                if (adminService.findAdminByPhone(mobileNumber, countryCode) != null) {
-                    if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
-                        responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+            }
+            else if (roleService.findRoleName(role).equals(Constant.ADMIN) ) {
+                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                if (customAdmin != null) {
+                    if (customAdmin.getRole() == 2) {
+                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                            responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                        }
+                        return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
                     }
-                    return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
-                } else {
+                    else{
+                        return responseService.generateErrorResponse("Custom Admin with mobileNumber " + mobileNumber + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else {
                     return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                 }
-            } else {
+            }
+            else if (roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ) {
+                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                if (customAdmin != null) {
+                    if (customAdmin.getRole() == 1) {
+                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                            responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                        }
+                        return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
+                    }
+                    else{
+                        return responseService.generateErrorResponse("Custom Admin with mobileNumber " + mobileNumber + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else {
+                    return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                }
+            }
+            else if (roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider) ) {
+                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                if (customAdmin != null) {
+                    if (customAdmin.getRole() == 3) {
+                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                            responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                        }
+                        return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
+                    }
+                    else{
+                        return responseService.generateErrorResponse("Custom Admin with mobileNumber " + mobileNumber + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                else {
+                    return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
+                }
+            }
+            else {
                 responseService.generateErrorResponse(ApiConstants.ROLE_EMPTY, HttpStatus.BAD_REQUEST);
-
             }
             return responseService.generateErrorResponse("Role not specified", HttpStatus.BAD_REQUEST);
 
@@ -316,13 +359,47 @@ public class AccountEndPoint {
             if (username == null || password == null || role == null) {
                 return responseService.generateErrorResponse("username or password or role cannot be empty", HttpStatus.BAD_REQUEST);
             }
-            if(roleService.findRoleName(role).equals(Constant.ADMIN)|| roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
+            if(roleService.findRoleName(role).equals(Constant.ADMIN))
             {
-                return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
+                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                if (customAdmin == null) {
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                }
+                if (customAdmin.getRole() ==2) {
+                    return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                }
             }
+            if(roleService.findRoleName(role).equals(Constant.SUPER_ADMIN))
+            {
+                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                if (customAdmin == null) {
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                }
+                if (customAdmin.getRole() ==1) {
+                    return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                }
+            } if(roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
+            {
+                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                if (customAdmin == null) {
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                }
+                if (customAdmin.getRole() ==3) {
+                    return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
+                }
+                else{
+                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                }
+            }
+
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
-
             }
         }  catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -332,7 +409,6 @@ public class AccountEndPoint {
 
         }
     }
-
 
     @Transactional
     @RequestMapping(value = "login-with-username", method = RequestMethod.POST)
@@ -389,8 +465,8 @@ public class AccountEndPoint {
 
             }
         }  catch (IllegalArgumentException e) {
-        return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-     } catch (Exception e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
 
@@ -441,7 +517,7 @@ public class AccountEndPoint {
                 return serviceProviderService.loginWithUsernameAndOTP(username, session);
             } else if(roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
             {
-                return adminService.loginAdminWithUsernameAndOTP(username,session);
+                return adminService.loginAdminWithUsernameAndOTP(username,session,roleService.findRoleName(role));
             }
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
