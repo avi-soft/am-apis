@@ -4,20 +4,9 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.CustomJobGroup;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductRejectionStatus;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
-import com.community.api.entity.CustomSector;
-import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.Privileges;
-import com.community.api.entity.Qualification;
-import com.community.api.entity.Role;
-import com.community.api.entity.StateCode;
+import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryDto;
+import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -36,6 +25,7 @@ import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.sql.Wrapper;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -987,6 +977,9 @@ public class ProductService {
             {
                 addProductDto.setIsReviewRequired(true);
             }
+            if (addProductDto.getReservedCategory() == null || addProductDto.getReservedCategory().isEmpty()) {
+                throw new IllegalArgumentException("Reserve category must not be null or empty.");
+            }
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -999,6 +992,57 @@ public class ProductService {
             exceptionHandlingService.handleException(parseException);
             throw new ParseException(parseException.getMessage() + "\n", parseException.getErrorOffset());
         } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
+    public void validateUpdateFields(CustomProduct customProduct) throws Exception {
+        try
+        {
+            if (customProduct.getDisplayTemplate() == null || customProduct.getDisplayTemplate().trim().isEmpty()) {
+                throw new IllegalArgumentException("Display Template cannot be null to move Product from Draft to NEW state ");
+            }
+
+            if (customProduct.getExamDateFrom() == null || customProduct.getExamDateTo() == null) {
+                throw new IllegalArgumentException("Exam Date-From and Exam Date-To cannot be null to move Product from Draft to NEW state ");
+            }
+
+            if (customProduct.getCustomApplicationScope() == null) {
+                throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
+            }
+            if(customProduct.getNotifyingAuthority()==null || customProduct.getNotifyingAuthority().trim().isEmpty())
+            {
+                throw new IllegalArgumentException("Notifying Authority cannot be null to move Product from Draft to NEW state ");
+            }
+        }
+        catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList, CustomProductWrapper wrapper) throws Exception {
+        try{
+            validateUpdateFields(customProduct);
+            CustomProductState customProductState=null;
+            customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
+            if (customProductState == null) {
+                return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+            }
+            customProduct.setProductState(customProductState);
+            wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+            return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
+        }
+        catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        }
+        catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage() + "\n");
         }
@@ -1251,17 +1295,18 @@ public class ProductService {
                     customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
                     customProduct.setCustomApplicationScope(applicationScope);
                 }
-            } else {
-                if (customProduct.getCustomApplicationScope().getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
-                    if (addProductDto.getState() != null) {
-                        StateCode stateCode = districtService.getStateByStateId(addProductDto.getState());
-                        customProduct.setState(stateCode);
-                    }
-                    if (addProductDto.getDomicileRequired() != null) {
-                        customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
-                    }
-                }
             }
+//            else if(customProduct.getCustomApplicationScope().getApplicationScope()!=null) {
+//                if (customProduct.getCustomApplicationScope().getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
+//                    if (addProductDto.getState() != null) {
+//                        StateCode stateCode = districtService.getStateByStateId(addProductDto.getState());
+//                        customProduct.setState(stateCode);
+//                    }
+//                    if (addProductDto.getDomicileRequired() != null) {
+//                        customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
+//                    }
+//                }
+//            }
 
             if (addProductDto.getAdvertiserUrl() != null) {
                 if (!addProductDto.getAdvertiserUrl().trim().isEmpty()) {
