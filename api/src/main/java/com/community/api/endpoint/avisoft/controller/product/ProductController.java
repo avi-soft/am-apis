@@ -315,7 +315,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
 
         try {
 
@@ -360,7 +360,6 @@ public class ProductController extends CatalogEndpoint {
             productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
-
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
 
@@ -390,6 +389,19 @@ public class ProductController extends CatalogEndpoint {
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
+
+            if(saveAsDraft)
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
+            }
+            else if(!saveAsDraft)
+            {
+                if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
+                {
+                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,physicalRequirementDtoList,wrapper);
+                }
+            }
             wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -403,7 +415,6 @@ public class ProductController extends CatalogEndpoint {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @GetMapping("/get-product-by-id/{productId}")

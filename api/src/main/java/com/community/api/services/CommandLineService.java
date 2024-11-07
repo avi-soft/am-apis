@@ -396,7 +396,7 @@ public class CommandLineService implements CommandLineRunner {
             // Staff Scoring
             entityManager.merge(new ScoringCriteria(10L, "Staff", "More than 4 staff members", 10));
             entityManager.merge(new ScoringCriteria(11L, "Staff", "2 staff members", 5));
-            entityManager.merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
+            entityManager .merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
 
             //Infra Scoring (For individual)
             entityManager.merge(new ScoringCriteria(13L, "Infrastructure", "Service Provider having Equal to 5 or more than 5 infrastructures", 20));
