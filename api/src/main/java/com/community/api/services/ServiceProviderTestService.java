@@ -165,6 +165,10 @@ public class ServiceProviderTestService {
     @Transactional
     public Map<String, Object> uploadResizedImages(Long serviceProviderId, Long testId, MultipartFile resizedFile, HttpServletRequest request) throws Exception {
         // Retrieve the service provider entity
+        if(resizedFile==null || resizedFile.isEmpty())
+        {
+            throw new IllegalArgumentException("Resized image is not uploaded");
+        }
 
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (serviceProvider == null) {
@@ -252,6 +256,10 @@ public class ServiceProviderTestService {
 
     @Transactional
     public Map<String,Object> uploadPdf(Long serviceProviderId,Long testId,MultipartFile pdfFile,HttpServletRequest request) throws Exception {
+        if(pdfFile==null|| pdfFile.isEmpty())
+        {
+            throw new IllegalArgumentException("No any pdf is uploaded");
+        }
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (serviceProvider == null) {
             throw new EntityDoesNotExistsException("Service Provider not found");
@@ -318,6 +326,10 @@ public class ServiceProviderTestService {
 
     @Transactional
     public ServiceProviderTest submitTypedText(Long serviceProviderId,Long testId, String typedText) throws Exception {
+        if(typedText==null)
+        {
+            throw new IllegalArgumentException("Typing Text cannot be null");
+        }
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if(serviceProvider==null)
         {
@@ -382,6 +394,10 @@ public class ServiceProviderTestService {
 
     @Transactional
     public Map<String,Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile,HttpServletRequest request) throws Exception {
+        if(signatureFile==null|| signatureFile.isEmpty())
+        {
+            throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
+        }
         // Retrieve the service provider entity
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (serviceProvider == null) {
@@ -401,10 +417,6 @@ public class ServiceProviderTestService {
             throw new EntityNotFoundException("Service Provider Test not found");
         }
 
-        if(signatureFile==null|| signatureFile.isEmpty())
-        {
-            throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
-        }
         if(test.getResized_image()==null || test.getSubmitted_text()==null || test.getUploadedPdf()==null)
         {
             throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
