@@ -205,16 +205,16 @@ public class ProductController extends CatalogEndpoint {
             CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
 
-            StateCode notifyingAuthority = null;
+            StateCode stateCode = null;
             if (addProductDto.getState() != null) {
-                notifyingAuthority = districtService.getStateByStateId(addProductDto.getState());
+                stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
 
             productService.validatePhysicalRequirement(addProductDto, null);
             productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+            wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
 
             return ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
 

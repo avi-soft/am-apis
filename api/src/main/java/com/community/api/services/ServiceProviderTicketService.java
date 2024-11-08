@@ -13,6 +13,7 @@ import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderStateRef;
+import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,6 +65,9 @@ public class ServiceProviderTicketService {
 
     @Autowired
     ProductService productService;
+
+    @Autowired
+    RoleService roleService;
 
     @Autowired
     EntityManager entityManager;
@@ -204,9 +208,10 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
+            customServiceProviderTicket.setAssigneeRole(createTicketDto.getAssigneeRole());
 
             if(assignedTo != null) {
-                customServiceProviderTicket.setAssignTo(assignedTo);
+                customServiceProviderTicket.setAssignee(assignedTo.getService_provider_id());
             }
 
             if(createTicketDto.getTicketState() != null) {
@@ -293,7 +298,7 @@ public class ServiceProviderTicketService {
 
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
-
+            Role role = roleService.getRoleByRoleId(4);
             while (iterator.hasNext()) {
 
                 CustomOrderState customOrderState = iterator.next();
@@ -324,7 +329,8 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketState(1L);
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
+                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                        createTicketDto.setAssigneeRole(role);
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
@@ -364,7 +370,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Date dateFrom, Date dateTo) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -397,6 +403,14 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.ticketType IN :types ");
             }
 
+            if(dateFrom != null && dateTo != null) {
+                jpql.append("AND c.createdDate >= :dateFrom AND c.createdDate <= :dateTo ");
+            }
+
+            if(userId != null && role != null) {
+                jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -406,6 +420,14 @@ public class ServiceProviderTicketService {
             }
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
+            }
+            if(dateFrom != null && dateTo != null) {
+                query.setParameter("dateFrom", dateFrom);
+                query.setParameter("dateTo", dateTo);
+            }
+            if(userId != null && role != null) {
+                query.setParameter("userId", userId);
+                query.setParameter("role", role);
             }
 
             // Execute and return the result

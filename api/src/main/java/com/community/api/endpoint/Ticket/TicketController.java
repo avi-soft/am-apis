@@ -9,6 +9,7 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.Privileges;
+import com.community.api.entity.Role;
 import com.community.api.services.ProductService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -97,8 +98,8 @@ public class TicketController {
     @GetMapping("/filter-tickets")
     public ResponseEntity<?> getFilterTickets(
             @RequestHeader(value = "Authorization") String authHeader,
-            @RequestParam(value = "date_created_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
-            @RequestParam(value = "date_created_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
+            @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
+            @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "state", required = false) List<Long> state,
             @RequestParam(value = "type", required = false) List<Long> type)
     {
@@ -108,26 +109,35 @@ public class TicketController {
             if(dateFrom != null) {
                 String formattedDateFrom = dateFormat.format(dateFrom);
                 dateFrom = dateFormat.parse(formattedDateFrom);
+                if(dateTo == null) {
+                    dateTo = dateFrom;
+                }
             }
             if(dateTo != null) {
                 String formattedDateTo = dateFormat.format(dateTo);
                 dateTo = dateFormat.parse(formattedDateTo);
+                if(dateFrom == null) {
+                    dateFrom = dateTo;
+                }
+            }
+
+            if(dateFrom != null && dateTo != null && dateTo.before(dateFrom)) {
+                throw new IllegalArgumentException("createdDateFrom must be before createdDateTo");
             }
 
             String jwtToken = authHeader.substring(7);
 
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            Role role = roleService.getRoleByRoleId(roleId);
 
             Long userId = null;
 
-            if (role.equals(Constant.SERVICE_PROVIDER)) {
-
+            if (role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
                 userId = jwtTokenUtil.extractId(jwtToken);
             }
 
-            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, dateFrom, dateTo);
-
+            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, role, dateFrom, dateTo);
+            System.out.println("ticket founds: " + tickets.size());
             if (tickets.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }

@@ -3,7 +3,10 @@ package com.community.api.dto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.persistence.Status;
+import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
+import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Category;
+import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.search.domain.SearchCriteria;
 import org.broadleafcommerce.core.search.service.SearchService;
 
@@ -12,7 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Product>{
+public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Product> {
     @JsonProperty("ticket_id")
     protected Long id;
 
@@ -22,11 +25,8 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Produ
     @JsonProperty("modified_date")
     protected Date modifiedDate;
 
-    @JsonProperty("creator")
-    protected
-
     @JsonProperty("assigned_to")
-    protected ServiceProviderEntity;
+    protected ServiceProviderEntity serviceProvider;
 
     @JsonProperty("total_products")
     Integer totalProducts;
@@ -34,7 +34,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Produ
     @JsonProperty("products")
     List<CustomProductWrapper> products;
 
-    public void wrapDetailsCategory(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
+    /*public void wrapDetailsCategory(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
 
         this.id = category.getId();
         this.name = category.getName();
@@ -74,6 +74,16 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Produ
         if (category instanceof Status) {
             this.archived = ((Status) category).getArchived();
         }
+
+    }*/
+
+    @Override
+    public void wrapDetails(Product product, HttpServletRequest httpServletRequest) {
+
+    }
+
+    @Override
+    public void wrapSummary(Product product, HttpServletRequest httpServletRequest) {
 
     }
 }

@@ -42,21 +42,32 @@ public class CustomServiceProviderTicket {
     @JoinColumn(name = "ticket_type_id")
     protected CustomTicketType ticketType;
 
-    @Column(name = "created_by")
+    @Column(name = "creator_user_id")
     private Long userId;
 
     @Column(name = "created_date")
     private Date createdDate;
 
+    @ManyToOne
+    @JoinColumn(name = "creator_role_id")
+    private Role creatorRole;
+
     @Column(name = "modified_date")
     private Date modifiedDate;
 
-    @Column(name = "modified_by")
+    @Column(name = "modifier_user_id")
     private Long modifierId;
 
     @ManyToOne
-    @JoinColumn(name = "ticket_assign_to")
-    private ServiceProviderEntity assignTo;
+    @JoinColumn(name = "modifier_role_id")
+    private Role modifierRole;
+
+    @Column(name = "assignee_user_id")
+    private Long assignee;
+
+    @ManyToOne
+    @JoinColumn(name = "assignee_role_id")
+    private Role assigneeRole;
 
     @Column(name = "target_completion_time")
     private Date targetCompletionDate;
