@@ -2,19 +2,15 @@ package com.community.api.component;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
-import com.community.api.entity.CustomCustomer;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -28,9 +24,7 @@ public class JwtUtil {
 
     private ExceptionHandlingImplement exceptionHandling;
     private RoleService roleService;
-
-//    private String secretKeyString ;
-private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
+    private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
 
     private Key secretKey;
     private EntityManager entityManager;
@@ -79,9 +73,41 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
         }
 
     }
+    public String generateToken(Long id, Integer role, String ipAddress, String userAgent) {
+        try {
+            String uniqueTokenId = UUID.randomUUID().toString();
+
+            boolean isMobile = isMobileDevice(userAgent);
+
+            JwtBuilder jwtBuilder = Jwts.builder()
+                    .setHeaderParam("typ", "JWT")
+                    .setId(uniqueTokenId)
+                    .claim("id", id)
+                    .claim("role", role)
+                    .claim("userAgent",userAgent)
+                    .claim("ipAddress", ipAddress)
+                    .setIssuedAt(new Date())
+                    .signWith(getSignInKey(), SignatureAlgorithm.HS256);
+
+            if (!isMobile) {
+                jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)); // 10 hours
+            }
+
+            return jwtBuilder.compact();
+
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException("Error generating JWT token", e);
+        }
+    }
+
+    private boolean isMobileDevice(String userAgent) {
+        String devicePattern = "android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini";
+        return userAgent != null && userAgent.toLowerCase().matches(".*(" + devicePattern + ").*");
+    }
 
 
-
+/*
     public String generateToken(Long id, Integer role, String ipAddress, String userAgent) {
         try {
             String uniqueTokenId = UUID.randomUUID().toString();
@@ -93,15 +119,15 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
                     .claim("role", role)
                     .claim("ipAddress", ipAddress)
                     .setIssuedAt(new Date())
-//                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 *10))
-                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
+                   .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 *10))
+//                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new RuntimeException("Error generating JWT token", e);
         }
-    }
+    }*/
 
     private Key getSignInKey() {
 
@@ -116,6 +142,29 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
 
     }
 
+    public String extractUserAgent(String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                throw new IllegalArgumentException("Token is required");
+            }
+
+
+            return Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .get("userAgent", String.class);
+
+        } catch (SignatureException e) {
+            throw new RuntimeException("Invalid JWT signature.");
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException("Error extracting userAgent from JWT token", e);
+        }
+    }
+
+
     public Long extractId(String token) {
 
         try {
@@ -123,7 +172,10 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
                 throw new IllegalArgumentException("Token is required");
             }
 
-            if (isTokenExpired(token)) {
+            String userAgent = extractUserAgent(token);
+
+
+            if (isTokenExpired(token,userAgent)) {
                 throw new ExpiredJwtException(null, null, "Token is expired");
 
             }
@@ -141,12 +193,36 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
         }
     }
 
+    public Date getExpiryTime(String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                throw new IllegalArgumentException("Token is required");
+            }
+
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.getExpiration();
+
+        } catch (ExpiredJwtException e) {
+            throw new ExpiredJwtException(null, null, "Token is expired");
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid JWT token", e);
+        }
+    }
+
     @Transactional
     public Boolean validateToken(String token, String ipAddress, String userAgent) {
 
         try {
 
-            if (isTokenExpired(token)) {
+            if (token == null || token.isEmpty()) {
+                throw new IllegalArgumentException("Token is required");
+            }
+            if (isTokenExpired(token,userAgent)) {
                 throw new IllegalArgumentException("Token is expired");
             }
 
@@ -200,23 +276,34 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
         }
     }
 
-    private boolean isTokenExpired(String token) {
+    private boolean isTokenExpired(String token, String userAgent) {
         try {
             if (token == null || token.trim().isEmpty()) {
                 throw new IllegalArgumentException("Token is required");
-
             }
-            Date expiration = Jwts.parserBuilder()
+
+            boolean isMobile = isMobileDevice(userAgent);
+
+            Claims claims = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
                     .parseClaimsJws(token)
-                    .getBody()
-                    .getExpiration();
+                    .getBody();
 
-            return expiration.before(new Date());
-        }catch (ExpiredJwtException e) {
+            Date expiration = claims.getExpiration();
+
+            if (isMobile && expiration == null) {
+                return false; // Mobile token doesn't have expiration
+            }
+
+            return expiration != null && expiration.before(new Date());
+
+        } catch (ExpiredJwtException e) {
             logoutUser(token);
-            return false;
+            throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "Token is expired and cannot be used.");
+        } catch (MalformedJwtException | SignatureException e) {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException("Invalid JWT token", e);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new RuntimeException("Error checking token expiration", e);
@@ -254,13 +341,7 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
             if (token == null || token.isEmpty()) {
                 throw new IllegalArgumentException("Token is required");
             }
-            if (isTokenExpired(token)) {
 
-
-                throw new ExpiredJwtException(null, null, "Token is expired");
-
-
-            }
             return Jwts.parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
@@ -276,14 +357,4 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
         }
     }
 
-    public void validateAuthHeader(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Authorization header is missing or invalid.");
-        }
-    }
-
-    public Long getTokenUserId(String authHeader) {
-        String jwtToken = authHeader.substring(7);
-        return extractId(jwtToken);
-    }
 }
