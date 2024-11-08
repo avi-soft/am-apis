@@ -996,11 +996,13 @@ public class CustomerEndpoint {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody Map<String, String> request) {
-        String token = request.get("token");
-        if (token == null || token.isEmpty()) {
+    public ResponseEntity<String> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest().body("Token is required");
         }
+
+        String token = authorizationHeader.substring(7); // Remove "Bearer " prefix
+
         try {
             jwtUtil.logoutUser(token);
 
@@ -1009,6 +1011,7 @@ public class CustomerEndpoint {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during logout");
         }
     }
+
     @Transactional
     @PostMapping("/save-form/{customer_id}")
     public ResponseEntity<?>saveForm(@PathVariable long customer_id,@RequestParam long product_id)

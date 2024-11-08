@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
@@ -86,6 +87,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomGender(2L, 'F', "FEMALE"));
             entityManager.persist(new CustomGender(3L, 'O', "OTHERS"));
         }
+
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomSector c", Long.class).getSingleResult() == 0) {
             entityManager.merge(new CustomSector(1L, "HEALTHCARE", "Forms related to patient care and medical services."));
@@ -419,5 +421,8 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
+        String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
+        Query query = entityManager.createNativeQuery(alterQuery);
+        query.executeUpdate();
     }
 }

@@ -12,6 +12,8 @@ import javax.validation.constraints.Size;
 @NoArgsConstructor
 public class BankAccountDTO {
 
+    private Long id;
+
     @NotBlank(message = "Customer name is required")
     private String customerName;
 
