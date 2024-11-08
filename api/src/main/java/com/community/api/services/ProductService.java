@@ -1257,45 +1257,81 @@ public class ProductService {
                 CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
                 if (applicationScope == null) {
                     throw new IllegalArgumentException("NO APPLICATION SCOPE EXISTS WITH THIS ID");
-                } else if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE) && customProduct.getCustomApplicationScope().getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE)) {
-                    if (addProductDto.getState() != null && districtService.getStateByStateId(addProductDto.getState()) != null) {
-                        customProduct.setState(districtService.getStateByStateId(addProductDto.getState()));
-                        customProduct.setCustomApplicationScope(applicationScope);
-                    } else {
-                        throw new IllegalArgumentException("STATE NOT FOUND");
-                    }
+                }
+                if (customProduct.getCustomApplicationScope() != null) {
+                    if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE) && customProduct.getCustomApplicationScope().getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE)) {
+                        if (addProductDto.getState() != null && districtService.getStateByStateId(addProductDto.getState()) != null) {
+                            customProduct.setState(districtService.getStateByStateId(addProductDto.getState()));
+                            customProduct.setCustomApplicationScope(applicationScope);
+                        } else {
+                            throw new IllegalArgumentException("STATE NOT FOUND");
+                        }
 
-                    if (addProductDto.getDomicileRequired() != null) {
+                        if (addProductDto.getDomicileRequired() != null) {
+                            customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
+                            customProduct.setCustomApplicationScope(applicationScope);
+                        }
+                    } else if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE) && customProduct.getCustomApplicationScope().getApplicationScope().equals(Constant.APPLICATION_SCOPE_CENTER)) {
+                        if (addProductDto.getState() == null || addProductDto.getDomicileRequired() == null) {
+                            throw new IllegalArgumentException("DOMICILE AND STATE ARE REQUIRED FIELDS FOR STATE APPLICATION SCOPE");
+                        }
+
+                        if (districtService.getStateByStateId(addProductDto.getState()) != null) {
+                            customProduct.setState(districtService.getStateByStateId(addProductDto.getState()));
+                        } else {
+                            throw new IllegalArgumentException("STATE IS NOT FOUND");
+                        }
+                        customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
+                        customProduct.setCustomApplicationScope(applicationScope);
+                    } else if (applicationScope.getApplicationScope().equals(APPLICATION_SCOPE_CENTER)) {
+                        if (addProductDto.getState() != null) {
+                            throw new IllegalArgumentException("STATE NOT REQUIRED IN CASE OF CENTER LEVEL APPLICATION SCOPE");
+                        }
+                        if (addProductDto.getDomicileRequired() != null && addProductDto.getDomicileRequired()) {
+                            throw new IllegalArgumentException("DOMICILE IS NOT REQUIRED IN CASE OF CENTER APPLICATION SCOPE");
+                        }
+                        addProductDto.setDomicileRequired(false);
+                        addProductDto.setState(null);
+                        customProduct.setState(null);
                         customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
                         customProduct.setCustomApplicationScope(applicationScope);
                     }
-                } else if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_STATE) && customProduct.getCustomApplicationScope().getApplicationScope().equals(Constant.APPLICATION_SCOPE_CENTER)) {
-                    if (addProductDto.getState() == null || addProductDto.getDomicileRequired() == null) {
-                        throw new IllegalArgumentException("DOMICILE AND STATE ARE REQUIRED FIELDS FOR STATE APPLICATION SCOPE");
-                    }
+                }
+                else if(customProduct.getCustomApplicationScope()==null)
+                {
+                    if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_CENTER)) {
+                        if (addProductDto.getState() != null) {
+                            throw new IllegalArgumentException("State cannot be given if application scope " + applicationScope.getApplicationScope());
+                        }
+                        if (addProductDto.getDomicileRequired() != null && addProductDto.getDomicileRequired()) {
+                            throw new IllegalArgumentException("Domicile required cannot be true if application scope " + applicationScope.getApplicationScope());
+                        }
+                        addProductDto.setDomicileRequired(false);
+                        customProduct.setDomicileRequired(false);
+                        customProduct.setState(null);
+                        customProduct.setCustomApplicationScope(applicationScope);
 
-                    if (districtService.getStateByStateId(addProductDto.getState()) != null) {
-                        customProduct.setState(districtService.getStateByStateId(addProductDto.getState()));
-                    } else {
-                        throw new IllegalArgumentException("STATE IS NOT FOUND");
-                    }
-                    customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
-                    customProduct.setCustomApplicationScope(applicationScope);
-                } else if (applicationScope.getApplicationScope().equals(APPLICATION_SCOPE_CENTER)) {
-                    if (addProductDto.getState() != null) {
-                        throw new IllegalArgumentException("STATE NOT REQUIRED IN CASE OF CENTER LEVEL APPLICATION SCOPE");
-                    }
-                    if (addProductDto.getDomicileRequired() != null && addProductDto.getDomicileRequired()) {
-                        throw new IllegalArgumentException("DOMICILE IS NOT REQUIRED IN CASE OF CENTER APPLICATION SCOPE");
-                    }
+                    } else if (applicationScope.getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
+                        if (addProductDto.getDomicileRequired() == null || addProductDto.getState() == null) {
+                            throw new IllegalArgumentException("For application scope: " + applicationScope.getApplicationScope() + " domicile and state cannot be null.");
+                        }
 
-                    addProductDto.setDomicileRequired(false);
-                    addProductDto.setState(null);
-                    customProduct.setState(null);
-                    customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
-                    customProduct.setCustomApplicationScope(applicationScope);
+                        if (addProductDto.getState() <= 0) {
+                            throw new IllegalArgumentException("State cannot be <= 0.");
+                        }
+
+                        StateCode state = districtService.getStateByStateId(addProductDto.getState());
+                        if (state == null) {
+                            throw new NoSuchElementException("State not found.");
+                        }
+                        customProduct.setDomicileRequired(addProductDto.getDomicileRequired());
+                        customProduct.setState(state);
+                        customProduct.setCustomApplicationScope(applicationScope);
+
+                    }
                 }
             }
+
 //            else if(customProduct.getCustomApplicationScope().getApplicationScope()!=null) {
 //                if (customProduct.getCustomApplicationScope().getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
 //                    if (addProductDto.getState() != null) {
