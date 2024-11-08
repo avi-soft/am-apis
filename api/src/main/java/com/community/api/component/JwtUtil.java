@@ -93,8 +93,8 @@ private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
                     .claim("role", role)
                     .claim("ipAddress", ipAddress)
                     .setIssuedAt(new Date())
-                   //.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60  *30))
-                   .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5))
+                   .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60  *30))
+                   //.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
         } catch (Exception e) {
