@@ -17,27 +17,30 @@ import java.util.Date;
 public class BoardUniversity
 {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 150)
-    private String name;
+    @Column(name="board_university_name",nullable = false)
+    private String board_university_name;
 
-    @Column(length = 100)
-    private String location;
+    @Column(name = "board_university_location", nullable = false)
+    private String board_university_location;
 
-    @Column(nullable = false, unique = true, length = 20)
-    private String code;
+    @Column(nullable = false)
+    private String board_university_code;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private InstitutionType type;
+    @Column(nullable = false)
+    private String board_university_type;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_date", updatable = false)
-    private Date createdDate;
+    private String created_date;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "modified_date")
-    private Date modifiedDate;
+    private String modified_date;
+
+    @Column(name = "created_by")
+    private String created_by;
+
+    @Column(name = "modified_by")
+    private String modified_by;
 }
