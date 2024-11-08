@@ -99,6 +99,11 @@ public class ProductService {
                 values.append(", :postName");
             }
 
+            if(addProductDto.getNotifyingAuthority() != null) {
+                sql.append(", notifying_authority");
+                values.append(", :notifyingAuthority");
+            }
+
             if (addProductDto.getApplicationScope() != null) {
                 sql.append(", application_scope_id");
                 values.append(", :applicationScope");
@@ -233,6 +238,10 @@ public class ProductService {
             // Set parameters conditionally
             if (addProductDto.getPostName() != null) {
                 query.setParameter("postName", addProductDto.getPostName());
+            }
+
+            if (addProductDto.getNotifyingAuthority() != null) {
+                query.setParameter("notifyingAuthority", addProductDto.getNotifyingAuthority());
             }
 
             if (addProductDto.getApplicationScope() != null) {
