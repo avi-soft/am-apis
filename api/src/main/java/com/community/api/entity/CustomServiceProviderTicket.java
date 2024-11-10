@@ -1,10 +1,8 @@
 package com.community.api.entity;
 
-import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 
 import javax.persistence.Column;
