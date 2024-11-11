@@ -200,6 +200,7 @@ public class CustomCustomer extends CustomerImpl {
     private List<CustomProduct> cartRecoveryLog;
 
     @Nullable
+    @Column(length = 512)
     private String token;
 
 
@@ -226,10 +227,14 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "visible_identification_mark_2")
     private String identificationMark2;
 
-    @JsonBackReference
+    @JsonBackReference("referrer-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
+
+    @JsonBackReference("bankDetails-customer")
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BankDetails> bankDetails = new ArrayList<>();
 
     @Column(name = "order_count")
     private Integer numberOfOrders;

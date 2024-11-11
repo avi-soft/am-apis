@@ -6,6 +6,7 @@ import org.broadleafcommerce.profile.core.domain.Customer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
+import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -51,6 +52,21 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
+    public CustomCustomer findCustomCustomerById(Long customerId) {
+        // Check if customerId is valid
+        if (customerId == null) {
+            return null;
+        }
+
+        return em.createQuery("SELECT c FROM CustomCustomer c WHERE c.id = :customerId", CustomCustomer.class)
+                .setParameter("customerId", customerId)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
+
+
     public CustomCustomer findCustomCustomerByPhoneWithOtp(String mobileNumber,String countryCode) {
 
         if (countryCode == null) {
@@ -66,15 +82,5 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
-    public String formatDate(String dateString) {
-
-        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-
-        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy");
-
-        LocalDateTime dateTime = LocalDateTime.parse(dateString, inputFormatter);
-
-        return dateTime.format(outputFormatter);
-    }
 
 }
