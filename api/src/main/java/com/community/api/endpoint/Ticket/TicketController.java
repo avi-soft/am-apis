@@ -137,7 +137,6 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, role, dateFrom, dateTo);
-            System.out.println("ticket founds: " + tickets.size());
             if (tickets.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }

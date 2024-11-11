@@ -5,8 +5,6 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -17,7 +15,6 @@ import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -79,27 +76,23 @@ public class ServiceProviderTicketService {
         try{
             // we are fetching SP who are in approved state (later we will do only active)
             List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 1L);
-            System.out.println("*************" + availableServiceProvider.size());
+            logger.info("*************" + availableServiceProvider.size());
             // later will do order which are in particular state. (write now just fetching which are in state 2).
             OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
 
-            System.out.println("TILL1");
             randomBindingTicketAllocation(customOrders);
-            System.out.println("TILL2");
             verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
-            System.out.println("TILL3");
 
         } catch (Exception exception){
             throw new Exception("Exception caught: " + exception.getMessage());
         }
     }
 
-    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders) {
-        /*try {
+    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders) throws Exception {
+        try {
 
             logger.info("Total Orders at the moments are: " + customOrders.size());
-
             List<Order> assignedOrders = new ArrayList<>();
 
             boolean assigned = false;
@@ -112,17 +105,12 @@ public class ServiceProviderTicketService {
 
                 Order order = orderService.findOrderById(customOrderState.getOrderId());
                 CustomCustomer customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
-//                String customerString = objectMapper.writeValueAsString(customer);
-//                logger.info(customerString);
 
-//                Query query = entityManager.createQuery(Constant.GET_ORDERS_BY_ORDER_STATE_ID, CustomOrderState.class);
-//                query.setParameter("orderStateId", orderStateRef.getOrderStateId());
-//                List<CustomOrderState> orderState = query.getResultList();
                 List<CustomerReferrer> referrers = customer.getMyReferrer();
-                System.out.println("Referrer list:" + referrers.size());
+                logger.info("Referrer list:" + referrers.size());
                 for (CustomerReferrer refferer : referrers) {
                     ServiceProviderEntity serviceProvider = refferer.getServiceProvider();
-                    System.out.println("REFFEREER ID: " + serviceProvider.getService_provider_id());
+                    logger.info("REFFEREER ID: " + serviceProvider.getService_provider_id());
 
                     if (serviceProvider.getIsActive()) {
                         // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
@@ -130,7 +118,8 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketState(1L);
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
+                        createTicketDto.setAssignee(serviceProvider.getService_provider_id().longValue());
+                        createTicketDto.setAssigneeRole(r);
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
@@ -143,7 +132,7 @@ public class ServiceProviderTicketService {
                 }
                 // now search for creator of product.
                 if (!assigned) {
-                    System.out.println("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                    logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
@@ -157,7 +146,7 @@ public class ServiceProviderTicketService {
                         createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
-                        System.out.println("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
+                        logger.info("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
 
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
@@ -176,8 +165,9 @@ public class ServiceProviderTicketService {
             logger.info("Total orders assigned by RBTA method is: " + assignedOrders.size());
 
         } catch (Exception exception) {
-            System.out.println("Exception caught: " + exception.getMessage());
-        }*/
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
     }
 
     @Transactional
@@ -269,7 +259,6 @@ public class ServiceProviderTicketService {
 
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
-//            customServiceProviderTicket.setOrder(order);
 
             CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
@@ -289,12 +278,12 @@ public class ServiceProviderTicketService {
 
     public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider) throws Exception {
         try{
-            System.out.println("INSIDE VDTA FOR Ticket Allocation");
+            logger.info("INSIDE VDTA FOR Ticket Allocation");
             logger.info("Total orders recieved for VDTA: " + customOrders.size());
             logger.info("Total Service Provider: " + availableServiceProvider.size());
 
             List<Order> assignedOrders = new ArrayList<>();
-            System.out.println("custom orders size is: " + customOrders.size());
+            logger.info("custom orders size is: " + customOrders.size());
 
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
@@ -307,22 +296,11 @@ public class ServiceProviderTicketService {
                 String jsonString = objectMapper.writeValueAsString(customOrderState);
                 logger.info(jsonString);
 
-                System.out.println("Order Found");
                 Order order = orderService.findOrderById(customOrderState.getOrderId());
-                CustomCustomer customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
-                System.out.println("Order Found1");
-//                String customerString = objectMapper.writeValueAsString(customer);
-//                logger.info(customerString);
-
-//                Query query = entityManager.createQuery(Constant.GET_ORDERS_BY_ORDER_STATE_ID, CustomOrderState.class);
-//                query.setParameter("orderStateId", orderStateRef.getOrderStateId());
-//                List<CustomOrderState> orderState = query.getResultList();
 
                 for (Map<String, Object> serviceProviderMap : availableServiceProvider) {
-                    System.out.println("Order Found2");
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
 
-                    System.out.println("Order Found3");
                     if (serviceProvider.getIsActive()) {
                         // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
                         CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -337,7 +315,6 @@ public class ServiceProviderTicketService {
                         iterator.remove();
                         assignedOrders.add(order);
 
-                        System.out.println("Order Found4");
                         // Link that ticket to the service provider and increment its ticketAllocated and everthing.
                         availableServiceProvider.remove(serviceProviderMap);
                         break;
@@ -345,12 +322,9 @@ public class ServiceProviderTicketService {
 
                 }
 
-                System.out.println("Order Found5");
                 Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
-                System.out.println("Order Found6");
             }
-            System.out.println("NICE ####################");
             logger.info("Total orders assigned by VDTA method is: " + assignedOrders.size());
 
 
