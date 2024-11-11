@@ -34,6 +34,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * The type Jwt authentication filter.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -45,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars).*"
     );
     private String apiKey="IaJGL98yHnKjnlhKshiWiy1IhZ+uFsKnktaqFX3Dvfg=";
-
+    
     @Autowired
     private JwtUtil jwtUtil;
     @Autowired
@@ -55,6 +58,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private CustomerService CustomerService;
+
+    /**
+     * The Token blacklist.
+     */
+    @Autowired
+    TokenBlacklist tokenBlacklist;
 
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
@@ -69,6 +78,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
+
+
+
 
             String requestURI = request.getRequestURI();
             if (isUnsecuredUri(requestURI) || bypassimages(requestURI)) {
@@ -157,6 +169,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = authorizationHeader.substring(BEARER_PREFIX_LENGTH);
         Long id = jwtUtil.extractId(jwt);
 
+        if (tokenBlacklist.isTokenBlacklisted(jwt)) {
+            respondWithUnauthorized(response, "Token has been blacklisted");
+            return true;
+        }
+
         if (id == null) {
             respondWithUnauthorized(response, "Invalid details in token");
             return true;
@@ -187,6 +204,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     return false;
                 } else {
+                    jwtUtil.logoutUser(jwt);
+
                     respondWithUnauthorized(response, "Invalid data provided for this customer");
                     return true;
                 }
@@ -223,6 +242,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void respondWithUnauthorized(HttpServletResponse response, String message) throws IOException {
         if (!response.isCommitted()) {
+
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"status\":\"UNAUTHORIZED\",\"status_code\":401,\"message\":\"" + message + "\"}");

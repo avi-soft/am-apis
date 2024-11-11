@@ -24,6 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
@@ -86,6 +87,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomGender(2L, 'F', "FEMALE"));
             entityManager.persist(new CustomGender(3L, 'O', "OTHERS"));
         }
+
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomSector c", Long.class).getSingleResult() == 0) {
             entityManager.merge(new CustomSector(1L, "HEALTHCARE", "Forms related to patient care and medical services."));
@@ -396,7 +398,7 @@ public class CommandLineService implements CommandLineRunner {
             // Staff Scoring
             entityManager.merge(new ScoringCriteria(10L, "Staff", "More than 4 staff members", 10));
             entityManager.merge(new ScoringCriteria(11L, "Staff", "2 staff members", 5));
-            entityManager.merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
+            entityManager .merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
 
             //Infra Scoring (For individual)
             entityManager.merge(new ScoringCriteria(13L, "Infrastructure", "Service Provider having Equal to 5 or more than 5 infrastructures", 20));
@@ -444,5 +446,8 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
         }
+        String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
+        Query query = entityManager.createNativeQuery(alterQuery);
+        query.executeUpdate();
     }
 }
