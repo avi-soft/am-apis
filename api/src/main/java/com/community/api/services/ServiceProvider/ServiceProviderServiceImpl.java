@@ -1297,7 +1297,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
         generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
-        System.out.println("-------------------------" + generalizedQuery);
         Query query;
         query = entityManager.createNativeQuery(generalizedQuery, ServiceProviderEntity.class);
         for (int i = 0; i < fields.length; i++) {
