@@ -2,6 +2,8 @@ package com.community.api.component;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.services.CustomCustomerService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import io.jsonwebtoken.*;
@@ -24,13 +26,13 @@ public class JwtUtil {
 
     private ExceptionHandlingImplement exceptionHandling;
     private RoleService roleService;
-    private String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
+    final String secretKeyString = "DASYWgfhMLL0np41rKFAGminD1zb5DlwDzE1WwnP8es=";
 
     private Key secretKey;
     private EntityManager entityManager;
     private TokenBlacklist tokenBlacklist;
     private CustomerService customerService;
-
+    private CustomCustomerService customCustomerService;
 
 
     @Autowired
@@ -54,8 +56,15 @@ public class JwtUtil {
     }
 
     @Autowired
-    public void setCustomerService(CustomerService customerService) {
+    public void setCustomerService(CustomerService customerService)
+    {
         this.customerService = customerService;
+    }
+
+    @Autowired
+    public void setSetCustomerService(CustomCustomerService customCustomerService)
+    {
+        this.customCustomerService = customCustomerService;
     }
 
     @PostConstruct
@@ -276,6 +285,7 @@ public class JwtUtil {
         }
     }
 
+    @Transactional
     private boolean isTokenExpired(String token, String userAgent) {
         try {
             if (token == null || token.trim().isEmpty()) {
@@ -295,8 +305,22 @@ public class JwtUtil {
             if (isMobile && expiration == null) {
                 return false; // Mobile token doesn't have expiration
             }
+            Long id = this.extractId(token);
 
-            return expiration != null && expiration.before(new Date());
+            CustomCustomer existingCustomer = customCustomerService.findCustomCustomerById(id);
+            
+            if(expiration!=null){
+                if (existingCustomer != null) {
+                    existingCustomer.setToken(null);
+                    entityManager.persist(existingCustomer);
+                } 
+
+                return expiration != null && expiration.before(new Date());
+            }
+            
+            return false;   
+
+
 
         } catch (ExpiredJwtException e) {
             logoutUser(token);
