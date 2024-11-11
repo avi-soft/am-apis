@@ -119,7 +119,7 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
                         createTicketDto.setAssignee(serviceProvider.getService_provider_id().longValue());
-                        createTicketDto.setAssigneeRole(r);
+                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
@@ -143,14 +143,14 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketState(1L);
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignTo(serviceProvider.getService_provider_id());
+                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
                         CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
                         logger.info("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
 
                         serviceProviderTicket.setModifiedDate(new Date());
                         serviceProviderTicket.setTicketAssignDate(new Date());
-                        serviceProviderTicket.setAssignTo(serviceProvider);
                         customOrders.remove(customOrderState);
                         assignedOrders.add(order);
                         break;
