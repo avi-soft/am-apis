@@ -1,21 +1,18 @@
 package com.community.api.dto;
 
-import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CombinedOrderDTO;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.Role;
+import com.community.api.services.OrderDTOService;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
-import org.broadleafcommerce.core.catalog.domain.Category;
-import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.search.domain.SearchCriteria;
-import org.broadleafcommerce.core.search.service.SearchService;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
 
-public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Product> {
+public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
     @JsonProperty("ticket_id")
     protected Long id;
 
@@ -25,65 +22,44 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Produ
     @JsonProperty("modified_date")
     protected Date modifiedDate;
 
-    @JsonProperty("assigned_to")
-    protected ServiceProviderEntity serviceProvider;
+    @JsonProperty("assignee_user_id")
+    protected Long assigneeUserId;
 
-    @JsonProperty("total_products")
-    Integer totalProducts;
+    @JsonProperty("assignee_role")
+    protected Role assigneeRole;
 
-    @JsonProperty("products")
-    List<CustomProductWrapper> products;
+    @JsonProperty("modifier_user_id")
+    protected Long modifierUserId;
 
-    /*public void wrapDetailsCategory(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
+    @JsonProperty("modifier_role")
+    protected Role modifierRole;
 
-        this.id = category.getId();
-        this.name = category.getName();
-        this.description = category.getDescription();
-        this.longDescription = category.getLongDescription();
-        this.active = category.isActive();
-        this.displayTemplate = category.getDisplayTemplate();
-        this.activeStartDate = category.getActiveStartDate();
-        this.activeEndDate = category.getActiveEndDate();
-        this.url = category.getUrl();
-        this.urlKey = category.getUrlKey();
-        this.archived = ((Status) category).getArchived();
-        this.products = products;
-        if (products == null) {
-            this.totalProducts = 0;
-        } else {
-            this.totalProducts = products.size();
-        }
+    @JsonProperty("target_completion_time")
+    protected Date targetCompletionDate;
 
-        Integer productLimit = (Integer) request.getAttribute("productLimit");
-        Integer productOffset = (Integer) request.getAttribute("productOffset");
-        Integer subcategoryLimit = (Integer) request.getAttribute("subcategoryLimit");
-        Integer subcategoryOffset = (Integer) request.getAttribute("subcategoryOffset");
-        if (productLimit != null && productOffset == null) {
-            productOffset = 1;
-        }
+    @JsonProperty
+    protected CombinedOrderDTO order;
 
-        if (productLimit != null && productOffset != null) {
-            SearchService searchService = this.getSearchService();
-            SearchCriteria searchCriteria = new SearchCriteria();
-            searchCriteria.setPage(productOffset);
-            searchCriteria.setPageSize(productLimit);
-            searchCriteria.setFilterCriteria(new HashMap());
-
-        }
-
-        if (category instanceof Status) {
-            this.archived = ((Status) category).getArchived();
-        }
-
-    }*/
+    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
+        this.id = customServiceProviderTicket.getTicketId();
+        this.assigneeUserId = customServiceProviderTicket.getUserId();
+        this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
+        this.order = combinedOrderDTO;
+        this.createdDate = customServiceProviderTicket.getCreatedDate();
+        this.modifiedDate = customServiceProviderTicket.getModifiedDate();
+        this.targetCompletionDate = customServiceProviderTicket.getTargetCompletionDate();
+        this.modifierUserId = customServiceProviderTicket.getModifierId();
+        this.modifierRole = customServiceProviderTicket.getModifierRole();
+    }
 
     @Override
-    public void wrapDetails(Product product, HttpServletRequest httpServletRequest) {
+    public void wrapDetails(CustomServiceProviderTicket customServiceProviderTicket, HttpServletRequest httpServletRequest) {
 
     }
 
     @Override
-    public void wrapSummary(Product product, HttpServletRequest httpServletRequest) {
+    public void wrapSummary(CustomServiceProviderTicket customServiceProviderTicket, HttpServletRequest httpServletRequest) {
 
     }
+
 }

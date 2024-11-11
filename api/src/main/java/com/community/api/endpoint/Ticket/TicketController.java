@@ -3,13 +3,21 @@ package com.community.api.endpoint.Ticket;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.entity.CombinedOrderDTO;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
+import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.OrderDTOService;
 import com.community.api.services.ProductService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -19,6 +27,11 @@ import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import jsinterop.annotations.JsOverlay;
+import org.broadleafcommerce.common.persistence.Status;
+import org.broadleafcommerce.profile.core.domain.Customer;
+import org.broadleafcommerce.profile.core.service.CustomerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -36,13 +49,18 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminPresentation.FieldOrder.order;
+
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class TicketController {
+
+    private static final Logger logger = LoggerFactory.getLogger(TicketController.class);
 
     @Autowired
     ServiceProviderTicketService serviceProviderTicketService;
@@ -67,6 +85,15 @@ public class TicketController {
 
     @Autowired
     RoleService roleService;
+
+    @Autowired
+    CustomerService customerService;
+
+    @Autowired
+    OrderDTOService orderDTOService;
+
+    @Autowired
+    CustomerAddressFetcher addressFetcher;
 
     @PersistenceContext
     EntityManager entityManager;
@@ -140,7 +167,26 @@ public class TicketController {
             if (tickets.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }
-            return ResponseService.generateSuccessResponse("Tickets Found", tickets, HttpStatus.OK);
+
+            List<CustomTicketWrapper> responses = new ArrayList<>();
+            for (CustomServiceProviderTicket ticket : tickets) {
+
+                if (ticket != null) {
+                    CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket,customerDetailsDTO);
+
+                    wrapper.customWrapDetails(ticket, orderDto);
+                    responses.add(wrapper);
+                }
+            }
+
+            logger.info("Total tickets: " + responses.size());
+            return ResponseService.generateSuccessResponse("Tickets Found", responses, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);

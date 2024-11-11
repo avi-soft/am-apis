@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -74,6 +75,7 @@ public class CustomServiceProviderTicket {
     private Date ticketAssignDate;
 
     @OneToOne
+    @JsonBackReference
     @JoinColumn(name = "ORDER_ID")
     private OrderImpl order;
 }
