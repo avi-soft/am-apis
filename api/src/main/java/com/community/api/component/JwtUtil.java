@@ -348,7 +348,6 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
 
-            String uniqueTokenId = claims.getId();
             tokenBlacklist.blacklistToken(token);
             return true;
         }catch (ExpiredJwtException e) {

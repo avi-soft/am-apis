@@ -51,7 +51,8 @@ public class TokenBlacklist {
             }
 
         } catch (ExpiredJwtException e) {
-            throw e;
+            jwtUtil.logoutUser(token);
+            throw new ExpiredJwtException(null, null, "Token is expired");
         } catch (Exception e) {
             throw new RuntimeException("Failed to blacklist token", e);
         }

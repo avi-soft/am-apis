@@ -38,6 +38,7 @@ import static org.apache.commons.lang.StringUtils.isNumeric;
 @RequestMapping(value = "/account",
         produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
 )
+
 public class AccountEndPoint {
     private CustomerService customerService;
     private JwtUtil jwtUtil;
