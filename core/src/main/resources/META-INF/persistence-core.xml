@@ -107,6 +107,7 @@
         <class>com.community.api.entity.ServiceProviderRank</class>
         <class>com.community.api.entity.CustomAdmin</class>
         <class>com.community.api.entity.ScoringCriteria</class>
+        <class>com.community.api.entity.BoardUniversity</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

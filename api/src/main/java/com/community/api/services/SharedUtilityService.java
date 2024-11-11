@@ -419,12 +419,13 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
+                    BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
 
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getId());
                     qualificationInfo.put("institution_name", qualificationDetail.getInstitution_name());
                     qualificationInfo.put("year_of_passing", qualificationDetail.getYear_of_passing());
-                    qualificationInfo.put("board_or_university", qualificationDetail.getBoard_or_university());
+                    qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
                     qualificationInfo.put("subject_name", qualificationDetail.getSubject_name());
                     qualificationInfo.put("stream",qualificationDetail.getStream());
                     qualificationInfo.put("examination_roll_number",qualificationDetail.getExamination_role_number());
@@ -439,6 +440,11 @@ public class SharedUtilityService {
                         qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
                     } else {
                         qualificationInfo.put("qualification_name", "Unknown Qualification");
+                    }
+                    if (boardUniversity != null) {
+                        qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
+                    }else {
+                        qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
                     }
 
                     return qualificationInfo;
