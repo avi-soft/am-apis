@@ -342,6 +342,7 @@ public class CartEndPoint extends BaseEndpoint {
                         }
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer);
                         products.add(productDetails);
+
                         platformfee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
                         if(customProduct!=null)
                             platformfee=platformfee+platformfee;

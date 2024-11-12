@@ -195,9 +195,6 @@ public class DocumentStorageService {
 
                 /*new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
               /*  new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
-=======
-/*                new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
->>>>>>> 4265e69d7a0f07a5849e1b79fd670de4c1fec941
                 new DocumentType( 15,"INTERMEDIATE", "Completed higher secondary education or equivalent"),
                 new DocumentType(16,"BACHELORS", "Completed undergraduate degree program education "),
                 new DocumentType(17,"MASTERS", "Completed postgraduate degree program education"),

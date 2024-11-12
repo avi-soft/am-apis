@@ -272,17 +272,20 @@ public class ProductController extends CatalogEndpoint {
             CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
 
-            StateCode notifyingAuthority = null;
+            StateCode stateCode = null;
             if (addProductDto.getState() != null) {
-                notifyingAuthority = districtService.getStateByStateId(addProductDto.getState());
+                stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
             {
-                productService.validatePhysicalRequirement(addProductDto, null);
-                productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                if(addProductDto.getPhysicalRequirement()!=null)
+                {
+                    productService.validatePhysicalRequirement(addProductDto, null);
+                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                }
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
             }
             else if(saveDraft)
             {
@@ -293,9 +296,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
                 }
                 return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
             }

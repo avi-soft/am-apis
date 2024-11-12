@@ -19,6 +19,7 @@ public class Constant {
     public static String ID_QUERY = "SELECT c FROM CustomCustomer c WHERE c.customer_id = :customer_id";
     public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM DocumentType dt WHERE dt.description LIKE :exam";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
+    public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
@@ -67,6 +68,7 @@ public class Constant {
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
     public static String GET_STATES_LIST="Select s from StateCode s";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
+    public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
@@ -183,4 +185,10 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
     public static final CustomOrderState ORDER_STATE_RETURNED = new CustomOrderState(5);
+
+    public static final String GET_ALL_ORDER_STATE = "SELECT c FROM OrderStateRef c";
+    public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
+    public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
+    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId"
+;
 }

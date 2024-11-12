@@ -121,7 +121,6 @@ public class JwtUtil {
                     .setIssuedAt(new Date())
                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60  *30))
                    //.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5))
-
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
         } catch (Exception e) {

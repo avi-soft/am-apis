@@ -39,10 +39,12 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -61,14 +63,17 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -88,14 +93,17 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -114,14 +122,17 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -140,14 +151,17 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -172,8 +186,10 @@ public class ServiceProviderTestController {
 
             return responseService.generateSuccessResponse("List of service provider tests: ", serviceProviderTests, HttpStatus.OK);
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }  catch (Exception e) {
 
@@ -190,8 +206,10 @@ public class ServiceProviderTestController {
             return testService.getCompletedServiceProviderTest(serviceProviderId,request);
 
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         }  catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
 
@@ -208,8 +226,10 @@ public class ServiceProviderTestController {
         try {
             return testService.givePointsForImageUpload(serviceProviderId,giveUploadedImageScoreDTO);
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         catch (Exception e) {
