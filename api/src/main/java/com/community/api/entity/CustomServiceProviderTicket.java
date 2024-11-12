@@ -1,8 +1,10 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -11,6 +13,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.Date;
 
@@ -38,20 +41,32 @@ public class CustomServiceProviderTicket {
     @JoinColumn(name = "ticket_type_id")
     protected CustomTicketType ticketType;
 
-    @Column(name = "created_by")
+    @Column(name = "creator_user_id")
     private Long userId;
 
     @Column(name = "created_date")
     private Date createdDate;
 
+    @ManyToOne
+    @JoinColumn(name = "creator_role_id")
+    private Role creatorRole;
+
     @Column(name = "modified_date")
     private Date modifiedDate;
 
-    @Column(name = "modified_by")
+    @Column(name = "modifier_user_id")
     private Long modifierId;
 
-    @Column(name = "ticket_assign_to")
-    private Long assignTo;
+    @ManyToOne
+    @JoinColumn(name = "modifier_role_id")
+    private Role modifierRole;
+
+    @Column(name = "assignee_user_id")
+    private Long assignee;
+
+    @ManyToOne
+    @JoinColumn(name = "assignee_role_id")
+    private Role assigneeRole;
 
     @Column(name = "target_completion_time")
     private Date targetCompletionDate;
@@ -59,4 +74,8 @@ public class CustomServiceProviderTicket {
     @Column(name = "ticket_assign_time")
     private Date ticketAssignDate;
 
+    @OneToOne
+    @JsonBackReference
+    @JoinColumn(name = "ORDER_ID")
+    private OrderImpl order;
 }

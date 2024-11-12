@@ -1,4 +1,3 @@
-
 package com.community.api.services;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
@@ -24,7 +23,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
-import javax.persistence.Query;
 import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
@@ -44,7 +42,7 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-
+        // Check if data already exists to avoid duplication
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomProductState(1L, "NEW", "New State."));
             entityManager.persist(new CustomProductState(2L, "MODIFIED", "Modified State."));
@@ -52,9 +50,87 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(4L, "REJECTED", "Rejected State."));
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
-            entityManager.persist(new CustomProductState(7L,"DRAFT", "Draft State."));
         }
 
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketState c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketState(1L, "TO-DO", "Ticket is not assigned to any service provider"));
+            entityManager.persist(new CustomTicketState(2L, "IN-PROGRESS", "It's under progress"));
+            entityManager.persist(new CustomTicketState(3L, "ON-HOLD", "It's on hold"));
+            entityManager.persist(new CustomTicketState(4L, "IN-REVIEW", "It's rejected"));
+            entityManager.persist(new CustomTicketState(5L, "CLOSE", "Closed successfully"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketStatus c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketStatus(1L, "NOT-REACHABLE", "User is unreachable"));
+            entityManager.persist(new CustomTicketStatus(2L, "VALIDATING-DOCUMENT", "Validating documents"));
+            entityManager.persist(new CustomTicketStatus(3L, "MISSING-DOCUMENT", "Missing documents"));
+            entityManager.persist(new CustomTicketStatus(4L, "USER-NOT-REACHABLE", "User Not reachable"));
+            entityManager.persist(new CustomTicketStatus(5L, "UPLOADING-DOCUMENT", "Uploading documents"));
+            entityManager.persist(new CustomTicketStatus(6L, "FILLING-PERSONAL-DETAILS", "Filling personal details"));
+            entityManager.persist(new CustomTicketStatus(7L, "SOME-OTHER-STATUS", "Some other status"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketType c", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new CustomTicketType(1L, "PRIMARY", "Primary ticket of SP"));
+            entityManager.persist(new CustomTicketType(2L, "REVIEW-TICKET", "Review ticket of SP"));
+            entityManager.persist(new CustomTicketType(3L, "MISCELLANEOUS", "Miscellaneous (any other ticket)"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
+            entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
+            entityManager.persist(new OrderStateRef(3, "UNASSIGNED", "Order is unassigned."));
+            entityManager.persist(new OrderStateRef(4, "ASSIGNED", "Order assigned."));
+            entityManager.persist(new OrderStateRef(5, "RETURNED", "Order returned."));
+            entityManager.persist(new OrderStateRef(6, "IN_PROGRESS", "Order is in progress."));
+            entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
+            entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
+        }
+
+        if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
+        {
+            // AUTO_ASSIGNED (ID 1)
+            entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 2, "Order automatically assigned."));
+            // UNASSIGNED (ID 2)
+            entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 3, "Order is unassigned."));
+            // ASSIGNED (ID 3)
+            entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 4, "Order assigned by super admin."));
+            entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 4, "Order assigned by Auto Assigner."));
+            // RETURNED (ID 4)
+            entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 5, "Order cannot be done."));
+            entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 5, "Order is a duplicate."));
+            // IN_PROGRESS (ID 5)
+            entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 6, "Order is in progress."));
+            // COMPLETED (ID 6)
+            entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 7, "Order fulfilled."));
+            entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 7, "Order duplicate."));
+            entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 7, "Order not valid or created as a test."));
+            entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 7, "Order could not be completed because the student/customer was not reachable."));
+            entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 7, "Necessary document to complete the order was unavailable."));
+            entityManager.persist(new CustomOrderStatus(13, "NEW_ORDER", 1, "New Order Generated"));
+        }
+
+        if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
+        {
+                // AUTO_ASSIGNED (ID 1)
+                entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 1, "Order automatically assigned."));
+                // UNASSIGNED (ID 2)
+                entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 2, "Order is unassigned."));
+                // ASSIGNED (ID 3)
+                entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 3, "Order assigned by super admin."));
+                entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 3, "Order assigned by Auto Assigner."));
+                // RETURNED (ID 4)
+                entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 4, "Order cannot be done."));
+                entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 4, "Order is a duplicate."));
+                // IN_PROGRESS (ID 5)
+                entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 5, "Order is in progress."));
+                // COMPLETED (ID 6)
+                entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 6, "Order fulfilled."));
+                entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 6, "Order duplicate."));
+                entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 6, "Order not valid or created as a test."));
+                entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 6, "Order could not be completed because the student/customer was not reachable."));
+                entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 6, "Necessary document to complete the order was unavailable."));
+            }
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomJobGroup c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomJobGroup(1L, 'A', "Executive Management"));
             entityManager.persist(new CustomJobGroup(2L, 'B', "Professional and Technical"));
@@ -87,7 +163,6 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomGender(2L, 'F', "FEMALE"));
             entityManager.persist(new CustomGender(3L, 'O', "OTHERS"));
         }
-
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomSector c", Long.class).getSingleResult() == 0) {
             entityManager.merge(new CustomSector(1L, "HEALTHCARE", "Forms related to patient care and medical services."));
@@ -374,7 +449,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,now,"SUPER_ADMIN"));
         }
 
-        count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
+         count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
 
         if (count == 0) {
 
@@ -398,19 +473,18 @@ public class CommandLineService implements CommandLineRunner {
             // Staff Scoring
             entityManager.merge(new ScoringCriteria(10L, "Staff", "More than 4 staff members", 10));
             entityManager.merge(new ScoringCriteria(11L, "Staff", "2 staff members", 5));
-            entityManager .merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
+            entityManager.merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
 
             //Infra Scoring (For individual)
-            entityManager.merge(new ScoringCriteria(13L, "Infrastructure", "Service Provider having Equal to 5 or more than 5 infrastructures", 20));
-            entityManager.merge(new ScoringCriteria(14L, "Infrastructure", "Service Provider having between 2 and 4 infrastructures", 10));
-            entityManager.merge(new ScoringCriteria(15L, "Infrastructure", "Service Provider having 1 infrastructure", 5));
-            entityManager.merge(new ScoringCriteria(16L, "Infrastructure", "Service Provider having 0 infrastructure", 0));
+            entityManager.merge(new ScoringCriteria(13L,"Infrastructure","Service Provider having Equal to 5 or more than 5 infrastructures",20));
+            entityManager.merge(new ScoringCriteria(14L,"Infrastructure","Service Provider having between 2 and 4 infrastructures",10));
+            entityManager.merge(new ScoringCriteria(15L,"Infrastructure","Service Provider having 1 infrastructure",5));
+            entityManager.merge(new ScoringCriteria(16L,"Infrastructure","Service Provider having 0 infrastructure",0));
 
             //PartTimeOrFullTime Scoring (For Individual)
-            entityManager.merge(new ScoringCriteria(17L, "PartTimeOrFullTime", "Service Provider who is Full time", 10));
-            entityManager.merge(new ScoringCriteria(18L, "PartTimeOrFullTime", "Service Provider who is Part time", 0));
+            entityManager.merge(new ScoringCriteria(17L,"PartTimeOrFullTime","Service Provider who is Full time",10));
+            entityManager.merge(new ScoringCriteria(18L,"PartTimeOrFullTime","Service Provider who is Part time",0));
         }
-
         if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
             entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
             entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
