@@ -168,7 +168,7 @@ public class SharedUtilityService {
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
-        customerDetails.put("mothersName", customCustomer.getMotherName());
+        customerDetails.put("mothersName", customCustomer.getMothersName());
         customerDetails.put("panNumber",customCustomer.getPanNumber());
         customerDetails.put("nationality",customCustomer.getNationality());
         customerDetails.put("dob", customCustomer.getDob());

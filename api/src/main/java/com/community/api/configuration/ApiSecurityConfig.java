@@ -53,8 +53,6 @@ public class ApiSecurityConfig extends WebSecurityConfigurerAdapter {
     private static final Log LOG = LogFactory.getLog(ApiSecurityConfig.class);
 
 
-    @Value("${asset.server.url.prefix.internal}")
-    protected String assetServerUrlPrefixInternal;
 
     @Bean(name = "blAuthenticationManager")
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
