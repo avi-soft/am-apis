@@ -485,6 +485,43 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new ScoringCriteria(17L,"PartTimeOrFullTime","Service Provider who is Full time",10));
             entityManager.merge(new ScoringCriteria(18L,"PartTimeOrFullTime","Service Provider who is Part time",0));
         }
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
+            entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
+            entityManager.persist(new OrderStateRef(3, "UNASSIGNED", "Order is unassigned."));
+            entityManager.persist(new OrderStateRef(4, "ASSIGNED", "Order assigned."));
+            entityManager.persist(new OrderStateRef(5, "RETURNED", "Order returned."));
+            entityManager.persist(new OrderStateRef(6, "IN_PROGRESS", "Order is in progress."));
+            entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
+            entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
+        }
 
+         count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
+         if (count == 0) {
+
+            entityManager.merge(new BoardUniversity(1L, "Delhi University", "Delhi", "DU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(3L, "Jawaharlal Nehru University", "Delhi", "JNU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(4L, "Uttar Pradesh Board", "Lucknow", "UPB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(5L, "Punjab University", "Chandigarh", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(6L, "Maharashtra State Board", "Mumbai", "MSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(7L, "Rajasthan University", "Jaipur", "RU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(8L, "Karnataka State Board", "Bangalore", "KSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(9L, "Tamil Nadu State Board", "Chennai", "TNSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(10L, "University of Mumbai", "Mumbai", "UM", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(11L, "Osmania University", "Hyderabad", "OU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(12L, "West Bengal State University", "Kolkata", "WBSU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(13L, "University of Calcutta", "Kolkata", "CU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(14L, "Andhra Pradesh Board", "Vijayawada", "APB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(15L, "University of Madras", "Chennai", "UM", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(16L, "University of Kerala", "Thiruvananthapuram", "UK", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(17L, "Gujarat Secondary and Higher Secondary Education Board", "Gandhinagar", "GSHSEB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(18L, "University of Pune", "Pune", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
+        String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
+        Query query = entityManager.createNativeQuery(alterQuery);
+        query.executeUpdate();
     }
 }

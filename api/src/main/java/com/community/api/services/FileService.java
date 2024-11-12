@@ -64,6 +64,7 @@ public class FileService {
             String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
             encodedFilePath.append(encodedSegment);
         }
+
         return fileServerUrl + "/" + encodedFilePath.toString();
     }
     public String getFileUrl(String fullFilePath) {

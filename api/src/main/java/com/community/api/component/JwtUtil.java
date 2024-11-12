@@ -119,6 +119,7 @@ public class JwtUtil {
                     .claim("role", role)
                     .claim("ipAddress", ipAddress)
                     .setIssuedAt(new Date())
+
                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 *10))
 //                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
