@@ -26,7 +26,7 @@ public class CustomServiceProviderTicket {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JoinColumn(name = "ticket_id")
+    @Column(name = "ticket_id")
     private Long ticketId;
 
     @ManyToOne

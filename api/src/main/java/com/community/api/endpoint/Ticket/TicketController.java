@@ -127,8 +127,8 @@ public class TicketController {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
             @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
-            @RequestParam(value = "state", required = false) List<Long> state,
-            @RequestParam(value = "type", required = false) List<Long> type)
+            @RequestParam(value = "ticket_state", required = false) List<Long> state,
+            @RequestParam(value = "ticket_type", required = false) List<Long> type)
     {
         try {
 
