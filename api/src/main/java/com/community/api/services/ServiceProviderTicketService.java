@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.component.Constant;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
@@ -423,6 +425,28 @@ public class ServiceProviderTicketService {
 
             // Execute and return the result
             return query.getResultList();
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    public CustomServiceProviderTicket fetchTicketByTicketId(Long ticketId) throws Exception {
+        try {
+            if(ticketId == null || ticketId <= 0) {
+                throw new IllegalArgumentException("TicketId cannot be <=0 or null");
+            }
+            System.out.println("ticketId is: " + ticketId);
+            Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID, CustomServiceProviderTicket.class);
+            query.setParameter("ticketId", ticketId);
+            List<CustomServiceProviderTicket> ticket = query.getResultList();
+
+            if (!ticket.isEmpty()) {
+                return ticket.get(0);
+            } else {
+                return null;
+            }
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());

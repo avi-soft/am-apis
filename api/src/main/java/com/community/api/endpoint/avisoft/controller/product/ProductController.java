@@ -393,10 +393,15 @@ public class ProductController extends CatalogEndpoint {
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
-            if(saveAsDraft)
+            if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
                 wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
                 return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
+            }
+            else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
             }
             else if(!saveAsDraft)
             {
@@ -531,7 +536,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
-
+                
             return ResponseService.generateSuccessResponse("PRODUCT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
