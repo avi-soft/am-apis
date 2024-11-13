@@ -189,6 +189,7 @@ public class Constant {
     public static final String GET_ALL_ORDER_STATE = "SELECT c FROM OrderStateRef c";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
-    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId"
-;
+    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
 }

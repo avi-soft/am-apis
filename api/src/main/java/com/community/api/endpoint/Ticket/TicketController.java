@@ -38,6 +38,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -122,6 +123,34 @@ public class TicketController {
     }
 
     @Transactional
+    @GetMapping("/get-ticket-by-ticket-id/{ticketId}")
+    public ResponseEntity<?> retrieveTickets(@PathVariable(name = "ticketId") Long ticketId) {
+        try {
+
+            CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByTicketId(ticketId);
+            if (ticket == null) {
+                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
+            }
+
+            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+            Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+            wrapper.customWrapDetails(ticket, orderDto);
+
+            return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
     @GetMapping("/filter-tickets")
     public ResponseEntity<?> getFilterTickets(
             @RequestHeader(value = "Authorization") String authHeader,
@@ -180,7 +209,7 @@ public class TicketController {
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
 
-                    wrapper.customWrapDetails(ticket, orderDto);
+                    wrapper.customWrapDetailsGetAll(ticket, orderDto);
                     responses.add(wrapper);
                 }
             }
