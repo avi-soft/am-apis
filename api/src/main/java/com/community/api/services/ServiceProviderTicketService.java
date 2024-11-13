@@ -112,56 +112,65 @@ public class ServiceProviderTicketService {
 
                 List<CustomerReferrer> referrers = customer.getMyReferrer();
                 logger.info("Referrer list:" + referrers.size());
-                for (CustomerReferrer refferer : referrers) {
-                    ServiceProviderEntity serviceProvider = refferer.getServiceProvider();
-                    logger.info("REFFEREER ID: " + serviceProvider.getService_provider_id());
 
-                    if (serviceProvider.getIsActive()) {
-                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
-                        CreateTicketDto createTicketDto = new CreateTicketDto();
-                        createTicketDto.setTicketState(1L);
-                        createTicketDto.setTicketType(1L);
-                        createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
-                        createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                if(!referrers.isEmpty()) { // only for those orders whose customer are bounded with any SP. if list is empty then we won't do assigned using RBTA method.
+                    for (CustomerReferrer refferer : referrers) {
+                        ServiceProviderEntity serviceProvider = refferer.getServiceProvider();
+                        logger.info("REFFEREER ID: " + serviceProvider.getService_provider_id());
 
-                        assigned = true;
-                        iterator.remove();
-                        assignedOrders.add(order);
-                        break;
+                        if (serviceProvider.getIsActive()) {
+
+                            if(serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketPending()+serviceProvider.getTicketAssigned() >= serviceProvider.getMaximumTicketSize()) {
+                                continue;
+                            }
+                            // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                            CreateTicketDto createTicketDto = new CreateTicketDto();
+                            createTicketDto.setTicketState(1L);
+                            createTicketDto.setTicketType(1L);
+                            createTicketDto.setTicketStatus(1L);
+                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+
+                            assigned = true;
+                            iterator.remove();
+                            assignedOrders.add(order);
+                            break;
+                        }
+
                     }
+                    // now search for creator of product.
+                    if (!assigned) {
+                        logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                        Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                        CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
-                }
-                // now search for creator of product.
-                if (!assigned) {
-                    logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
-                    Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                    CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
+                        ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+                        if (serviceProvider.getIsActive()) {
 
-                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
-                    if (serviceProvider.getIsActive()) {
-                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
-                        CreateTicketDto createTicketDto = new CreateTicketDto();
-                        createTicketDto.setTicketState(1L);
-                        createTicketDto.setTicketType(1L);
-                        createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
-                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            if(serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketPending()+serviceProvider.getTicketAssigned() >= serviceProvider.getMaximumTicketSize()) {
+                                continue;
+                            }
 
-                        logger.info("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
+                            // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                            CreateTicketDto createTicketDto = new CreateTicketDto();
+                            createTicketDto.setTicketState(1L);
+                            createTicketDto.setTicketType(1L);
+                            createTicketDto.setTicketStatus(1L);
+                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
-                        serviceProviderTicket.setModifiedDate(new Date());
-                        serviceProviderTicket.setTicketAssignDate(new Date());
-                        customOrders.remove(customOrderState);
-                        assignedOrders.add(order);
-                        break;
+                            logger.info("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
+
+                            serviceProviderTicket.setModifiedDate(new Date());
+                            serviceProviderTicket.setTicketAssignDate(new Date());
+                            customOrders.remove(customOrderState);
+                            assignedOrders.add(order);
+                            break;
+                        }
                     }
                 }
-
-                Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
 
             }
 
@@ -305,6 +314,11 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
 
                     if (serviceProvider.getIsActive()) {
+
+                        if(serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketPending()+serviceProvider.getTicketAssigned() >= serviceProvider.getMaximumTicketSize()) {
+                            continue;
+                        }
+
                         // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
                         CreateTicketDto createTicketDto = new CreateTicketDto();
                         createTicketDto.setTicketState(1L);

@@ -157,7 +157,6 @@ public class ServiceProviderEntity  {
     private String marks_obtained;
     private String cgpa;
     private double latitude,longitude;
-    private int rank;
     private int signedUp=0;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -247,6 +246,14 @@ public class ServiceProviderEntity  {
     @Column(name="maximum_binding_size")
     private Integer maximumBindingSize;
 
+    @Column(name="ticket_completed")    // will keep track of number of ticket completed by the serviceProvider.
+    private Long ticketCompleted=0L;
+
+    @Column(name="ticket_pending")      // will keep track of number of ticket pending for the corresponding SP.
+    private Integer ticketPending=0;
+
+    @Column(name="ticket_assigned")
+    private Integer ticketAssigned=0;
 }
 
 
