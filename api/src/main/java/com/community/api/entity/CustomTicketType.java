@@ -26,7 +26,7 @@ public class CustomTicketType {
     protected Long ticketTypeId;
 
     @Column(name = "ticket_type")
-    @JsonProperty("ticket_type_id")
+    @JsonProperty("ticket_type")
     protected String ticketType;
 
     @Column(name = "ticket_type_description")
