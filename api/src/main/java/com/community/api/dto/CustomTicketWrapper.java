@@ -22,6 +22,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("created_date")
     protected Date createdDate;
 
+    @JsonProperty("assignee_name")
+    protected String assigneeName;
+
     @JsonProperty("modified_date")
     protected Date modifiedDate;
 
@@ -70,6 +73,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
+        this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
     }
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
@@ -89,6 +93,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
+        this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
     }
 
     @Override
