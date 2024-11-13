@@ -3,18 +3,15 @@ package com.community.api.endpoint.Ticket;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
-import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
-import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderCustomerDetailsDTO;
-import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
 import com.community.api.services.CustomerAddressFetcher;
 import com.community.api.services.OrderDTOService;
@@ -26,8 +23,6 @@ import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import jsinterop.annotations.JsOverlay;
-import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -55,7 +50,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
-import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminPresentation.FieldOrder.order;
 
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -209,7 +203,7 @@ public class TicketController {
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
 
-                    wrapper.customWrapDetailsGetAll(ticket, orderDto);
+                    wrapper.customWrapDetails(ticket, orderDto);
                     responses.add(wrapper);
                 }
             }
