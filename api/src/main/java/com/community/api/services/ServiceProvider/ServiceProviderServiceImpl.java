@@ -1269,12 +1269,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 "WHERE ";
         if(mobileNumber!=null)
         {
-            return entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
+            ServiceProviderEntity serviceProviderEntity= entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
                     .setParameter("mobileNumber", mobileNumber)
                     .setParameter("country_code","+91")
                     .getResultStream()
                     .findFirst()
                     .orElse(null);
+                    if(serviceProviderEntity!=null)
+                        return sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity); 
         }
 
         if(test_status_id!=null)

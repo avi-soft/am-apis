@@ -54,7 +54,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
-        this.assigneeUserId = customServiceProviderTicket.getUserId();
+        this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
         combinedOrderDTO.setTicket(null);
         this.order = combinedOrderDTO;
@@ -70,7 +70,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
-        this.assigneeUserId = customServiceProviderTicket.getUserId();
+        this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
         combinedOrderDTO.setCustomerDetails(null);
         combinedOrderDTO.setOrderDetails(null);
