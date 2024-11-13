@@ -5,6 +5,8 @@ import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
+import javax.servlet.http.HttpServletRequest;
+
 public class Constant {
 
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -39,9 +41,11 @@ public class Constant {
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
     public static String FETCH_ROLE = "SELECT r.role_name FROM Role r WHERE r.role_id = :role_id";
-    public static String roleUser = "CUSTOMER";
-    public static String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
-    public static String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleUser = "CUSTOMER";
+    public static final String roleSuperAdmin = "SUPER_ADMIN";
+    public static final String roleAdmin="ADMIN";
+    public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
+    public static final String roleServiceProvider = "SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";
@@ -178,4 +182,5 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
     public static final CustomOrderState ORDER_STATE_RETURNED = new CustomOrderState(5);
+    public static HttpServletRequest request=null;
 }

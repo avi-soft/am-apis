@@ -339,17 +339,17 @@ public class SharedUtilityService {
         serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
         serviceProviderDetails.put("has_technical_knowledge", serviceProvider.getHas_technical_knowledge());
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
-        serviceProviderDetails.put("latitude", serviceProvider.getLatitude());
+       serviceProviderDetails.put("latitude", serviceProvider.getLatitude());
         serviceProviderDetails.put("longitude", serviceProvider.getLongitude());
         serviceProviderDetails.put("service_provider_status",serviceProvider.getTestStatus());
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
 
-        /* serviceProviderDetails.put("skills", serviceProvider.getSkills());*/
-       /* serviceProviderDetails.put("infra", serviceProvider.getInfra());
-        serviceProviderDetails.put("languages", serviceProvider.getLanguages());*/
-/*        serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
-        serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());*/
+       serviceProviderDetails.put("skills", serviceProvider.getSkills());
+       serviceProviderDetails.put("infra", serviceProvider.getInfra());
+        serviceProviderDetails.put("languages", serviceProvider.getLanguages());
+       serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
+        serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("business_unit_infra_score",serviceProvider.getBusinessUnitInfraScore());
         serviceProviderDetails.put("qualification_score",serviceProvider.getQualificationScore());
         serviceProviderDetails.put("technical_expertise_score",serviceProvider.getTechnicalExpertiseScore());
@@ -376,7 +376,7 @@ public class SharedUtilityService {
         List<Map<String, Object>> qualificationsWithNames = mapQualifications(qualificationDetails);
         serviceProviderDetails.put("qualificationDetails", qualificationsWithNames);
 
-        List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+     List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
         for (ServiceProviderDocument document : serviceProvider.getDocuments()) {
             if (document.getFilePath() != null && document.getDocumentType() != null) {

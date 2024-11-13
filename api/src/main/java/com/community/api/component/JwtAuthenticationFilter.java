@@ -4,6 +4,7 @@ import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ServiceProviderInfra;
 import com.community.api.services.CustomCustomerService;
+import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.RoleService;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -29,6 +30,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -64,6 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        Constant.request=request;
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
             return;
@@ -71,6 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
 
             String requestURI = request.getRequestURI();
+
             if (isUnsecuredUri(requestURI) || bypassimages(requestURI)) {
                 chain.doFilter(request, response);
                 return;
@@ -79,7 +83,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 chain.doFilter(request, response);
                 return;
             }
-
+            /*if((checkRole(requestURI,request)).equals(false))
+                throw new AccessDeniedException("Access not granted");*/
             boolean responseHandled = authenticateUser(request, response);
             if (!responseHandled) {
                 chain.doFilter(request, response);
@@ -87,7 +92,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-        } catch (ExpiredJwtException e) {
+        } catch (AccessDeniedException e)
+        {
+            handleException(response, HttpServletResponse.SC_UNAUTHORIZED,e.getMessage());
+        }
+        catch (ExpiredJwtException e) {
             handleException(response, HttpServletResponse.SC_UNAUTHORIZED, "JWT token is expired");
             logger.error("ExpiredJwtException caught: {}", e.getMessage());
         } catch (MalformedJwtException e) {
@@ -101,6 +110,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             logger.error("Exception caught: {}", e.getMessage());
         }
 
+    }
+    public  Boolean checkRole(String requestURI, HttpServletRequest request) {
+        String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return false;
+        }
+
+        String jwt = authorizationHeader.substring(BEARER_PREFIX_LENGTH);
+        Integer roleId = jwtUtil.extractRoleId(jwt);
+
+        if (roleId == null) {
+            return false;
+        }
+        String roleName = roleService.findRoleName(roleId);
+
+        switch (roleName) {
+            case Constant.roleUser:
+                return requestURI.startsWith("/api/v1/customer") || requestURI.startsWith("/api/v1/cart") || requestURI.startsWith("/api/v1/cart");
+
+            case Constant.roleServiceProvider:
+                // Return true for service provider-specific endpoints
+                return requestURI.startsWith("/api/v1/service-providers");
+
+            default:
+                return false;
+        }
     }
 
     private boolean bypassimages(String requestURI) {
