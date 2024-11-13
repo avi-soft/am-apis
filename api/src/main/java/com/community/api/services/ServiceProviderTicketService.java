@@ -96,7 +96,11 @@ public class ServiceProviderTicketService {
             List<Order> assignedOrders = new ArrayList<>();
 
             boolean assigned = false;
-            for (CustomOrderState customOrderState : customOrders) {
+
+            Iterator<CustomOrderState> iterator = customOrders.iterator();
+            while (iterator.hasNext()) {
+
+                CustomOrderState customOrderState = iterator.next();
                 assigned = false;
 
                 ObjectMapper objectMapper = new ObjectMapper();
@@ -118,13 +122,12 @@ public class ServiceProviderTicketService {
                         createTicketDto.setTicketState(1L);
                         createTicketDto.setTicketType(1L);
                         createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id().longValue());
+                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                         createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
-                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
-                        serviceProviderTicket.setModifiedDate(new Date());
-                        serviceProviderTicket.setTicketAssignDate(new Date());
+                        createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+
                         assigned = true;
-                        customOrders.remove(customOrderState);
+                        iterator.remove();
                         assignedOrders.add(order);
                         break;
                     }

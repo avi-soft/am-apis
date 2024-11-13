@@ -178,7 +178,7 @@ public class TicketController {
                     Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket,customerDetailsDTO);
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
 
                     wrapper.customWrapDetails(ticket, orderDto);
                     responses.add(wrapper);
