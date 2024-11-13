@@ -419,5 +419,13 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
+
+        if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
+        {
+            entityManager.merge(new FileType(1,"PNG"));
+            entityManager.merge(new FileType(2, "JPEG"));
+            entityManager.merge(new FileType(3, "PDF"));
+        }
+
     }
 }
