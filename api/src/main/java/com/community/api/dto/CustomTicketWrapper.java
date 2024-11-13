@@ -40,16 +40,16 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("target_completion_time")
     protected Date targetCompletionDate;
 
-    @JsonProperty
+    @JsonProperty("ticket_state")
     protected CustomTicketState customTicketState;
 
-    @JsonProperty
+    @JsonProperty("ticket_type")
     protected CustomTicketType customTicketType;
 
-    @JsonProperty
+    @JsonProperty("ticket_status")
     protected CustomTicketStatus customTicketStatus;
 
-    @JsonProperty
+    @JsonProperty("order")
     protected CombinedOrderDTO order;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
