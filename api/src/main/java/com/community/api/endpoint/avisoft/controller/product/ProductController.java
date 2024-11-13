@@ -393,10 +393,15 @@ public class ProductController extends CatalogEndpoint {
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
-            if(saveAsDraft)
+            if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
                 wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
                 return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
+            }
+            else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
             }
             else if(!saveAsDraft)
             {
