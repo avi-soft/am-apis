@@ -1185,7 +1185,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         if(mobileNumber != null && !isNumeric(mobileNumber)) {
             throw new IllegalArgumentException("Mobile number is not in correct format.");
         }
-        if((state != null && !isAlphabetOnly(state)) || (district != null && !isAlphabetOnly(district)) || (first_name != null && !isAlphabetOnly(first_name)) || (last_name != null && !isAlphabetOnly(last_name))) {
+        if((state != null && !isAlphabetOnly(state) && state.isEmpty()) || (district != null && !isAlphabetOnly(district) && district.isEmpty()) || (first_name != null && !isAlphabetOnly(first_name) && first_name.isEmpty()) || (last_name != null && !isAlphabetOnly(last_name) && last_name.isEmpty())) {
             throw new IllegalArgumentException("String values are not in right format.");
         }
 
