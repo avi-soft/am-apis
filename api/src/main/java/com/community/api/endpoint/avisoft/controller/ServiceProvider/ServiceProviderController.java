@@ -317,10 +317,6 @@ public class ServiceProviderController {
                                                    @RequestParam(required = false) String mobileNumber,
                                                    @RequestParam(required = false) Long test_status_id) {
         try {
-
-            if(state.isEmpty() || district.isEmpty() || first_name.isEmpty() || last_name.isEmpty() || mobileNumber.isEmpty() ) {
-                throw new IllegalArgumentException("Fields cannot be empty.");
-            }
             return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
