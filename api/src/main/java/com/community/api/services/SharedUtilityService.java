@@ -356,6 +356,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("written_test_score",serviceProvider.getWrittenTestScore());
         serviceProviderDetails.put("image_upload_score",serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score",serviceProvider.getTotalScore());
+        if(serviceProvider.getType()!=null)
+        {
         if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
         {
             serviceProviderDetails.put("number_of_employees",serviceProvider.getNumber_of_employees());
@@ -366,6 +368,8 @@ public class SharedUtilityService {
             serviceProviderDetails.put("part_time_or_full_time_score",serviceProvider.getPartTimeOrFullTimeScore());
             serviceProviderDetails.put("infra_scores",serviceProvider.getInfraScore());
         }
+    }
+
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
