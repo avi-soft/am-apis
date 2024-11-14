@@ -22,6 +22,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("created_date")
     protected Date createdDate;
 
+    @JsonProperty("assignee_name")
+    protected String assigneeName;
+
     @JsonProperty("modified_date")
     protected Date modifiedDate;
 
@@ -40,21 +43,24 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("target_completion_time")
     protected Date targetCompletionDate;
 
-    @JsonProperty
+    @JsonProperty("assigned_date")
+    protected Date assignedDate;
+
+    @JsonProperty("ticket_state")
     protected CustomTicketState customTicketState;
 
-    @JsonProperty
+    @JsonProperty("ticket_type")
     protected CustomTicketType customTicketType;
 
-    @JsonProperty
+    @JsonProperty("ticket_status")
     protected CustomTicketStatus customTicketStatus;
 
-    @JsonProperty
+    @JsonProperty("order")
     protected CombinedOrderDTO order;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
-        this.assigneeUserId = customServiceProviderTicket.getUserId();
+        this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
         combinedOrderDTO.setTicket(null);
         this.order = combinedOrderDTO;
@@ -66,11 +72,13 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketState = customServiceProviderTicket.getTicketState();
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
+        this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
+        this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
     }
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
-        this.assigneeUserId = customServiceProviderTicket.getUserId();
+        this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
         combinedOrderDTO.setCustomerDetails(null);
         combinedOrderDTO.setOrderDetails(null);
@@ -84,6 +92,8 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketState = customServiceProviderTicket.getTicketState();
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
+        this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
+        this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
     }
 
     @Override

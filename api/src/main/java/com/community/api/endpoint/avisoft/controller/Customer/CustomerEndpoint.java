@@ -520,8 +520,7 @@ public class CustomerEndpoint {
                                 .orElse(null);
 
 
-//                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-
+                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
 
                         if (removeFileTypes != null && removeFileTypes) {
 
