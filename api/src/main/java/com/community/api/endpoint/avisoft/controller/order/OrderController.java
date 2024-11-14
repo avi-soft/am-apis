@@ -257,7 +257,7 @@ public class OrderController
             return ResponseService.generateErrorResponse("Error fetching orders ", HttpStatus.INTERNAL_SERVER_ERROR);
         }}
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
+    //@Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}",method = RequestMethod.POST)
     public ResponseEntity<?>manuallyAssignOrder(@PathVariable Long orderId,@RequestBody ManualAssignmentDetails manualAssignmentDetails) {
         try {
