@@ -328,7 +328,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if(existingServiceProvider.getType().equalsIgnoreCase("INDIVIDUAL"))
             {
-                if(updates.containsKey("infra_list"))
+                if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && !((List<?>) updates.get("infra_list")).isEmpty())
                 {
                     List<ServiceProviderInfra> infrastructures=existingServiceProvider.getInfra();
                     int totalInfras=infrastructures.size();
@@ -344,7 +344,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras>=2 && totalInfras<=4)
+                    else if(totalInfras>=2 && totalInfras<=4)
                     {
                         scoringCriteriaToMap=traverseListOfScoringCriteria(14L,scoringCriteriaList,existingServiceProvider);
                         if(scoringCriteriaToMap==null)
@@ -356,7 +356,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras==1)
+                    else if(totalInfras==1)
                     {
                         scoringCriteriaToMap=traverseListOfScoringCriteria(15L,scoringCriteriaList,existingServiceProvider);
                         if(scoringCriteriaToMap==null)
@@ -368,17 +368,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap=null;
                         }
                     }
-                    if(totalInfras==0)
-                    {
-                        scoringCriteriaToMap=traverseListOfScoringCriteria(16L,scoringCriteriaList,existingServiceProvider);
-                        if(scoringCriteriaToMap==null)
-                        {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
-                        }
-                        else {
-                            existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
-                            scoringCriteriaToMap=null;
-                        }
+                }
+                else if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && ((List<?>) updates.get("infra_list")).isEmpty()) {
+                    scoringCriteriaToMap = traverseListOfScoringCriteria(16L, scoringCriteriaList, existingServiceProvider);
+                    if (scoringCriteriaToMap == null) {
+                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                    } else {
+                        existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
+                        scoringCriteriaToMap=null;
                     }
                 }
 
@@ -1302,7 +1299,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
         generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
-        System.out.println("-------------------------" + generalizedQuery);
         Query query;
         query = entityManager.createNativeQuery(generalizedQuery, ServiceProviderEntity.class);
         for (int i = 0; i < fields.length; i++) {

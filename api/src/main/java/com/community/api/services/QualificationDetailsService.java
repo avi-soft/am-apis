@@ -1,18 +1,13 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.component.JwtUtil;
 import com.community.api.dto.UpdateQualificationDto;
 import com.community.api.endpoint.avisoft.controller.Qualification.QualificationController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.Qualification;
-import com.community.api.entity.QualificationDetails;
-import com.community.api.entity.ScoringCriteria;
+import com.community.api.entity.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.*;
 import com.community.api.utils.DocumentType;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
@@ -26,13 +21,15 @@ public class QualificationDetailsService {
     QualificationService qualificationService;
     SharedUtilityService sharedUtilityService;
     ServiceProviderServiceImpl serviceProviderService;
+    BoardUniversityService boardUniversityService;
 
-    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService) {
+    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService) {
         this.entityManager = entityManager;
         this.qualificationController = qualificationController;
         this.qualificationService = qualificationService;
         this.sharedUtilityService = sharedUtilityService;
         this.serviceProviderService=serviceProviderService;
+        this.boardUniversityService=boardUniversityService;
     }
 
     @Transactional
@@ -45,6 +42,9 @@ public class QualificationDetailsService {
             List<DocumentType> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
+            List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
+            Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
+            qualificationDetails.setBoard_university_id(boardUniversityToAdd);
             qualificationDetails.setService_provider(serviceProviderEntity);
             serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
             entityManager.persist(qualificationDetails);
@@ -162,12 +162,19 @@ public class QualificationDetailsService {
             }
         }
 
+        if(Objects.nonNull(qualification.getBoard_university_id()))
+        {
+            List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
+            Long boardUniversityToAdd= findBoardUniversityById(qualification.getBoard_university_id(),boardUniversities);
+            qualificationDetailsToUpdate.setBoard_university_id(boardUniversityToAdd);
+        }
+
         if (Objects.nonNull(qualification.getInstitution_name())) {
             qualificationDetailsToUpdate.setInstitution_name(qualification.getInstitution_name());
         }
-        if (Objects.nonNull(qualification.getBoard_or_university())) {
-            qualificationDetailsToUpdate.setBoard_or_university(qualification.getBoard_or_university());
-        }
+//        if (Objects.nonNull(qualification.getBoard_or_university())) {
+//            qualificationDetailsToUpdate.setBoard_or_university(qualification.getBoard_or_university());
+//        }
         if (Objects.nonNull(qualification.getMarks_obtained())) {
             qualificationDetailsToUpdate.setMarks_obtained(qualification.getMarks_obtained());
         }
@@ -243,6 +250,18 @@ public class QualificationDetailsService {
             }
         }
         throw new ExaminationDoesNotExistsException("Qualification with id " + qualificationId + " does not exist");
+    }
+
+    public Long findBoardUniversityById(Long boardUniversityId,List<BoardUniversity> boardUniversities)
+    {
+        for(BoardUniversity boardUniversity : boardUniversities)
+        {
+            if(boardUniversity.getBoard_university_id().equals(boardUniversityId))
+            {
+                return boardUniversity.getBoard_university_id();
+            }
+        }
+        throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+ " does not exist");
     }
 
     public void giveQualificationScore(Long userId) throws CustomerDoesNotExistsException {

@@ -159,12 +159,12 @@ public class SharedUtilityService {
         customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
         customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
-        List<ServiceProviderEntity>refSp=new ArrayList<>();
-        for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
-        {
-            refSp.add(customerReferrer.getServiceProvider());
-        }
-        customerDetails.put("referres",refSp);
+        // List<ServiceProviderEntity>refSp=new ArrayList<>();
+        // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+        // {
+        //     refSp.add(customerReferrer.getServiceProvider());
+        // }
+        // customerDetails.put("referres",refSp);
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
@@ -179,7 +179,6 @@ public class SharedUtilityService {
         customerDetails.put("domicile", customCustomer.getDomicile());
         customerDetails.put("documents",customCustomer.getDocuments());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-        customerDetails.put("mothers_name", customCustomer.getMothersName());
         customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
         customerDetails.put("height_cms", customCustomer.getHeightCms());
@@ -344,12 +343,12 @@ public class SharedUtilityService {
         serviceProviderDetails.put("service_provider_status",serviceProvider.getTestStatus());
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
-
        serviceProviderDetails.put("skills", serviceProvider.getSkills());
        serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
        serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
+        serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
         serviceProviderDetails.put("business_unit_infra_score",serviceProvider.getBusinessUnitInfraScore());
         serviceProviderDetails.put("qualification_score",serviceProvider.getQualificationScore());
         serviceProviderDetails.put("technical_expertise_score",serviceProvider.getTechnicalExpertiseScore());
@@ -420,12 +419,13 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
+                    BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
 
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getId());
                     qualificationInfo.put("institution_name", qualificationDetail.getInstitution_name());
                     qualificationInfo.put("year_of_passing", qualificationDetail.getYear_of_passing());
-                    qualificationInfo.put("board_or_university", qualificationDetail.getBoard_or_university());
+                    qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
                     qualificationInfo.put("subject_name", qualificationDetail.getSubject_name());
                     qualificationInfo.put("stream",qualificationDetail.getStream());
                     qualificationInfo.put("examination_roll_number",qualificationDetail.getExamination_role_number());
@@ -440,6 +440,11 @@ public class SharedUtilityService {
                         qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
                     } else {
                         qualificationInfo.put("qualification_name", "Unknown Qualification");
+                    }
+                    if (boardUniversity != null) {
+                        qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
+                    }else {
+                        qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
                     }
 
                     return qualificationInfo;

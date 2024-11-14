@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,12 +22,15 @@ public class CustomTicketStatus {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ticket_status_id")
+    @JsonProperty("ticket_status_id")
     protected Long ticketStatusId;
 
     @Column(name = "ticket_status")
+    @JsonProperty("ticket_status")
     protected String ticketStatus;
 
     @Column(name = "ticket_status_description")
+    @JsonProperty("ticket_status_description")
     protected String ticketStatusDescription;
 
 }

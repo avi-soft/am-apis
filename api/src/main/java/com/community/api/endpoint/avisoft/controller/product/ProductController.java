@@ -272,17 +272,20 @@ public class ProductController extends CatalogEndpoint {
             CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
 
-            StateCode notifyingAuthority = null;
+            StateCode stateCode = null;
             if (addProductDto.getState() != null) {
-                notifyingAuthority = districtService.getStateByStateId(addProductDto.getState());
+                stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
             {
-                productService.validatePhysicalRequirement(addProductDto, null);
-                productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                if(addProductDto.getPhysicalRequirement()!=null)
+                {
+                    productService.validatePhysicalRequirement(addProductDto, null);
+                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                }
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
             }
             else if(saveDraft)
             {
@@ -293,9 +296,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
                 }
                 return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
             }
@@ -315,7 +318,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
 
         try {
 
@@ -360,7 +363,6 @@ public class ProductController extends CatalogEndpoint {
             productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
-
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
 
@@ -390,6 +392,24 @@ public class ProductController extends CatalogEndpoint {
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
+
+            if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
+            }
+            else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
+            }
+            else if(!saveAsDraft)
+            {
+                if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
+                {
+                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,physicalRequirementDtoList,wrapper);
+                }
+            }
             wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -403,7 +423,6 @@ public class ProductController extends CatalogEndpoint {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @GetMapping("/get-product-by-id/{productId}")
@@ -679,26 +698,27 @@ public class ProductController extends CatalogEndpoint {
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
-            String jwtToken = authHeader.substring(7);
 
+            String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
-            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
 
-        }catch(IllegalArgumentException illegalArgumentException)
-        {
+            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit,showDraftProducts);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 }

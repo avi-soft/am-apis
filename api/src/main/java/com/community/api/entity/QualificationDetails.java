@@ -30,12 +30,9 @@ public class QualificationDetails {
     @Column(name = "year_of_passing", nullable = false)
     private Long year_of_passing;
 
-    @NotBlank(message = "Board or University is required")
-    @Size(max = 255, message = "Board or University name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Board or University cannot contain numeric values")
-    @Column(name = "board_or_university", nullable = false)
-    private String board_or_university;
-
+    @NotNull(message = "board or university id is required")
+    @Column(name = "board_university_id", nullable = false)
+    private Long board_university_id;
 
 //    @NotNull(message = "Examination Role Number is required")
     @Column(name = "examination_role_number",nullable = true)

@@ -195,9 +195,6 @@ public class DocumentStorageService {
 
                 /*new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
               /*  new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
-=======
-/*                new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
->>>>>>> 4265e69d7a0f07a5849e1b79fd670de4c1fec941
                 new DocumentType( 15,"INTERMEDIATE", "Completed higher secondary education or equivalent"),
                 new DocumentType(16,"BACHELORS", "Completed undergraduate degree program education "),
                 new DocumentType(17,"MASTERS", "Completed postgraduate degree program education"),
@@ -226,7 +223,7 @@ public class DocumentStorageService {
                 new DocumentType(29, "SPORTS", "A personal photograph typically required for sports-related documentation, such as player registrations or team memberships."),
                 new DocumentType(30, "FREEDOM FIGHTER", "A personal photograph required for identification and documentation purposes related to recognition and benefits for freedom fighters.")
 
-            };
+        };
 
 
 
@@ -372,11 +369,11 @@ public class DocumentStorageService {
                     "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
 
 
-           ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
 
             String deletedFilePath = response.getBody();
             if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
-                    System.out.println("File deleted: " + deletedFilePath);
+                System.out.println("File deleted: " + deletedFilePath);
             } else {
                 throw new IOException("No file path returned from server.");
             }
@@ -386,7 +383,5 @@ public class DocumentStorageService {
         }
         return  fileName;
     }
-
-
 
 }
