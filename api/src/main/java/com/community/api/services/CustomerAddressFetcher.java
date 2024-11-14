@@ -11,9 +11,9 @@ import java.util.Map;
 
 @Service
 public class CustomerAddressFetcher {
-    public List<Map<String,String>> fetch(Customer customer)
+    public Map<String,Map<String,String>> fetch(Customer customer)
     {
-        List<Map<String,String>> addresses=new ArrayList<>();
+        Map<String,Map<String,String>> addresses=new HashMap<>();
     Map<String,String> currentAddress=new HashMap<>();
     Map<String,String>permanentAddress=new HashMap<>();
     for(CustomerAddress customerAddress:customer.getCustomerAddresses()) {
@@ -32,8 +32,8 @@ public class CustomerAddressFetcher {
             permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
         }
     }
-    addresses.add(currentAddress);
-    addresses.add(permanentAddress);
+    addresses.put("current_address",currentAddress);
+    addresses.put("permanent_address",permanentAddress);
     return addresses;
     }
 }

@@ -18,6 +18,6 @@ public class OrderCustomerDetailsDTO {
    String fullName;
    String emailAddress;
    String mobileNumber;
-   List<Map<String,String>> customerAddress;
+   Map<String,Map<String,String>> customerAddress;
    String username;
 }
