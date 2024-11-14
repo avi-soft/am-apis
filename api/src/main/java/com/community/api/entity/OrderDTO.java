@@ -21,12 +21,12 @@ public class OrderDTO
     private Long orderId;
     private String orderName;
     private Money total;
-    private OrderStatus status;
-    private Date submitDate;
+    private Date orderPlacedDate;
     private String orderNumber;
     private String customerEmail;
     private Long customerId;
     private Money subTotal;
     private Integer orderStateId;
+    private Long spAssigneeId;
 }
 

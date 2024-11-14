@@ -43,8 +43,8 @@ public class FileService {
     public String getFileUrl(String filePath, HttpServletRequest request) {
         try{
             String normalizedFilePath = filePath.replace("\\", "/");
-            return   this.getFileUrl(normalizedFilePath);
-//        return fileServerUrl + "/"  + normalizedFilePath;
+//            return   this.getFileUrl(normalizedFilePath);
+      return fileServerUrl + "/"  + normalizedFilePath;
         }catch (Exception e){
             exceptionHandling.handleException(e);
             return "Error fetching urls:  " + e.getMessage();
@@ -64,26 +64,26 @@ public class FileService {
             String encodedSegment = URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
             encodedFilePath.append(encodedSegment);
         }
-        System.out.println(fileServerUrl + "/" + encodedFilePath.toString() + " path");
+
         return fileServerUrl + "/" + encodedFilePath.toString();
     }
     public String getFileUrl(String fullFilePath) {
         try {
             String formattedPath = fullFilePath.replace("\\", "/");
             String encodedPath = URLEncoder.encode(formattedPath, StandardCharsets.UTF_8.toString());
-    
+
             String fileUrlApi = fileServerUrl + "/files/file-url?filePath=" + encodedPath;
-    
-    
+
+
             RestTemplate restTemplate = new RestTemplate();
-    
+
             HttpHeaders headers = new HttpHeaders();
             headers.add("ngrok-skip-browser-warning", "true");
-    
+
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-    
+
             ResponseEntity<String> response = restTemplate.exchange(fileUrlApi, HttpMethod.GET, entity, String.class);
-    
+
             if (response.getStatusCode().is2xxSuccessful()) {
                 return response.getBody();
             } else {

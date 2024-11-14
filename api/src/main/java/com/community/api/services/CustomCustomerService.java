@@ -52,6 +52,21 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
+    public CustomCustomer findCustomCustomerById(Long customerId) {
+        // Check if customerId is valid
+        if (customerId == null) {
+            return null;
+        }
+
+        return em.createQuery("SELECT c FROM CustomCustomer c WHERE c.id = :customerId", CustomCustomer.class)
+                .setParameter("customerId", customerId)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
+
+
     public CustomCustomer findCustomCustomerByPhoneWithOtp(String mobileNumber,String countryCode) {
 
         if (countryCode == null) {
@@ -67,14 +82,5 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
-    public String getClientIp(HttpServletRequest request) {
-        String ipAddress = request.getHeader("X-Forwarded-For");
-        if (ipAddress == null || ipAddress.isEmpty()) {
-            ipAddress = request.getRemoteAddr();
-        } else {
-            ipAddress = ipAddress.split(",")[0];
-        }
-        return ipAddress;
-    }
 
 }

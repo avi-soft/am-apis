@@ -1,5 +1,6 @@
 package com.community.api.services;
 import com.community.api.component.Constant;
+import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.FileType;
@@ -210,14 +211,13 @@ public class DocumentStorageService {
         }
 
         // Validate file size
-        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
-        if (fileSizeInMB > documentType.getMax_document_size()) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of " +
-                    documentType.getMax_document_size() + "MB");
+//        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
+        if (file.getSize()> ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
+            throw new IllegalArgumentException("File size exceeds maximum limit of " + documentType.getMax_document_size());
         }
-        if (fileSizeInMB < documentType.getMin_document_size()) {
+        if (file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size())) {
             throw new IllegalArgumentException("File size is below minimum requirement of " +
-                    documentType.getMin_document_size() + "MB");
+                    documentType.getMin_document_size());
         }
     }
 
@@ -234,9 +234,6 @@ public class DocumentStorageService {
 
                 /*new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
               /*  new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
-=======
-/*                new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
->>>>>>> 4265e69d7a0f07a5849e1b79fd670de4c1fec941
                 new DocumentType( 15,"INTERMEDIATE", "Completed higher secondary education or equivalent"),
                 new DocumentType(16,"BACHELORS", "Completed undergraduate degree program education "),
                 new DocumentType(17,"MASTERS", "Completed postgraduate degree program education"),
@@ -265,7 +262,7 @@ public class DocumentStorageService {
 //                new DocumentType(29, "SPORTS", "A personal photograph typically required for sports-related documentation, such as player registrations or team memberships."),
 //                new DocumentType(30, "FREEDOM FIGHTER", "A personal photograph required for identification and documentation purposes related to recognition and benefits for freedom fighters.")
 
-            };
+        };
 
 
 
@@ -394,7 +391,7 @@ public class DocumentStorageService {
             multiValueMap.add("file", contentsAsResource);
             multiValueMap.add("documentType", documentType);
             multiValueMap.add("customerId", customerId);
-            multiValueMap.add("role", role);
+            multiValueMap.add("role", role.toLowerCase());
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(multiValueMap, headers);
 
             restTemplate.postForObject(url, request, String.class);
@@ -411,11 +408,11 @@ public class DocumentStorageService {
                     "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
 
 
-           ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
 
             String deletedFilePath = response.getBody();
             if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
-                    System.out.println("File deleted: " + deletedFilePath);
+                System.out.println("File deleted: " + deletedFilePath);
             } else {
                 throw new IOException("No file path returned from server.");
             }
@@ -425,7 +422,5 @@ public class DocumentStorageService {
         }
         return  fileName;
     }
-
-
 
 }

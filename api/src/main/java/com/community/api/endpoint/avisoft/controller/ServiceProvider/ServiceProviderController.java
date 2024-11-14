@@ -315,10 +315,10 @@ public class ServiceProviderController {
                                                    @RequestParam(required = false) String mobileNumber,
                                                    @RequestParam(required = false) Long test_status_id) {
         try {
-            /*if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
+            if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
             {
                 return ResponseService.generateErrorResponse("Need to provide atleast one search filter",HttpStatus.BAD_REQUEST);
-            }*/
+            }
             return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -419,18 +419,20 @@ public class ServiceProviderController {
             if (action.equals(Constant.SP_REQUEST_ACTION_VIEW)) {
                 Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                Map<String, Object> orderRequestDetail = new HashMap<>();
+                Map<String, Object> orderRequestDetail = new HashMap<>();Long assigneeId=null;
+                if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
+                    assigneeId=Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
                 OrderDTO orderDTO = new OrderDTO(
                         order.getId(),
                         order.getName(),
                         order.getTotal(),
-                        order.getStatus(),
                         order.getSubmitDate(),
                         order.getOrderNumber(),
                         order.getEmailAddress(),
                         order.getCustomer().getId(),
                         order.getSubTotal(),
-                        orderState.getOrderStateId() // Ensure this matches the expected order
+                        orderState.getOrderStateId(),
+                        assigneeId// Ensure this matches the expected order
                 );
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();

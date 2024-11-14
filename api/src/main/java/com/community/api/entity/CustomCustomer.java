@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import javax.persistence.*;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,9 +51,6 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "nationality")
     private String nationality;
-
-    @Column(name = "mother_name")
-    private String mothersName;
 
     @Nullable
     @Column(name = "date_of_birth")
@@ -123,6 +121,10 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "category_issue_date")
     private String categoryValidUpto;
+ 
+    @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
+    @Column(name = "mother_name")
+    private String mothersName;
 
     @Column(name="religion")
     private String religion;
@@ -200,6 +202,7 @@ public class CustomCustomer extends CustomerImpl {
     private List<CustomProduct> cartRecoveryLog;
 
     @Nullable
+    @Column(length = 512)
     private String token;
 
 
@@ -226,10 +229,14 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "visible_identification_mark_2")
     private String identificationMark2;
 
-    @JsonBackReference
+    @JsonBackReference("referrer-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
+
+    @JsonBackReference("bankDetails-customer")
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<BankDetails> bankDetails = new ArrayList<>();
 
     @Column(name = "order_count")
     private Integer numberOfOrders;
