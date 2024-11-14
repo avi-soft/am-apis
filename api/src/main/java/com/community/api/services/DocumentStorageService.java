@@ -289,7 +289,7 @@ public class DocumentStorageService {
 
     @Transactional
     public void updateOrCreateDocument(Document existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
-        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_").toLowerCase();
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
                 + File.separator + snakeCaseDocumentType
@@ -302,7 +302,7 @@ public class DocumentStorageService {
 
     @Transactional
     public void createDocument(MultipartFile file, DocumentType documentTypeObj, CustomCustomer customCustomer, Long customerId, String role) {
-        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_").toLowerCase();
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         Document newDocument = new Document();
         newDocument.setName(file.getOriginalFilename());
         newDocument.setCustom_customer(customCustomer);
@@ -320,7 +320,7 @@ public class DocumentStorageService {
     }
     @Transactional
     public void createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
-        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_").toLowerCase();
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         ServiceProviderDocument newDocument = new ServiceProviderDocument();
         newDocument.setName(file.getOriginalFilename());
         newDocument.setServiceProviderEntity(serviceProviderEntity);
@@ -338,7 +338,7 @@ public class DocumentStorageService {
     }
     @Transactional
     public void updateOrCreateServiceProvider(ServiceProviderDocument existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
-        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_").toLowerCase();
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
                 + File.separator + snakeCaseDocumentType
@@ -380,7 +380,7 @@ public class DocumentStorageService {
     public void uploadFileOnFileServer(MultipartFile file, String documentType, String customerId, String role) throws IOException {
         try {
             String url = fileServerUrl + "/files/upload";
-            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_").toLowerCase();
+            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
             final String filename = file.getOriginalFilename();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -408,7 +408,7 @@ public class DocumentStorageService {
 
     public String deleteFile(Long customerId, String documentType, String fileName, String role) throws IOException {
         try {
-            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_").toLowerCase();
+            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
             String url = fileServerUrl + "/files/delete?customerId=" + customerId +
                     "&documentType=" + snakeCaseDocumentType + "&fileName=" + fileName + "&role=" + role;
 
