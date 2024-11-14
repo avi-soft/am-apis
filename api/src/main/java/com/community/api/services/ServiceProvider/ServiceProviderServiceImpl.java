@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -1067,6 +1068,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         entityManager.merge(existingServiceProvider);
                         responseBody.put("message", "User has been signed up");
                     }
+
                     return ResponseEntity.ok(responseBody);
                 }
             } else {

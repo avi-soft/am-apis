@@ -17,7 +17,7 @@
     <description>API Module For Customized Broadleaf Commerce Site</description>
 
     <properties>
-        <debug.port>8002</debug.port>
+        <debug.port>8001</debug.port>
         <jersey.version>2.34</jersey.version>
     </properties>
 
@@ -195,6 +195,17 @@
 
         </dependency>
 -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
+        </dependency>
 
+        <!-- AspectJ compiler (if you need compile-time weaving) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
+        </dependency>
     </dependencies>
 </project>
