@@ -443,7 +443,7 @@ public class CustomerEndpoint {
         }
     }
 
-
+    @Transactional
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
