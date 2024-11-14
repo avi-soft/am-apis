@@ -520,7 +520,7 @@ public class CustomerEndpoint {
                                 .orElse(null);
 
 
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+//                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
 
 
                         if (removeFileTypes != null && removeFileTypes) {
@@ -1030,7 +1030,7 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             Map<String,Object>responseBody=new HashMap<>();
-            /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
+           /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
