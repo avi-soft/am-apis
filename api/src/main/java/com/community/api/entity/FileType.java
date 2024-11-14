@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.community.api.utils.DocumentType;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,6 +29,7 @@ public class FileType
         this.file_type_name = file_type_name;
     }
 
+    @JsonBackReference
     @ManyToMany(mappedBy = "required_document_types")
     private List<DocumentType> documentTypes;
 }
