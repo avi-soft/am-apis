@@ -1188,10 +1188,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         if((state != null && !isAlphabetOnly(state)) || (district != null && !isAlphabetOnly(district)) || (first_name != null && !isAlphabetOnly(first_name)) || (last_name != null && !isAlphabetOnly(last_name))) {
             throw new IllegalArgumentException("String values are not in right format.");
         }
-        if((state != null && state.isEmpty()) || (district != null && district.isEmpty()) || (first_name != null && first_name.isEmpty()) || (last_name != null && last_name.isEmpty()) || (mobileNumber != null && mobileNumber.isEmpty()) ) {
-            throw new IllegalArgumentException("Fields cannot be empty.");
-        }
-
 
         Map<String, Character> alias = new HashMap<>();
         if (first_name != null) {
