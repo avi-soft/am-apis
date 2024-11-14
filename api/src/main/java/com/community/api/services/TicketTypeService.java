@@ -21,18 +21,22 @@ public class TicketTypeService {
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
 
-    public List<CustomTicketType> getAllTicketType() {
+    public List<CustomTicketType> getAllTicketType() throws Exception {
         try {
             List<CustomTicketType> ticketTypeList = entityManager.createQuery(Constant.GET_ALL_TICKET_TYPE, CustomTicketType.class).getResultList();
-            return ticketTypeList;
+
+            if(!ticketTypeList.isEmpty()){
+                return ticketTypeList;
+            } else {
+                throw new IllegalArgumentException("No ticket type found");
+            }
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-//            return null;
-            return Collections.emptyList();
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
     }
 
-    public CustomTicketType getTicketTypeByTicketTypeId(Long ticketTypeId) {
+    public CustomTicketType getTicketTypeByTicketTypeId(Long ticketTypeId) throws Exception {
         try {
 
             Query query = entityManager.createQuery(Constant.GET_TICKET_TYPE_BY_TICKET_TYPE_ID, CustomTicketType.class);
@@ -42,12 +46,12 @@ public class TicketTypeService {
             if (!ticketType.isEmpty()) {
                 return ticketType.get(0);
             } else {
-                return null;
+                throw new IllegalArgumentException("No ticket type found with this ticket type id");
             }
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
     }
 }

@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -226,30 +227,31 @@ public class ServiceProviderController {
     }
 
 
-    @Transactional
+    @Transactional // Set readOnly for performance improvement
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit) {
-        try{
+        try {
             int startPosition = page * limit;
-            // Create the query
-            TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
-            // Apply pagination
+            // Create the query with pagination
+            Query query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS,ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<ServiceProviderEntity> results = query.getResultList();
+
+            // Fetch results
+           List<ServiceProviderEntity> results = query.getResultList();
+
             List<Map<String,Object>>resultOfSp=new ArrayList<>();
             for(ServiceProviderEntity serviceProvider: results)
             {
                 resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
 
-
             return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }

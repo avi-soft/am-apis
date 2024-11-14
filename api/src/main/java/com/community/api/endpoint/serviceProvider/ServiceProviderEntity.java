@@ -106,6 +106,7 @@ public class ServiceProviderEntity  {
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Please enter a valid email address.")*/
     private String secondary_email;
+    @JsonIgnore
     private String password;
     @Nullable
     private Boolean is_running_business_unit=false;
@@ -211,7 +212,7 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ResizedImage> resizedImages;
 
-
+    @JsonIgnore
     private String token;
     @Column
     private Integer totalSkillTestPoints;
@@ -221,6 +222,7 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrals = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "serviceProviderEntity", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
     private List<ServiceProviderDocument> documents;
