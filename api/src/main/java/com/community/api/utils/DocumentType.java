@@ -38,7 +38,6 @@ public class DocumentType {
             joinColumns = @JoinColumn(name = "document_type_id"),
             inverseJoinColumns = @JoinColumn(name = "file_type_id")
     )
-    @JsonManagedReference
     private List<FileType> required_document_types;
 
     @Column(name = "max_document_size")
