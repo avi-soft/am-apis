@@ -56,14 +56,14 @@ public class BoardUniversityService
             if (boardUniversity.getBoard_university_location() == null || boardUniversity.getBoard_university_location().trim().isEmpty()) {
                 throw new IllegalArgumentException("Board or University location cannot be empty or consist only of whitespace");
             }
-            if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z ]+$")) {
-                throw new IllegalArgumentException("Board or University name cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                throw new IllegalArgumentException("Board or University name cannot contain numeric values, special characters, or leading spaces");
             }
-            if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z ]+$")){
-                throw new IllegalArgumentException("Board or university code cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                throw new IllegalArgumentException("Board or university code cannot contain numeric values, special characters, or leading spaces");
             }
-            if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z ]+$")){
-                throw new IllegalArgumentException("Board or university type cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                throw new IllegalArgumentException("Board or university type cannot contain numeric values, special characters, or leading spaces");
             }
             if(!boardUniversity.getBoard_university_type().equalsIgnoreCase("BOARD") && !boardUniversity.getBoard_university_type().equalsIgnoreCase("UNIVERSITY"))
             {
@@ -114,19 +114,20 @@ public class BoardUniversityService
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        TypedQuery<BoardUniversity> query = entityManager.createQuery("SELECT b FROM BoardUniversity b WHERE b.id = :boardUniversityId", BoardUniversity.class);
-        query.setParameter("boardUniversityId", boardUniversityId);
-
-        BoardUniversity boardUniversityToUpdate=null;
-        boardUniversityToUpdate = query.getSingleResult();
+//        TypedQuery<BoardUniversity> query = entityManager.createQuery("SELECT b FROM BoardUniversity b WHERE b.board_university_id = :boardUniversityId", BoardUniversity.class);
+//        query.setParameter("boardUniversityId", boardUniversityId);
+//
+//        BoardUniversity boardUniversityToUpdate=null;
+//        boardUniversityToUpdate = query.getSingleResult();
+        BoardUniversity boardUniversityToUpdate= entityManager.find(BoardUniversity.class,boardUniversityId);
         if(boardUniversityToUpdate==null)
         {
             throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+" not found");
         }
         List<BoardUniversity> boardUniversities = getAllBoardUniversities();
         if (Objects.nonNull(boardUniversity.getBoard_university_name())) {
-            if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z ]+$")) {
-                throw new IllegalArgumentException("Board or University name cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+                throw new IllegalArgumentException("Board or University name cannot contain numeric values, special characters or leading spaces");
             }
             for (BoardUniversity existingBoardUniversity : boardUniversities) {
                 if (existingBoardUniversity.getBoard_university_name().equalsIgnoreCase(boardUniversity.getBoard_university_name()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
@@ -136,8 +137,8 @@ public class BoardUniversityService
             boardUniversityToUpdate.setBoard_university_name(boardUniversity.getBoard_university_name());
         }
         if (Objects.nonNull(boardUniversity.getBoard_university_code())) {
-            if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z ]+$")){
-                throw new IllegalArgumentException("Board or university code cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_code().matches("^[a-zA-Z][a-zA-Z ]*$")){
+                throw new IllegalArgumentException("Board or university code cannot contain numeric values, special characters or leading spaces");
             }
             for (BoardUniversity existingBoardUniversity : boardUniversities) {
                 if (existingBoardUniversity.getBoard_university_code().equalsIgnoreCase(boardUniversity.getBoard_university_code()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
@@ -147,8 +148,8 @@ public class BoardUniversityService
             boardUniversityToUpdate.setBoard_university_code(boardUniversity.getBoard_university_code());
         }
         if (Objects.nonNull(boardUniversity.getBoard_university_type())) {
-            if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z ]+$")){
-                throw new IllegalArgumentException("Board or university type cannot contain numeric values or special characters");
+            if (!boardUniversity.getBoard_university_type().matches("^[a-zA-Z][a-zA-Z ]*$")){
+                throw new IllegalArgumentException("Board or university type cannot contain numeric values ,special characters or leading spaces");
             }
             if(!boardUniversity.getBoard_university_type().equalsIgnoreCase("BOARD") && !boardUniversity.getBoard_university_type().equalsIgnoreCase("UNIVERSITY"))
             {
