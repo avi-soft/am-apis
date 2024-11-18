@@ -56,6 +56,21 @@ public class BoardUniversityService
             if (boardUniversity.getBoard_university_location() == null || boardUniversity.getBoard_university_location().trim().isEmpty()) {
                 throw new IllegalArgumentException("Board or University location cannot be empty or consist only of whitespace");
             }
+            if (!boardUniversity.getBoard_university_location().matches("^[#a-zA-Z0-9].*")) {
+                throw new IllegalArgumentException("Board or University location must start with #, letter, or number");
+            }
+
+            if (boardUniversity.getBoard_university_location().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
+                throw new IllegalArgumentException("Board or University location contains invalid special characters");
+            }
+
+            if (boardUniversity.getBoard_university_location().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
+                throw new IllegalArgumentException("Board or University location cannot contain only special characters");
+            }
+            if (boardUniversity.getBoard_university_location().matches("^[0-9]+$")) {
+                throw new IllegalArgumentException("Board or University location cannot contain only numbers");
+            }
+
             if (!boardUniversity.getBoard_university_name().matches("^[a-zA-Z][a-zA-Z ]*$")) {
                 throw new IllegalArgumentException("Board or University name cannot contain numeric values, special characters, or leading spaces");
             }
@@ -72,10 +87,10 @@ public class BoardUniversityService
             List<BoardUniversity> boardUniversities = getAllBoardUniversities();
             for (BoardUniversity existingBoardUniversity : boardUniversities) {
                 if (existingBoardUniversity.getBoard_university_name().equalsIgnoreCase(boardUniversity.getBoard_university_name())) {
-                    throw new IllegalArgumentException("Board or University with the same name already exists");
+                    throw new IllegalArgumentException("Duplicate name not allowed");
                 }
                 if (existingBoardUniversity.getBoard_university_code().equalsIgnoreCase(boardUniversity.getBoard_university_code())) {
-                    throw new IllegalArgumentException("Board or University with the same code already exists");
+                    throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
             boardUniversityToBeSaved.setBoard_university_id(id);
@@ -114,11 +129,6 @@ public class BoardUniversityService
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
-//        TypedQuery<BoardUniversity> query = entityManager.createQuery("SELECT b FROM BoardUniversity b WHERE b.board_university_id = :boardUniversityId", BoardUniversity.class);
-//        query.setParameter("boardUniversityId", boardUniversityId);
-//
-//        BoardUniversity boardUniversityToUpdate=null;
-//        boardUniversityToUpdate = query.getSingleResult();
         BoardUniversity boardUniversityToUpdate= entityManager.find(BoardUniversity.class,boardUniversityId);
         if(boardUniversityToUpdate==null)
         {
@@ -131,7 +141,7 @@ public class BoardUniversityService
             }
             for (BoardUniversity existingBoardUniversity : boardUniversities) {
                 if (existingBoardUniversity.getBoard_university_name().equalsIgnoreCase(boardUniversity.getBoard_university_name()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
-                    throw new IllegalArgumentException("Board or University with the same name already exists");
+                    throw new IllegalArgumentException("Duplicate name not allowed");
                 }
             }
             boardUniversityToUpdate.setBoard_university_name(boardUniversity.getBoard_university_name());
@@ -142,7 +152,7 @@ public class BoardUniversityService
             }
             for (BoardUniversity existingBoardUniversity : boardUniversities) {
                 if (existingBoardUniversity.getBoard_university_code().equalsIgnoreCase(boardUniversity.getBoard_university_code()) && !existingBoardUniversity.getBoard_university_id().equals(boardUniversityId)) {
-                    throw new IllegalArgumentException("Board or University with the same code already exists");
+                    throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
             boardUniversityToUpdate.setBoard_university_code(boardUniversity.getBoard_university_code());
@@ -158,6 +168,20 @@ public class BoardUniversityService
             boardUniversityToUpdate.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
         }
         if (Objects.nonNull(boardUniversity.getBoard_university_location())) {
+            if (!boardUniversity.getBoard_university_location().matches("^[#a-zA-Z0-9].*")) {
+                throw new IllegalArgumentException("Board or University location must start with #, letter, or number");
+            }
+
+            if (boardUniversity.getBoard_university_location().matches(".*[~`!@$%^*\\\\|;<>?].*")) {
+                throw new IllegalArgumentException("Board or University location contains invalid special characters");
+            }
+
+            if (boardUniversity.getBoard_university_location().matches("^[()_\\-{}\\[\\]/\":&,. \n]+$")) {
+                throw new IllegalArgumentException("Board or University location cannot contain only special characters");
+            }
+            if (boardUniversity.getBoard_university_location().matches("^[0-9]+$")) {
+                throw new IllegalArgumentException("Board or University location cannot contain only numbers");
+            }
             boardUniversityToUpdate.setBoard_university_location(boardUniversity.getBoard_university_location());
         }
         if(boardUniversity.getCreated_date()!=null|| boardUniversity.getCreated_by()!=null)
