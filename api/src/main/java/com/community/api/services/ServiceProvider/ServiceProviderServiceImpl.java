@@ -1167,7 +1167,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return str != null && str.matches("\\d{10}");
     }
     public static boolean isAlphabetOnly(String str) {
-        return str != null && str.matches("^[A-Za-z]+$");
+        return str != null && str.matches("^[A-Za-z]+( [A-Za-z]+)*$");
     }
     @Transactional
     public Object searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id) {
