@@ -1219,7 +1219,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
 
         if (test_status_id != null) {
-            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderEntity.class);
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
             query.setParameter("test_status_id", test_status_id);
             List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
             if(serviceProviderTestStatus.isEmpty()) {

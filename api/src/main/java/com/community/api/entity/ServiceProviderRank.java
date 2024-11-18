@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 
 @Entity
 @AllArgsConstructor
@@ -26,9 +27,11 @@ public class ServiceProviderRank
     private String rank_description;
     private String created_at,updated_at,created_by;
 
+    @NotNull
     @Column(name="maximum_ticket_size")
     private Integer maximumTicketSize;
 
+    @NotNull
     @Column(name="maximum_binding_size")
     private Integer maximumBindingSize;
 
