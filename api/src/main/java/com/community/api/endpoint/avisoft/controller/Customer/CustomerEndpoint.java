@@ -11,8 +11,19 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.FileType;
-import com.community.api.services.*;
+import com.community.api.services.ResponseService;
+import com.community.api.services.SanitizerService;
+import com.community.api.services.CustomCustomerService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.ReserveCategoryDtoService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.RoleService;
+import com.community.api.services.FileService;
+import com.community.api.services.ProductReserveCategoryFeePostRefService;
+import com.community.api.services.DistrictService;
+import com.community.api.services.ApiConstants;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -33,9 +44,20 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Column;
@@ -48,8 +70,11 @@ import javax.validation.constraints.Size;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Date;
 
 @RestController
 @RequestMapping(value = "/customer",
