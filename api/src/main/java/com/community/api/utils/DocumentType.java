@@ -7,7 +7,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Id;
+import javax.persistence.FetchType;
+import javax.persistence.JoinTable;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
+import javax.persistence.Column;
 import java.util.List;
 
 @Entity
@@ -38,10 +45,6 @@ public class DocumentType {
     private String max_document_size;
     @Column(name = "min_document_size")
     private String min_document_size;
-//    @Column(name="max_document_size")
-//    private Integer max_document_size;
-//    @Column(name= "min_document_size")
-//    private Integer min_document_size;
 
     public DocumentType(String documentTypeName, String description) {
         this.document_type_name = documentTypeName;
