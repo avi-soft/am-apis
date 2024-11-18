@@ -243,7 +243,11 @@ public class CustomerEndpoint {
 
             if(details.containsKey("hidePhoneNumber"))
             {
+                customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
+                if((Boolean)details.get("hidePhoneNumber").equals(true))
+                {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
+                }
                 details.remove("secondaryMobileNumber");
                 details.remove("whatsappNumber");
                 details.remove("hidePhoneNumber");
