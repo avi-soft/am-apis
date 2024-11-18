@@ -494,7 +494,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemName(product.getName());
                     Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
                     atrtributes.put("productId", product.getId().toString());
-                    atrtributes.put("assigneeSPId",customProduct.getUserId().toString());
+                   /* atrtributes.put("assigneeSPId",null);*/
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);

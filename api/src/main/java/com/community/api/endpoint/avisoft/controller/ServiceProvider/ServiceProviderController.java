@@ -16,6 +16,8 @@ import org.broadleafcommerce.core.order.service.OrderService;
 import com.community.api.utils.Document;
 
 import com.community.api.utils.ServiceProviderDocument;
+import com.twilio.http.Request;
+
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,13 +31,16 @@ import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.net.http.HttpRequest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -226,30 +231,31 @@ public class ServiceProviderController {
     }
 
 
-    @Transactional
+    @Transactional // Set readOnly for performance improvement
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit) {
-        try{
+        try {
             int startPosition = page * limit;
-            // Create the query
-            TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
-            // Apply pagination
+            // Create the query with pagination
+            Query query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS,ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<ServiceProviderEntity> results = query.getResultList();
+
+            // Fetch results
+           List<ServiceProviderEntity> results = query.getResultList();
+
             List<Map<String,Object>>resultOfSp=new ArrayList<>();
             for(ServiceProviderEntity serviceProvider: results)
             {
                 resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
 
-
             return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -313,20 +319,21 @@ public class ServiceProviderController {
                                                    @RequestParam(required = false) String first_name,
                                                    @RequestParam(required = false) String last_name,
                                                    @RequestParam(required = false) String mobileNumber,
-                                                   @RequestParam(required = false) Long test_status_id) {
+                                                   @RequestParam(required = false) Long test_status_id,HttpServletRequest request) {
         try {
-            if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
-            {
-                return ResponseService.generateErrorResponse("Need to provide atleast one search filter",HttpStatus.BAD_REQUEST);
-            }
+            Map<String,String[]> uri=request.getParameterMap();
+            if((uri.containsKey("state")&& state==null)||(uri.containsKey("first_name")&& first_name==null)||(uri.containsKey("last_name")&& last_name==null)||(uri.containsKey("test_status_id")&& test_status_id==null)||(uri.containsKey("district")&& district==null)||(uri.containsKey("mobileNumber")&& mobileNumber==null))
+                return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }  catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
     public ResponseEntity<?> showRefferedCandidates (@PathVariable Long service_provider_id){

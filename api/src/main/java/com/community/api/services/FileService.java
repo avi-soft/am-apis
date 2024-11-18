@@ -43,6 +43,7 @@ public class FileService {
     public String getFileUrl(String filePath, HttpServletRequest request) {
         try{
             String normalizedFilePath = filePath.replace("\\", "/");
+
 //            return   this.getFileUrl(normalizedFilePath);
       return fileServerUrl + "/"  + normalizedFilePath;
         }catch (Exception e){
