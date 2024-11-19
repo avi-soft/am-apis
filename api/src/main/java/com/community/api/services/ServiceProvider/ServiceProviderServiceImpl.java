@@ -1152,8 +1152,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 addressToupdate.setDistrict(districtService.findDistrictById(Integer.parseInt(dto.getDistrict())));
             if (dto.getAddress_line() != null && !dto.getAddress_line().isEmpty())
                 addressToupdate.setAddress_line(dto.getAddress_line());
-                /*if(dto.getCity()!=null && !dto.getCity().isEmpty())
-                    addressToupdate.setCity(dto.getCity());*/
+                if(dto.getCity()!=null && !dto.getCity().isEmpty())
+                    addressToupdate.setCity(dto.getCity());
             if (dto.getPincode() != null && !dto.getPincode().isEmpty())
                 addressToupdate.setPincode(dto.getPincode());
             existingServiceProvider.setSpAddresses(addresses);
@@ -1221,8 +1221,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
             query.setParameter("test_status_id", test_status_id);
             List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-            if(serviceProviderTestStatus.isEmpty()) {
-                responseService.generateResponse(HttpStatus.BAD_REQUEST, "No Test Status is found with this id", serviceProviderTestStatus);
+            System.out.println("+++++++++++" + serviceProviderTestStatus.size());
+            if(serviceProviderTestStatus.size() == 0) {
+                
+                throw new IllegalArgumentException( "No Test Status is found with this id");
             }
         }
         String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id"};
