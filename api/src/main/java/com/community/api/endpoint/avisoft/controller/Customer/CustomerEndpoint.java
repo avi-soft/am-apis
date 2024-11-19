@@ -12,13 +12,26 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
-import com.community.api.services.*;
+import com.community.api.services.ResponseService;
+import com.community.api.services.SanitizerService;
+import com.community.api.services.CustomCustomerService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.ReserveCategoryDtoService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.RoleService;
+import com.community.api.services.FileService;
+import com.community.api.services.ProductReserveCategoryFeePostRefService;
+import com.community.api.services.DistrictService;
+import com.community.api.services.ApiConstants;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import lombok.Getter;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -32,9 +45,20 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Column;
@@ -47,7 +71,11 @@ import javax.validation.constraints.Size;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Date;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -58,7 +86,6 @@ import java.util.*;
 )
 
 public class CustomerEndpoint {
-
     private PasswordEncoder passwordEncoder;
     private CustomerService customerService;  //@TODO- do this task asap
     private ExceptionHandlingImplement exceptionHandling;
@@ -216,7 +243,11 @@ public class CustomerEndpoint {
 
             if(details.containsKey("hidePhoneNumber"))
             {
+                customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
+                if((Boolean)details.get("hidePhoneNumber").equals(true))
+                {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
+                }
                 details.remove("secondaryMobileNumber");
                 details.remove("whatsappNumber");
                 details.remove("hidePhoneNumber");
@@ -455,7 +486,6 @@ public class CustomerEndpoint {
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
@@ -468,7 +498,6 @@ public class CustomerEndpoint {
 
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             if (role == null) {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -479,15 +508,13 @@ public class CustomerEndpoint {
             }
 
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
-
             for (int i = 0; i < files.size(); i++) {
                 Integer fileTypeId = fileTypes.get(i);
                 MultipartFile file = files.get(i);
-
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
-            if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
 
+            if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -496,22 +523,26 @@ public class CustomerEndpoint {
                 Map<String, Object> responseData = new HashMap<>();
                 List<String> deletedDocumentMessages = new ArrayList<>();
 
-
                 for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
                     Integer fileNameId = entry.getKey();
                     List<MultipartFile> fileList = entry.getValue();
+
+                    DocumentType documentTypeObj = em.createQuery(
+                                    "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                            .setParameter("documentTypeId", fileNameId)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (documentTypeObj == null) {
+                        return ResponseService.generateErrorResponse(
+                                "Unknown document type for file: " + fileNameId,
+                                HttpStatus.BAD_REQUEST);
+                    }
+
                     for (MultipartFile file : fileList) {
-
-                        DocumentType documentTypeObj = em.createQuery(
-                                        "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
-                                .setParameter("documentTypeId", fileNameId)
-                                .getResultStream()
-                                .findFirst()
-                                .orElse(null);
-
-                        if (documentTypeObj == null) {
-                            return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
-                        }
+                        // Validate document
+                        documentStorageService.validateDocument(file, documentTypeObj);
 
                         Document existingDocument = em.createQuery(
                                         "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
@@ -523,16 +554,7 @@ public class CustomerEndpoint {
                                 .orElse(null);
 
 
-                        if (!DocumentStorageService.isValidFileType(file) && existingDocument == null) {
-                            return ResponseEntity.badRequest().body(Map.of(
-                                    "status", ApiConstants.STATUS_ERROR,
-                                    "status_code", HttpStatus.BAD_REQUEST.value(),
-                                    "message", "Invalid file type: " + file.getOriginalFilename()
-                            ));
-                        }
-
                         fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-
 
                         if (removeFileTypes != null && removeFileTypes) {
 
@@ -604,16 +626,14 @@ public class CustomerEndpoint {
                             }
                         }
                     }
-
                 }
 
-                if (!deletedDocumentMessages.isEmpty()) {
-                    responseData.put("deletedMessages", deletedDocumentMessages);
-                }
-
-                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
-
+                return ResponseService.generateSuccessResponse(
+                        "Documents updated successfully",
+                        responseData,
+                        HttpStatus.OK);
             } else {
+                // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
                     return ResponseService.generateErrorResponse("No data found for this serviceProvider", HttpStatus.NOT_FOUND);
@@ -627,20 +647,21 @@ public class CustomerEndpoint {
                 for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
                     Integer fileNameId = entry.getKey();
                     List<MultipartFile> fileList = entry.getValue();
+
+
+                    DocumentType documentTypeObj = em.createQuery(
+                                    "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                            .setParameter("documentTypeId", fileNameId)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (documentTypeObj == null) {
+                        return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
                     for (MultipartFile file : fileList) {
 
-
-                        DocumentType documentTypeObj = em.createQuery(
-                                        "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
-                                .setParameter("documentTypeId", fileNameId)
-                                .getResultStream()
-                                .findFirst()
-                                .orElse(null);
-
-                        if (documentTypeObj == null) {
-                            return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
-                        }
-
+                        documentStorageService.validateDocument(file, documentTypeObj);
                         ServiceProviderDocument existingDocument = em.createQuery(
                                         "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL", ServiceProviderDocument.class)
                                 .setParameter("serviceProviderEntity", serviceProviderEntity)
@@ -649,14 +670,6 @@ public class CustomerEndpoint {
                                 .getResultStream()
                                 .findFirst()
                                 .orElse(null);
-
-                        if (!DocumentStorageService.isValidFileType(file) && existingDocument == null) {
-                            return ResponseEntity.badRequest().body(Map.of(
-                                    "status", ApiConstants.STATUS_ERROR,
-                                    "status_code", HttpStatus.BAD_REQUEST.value(),
-                                    "message", "Invalid file type: " + file.getOriginalFilename()
-                            ));
-                        }
 
                         fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
 
@@ -740,15 +753,22 @@ public class CustomerEndpoint {
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             }
 
-
-        } catch (DataIntegrityViolationException e) {
+        }
+        catch (DataIntegrityViolationException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Document with the same name and file path already exists." + e.getMessage(), HttpStatus.BAD_REQUEST);
 
-        } catch (Exception e) {
+        }
+        catch (IllegalArgumentException e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
     @Transactional
     @Authorize(value = {Constant.roleUser})

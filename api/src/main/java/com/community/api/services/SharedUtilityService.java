@@ -156,7 +156,9 @@ public class SharedUtilityService {
             customerDetails.put("orderId",cart.getId());
         else
             customerDetails.put("orderId",null);
-        customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+        if(customCustomer.getHidePhoneNumber().equals(false))
+            customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+            customerDetails.put("hideMobileNumber", customCustomer.getHidePhoneNumber());    
         customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
         // List<ServiceProviderEntity>refSp=new ArrayList<>();
