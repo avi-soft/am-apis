@@ -222,10 +222,14 @@ public class CartEndPoint extends BaseEndpoint {
             if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null)
                 return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category",HttpStatus.UNPROCESSABLE_ENTITY);
 
-            if(!customCustomer.getGender().equalsIgnoreCase(customProduct.getGenderSpecific().getGenderName()))
+            if(customProduct.getGenderSpecific()!=null)
             {
-                return ResponseService.generateErrorResponse("Cannot add product to cart: Product not specified for gender "+ customCustomer.getGender(),HttpStatus.BAD_REQUEST);
+                if(!customCustomer.getGender().equalsIgnoreCase(customProduct.getGenderSpecific().getGenderName()))
+                {
+                    return ResponseService.generateErrorResponse("Cannot add product to cart: Product not specified for gender "+ customCustomer.getGender(),HttpStatus.BAD_REQUEST);
+                }
             }
+
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {
 
