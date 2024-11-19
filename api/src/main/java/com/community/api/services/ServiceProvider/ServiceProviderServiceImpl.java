@@ -1226,8 +1226,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 responseService.generateResponse(HttpStatus.BAD_REQUEST, "No Test Status is found with this id", serviceProviderTestStatus);
             }
         }
-        String[] fieldsNames = {"state", "district", "first_name", "last_name"};
-        Object[] fields = {state, district, first_name, last_name};
+        String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id"};
+        Object[] fields = {state, district, first_name, last_name, test_status_id};
         for (int i = 0; i < fields.length; i++) {
             if (fields[i] != null) {
                 if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
