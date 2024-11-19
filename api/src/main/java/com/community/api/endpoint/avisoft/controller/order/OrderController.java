@@ -240,6 +240,7 @@ public class OrderController
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
+                        query.setParameter("orderId", order.getId());
                         BigInteger id = (BigInteger)query.getSingleResult();
                       // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
