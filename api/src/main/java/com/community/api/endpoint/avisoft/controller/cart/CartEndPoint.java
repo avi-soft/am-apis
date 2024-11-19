@@ -211,10 +211,11 @@ public class CartEndPoint extends BaseEndpoint {
                     customer.getEmailAddress() == null ||
                     customCustomer.getCategory() == null ||
                     customer.getUsername() == null ||
-                    customer.getPassword() == null)
+                    customer.getPassword() == null||
+                    customCustomer.getGender()==null)
             {
                 return ResponseService.generateErrorResponse(
-                        "All fields must be completed: First Name, Last Name, Primary Email, Username, Password, and Category are required before setting up the cart.",
+                        "All fields must be completed: First Name, Last Name, Primary Email, Username, Password, Gender and Category are required before setting up the cart.",
                         HttpStatus.BAD_REQUEST
                 );
             }
@@ -234,6 +235,14 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("Invalid Category",HttpStatus.INTERNAL_SERVER_ERROR);
             if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null)
                 return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category",HttpStatus.UNPROCESSABLE_ENTITY);
+            if(customProduct.getGenderSpecific()!=null)
+            {
+                if(!customCustomer.getGender().equalsIgnoreCase(customProduct.getGenderSpecific().getGenderName()))
+                {
+                    return ResponseService.generateErrorResponse("Cannot add product to cart: Product not specified for gender "+ customCustomer.getGender(),HttpStatus.BAD_REQUEST);
+                }
+            }
+
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {
 
