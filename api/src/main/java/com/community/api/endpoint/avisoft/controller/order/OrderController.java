@@ -205,6 +205,7 @@ public class OrderController
                 query.setParameter("orderStateId",orderState);
             }
             orderIds = query.getResultList();
+            System.out.println("ab");
             return generateCombinedDTO(authHeader,orderIds,sort);
         } catch (Exception e)
         {
@@ -261,6 +262,10 @@ public class OrderController
     @RequestMapping(value = "assign-order/{orderId}",method = RequestMethod.POST)
     public ResponseEntity<?>manuallyAssignOrder(@PathVariable Long orderId,@RequestBody ManualAssignmentDetails manualAssignmentDetails) {
         try {
+            Query query =entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
+            query.setParameter("orderId",orderId);
+            if(!query.getResultList().isEmpty())
+             return ResponseService.generateErrorResponse("Primary ticket already exists", HttpStatus.BAD_REQUEST);
             List<String>errorMessages=new ArrayList<>();
             for (Field field : manualAssignmentDetails.getClass().getDeclaredFields()) {
                 field.setAccessible(true); // Allow access to private fields
