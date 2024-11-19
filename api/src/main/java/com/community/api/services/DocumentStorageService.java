@@ -1,7 +1,9 @@
 package com.community.api.services;
 import com.community.api.component.Constant;
+import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.FileType;
 import com.community.api.entity.TypingText;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -11,7 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -20,10 +27,14 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DocumentStorageService {
@@ -181,6 +192,42 @@ public class DocumentStorageService {
         return "Unknown Document Type";
     }
 
+    private static final int BYTES_TO_MB = 1024 * 1024;
+
+    public void validateDocument(MultipartFile file, DocumentType documentType) {
+//        ValidationResult result = new ValidationResult();
+
+        // Check if file is empty
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        // Validate file type
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = originalFilename != null ?
+                originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase() : "";
+
+        boolean isValidFileType = documentType.getRequired_document_types().stream()
+                .anyMatch(fileType -> fileType.getFile_type_name().toLowerCase().equals(fileExtension));
+
+        if (!isValidFileType) {
+            String allowedTypes = documentType.getRequired_document_types().stream()
+                    .map(FileType::getFile_type_name)
+                    .collect(Collectors.joining(", "));
+            throw new IllegalArgumentException("Invalid file type. Allowed types for " +
+                    documentType.getDocument_type_name() + " are: " + allowedTypes);
+        }
+
+        // Validate file size
+//        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
+        if (file.getSize()> ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
+            throw new IllegalArgumentException("File size exceeds maximum limit of " + documentType.getMax_document_size());
+        }
+        if (file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size())) {
+            throw new IllegalArgumentException("File size is below minimum requirement of " +
+                    documentType.getMin_document_size());
+        }
+    }
 
     @Transactional
     public void saveDocumentType(DocumentType document) {
@@ -195,9 +242,6 @@ public class DocumentStorageService {
 
                 /*new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
               /*  new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
-=======
-/*                new DocumentType(14,"MATRICULATION", "Completed secondary education or equivalent"),
->>>>>>> 4265e69d7a0f07a5849e1b79fd670de4c1fec941
                 new DocumentType( 15,"INTERMEDIATE", "Completed higher secondary education or equivalent"),
                 new DocumentType(16,"BACHELORS", "Completed undergraduate degree program education "),
                 new DocumentType(17,"MASTERS", "Completed postgraduate degree program education"),
@@ -205,7 +249,7 @@ public class DocumentStorageService {
                 new DocumentType(19,"DOMICILE", "The permanent home or principal residence of a person."),
                 new DocumentType( 20,"HANDICAPED", "An outdated term for individuals with physical or mental disabilities; \"person with a disability\" is preferred today"),
                 new DocumentType(21,"C-FORM-PHOTO", "A C Form photo is a standardized ID photo for official documents."),
-                new DocumentType(23,"BUSSINESS_PHOTO", "A Standard proof of Running Bussiness"),*/
+                new DocumentType(23,"BUSSINESS_PHOTO", "A Standard proof of Running Bussiness"),
                 new DocumentType(25,"NCC CERTIFICATE A", "NCC CERTIFICATE A"),
                 new DocumentType(26,"NCC CERTIFICATE B", "NCC CERTIFICATE B"),
                 new DocumentType(27,"NCC CERTIFICATE C", "NCC CERTIFICATE C"),
@@ -225,12 +269,8 @@ public class DocumentStorageService {
                 new DocumentType(28, "NCC", "A document serving as proof of participation in the National Cadet Corps, often required for certain government applications."),
                 new DocumentType(29, "SPORTS", "A personal photograph typically required for sports-related documentation, such as player registrations or team memberships."),
                 new DocumentType(30, "FREEDOM FIGHTER", "A personal photograph required for identification and documentation purposes related to recognition and benefits for freedom fighters.")
-
-            };
-
-
-
-
+                */
+        };
         for (DocumentType document : documents) {
             saveDocumentType(document);
         }
@@ -253,9 +293,10 @@ public class DocumentStorageService {
 
     @Transactional
     public void updateOrCreateDocument(Document existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
-                + File.separator + documentTypeObj.getDocument_type_name()
+                + File.separator + snakeCaseDocumentType
                 + File.separator + file.getOriginalFilename();
 
         existingDocument.setFilePath(newFilePath);
@@ -265,6 +306,7 @@ public class DocumentStorageService {
 
     @Transactional
     public void createDocument(MultipartFile file, DocumentType documentTypeObj, CustomCustomer customCustomer, Long customerId, String role) {
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         Document newDocument = new Document();
         newDocument.setName(file.getOriginalFilename());
         newDocument.setCustom_customer(customCustomer);
@@ -273,7 +315,7 @@ public class DocumentStorageService {
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
-                + File.separator + documentTypeObj.getDocument_type_name()
+                + File.separator + snakeCaseDocumentType
                 + File.separator + file.getOriginalFilename();
 
 
@@ -282,6 +324,7 @@ public class DocumentStorageService {
     }
     @Transactional
     public void createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         ServiceProviderDocument newDocument = new ServiceProviderDocument();
         newDocument.setName(file.getOriginalFilename());
         newDocument.setServiceProviderEntity(serviceProviderEntity);
@@ -290,7 +333,7 @@ public class DocumentStorageService {
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
-                + File.separator + documentTypeObj.getDocument_type_name()
+                + File.separator + snakeCaseDocumentType
                 + File.separator + file.getOriginalFilename();
 
 
@@ -299,9 +342,10 @@ public class DocumentStorageService {
     }
     @Transactional
     public void updateOrCreateServiceProvider(ServiceProviderDocument existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
-                + File.separator + documentTypeObj.getDocument_type_name()
+                + File.separator + snakeCaseDocumentType
                 + File.separator + file.getOriginalFilename();
 
         existingDocument.setFilePath(newFilePath);
@@ -340,7 +384,7 @@ public class DocumentStorageService {
     public void uploadFileOnFileServer(MultipartFile file, String documentType, String customerId, String role) throws IOException {
         try {
             String url = fileServerUrl + "/files/upload";
-
+            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
             final String filename = file.getOriginalFilename();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -353,9 +397,9 @@ public class DocumentStorageService {
                 }
             };
             multiValueMap.add("file", contentsAsResource);
-            multiValueMap.add("documentType", documentType);
+            multiValueMap.add("documentType", snakeCaseDocumentType);
             multiValueMap.add("customerId", customerId);
-            multiValueMap.add("role", role);
+            multiValueMap.add("role", role.toLowerCase());
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(multiValueMap, headers);
 
             restTemplate.postForObject(url, request, String.class);
@@ -368,15 +412,16 @@ public class DocumentStorageService {
 
     public String deleteFile(Long customerId, String documentType, String fileName, String role) throws IOException {
         try {
+            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
             String url = fileServerUrl + "/files/delete?customerId=" + customerId +
-                    "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
+                    "&documentType=" + snakeCaseDocumentType + "&fileName=" + fileName + "&role=" + role;
 
 
-           ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
 
             String deletedFilePath = response.getBody();
             if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
-                    System.out.println("File deleted: " + deletedFilePath);
+                System.out.println("File deleted: " + deletedFilePath);
             } else {
                 throw new IOException("No file path returned from server.");
             }
@@ -386,7 +431,5 @@ public class DocumentStorageService {
         }
         return  fileName;
     }
-
-
 
 }

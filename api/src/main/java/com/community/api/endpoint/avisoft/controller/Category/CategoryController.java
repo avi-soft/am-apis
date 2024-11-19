@@ -1,6 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.Category;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
+import com.community.api.component.Constant;
 import com.community.api.dto.AddCategoryDto;
 import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.entity.CustomProduct;
@@ -177,7 +178,7 @@ public class CategoryController extends CatalogEndpoint {
             for (BigInteger productId : productIdList) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
 
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date())) && customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     wrapper.wrapDetails(customProduct);
                     products.add(wrapper);

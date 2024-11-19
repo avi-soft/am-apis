@@ -29,6 +29,7 @@ public class CustomAdmin
     @Size(min = 9, max = 13)
     private String mobileNumber;
     private String country_code;
+    @Column(columnDefinition = "TEXT")
     private String token;
     private int signedUp=0;
     private String created_at,updated_at,created_by, modified_by;
