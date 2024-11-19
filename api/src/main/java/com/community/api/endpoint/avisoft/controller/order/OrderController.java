@@ -205,7 +205,6 @@ public class OrderController
                 query.setParameter("orderStateId",orderState);
             }
             orderIds = query.getResultList();
-            System.out.println("ab");
             return generateCombinedDTO(authHeader,orderIds,sort);
         } catch (Exception e)
         {
@@ -241,11 +240,12 @@ public class OrderController
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
-                        query.setParameter("orderId", orderId.longValue());
-                        BigInteger id = (BigInteger)query.getSingleResult();  // This will throw NoResultException if no result is found
+                        BigInteger id = (BigInteger)query.getSingleResult();
+                      // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
+                        System.out.println(customServiceProviderTicket);
                     } catch (NoResultException e) {
-                        // Handle the case where no result is found (e.g., log it or return null)
+                        //the case where no result is found 
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order,orderState,customServiceProviderTicket,customerDetailsDTO));
@@ -324,6 +324,7 @@ public class OrderController
             createTicketDto.setTicketType(manualAssignmentDetails.getTicketType());
             CustomServiceProviderTicket customServiceProviderTicket=serviceProviderTicketService.createTicket(createTicketDto,(OrderImpl)order,serviceProvider);
             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+            entityManager.merge(customOrderState);
             Customer customer=customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());

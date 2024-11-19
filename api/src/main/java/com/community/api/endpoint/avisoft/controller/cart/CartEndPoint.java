@@ -494,7 +494,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemName(product.getName());
                     Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
                     atrtributes.put("productId", product.getId().toString());
-                   /* atrtributes.put("assigneeSPId",null);*/
+                    //atrtributes.put("assigneeSPId",null);
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
@@ -521,6 +521,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
                     individualOrders.add(individualOrder);
+            
                 }
             }
                 responseMap.put("Orders", individualOrders);

@@ -34,7 +34,7 @@ public class OrderDTOService {
         Long assigneeId=null;
         if(ticket!=null)
             assigneeId=ticket.getAssignee();
-        if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
+        //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
                 order.getId(),
                 order.getName(),
