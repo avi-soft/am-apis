@@ -186,7 +186,7 @@ public class CustomerEndpoint {
     }
 
     @RequestMapping(value = "get-customer", method = RequestMethod.GET)
-    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     public ResponseEntity<?> retrieveCustomerById(@RequestParam Long customerId) {
         try {
             if (customerService == null) {

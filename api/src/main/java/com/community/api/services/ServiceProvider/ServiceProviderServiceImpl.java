@@ -201,7 +201,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
 
-            if (updates.containsKey("district") && updates.containsKey("state")/*&&updates.containsKey("city")*/ && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
+            if (updates.containsKey("district") && updates.containsKey("state")&&updates.containsKey("city")&& updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 if (validateAddressFields(updates).isEmpty()) {
                     if (existingServiceProvider.getSpAddresses().isEmpty()) {
                         ServiceProviderAddress serviceProviderAddress = new ServiceProviderAddress();
@@ -209,9 +209,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderAddress.setPincode((String) updates.get("pincode"));
                         serviceProviderAddress.setDistrict((String) updates.get("district"));
                         serviceProviderAddress.setState((String) updates.get("state"));
-                        /*serviceProviderAddress.setCity((String) updates.get("city"));*/
+                        serviceProviderAddress.setCity((String) updates.get("city"));
                         serviceProviderAddress.setAddress_line((String) updates.get("residential_address"));
-                        if (serviceProviderAddress.getAddress_line() != null /*|| serviceProviderAddress.getCity() != null*/ || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null) {
+                        if (serviceProviderAddress.getAddress_line() != null || serviceProviderAddress.getCity() != null || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null) {
                             addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
                         }
                     } else {
@@ -224,7 +224,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderAddressDTO.setAddress_line((String) updates.get("residential_address"));
                         serviceProviderAddressDTO.setPincode((String) updates.get("pincode"));
                         serviceProviderAddressDTO.setServiceProviderEntity(existingServiceProvider);
-                        /*serviceProviderAddressDTO.setCity((String) updates.get("city"));*/
+                        serviceProviderAddressDTO.setCity((String) updates.get("city"));
                         for (String error : updateAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress, serviceProviderAddressDTO)) {
                             errorMessages.add(error);
                         }
@@ -500,7 +500,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (!errorMessages.isEmpty())
                 return ResponseService.generateErrorResponse(errorMessages.toString(), HttpStatus.BAD_REQUEST);
             // Merge the updated entity
-
             entityManager.merge(existingServiceProvider);
             if (existingServiceProvider.getUser_name() == null && !existingServiceProvider.getSpAddresses().isEmpty()) {
                 String username = generateUsernameForServiceProvider(existingServiceProvider);
@@ -653,7 +652,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String state = (String) updates.get("state");
         String district = (String) updates.get("district");
         String pincode = (String) updates.get("pincode");
-        /* String city = (String) updates.get("city");*/
+        String city = (String) updates.get("city");
         String residentialAddress = (String) updates.get("residential_address");
         String[] fieldNames = {"state", "district", "pincode", "residential_address"};
         String[] fieldValues = {state, district, pincode, residentialAddress};
@@ -665,9 +664,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pattern = Constant.PINCODE_REGEXP;
         if (!java.util.regex.Pattern.matches(pattern, pincode))
             errorMessages.add("Pincode should contain only numbers and should be of length 6");
-       /* pattern = Constant.CITY_REGEXP;
+       pattern = Constant.CITY_REGEXP;
         if(!java.util.regex.Pattern.matches(pattern, city))
-            errorMessages.add("Field city should only contain letters");*/
+            errorMessages.add("Field city should only contain letters");
         return errorMessages;
     }
 
@@ -1153,8 +1152,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 addressToupdate.setDistrict(districtService.findDistrictById(Integer.parseInt(dto.getDistrict())));
             if (dto.getAddress_line() != null && !dto.getAddress_line().isEmpty())
                 addressToupdate.setAddress_line(dto.getAddress_line());
-                /*if(dto.getCity()!=null && !dto.getCity().isEmpty())
-                    addressToupdate.setCity(dto.getCity());*/
+                if(dto.getCity()!=null && !dto.getCity().isEmpty())
+                    addressToupdate.setCity(dto.getCity());
             if (dto.getPincode() != null && !dto.getPincode().isEmpty())
                 addressToupdate.setPincode(dto.getPincode());
             existingServiceProvider.setSpAddresses(addresses);
@@ -1222,12 +1221,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
             query.setParameter("test_status_id", test_status_id);
             List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-            if(serviceProviderTestStatus.isEmpty()) {
-                responseService.generateResponse(HttpStatus.BAD_REQUEST, "No Test Status is found with this id", serviceProviderTestStatus);
+            System.out.println("+++++++++++" + serviceProviderTestStatus.size());
+            if(serviceProviderTestStatus.size() == 0) {
+                
+                throw new IllegalArgumentException( "No Test Status is found with this id");
             }
         }
-        String[] fieldsNames = {"state", "district", "first_name", "last_name"};
-        Object[] fields = {state, district, first_name, last_name};
+        String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id"};
+        Object[] fields = {state, district, first_name, last_name, test_status_id};
         for (int i = 0; i < fields.length; i++) {
             if (fields[i] != null) {
                 if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {

@@ -240,11 +240,13 @@ public class OrderController
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
-                        query.setParameter("orderId", orderId.longValue());
-                        BigInteger id = (BigInteger)query.getSingleResult();  // This will throw NoResultException if no result is found
+                        query.setParameter("orderId", order.getId());
+                        BigInteger id = (BigInteger)query.getSingleResult();
+                      // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
+                        System.out.println(customServiceProviderTicket);
                     } catch (NoResultException e) {
-                        // Handle the case where no result is found (e.g., log it or return null)
+                        //the case where no result is found 
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order,orderState,customServiceProviderTicket,customerDetailsDTO));
@@ -261,6 +263,10 @@ public class OrderController
     @RequestMapping(value = "assign-order/{orderId}",method = RequestMethod.POST)
     public ResponseEntity<?>manuallyAssignOrder(@PathVariable Long orderId,@RequestBody ManualAssignmentDetails manualAssignmentDetails) {
         try {
+            Query query =entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
+            query.setParameter("orderId",orderId);
+            if(!query.getResultList().isEmpty())
+             return ResponseService.generateErrorResponse("Primary ticket already exists", HttpStatus.BAD_REQUEST);
             List<String>errorMessages=new ArrayList<>();
             for (Field field : manualAssignmentDetails.getClass().getDeclaredFields()) {
                 field.setAccessible(true); // Allow access to private fields
@@ -319,6 +325,7 @@ public class OrderController
             createTicketDto.setTicketType(manualAssignmentDetails.getTicketType());
             CustomServiceProviderTicket customServiceProviderTicket=serviceProviderTicketService.createTicket(createTicketDto,(OrderImpl)order,serviceProvider);
             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+            entityManager.merge(customOrderState);
             Customer customer=customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
