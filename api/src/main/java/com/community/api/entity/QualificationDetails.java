@@ -5,9 +5,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import javax.persistence.*;
 import javax.validation.constraints.*;
+import java.util.List;
 
 @Entity
 @Data
@@ -24,11 +27,10 @@ public class QualificationDetails {
     @Column(name = "institution_name", nullable = false)
     private String institution_name;
 
-    //    @Min(value = 1900, message = "Year of passing should not be before 1900")
-//    @Max(value = 9999, message = "Year of passing should be a valid 4-digit year")
-    @NotNull(message = "Year of passing is required")
-    @Column(name = "year_of_passing", nullable = false)
-    private Long year_of_passing;
+    @NotNull(message = "Date of passing is required")
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of passing must be in the format YYYY-MM-DD.")
+    @Column(name = "date_of_passing", nullable = false)
+    private String date_of_passing;
 
     @NotNull(message = "board or university id is required")
     @Column(name = "board_university_id", nullable = false)
@@ -42,17 +44,10 @@ public class QualificationDetails {
     @Column(name = "examination_registration_number",nullable = true)
     private Long examination_registration_number;
 
-    @NotBlank(message = "Subject name is required")
-    @Size(max = 255, message = "Subject name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
-    @Column(name = "subject_name", nullable = false)
-    private String subject_name;
 
-    @NotBlank(message = "Stream is required")
-    @Size(max = 255, message = "Stream should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Stream cannot contain numeric values")
-    @Column(name = "stream", nullable = false)
-    private String stream;
+    @NotNull(message = "stream id is required")
+    @Column(name = "stream_id", nullable = false)
+    private Long stream_id;
 
     @NotBlank(message = "Grade or percentage value is required")
     @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
@@ -85,6 +80,13 @@ public class QualificationDetails {
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
     private CustomCustomer custom_customer;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "qualification_subject_ids", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "subject_id")
+    @Fetch(FetchMode.SUBSELECT)
+    private List<Long> subject_ids;
+
 
     @JsonBackReference
     @ManyToOne

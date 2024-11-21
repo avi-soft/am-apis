@@ -420,14 +420,14 @@ public class SharedUtilityService {
                     // Fetch the qualification by qualification_id
                     DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
                     BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
+                    CustomStream customStream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
 
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getId());
                     qualificationInfo.put("institution_name", qualificationDetail.getInstitution_name());
-                    qualificationInfo.put("year_of_passing", qualificationDetail.getYear_of_passing());
+                    qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
-                    qualificationInfo.put("subject_name", qualificationDetail.getSubject_name());
-                    qualificationInfo.put("stream",qualificationDetail.getStream());
+                    qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("examination_roll_number",qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number",qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("grade_or_percentage_value", qualificationDetail.getGrade_or_percentage_value());
@@ -446,6 +446,28 @@ public class SharedUtilityService {
                     }else {
                         qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
                     }
+                    if (customStream != null) {
+                        qualificationInfo.put("stream_name", customStream.getStreamName());
+                    }else {
+                        qualificationInfo.put("stream_name", "Unknown Stream");
+                    }
+                    List<Map<String, Object>> subjects = qualificationDetail.getSubject_ids().stream()
+                            .map(subjectId -> {
+                                Map<String, Object> subjectInfo = new HashMap<>();
+                                CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+                                if (subject != null) {
+                                    subjectInfo.put("subject_id", subject.getSubjectId());
+                                    subjectInfo.put("subject_name", subject.getSubjectName());
+                                } else {
+                                    subjectInfo.put("subject_id", subjectId);
+                                    subjectInfo.put("subject_name", "Unknown Subject");
+                                }
+                                return subjectInfo;
+                            })
+                            .collect(Collectors.toList());
+
+                    // Add the subjects list to the qualificationInfo map
+                    qualificationInfo.put("subjects", subjects);
 
                     return qualificationInfo;
                 }).collect(Collectors.toList());
