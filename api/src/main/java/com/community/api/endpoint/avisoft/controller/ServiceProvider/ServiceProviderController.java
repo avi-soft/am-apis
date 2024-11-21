@@ -310,6 +310,7 @@ public class ServiceProviderController {
     }
 
 
+    @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(@RequestParam(required = false) String state,
                                                    @RequestParam(required = false) String district,

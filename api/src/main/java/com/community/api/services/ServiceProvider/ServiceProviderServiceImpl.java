@@ -654,8 +654,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pincode = (String) updates.get("pincode");
         String city = (String) updates.get("city");
         String residentialAddress = (String) updates.get("residential_address");
-        String[] fieldNames = {"state", "district", "pincode", "residential_address"};
-        String[] fieldValues = {state, district, pincode, residentialAddress};
+        String[] fieldNames = {"state", "district", "pincode", "residential_address","city"};
+        String[] fieldValues = {state, district, pincode, residentialAddress,city};
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
                 errorMessages.add(fieldNames[i] + " cannot be empty");
@@ -1136,13 +1136,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
         for (Field field : ServiceProviderAddress.class.getDeclaredFields()) {
             Column columnAnnotation = field.getAnnotation(Column.class);
-            boolean isColumnNotNull = (columnAnnotation != null && !columnAnnotation.nullable());
-            // Check if the field has the @Nullable annotation
-            boolean isNullable = field.isAnnotationPresent(Nullable.class);
             field.setAccessible(true);
             Object newValue = field.get(dto);
             if (newValue == null || (newValue.toString().isEmpty())) {
-                errorList.add(field.getName() + " cannot be empty");
+                errorList.add(field.getName() + "cannot be empty");
             }
         }
         if (addressToupdate != null) {
@@ -1168,6 +1165,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public static boolean isAlphabetOnly(String str) {
         return str != null && str.matches("^[A-Za-z]+( [A-Za-z]+)*$");
     }
+
     @Transactional
     public Object searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id) {
 
