@@ -1,47 +1,53 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
-import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.CustomOrderState;
+import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderAddressRef;
+import com.community.api.entity.Skill;
 import com.community.api.services.DistrictService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
-import com.community.api.services.*;
+import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
-import com.community.api.utils.Document;
 
-import com.community.api.utils.ServiceProviderDocument;
-import com.twilio.http.Request;
-
-import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.net.http.HttpRequest;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 
 @RestController
 @RequestMapping("/service-providers")
@@ -79,8 +85,8 @@ public class ServiceProviderController {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    private DummyAssignerService dummyAssignerService;
+    /*@Autowired
+    private DummyAssignerService dummyAssignerService;*/
 
     @Transactional
     @PostMapping("/assign-skill")
@@ -396,7 +402,7 @@ public class ServiceProviderController {
         }
     }
 
-    @Transactional
+    /*@Transactional
     @PostMapping("/{serviceProviderId}/order-requests/{orderRequestId}")
     public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam String action, @RequestParam(required = false) Integer statusId) {
         try {
@@ -478,7 +484,7 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Need to provide return status", HttpStatus.BAD_REQUEST);
                 orderState.setOrderStatusId(statusId);
                 orderState.setOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId());
-                /*entityManager.merge(order);*/
+                entityManager.merge(order);
                 entityManager.merge(orderRequest);
                 entityManager.merge(orderState);
                 dummyAssignerService.dummyAssigner(order);
@@ -489,7 +495,7 @@ public class ServiceProviderController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching order Requests: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }
+    }*/
 
     @Transactional
     @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}", method = RequestMethod.PUT)
