@@ -142,10 +142,10 @@ public class ServiceProviderTicketService {
 
                     if (serviceProvider.getIsActive()) {
 
-                        if(serviceProvider.getMaximumTicketSize() != null) {
-                            if(serviceProvider.getT)
-                        } else {
+                        if(serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) {
 
+                        } else {
+                            serviceProvider.getRanking().
                         }
 
                         // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
