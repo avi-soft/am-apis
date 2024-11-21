@@ -29,7 +29,6 @@ import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.catalog.domain.ProductImpl;
 import org.broadleafcommerce.core.catalog.domain.Sku;
 
 import org.broadleafcommerce.core.catalog.service.type.ProductType;
@@ -50,7 +49,6 @@ import com.community.api.services.ProductStateService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.ReserveCategoryDtoService;
 
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,7 +64,9 @@ import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import static com.community.api.component.Constant.*;
 

@@ -412,9 +412,9 @@ public class DocumentStorageService {
 
     public String deleteFile(Long customerId, String documentType, String fileName, String role) throws IOException {
         try {
-            String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
+            // String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
             String url = fileServerUrl + "/files/delete?customerId=" + customerId +
-                    "&documentType=" + snakeCaseDocumentType + "&fileName=" + fileName + "&role=" + role;
+                    "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
 
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
