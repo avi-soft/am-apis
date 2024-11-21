@@ -75,18 +75,34 @@ public class ServiceProviderTicketService {
     ExceptionHandlingService exceptionHandlingService;
 
     public void autoAssigner() throws Exception {
-        try{
+        try {
             // we are fetching SP who are in approved state (later we will do only active)
-            List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 1L);
-            logger.info("*************" + availableServiceProvider.size());
-            // later will do order which are in particular state. (write now just fetching which are in state 2).
+            List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L);
+            // later will do order which are in particular state. (write now just fetching which are in state 3).
+
+            if (availableServiceProvider.isEmpty()) {
+                throw new IllegalArgumentException("No Service Provider is in required State.");
+            }
+            logger.info("Available service Provider according to condition(in autoAssigner()) method: " + availableServiceProvider.size());
+
             OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
+            // auto assigner will run only on those order which are in NEW STATE.
+
+            if (orderStateRef == null) {
+                throw new IllegalArgumentException("No Order State Ref Found with id 1(NEW).");
+            }
+
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
+            if (customOrders.isEmpty()) {
+                throw new IllegalArgumentException("No Orders to Assign");
+            }
 
             randomBindingTicketAllocation(customOrders);
             verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
 
-        } catch (Exception exception){
+        } catch (IllegalArgumentException illegalArgumentException) {
+            throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
             throw new Exception("Exception caught: " + exception.getMessage());
         }
     }
@@ -94,10 +110,10 @@ public class ServiceProviderTicketService {
     public void randomBindingTicketAllocation(List<CustomOrderState> customOrders) throws Exception {
         try {
 
-            logger.info("Total Orders at the moments are: " + customOrders.size());
+            logger.info("Total Orders recieved by RBTA are: " + customOrders.size());
             List<Order> assignedOrders = new ArrayList<>();
 
-            boolean assigned = false;
+            boolean assigned;
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
             while (iterator.hasNext()) {
@@ -113,12 +129,25 @@ public class ServiceProviderTicketService {
                 CustomCustomer customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
 
                 List<CustomerReferrer> referrers = customer.getMyReferrer();
-                logger.info("Referrer list:" + referrers.size());
+                logger.info("Referrer list for customer: "+ customer + " is: " + referrers.size());
+
+                if(referrers.isEmpty()) {
+                    logger.info("Referrer List is empty for custom: " + customer);
+                    continue;
+                }
+
                 for (CustomerReferrer refferer : referrers) {
                     ServiceProviderEntity serviceProvider = refferer.getServiceProvider();
                     logger.info("REFFEREER ID: " + serviceProvider.getService_provider_id());
 
                     if (serviceProvider.getIsActive()) {
+
+                        if(serviceProvider.getMaximumTicketSize() != null) {
+                            if(serviceProvider.getT)
+                        } else {
+
+                        }
+
                         // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
                         CreateTicketDto createTicketDto = new CreateTicketDto();
                         createTicketDto.setTicketState(1L);
@@ -135,8 +164,10 @@ public class ServiceProviderTicketService {
                     }
 
                 }
-                // now search for creator of product.
+
+                // If there is no one in referrer list of custom to whom we can assign this ticket
                 if (!assigned) {
+
                     logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
@@ -205,25 +236,25 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
             customServiceProviderTicket.setAssigneeRole(createTicketDto.getAssigneeRole());
 
-            if(assignedTo != null) {
+            if (assignedTo != null) {
                 customServiceProviderTicket.setAssignee(assignedTo.getService_provider_id());
             }
 
-            if(createTicketDto.getTicketState() != null) {
+            if (createTicketDto.getTicketState() != null) {
                 CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
             }
 
-            if(createTicketDto.getTicketType() != null) {
+            if (createTicketDto.getTicketType() != null) {
                 CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 customServiceProviderTicket.setTicketType(ticketType);
             } else {
                 throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
             }
 
-            if(createTicketDto.getTicketStatus()!=null){
+            if (createTicketDto.getTicketStatus() != null) {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
@@ -282,8 +313,8 @@ public class ServiceProviderTicketService {
 
 
     public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider) throws Exception {
-        try{
-            logger.info("INSIDE VDTA FOR Ticket Allocation");
+        try {
+
             logger.info("Total orders recieved for VDTA: " + customOrders.size());
             logger.info("Total Service Provider: " + availableServiceProvider.size());
 
@@ -340,10 +371,10 @@ public class ServiceProviderTicketService {
     }
 
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
-        try{
+        try {
             String sql = "SELECT * FROM custom_service_provider_ticket";
             return entityManager.createNativeQuery(sql, CustomServiceProviderTicket.class).getResultList();
-        } catch(Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
         }
@@ -382,11 +413,11 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.ticketType IN :types ");
             }
 
-            if(dateFrom != null && dateTo != null) {
+            if (dateFrom != null && dateTo != null) {
                 jpql.append("AND c.createdDate >= :dateFrom AND c.createdDate <= :dateTo ");
             }
 
-            if(userId != null && role != null) {
+            if (userId != null && role != null) {
                 jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
             }
 
@@ -400,11 +431,11 @@ public class ServiceProviderTicketService {
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
-            if(dateFrom != null && dateTo != null) {
+            if (dateFrom != null && dateTo != null) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
             }
-            if(userId != null && role != null) {
+            if (userId != null && role != null) {
                 query.setParameter("userId", userId);
                 query.setParameter("role", role);
             }
@@ -419,7 +450,7 @@ public class ServiceProviderTicketService {
 
     public CustomServiceProviderTicket fetchTicketByTicketId(Long ticketId) throws Exception {
         try {
-            if(ticketId == null || ticketId <= 0) {
+            if (ticketId == null || ticketId <= 0) {
                 throw new IllegalArgumentException("TicketId cannot be <=0 or null");
             }
             System.out.println("ticketId is: " + ticketId);

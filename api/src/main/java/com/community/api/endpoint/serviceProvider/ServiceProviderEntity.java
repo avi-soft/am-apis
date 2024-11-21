@@ -70,17 +70,13 @@ public class ServiceProviderEntity  {
     private String user_name;
 
 
-
-
-//    @Lob
-//    @Basic(fetch = FetchType.LAZY)
-//    @Column(name = "businessPhoto", columnDefinition="BLOB")
-//    @OneToOne(cascade = CascadeType.ALL)
-//    @JoinColumn(name = "business_photo_id")
-   /* @OneToOne(cascade = CascadeType.ALL)
+    /*@Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "businessPhoto", columnDefinition="BLOB")
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "business_photo_id")
+    @OneToOne(cascade = CascadeType.ALL)
     private Document business_photo;*/
-
-
 
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "First name must contain only alphabets")
