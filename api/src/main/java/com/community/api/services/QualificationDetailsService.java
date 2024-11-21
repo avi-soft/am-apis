@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getIntegerList;
 
 @Service
 public class QualificationDetailsService {
@@ -22,14 +25,16 @@ public class QualificationDetailsService {
     SharedUtilityService sharedUtilityService;
     ServiceProviderServiceImpl serviceProviderService;
     BoardUniversityService boardUniversityService;
+    StreamService streamService ;
 
-    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService) {
+    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService) {
         this.entityManager = entityManager;
         this.qualificationController = qualificationController;
         this.qualificationService = qualificationService;
         this.sharedUtilityService = sharedUtilityService;
         this.serviceProviderService=serviceProviderService;
         this.boardUniversityService=boardUniversityService;
+        this.streamService=streamService;
     }
 
     @Transactional
@@ -45,6 +50,11 @@ public class QualificationDetailsService {
             List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
             qualificationDetails.setBoard_university_id(boardUniversityToAdd);
+            List<CustomStream> streams= streamService.getAllStream();
+            Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
+            qualificationDetails.setStream_id(streamToAdd);
+            List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
+            qualificationDetails.setSubject_ids(subjects);
             qualificationDetails.setService_provider(serviceProviderEntity);
             serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
             entityManager.persist(qualificationDetails);
@@ -57,6 +67,14 @@ public class QualificationDetailsService {
         Integer qualificationToAdd = null;
         qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         qualificationDetails.setQualification_id(qualificationToAdd);
+        List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
+        Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
+        qualificationDetails.setBoard_university_id(boardUniversityToAdd);
+        List<CustomStream> streams= streamService.getAllStream();
+        Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
+        qualificationDetails.setStream_id(streamToAdd);
+        List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
+        qualificationDetails.setSubject_ids(subjects);
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         entityManager.persist(qualificationDetails);
@@ -172,26 +190,27 @@ public class QualificationDetailsService {
         if (Objects.nonNull(qualification.getInstitution_name())) {
             qualificationDetailsToUpdate.setInstitution_name(qualification.getInstitution_name());
         }
-//        if (Objects.nonNull(qualification.getBoard_or_university())) {
-//            qualificationDetailsToUpdate.setBoard_or_university(qualification.getBoard_or_university());
-//        }
+
         if (Objects.nonNull(qualification.getMarks_obtained())) {
             qualificationDetailsToUpdate.setMarks_obtained(qualification.getMarks_obtained());
         }
         if (Objects.nonNull(qualification.getTotal_marks())) {
             qualificationDetailsToUpdate.setTotal_marks(qualification.getTotal_marks());
         }
-        if (Objects.nonNull(qualification.getSubject_name())) {
-            qualificationDetailsToUpdate.setSubject_name(qualification.getSubject_name());
+        if (Objects.nonNull(qualification.getSubject_ids())) {
+            List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids());
+            qualificationDetailsToUpdate.setSubject_ids(subjects);
         }
-        if (Objects.nonNull(qualification.getStream())) {
-            qualificationDetailsToUpdate.setStream(qualification.getStream());
+        if (Objects.nonNull(qualification.getStream_id())) {
+            List<CustomStream> streams = streamService.getAllStream();
+            Long streamToAdd= findStreamId(qualification.getStream_id(),streams);
+            qualificationDetailsToUpdate.setBoard_university_id(streamToAdd);
         }
         if (Objects.nonNull(qualification.getGrade_or_percentage_value())) {
             qualificationDetailsToUpdate.setGrade_or_percentage_value(qualification.getGrade_or_percentage_value());
         }
-        if (Objects.nonNull(qualification.getYear_of_passing())) {
-            qualificationDetailsToUpdate.setYear_of_passing(qualification.getYear_of_passing());
+        if (Objects.nonNull(qualification.getDate_of_passing())) {
+            qualificationDetailsToUpdate.setDate_of_passing(qualification.getDate_of_passing());
         }
         if (Objects.nonNull(qualification.getExamination_role_number())) {
             qualificationDetailsToUpdate.setExamination_role_number(qualification.getExamination_role_number());
@@ -263,6 +282,43 @@ public class QualificationDetailsService {
         }
         throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+ " does not exist");
     }
+    public Long findStreamId(Long streamId,List<CustomStream> streams)
+    {
+        for(CustomStream customStream : streams)
+        {
+            if(customStream.getStreamId().equals(streamId))
+            {
+                return customStream.getStreamId();
+            }
+        }
+        throw new IllegalArgumentException("Stream with id "+ streamId+ " does not exist");
+    }
+
+public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
+    if (subjectIds == null || subjectIds.isEmpty()) {
+        throw new IllegalArgumentException("Subjects list cannot be empty");
+    }
+
+    // Query to check which subject IDs exist in the database
+    List<Long> existingSubjectIds = entityManager.createQuery(
+                    "SELECT s.subjectId FROM CustomSubject s WHERE s.subjectId IN :subjectIds",
+                    Long.class)
+            .setParameter("subjectIds", subjectIds)
+            .getResultList();
+
+    // Check if any IDs from the request do not exist
+    List<Long> missingSubjectIds = subjectIds.stream()
+            .filter(id -> !existingSubjectIds.contains(id))
+            .collect(Collectors.toList());
+
+    if (!missingSubjectIds.isEmpty()) {
+        throw new IllegalArgumentException("The following subject IDs do not exist: " + missingSubjectIds);
+    }
+
+    // Return the validated list of IDs
+    return subjectIds;
+}
+
 
     public void giveQualificationScore(Long userId) throws CustomerDoesNotExistsException {
         ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);

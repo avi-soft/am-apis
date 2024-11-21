@@ -1,11 +1,13 @@
 package com.community.api.dto;
 
+import com.community.api.entity.CustomSubject;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.validation.constraints.*;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,9 +20,8 @@ public class UpdateQualificationDto
     @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
     private String institution_name;
 
-    //    @Min(value = 1900, message = "Year of passing should not be before 1900")
-//    @Max(value = 9999, message = "Year of passing should be a valid 4-digit year")
-    private Long year_of_passing;
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of passing must be in the format YYYY-MM-DD.")
+    private String date_of_passing;
 
     private Long board_university_id;
 
@@ -28,13 +29,9 @@ public class UpdateQualificationDto
 
     private Long examination_registration_number;
 
-    @Size(max = 255, message = "Subject name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
-    private String subject_name;
+    private List<Long> subject_ids;
 
-    @Size(max = 255, message = "Stream should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Stream cannot contain numeric values")
-    private String stream;
+    private Long stream_id;
 
     @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
     @Size(max = 10, message = "Grade or percentage value should not exceed 10 characters")
