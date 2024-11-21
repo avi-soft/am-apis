@@ -2106,6 +2106,7 @@ public class ProductService {
                 if(customProductState.getProductState().equals("DRAFT") && !customProduct.getProductState().getProductState().equals("DRAFT")) {
                     throw new IllegalArgumentException("PRODUCT STATE CANNOT BE CHANGED FROM ACTUAL PRODUCT STATES TO DRAFT STATE.");
                 }
+
                 if (role.equals(Constant.SERVICE_PROVIDER)) {
                     if ((!customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW) && !customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_MODIFIED)) || (!customProductState.getProductState().equals(PRODUCT_STATE_APPROVED) && !customProductState.getProductState().equals(PRODUCT_STATE_REJECTED))) {
                         throw new IllegalArgumentException("PRODUCT STATE ONLY CHANGE FROM NEW/MODIFIABLE TO APPROVED OR REJECTED STATE");
@@ -2140,6 +2141,10 @@ public class ProductService {
                             }
                             customProduct.setRejectionStatus(productRejectionStatus);
                         }
+                    } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && customProductState.getProductState().equals(PRODUCT_STATE_MODIFIED)) {
+                        throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO MODIFIED STATE");
+                    } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_DRAFT) && customProductState.getProductState().equals(PRODUCT_STATE_DRAFT)) {
+                        throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO DRAFT STATE");
                     }
                     customProduct.setProductState(customProductState);
 

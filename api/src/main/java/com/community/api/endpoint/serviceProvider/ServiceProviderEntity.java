@@ -1,8 +1,18 @@
 package com.community.api.endpoint.serviceProvider;
 
-import com.community.api.entity.*;
-import com.community.api.utils.Document;
-import com.community.api.entity.*;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
+import com.community.api.entity.Privileges;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.ResizedImage;
+import com.community.api.entity.ServiceProviderAcceptedOrders;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderInfra;
+import com.community.api.entity.ServiceProviderLanguage;
+import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.ServiceProviderTest;
+import com.community.api.entity.ServiceProviderTestStatus;
+import com.community.api.entity.Skill;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -16,14 +26,27 @@ import lombok.Setter;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
-import javax.persistence.*;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "service_provider")
