@@ -1,7 +1,11 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,9 +32,9 @@ public class QualificationDetails {
     private String institution_name;
 
     @NotNull(message = "Date of passing is required")
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of passing must be in the format YYYY-MM-DD.")
     @Column(name = "date_of_passing", nullable = false)
-    private String date_of_passing;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date date_of_passing;
 
     @NotNull(message = "board or university id is required")
     @Column(name = "board_university_id", nullable = false)
@@ -72,10 +76,6 @@ public class QualificationDetails {
         return total_marks >= marks_obtained;
     }
 
-    //    @AssertTrue(message = "Year of passing must be less than or equal to the current year")
-//    private boolean isYearOfPassingValid() {
-//        return year_of_passing <= Year.now().getValue();
-//    }
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")

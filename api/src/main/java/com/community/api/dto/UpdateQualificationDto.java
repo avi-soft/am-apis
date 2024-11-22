@@ -1,12 +1,16 @@
 package com.community.api.dto;
 
 import com.community.api.entity.CustomSubject;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.validation.constraints.*;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -20,8 +24,8 @@ public class UpdateQualificationDto
     @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
     private String institution_name;
 
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of passing must be in the format YYYY-MM-DD.")
-    private String date_of_passing;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date date_of_passing;
 
     private Long board_university_id;
 
@@ -50,8 +54,4 @@ public class UpdateQualificationDto
         return total_marks >= marks_obtained;
     }
 
-//    @AssertTrue(message = "Year of passing must be less than or equal to the current year")
-//    private boolean isYearOfPassingValid() {
-//        return year_of_passing <= Year.now().getValue();
-//    }
 }
