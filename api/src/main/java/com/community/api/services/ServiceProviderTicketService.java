@@ -385,7 +385,7 @@ public class ServiceProviderTicketService {
                     }*/
                     if (serviceProvider.getIsActive()) {
 
-                        if(serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) {
+                        if (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) {
                             // assign him the ticket
                             // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
                             CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -399,7 +399,7 @@ public class ServiceProviderTicketService {
                             iterator.remove();
                             assignedOrders.add(order);
                             break;
-                        } else if(serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) {
+                        } else if (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) {
                             // assign him the ticket
                             // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
                             CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -417,6 +417,7 @@ public class ServiceProviderTicketService {
                             logger.info("Service Provider limit exceeded for the day with serviceProvider: " + serviceProvider);
 
                         }
+                    }
 
                 }
 
