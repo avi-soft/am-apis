@@ -195,6 +195,17 @@
 
         </dependency>
 -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
+        </dependency>
 
+        <!-- AspectJ compiler (if you need compile-time weaving) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
+        </dependency>
     </dependencies>
 </project>

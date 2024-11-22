@@ -128,7 +128,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Qualification qualification;
     @JsonProperty("sector")
     CustomSector customSector;
-    @JsonProperty("genderSpecific")
+    @JsonProperty("gender_specific")
     CustomGender customGender;
     @JsonProperty("stream")
     CustomStream customStream;

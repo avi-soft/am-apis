@@ -1,42 +1,53 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
-import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.CustomOrderState;
+import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderAddressRef;
+import com.community.api.entity.Skill;
 import com.community.api.services.DistrictService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
-import com.community.api.services.*;
+import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
-import com.community.api.utils.Document;
 
-import com.community.api.utils.ServiceProviderDocument;
-import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/service-providers")
@@ -74,8 +85,8 @@ public class ServiceProviderController {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    private DummyAssignerService dummyAssignerService;
+    /*@Autowired
+    private DummyAssignerService dummyAssignerService;*/
 
     @Transactional
     @PostMapping("/assign-skill")
@@ -88,7 +99,7 @@ public class ServiceProviderController {
             serviceProviderEntity.setSkills(listOfSkills);
             entityManager.merge(serviceProviderEntity);
             return responseService.generateSuccessResponse("Skill assigned to service provider id : " + serviceProviderEntity.getService_provider_id(), serviceProviderEntity, HttpStatus.OK);
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -100,11 +111,11 @@ public class ServiceProviderController {
     @PatchMapping("save-service-provider")
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
         try {
-            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,userId);
-            if(serviceProvider==null)
-                return ResponseService.generateErrorResponse("Service Provider with provided Id not found",HttpStatus.NOT_FOUND);
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            if (serviceProvider == null)
+                return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -122,7 +133,7 @@ public class ServiceProviderController {
             else
                 entityManager.remove(serviceProviderToBeDeleted);
             return responseService.generateSuccessResponse("Service Provider Deleted", null, HttpStatus.OK);
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -160,7 +171,7 @@ public class ServiceProviderController {
                 return responseService.generateErrorResponse("Old Password and new Password cannot be same", HttpStatus.BAD_REQUEST);
             }/*else
                     return new ResponseEntity<>("Password do not match", HttpStatus.BAD_REQUEST);*/
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -176,7 +187,7 @@ public class ServiceProviderController {
                 throw new Exception("ServiceProvider with ID " + userId + " not found");
             }
             return ResponseEntity.ok(serviceProviderEntity);
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -206,7 +217,7 @@ public class ServiceProviderController {
             return responseService.generateSuccessResponse("Address added successfully", serviceProviderAddress, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error adding address " + e.getMessage());
         }
@@ -219,37 +230,37 @@ public class ServiceProviderController {
             return responseService.generateSuccessResponse("List of addresses : ", query.getResultList(), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Some issue in fetching addressNames " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
 
-    @Transactional
+    @Transactional // Set readOnly for performance improvement
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit) {
-        try{
+        try {
             int startPosition = page * limit;
-            // Create the query
-            TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
-            // Apply pagination
+            // Create the query with pagination
+            Query query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
+
+            // Fetch results
             List<ServiceProviderEntity> results = query.getResultList();
-            List<Map<String,Object>>resultOfSp=new ArrayList<>();
-            for(ServiceProviderEntity serviceProvider: results)
-            {
+
+            List<Map<String, Object>> resultOfSp = new ArrayList<>();
+            for (ServiceProviderEntity serviceProvider : results) {
                 resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
-
 
             return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -264,11 +275,11 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Service provider does not found", HttpStatus.NOT_FOUND);
             }
 
-            Map<String,Object> serviceProviderMap= sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity);
             return ResponseService.generateSuccessResponse("Service Provider details retrieved successfully", serviceProviderMap, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -278,8 +289,7 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit)
-    {
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             int startPosition = page * limit;
 
@@ -292,13 +302,12 @@ public class ServiceProviderController {
             query.setMaxResults(limit);
 
             List<ServiceProviderEntity> results = query.getResultList();
-            if(results.isEmpty())
-            {
+            if (results.isEmpty()) {
                 return ResponseService.generateSuccessResponse("There is no any service Provider who has completed the test", results, HttpStatus.OK);
             }
 
             return ResponseService.generateSuccessResponse("List of service providers with completed test status: ", results, HttpStatus.OK);
-        }  catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -313,56 +322,54 @@ public class ServiceProviderController {
                                                    @RequestParam(required = false) String first_name,
                                                    @RequestParam(required = false) String last_name,
                                                    @RequestParam(required = false) String mobileNumber,
-                                                   @RequestParam(required = false) Long test_status_id) {
+                                                   @RequestParam(required = false) Long test_status_id, HttpServletRequest request) {
         try {
-            if(first_name==null&&last_name==null&&state==null&&district==null&&mobileNumber==null&&test_status_id==null)
-            {
-                return ResponseService.generateErrorResponse("Need to provide atleast one search filter",HttpStatus.BAD_REQUEST);
-            }
+            Map<String, String[]> uri = request.getParameterMap();
+            if ((uri.containsKey("state") && state == null) || (uri.containsKey("first_name") && first_name == null) || (uri.containsKey("last_name") && last_name == null) || (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
+                return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates (@PathVariable Long service_provider_id){
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id) {
         try {
-            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,service_provider_id);
-            if(serviceProvider==null)
-                return ResponseService.generateErrorResponse("Service Provider not found",HttpStatus.NOT_FOUND);
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
+            if (serviceProvider == null)
+                return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<Map<String, Object>> customers = new ArrayList<>();
-            for(CustomerReferrer customerReferrer:serviceProvider.getMyReferrals())
-            {
+            for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
                 customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer()));
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
-    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId,@RequestParam(defaultValue = "0")int page,@RequestParam(defaultValue = "10") int limit,@RequestParam(defaultValue = "all") String requestStatus)
-    {
-        try{
-            int startPosition=page*limit;
-            Query query=null;
-            requestStatus=requestStatus.toLowerCase();
+    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
+        try {
+            int startPosition = page * limit;
+            Query query = null;
+            requestStatus = requestStatus.toLowerCase();
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
-            if(requestStatus.equals("all"))
-            {
-                query =entityManager.createNativeQuery(Constant.GET_ONE_SP_ALL_ORDER_REQUEST);
-            }
-            else {
+            if (requestStatus.equals("all")) {
+                query = entityManager.createNativeQuery(Constant.GET_ONE_SP_ALL_ORDER_REQUEST);
+            } else {
                 query = entityManager.createNativeQuery(Constant.GET_ONE_SP_ORDER_REQUEST);
                 switch (requestStatus) {
                     case "accepted":
@@ -378,26 +385,26 @@ public class ServiceProviderController {
                         return ResponseService.generateErrorResponse("Invalid Order request Status", HttpStatus.BAD_REQUEST);
                 }
             }
-            query.setParameter("serviceProviderId",serviceProviderId);
+            query.setParameter("serviceProviderId", serviceProviderId);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<BigInteger>orderRequestIds=query.getResultList();
-            List<OrderRequest>spOrderRequests=new ArrayList<>();
-            for (BigInteger orderRequestId:orderRequestIds)
-            {
-                OrderRequest orderRequest=entityManager.find(OrderRequest.class,orderRequestId.longValue());
-                if(orderRequest!=null)
+            List<BigInteger> orderRequestIds = query.getResultList();
+            List<OrderRequest> spOrderRequests = new ArrayList<>();
+            for (BigInteger orderRequestId : orderRequestIds) {
+                OrderRequest orderRequest = entityManager.find(OrderRequest.class, orderRequestId.longValue());
+                if (orderRequest != null)
                     spOrderRequests.add(orderRequest);
             }
-            return ResponseService.generateSuccessResponse("Order Requests :",spOrderRequests,HttpStatus.OK);
-        }  catch (Exception e) {
+            return ResponseService.generateSuccessResponse("Order Requests :", spOrderRequests, HttpStatus.OK);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-    @Transactional
+
+    /*@Transactional
     @PostMapping("/{serviceProviderId}/order-requests/{orderRequestId}")
-    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId,@PathVariable Long orderRequestId,@RequestParam String action,@RequestParam(required = false) Integer statusId) {
+    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam String action, @RequestParam(required = false) Integer statusId) {
         try {
             action = action.toUpperCase();
             OrderRequest orderRequest = entityManager.find(OrderRequest.class, orderRequestId);
@@ -406,7 +413,7 @@ public class ServiceProviderController {
             Order order = orderService.findOrderById(orderRequest.getOrderId());
             if (order == null)
                 return ResponseService.generateErrorResponse("Order not found", HttpStatus.NOT_FOUND);
-            CustomOrderState customOrderState=entityManager.find(CustomOrderState.class,orderRequest.getOrderId());
+            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if (!orderRequest.getServiceProvider().equals(serviceProvider))
                 return ResponseService.generateErrorResponse("Order Request does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
@@ -419,9 +426,10 @@ public class ServiceProviderController {
             if (action.equals(Constant.SP_REQUEST_ACTION_VIEW)) {
                 Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                Map<String, Object> orderRequestDetail = new HashMap<>();Long assigneeId=null;
-                if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
-                    assigneeId=Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
+                Map<String, Object> orderRequestDetail = new HashMap<>();
+                Long assigneeId = null;
+                if (order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
+                    assigneeId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
                 OrderDTO orderDTO = new OrderDTO(
                         order.getId(),
                         order.getName(),
@@ -476,63 +484,56 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Need to provide return status", HttpStatus.BAD_REQUEST);
                 orderState.setOrderStatusId(statusId);
                 orderState.setOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId());
-                /*entityManager.merge(order);*/
+                entityManager.merge(order);
                 entityManager.merge(orderRequest);
                 entityManager.merge(orderState);
                 dummyAssignerService.dummyAssigner(order);
                 return ResponseService.generateSuccessResponse("Order Returned", null, HttpStatus.OK);
-            }
-            else
-            return ResponseService.generateErrorResponse("Invalid Action",HttpStatus.BAD_REQUEST);
-        }catch (Exception e) {
+            } else
+                return ResponseService.generateErrorResponse("Invalid Action", HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching order Requests: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }
+    }*/
+
     @Transactional
-    @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}",method = RequestMethod.PUT)
-    public ResponseEntity<?>completeOrder(@PathVariable Long serviceProviderId,@PathVariable Long orderRequestId,@RequestParam Integer statusId) {
+    @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}", method = RequestMethod.PUT)
+    public ResponseEntity<?> completeOrder(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam Integer statusId) {
         try {
-            OrderRequest orderRequest=entityManager.find(OrderRequest.class,orderRequestId);
-            if(orderRequest==null)
-                return ResponseService.generateErrorResponse("Order Request not found",HttpStatus.NOT_FOUND);
-            CustomOrderState customOrderState=entityManager.find(CustomOrderState.class,orderRequest.getOrderId());
-            if(Constant.ORDER_STATE_COMPLETED.getOrderStateId().equals(customOrderState.getOrderStateId()))
-            {
-                return ResponseService.generateErrorResponse("Order Already Completed",HttpStatus.BAD_REQUEST);
+            OrderRequest orderRequest = entityManager.find(OrderRequest.class, orderRequestId);
+            if (orderRequest == null)
+                return ResponseService.generateErrorResponse("Order Request not found", HttpStatus.NOT_FOUND);
+            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
+            if (Constant.ORDER_STATE_COMPLETED.getOrderStateId().equals(customOrderState.getOrderStateId())) {
+                return ResponseService.generateErrorResponse("Order Already Completed", HttpStatus.BAD_REQUEST);
             }
-            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,serviceProviderId);
-            if(serviceProvider==null)
-            {
-                return ResponseService.generateErrorResponse("Service Provider not found",HttpStatus.NOT_FOUND);
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if (serviceProvider == null) {
+                return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             }
-            if(!orderRequest.getServiceProvider().equals(serviceProvider))
-                return ResponseService.generateErrorResponse("Order Request does not belong to the specified SP,Check again",HttpStatus.BAD_REQUEST);
-            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId()))
-                return ResponseService.generateErrorResponse("Cannot complete this order manually as its status is : "+orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(),HttpStatus.UNPROCESSABLE_ENTITY);
-            if(statusId!=null)
-            {
-                CustomOrderStatus customOrderStatus=entityManager.find(CustomOrderStatus.class,statusId);
-                if(customOrderStatus==null)
-                {
-                    return ResponseService.generateErrorResponse("Invalid Order Status selected",HttpStatus.BAD_REQUEST);
+            if (!orderRequest.getServiceProvider().equals(serviceProvider))
+                return ResponseService.generateErrorResponse("Order Request does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
+            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId()))
+                return ResponseService.generateErrorResponse("Cannot complete this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
+            if (statusId != null) {
+                CustomOrderStatus customOrderStatus = entityManager.find(CustomOrderStatus.class, statusId);
+                if (customOrderStatus == null) {
+                    return ResponseService.generateErrorResponse("Invalid Order Status selected", HttpStatus.BAD_REQUEST);
                 }
-                if(!orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_COMPLETED.getOrderStateId()).contains(customOrderStatus))
-                {
-                    return ResponseService.generateErrorResponse("Selected order Status does not belong to this action",HttpStatus.BAD_REQUEST);
+                if (!orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_COMPLETED.getOrderStateId()).contains(customOrderStatus)) {
+                    return ResponseService.generateErrorResponse("Selected order Status does not belong to this action", HttpStatus.BAD_REQUEST);
                 }
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_COMPLETED.getOrderStateId());
                 customOrderState.setOrderStatusId(statusId);
                 entityManager.merge(customOrderState);
-                Map<String,Object>response=new HashMap<>();
-                response.put("order_id",orderRequest.getOrderId());
-                response.put("order_request_id",orderRequestId);
-                return ResponseService.generateSuccessResponse("Order Completed",response,HttpStatus.OK);
-            }
-            else
-                return ResponseService.generateErrorResponse("Select an order completion status",HttpStatus.BAD_REQUEST);
-        }catch (Exception e)
-        {
+                Map<String, Object> response = new HashMap<>();
+                response.put("order_id", orderRequest.getOrderId());
+                response.put("order_request_id", orderRequestId);
+                return ResponseService.generateSuccessResponse("Order Completed", response, HttpStatus.OK);
+            } else
+                return ResponseService.generateErrorResponse("Select an order completion status", HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
         }

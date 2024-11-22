@@ -51,6 +51,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(4L, "REJECTED", "Rejected State."));
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
+            entityManager.persist(new CustomProductState(7L, "DRAFT", "Draft State."));
         }
 
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketState c", Long.class).getSingleResult() == 0) {
@@ -113,25 +114,25 @@ public class CommandLineService implements CommandLineRunner {
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
         {
-                // AUTO_ASSIGNED (ID 1)
-                entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 1, "Order automatically assigned."));
-                // UNASSIGNED (ID 2)
-                entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 2, "Order is unassigned."));
-                // ASSIGNED (ID 3)
-                entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 3, "Order assigned by super admin."));
-                entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 3, "Order assigned by Auto Assigner."));
-                // RETURNED (ID 4)
-                entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 4, "Order cannot be done."));
-                entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 4, "Order is a duplicate."));
-                // IN_PROGRESS (ID 5)
-                entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 5, "Order is in progress."));
-                // COMPLETED (ID 6)
-                entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 6, "Order fulfilled."));
-                entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 6, "Order duplicate."));
-                entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 6, "Order not valid or created as a test."));
-                entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 6, "Order could not be completed because the student/customer was not reachable."));
-                entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 6, "Necessary document to complete the order was unavailable."));
-            }
+            // AUTO_ASSIGNED (ID 1)
+            entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 1, "Order automatically assigned."));
+            // UNASSIGNED (ID 2)
+            entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 2, "Order is unassigned."));
+            // ASSIGNED (ID 3)
+            entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 3, "Order assigned by super admin."));
+            entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 3, "Order assigned by Auto Assigner."));
+            // RETURNED (ID 4)
+            entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 4, "Order cannot be done."));
+            entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 4, "Order is a duplicate."));
+            // IN_PROGRESS (ID 5)
+            entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 5, "Order is in progress."));
+            // COMPLETED (ID 6)
+            entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 6, "Order fulfilled."));
+            entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 6, "Order duplicate."));
+            entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 6, "Order not valid or created as a test."));
+            entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 6, "Order could not be completed because the student/customer was not reachable."));
+            entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 6, "Necessary document to complete the order was unavailable."));
+        }
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomJobGroup c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomJobGroup(1L, 'A', "Executive Management"));
             entityManager.persist(new CustomJobGroup(2L, 'B', "Professional and Technical"));
@@ -450,7 +451,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,now,"SUPER_ADMIN"));
         }
 
-         count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
+        count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
 
         if (count == 0) {
 
@@ -497,8 +498,8 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
 
-         count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
-         if (count == 0) {
+        count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
+        if (count == 0) {
 
             entityManager.merge(new BoardUniversity(1L, "Delhi University", "Delhi", "DU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
@@ -520,6 +521,13 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(18L, "University of Pune", "Pune", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
+
+        if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
+        {
+            entityManager.merge(new FileType(1,"PNG"));
+            entityManager.merge(new FileType(2, "JPG"));
+            entityManager.merge(new FileType(3, "PDF"));
         }
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);

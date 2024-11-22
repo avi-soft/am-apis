@@ -5,6 +5,8 @@ import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
+import javax.servlet.http.HttpServletRequest;
+
 public class Constant {
 
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -45,9 +47,11 @@ public class Constant {
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
     public static String FETCH_ROLE = "SELECT r.role_name FROM Role r WHERE r.role_id = :role_id";
-    public static String roleUser = "CUSTOMER";
-    public static String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
-    public static String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleUser = "CUSTOMER";
+    public static final String roleSuperAdmin = "SUPER_ADMIN";
+    public static final String roleAdmin="ADMIN";
+    public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
+    public static final String roleServiceProvider = "SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";
@@ -158,7 +162,7 @@ public class Constant {
     public static final String GET_ALL_ORDERS_OF_ONE_CUSTOMER="SELECT o from blc_ ";
     public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber";;
     public static final String CHECK_FOR_REPEATED_REF="SELECT COUNT(*) FROM customer_referrer c WHERE c.customer_id = :customerId AND c.service_provider_id = :spId";
-    public static final String GET_ALL_ORDERS="SELECT o.order_id FROM blc_order o WHERE o.order_status <> 'IN_PROCESS'";
+    public static final String GET_ALL_ORDERS="SELECT order_id FROM order_state";
     public static final String SEARCH_ORDER_QUERY="SELECT o.order_id FROM order_state o WHERE o.order_state_id =:orderStateId";
     public static final String GET_NEW_ORDERS="SELECT o.order_id FROM order_state o WHERE o.order_state_id = 1";
     public static final String GET_SP_ORDER_REQUEST="SELECT o.order_request_id FROM SP_orders_requests o WHERE o.order_id = :orderId AND o.service_provider_id = :serviceProviderId ";
@@ -185,10 +189,14 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
     public static final CustomOrderState ORDER_STATE_RETURNED = new CustomOrderState(5);
+    public static HttpServletRequest request=null;
+
 
     public static final String GET_ALL_ORDER_STATE = "SELECT c FROM OrderStateRef c";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
-    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId"
-;
+    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
+    public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
 }
