@@ -45,6 +45,13 @@ public class DocumentType {
     @Column(name = "min_document_size")
     private String min_document_size;
 
+    public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size) {
+        this.document_type_id = document_type_id;
+        this.document_type_name = document_type_name;
+        this.description = description;
+        this.max_document_size = max_document_size;
+        this.min_document_size = min_document_size;
+    }
     public DocumentType(String documentTypeName, String description) {
         this.document_type_name = documentTypeName;
         this.description = description;
