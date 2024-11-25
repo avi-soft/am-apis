@@ -1207,7 +1207,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (mobileNumber != null) {
                 ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
-                        // .setParameter("country_code", "+91")
+                        .setParameter("country_code", "+91")
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
