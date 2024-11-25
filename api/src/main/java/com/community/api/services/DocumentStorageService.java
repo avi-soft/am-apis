@@ -399,7 +399,7 @@ public class DocumentStorageService {
             multiValueMap.add("file", contentsAsResource);
             multiValueMap.add("documentType", snakeCaseDocumentType);
             multiValueMap.add("customerId", customerId);
-            multiValueMap.add("role", role);
+            multiValueMap.add("role", role.toLowerCase());
             HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(multiValueMap, headers);
 
             restTemplate.postForObject(url, request, String.class);

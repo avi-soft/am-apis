@@ -50,6 +50,7 @@ import com.community.api.services.ProductStateService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.ReserveCategoryDtoService;
 
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -128,10 +129,14 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PostMapping("/add/{categoryId}")
-    public ResponseEntity<?> addProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long categoryId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> addProduct(
+            HttpServletRequest request,
+            @RequestBody AddProductDto addProductDto,
+            @PathVariable Long categoryId,
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
         try {
-
             if (!productService.addProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD PRODUCT", HttpStatus.FORBIDDEN);
             }
@@ -141,24 +146,30 @@ public class ProductController extends CatalogEndpoint {
             }
 
             Category category = productService.validateCategory(categoryId);
-            productService.addProductDtoValidation(addProductDto);
+
+            if (!saveDraft) {
+                productService.addProductDtoValidation(addProductDto);
+            }
+            else
+            {
+                productService.addProductDtoWithoutValidation(addProductDto);
+            }
 
             Product product = catalogService.createProduct(ProductType.PRODUCT);
-
-            product.setMetaTitle(addProductDto.getMetaTitle()); // Also adding the same metaTitle in the sku.name as this will generate the auto-url.
+            product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
             product.setMetaDescription(addProductDto.getMetaDescription());
 
-            product.setDefaultCategory(category); // This is Deprecated.
-            product.setCategory(category); // This will add both categoryId and productId to category_product_xref table.
+            product.setDefaultCategory(category);
+            product.setCategory(category);
 
-            product = catalogService.saveProduct(product); // Save or update the product with values from requestBody.
+            product = catalogService.saveProduct(product);
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String formattedDate = dateFormat.format(new Date());
             Date currentDate = dateFormat.parse(formattedDate);
 
-            Sku sku = catalogService.createSku(); // Create a new Sku Object
+            Sku sku = catalogService.createSku();
             sku.setActiveStartDate(addProductDto.getActiveStartDate());
             sku.setName(addProductDto.getMetaTitle());
             sku.setQuantityAvailable(addProductDto.getQuantity());
@@ -168,54 +179,129 @@ public class ProductController extends CatalogEndpoint {
 
             CustomJobGroup customJobGroup = productService.validateCustomJobGroup(addProductDto.getJobGroup());
             if (customJobGroup == null) {
-                ResponseService.generateErrorResponse("Custom job group not found.", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Custom job group not found.", HttpStatus.NOT_FOUND);
             }
 
-            CustomProductState customProductState = productStateService.getProductStateByName(PRODUCT_STATE_NEW);
-            if (customProductState == null) {
-                ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
-            }
+            CustomProductState customProductState=null;
+                if(!saveDraft)
+                {
+                    customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
+                    if (customProductState == null) {
+                        return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                    }
+                }
+                else if(saveDraft)
+                {
+                     customProductState= productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
+                    {
+                        if (customProductState == null) {
+                            return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                        }
+                    }
+                }
 
-            product.setDefaultSku(sku); // Set default SKU in the product
+                product.setDefaultSku(sku);
 
-            productService.validateReserveCategory(addProductDto);
-            CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
-            CustomSector customSector = productService.validateSector(addProductDto);
+                if(!saveDraft)
+                {
+                    productService.validateReserveCategory(addProductDto);
+                }
+                else if(saveDraft)
+                {
+                    if(addProductDto.getReservedCategory()!=null)
+                    {
+                        productService.validateReserveCategory(addProductDto);
+                    }
+                }
+                CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
+                CustomSector customSector = productService.validateSector(addProductDto);
 
-            productService.validateSelectionCriteria(addProductDto);
+                productService.validateSelectionCriteria(addProductDto);
+                Qualification  qualification  = productService.validateQualification(addProductDto);
+                CustomStream customStream = productService.validateStream(addProductDto);
+                CustomSubject customSubject = productService.validateSubject(addProductDto);
 
-            Qualification qualification = productService.validateQualification(addProductDto);
-            CustomStream customStream = productService.validateStream(addProductDto);
-            CustomSubject customSubject = productService.validateSubject(addProductDto);
+                productService.validateAdmitCardDates(addProductDto);
+                productService.validateModificationDates(addProductDto);
+                productService.validateLastDateToPayFee(addProductDto);
 
-            productService.validateAdmitCardDates(addProductDto);
-            productService.validateModificationDates(addProductDto);
-            productService.validateLastDateToPayFee(addProductDto);
+                if(!saveDraft)
+                {
+                    productService.validateLinks(addProductDto);
+                }
+                else if(saveDraft)
+                {
+                    if(addProductDto.getDownloadNotificationLink()!=null)
+                    {
+                        if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
+                            throw new IllegalArgumentException("Notification download link cannot be empty");
+                        }
+                        addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
+                    }
+                    if(addProductDto.getDownloadSyllabusLink()!=null)
+                    {
+                        if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
+                            throw new IllegalArgumentException("Syllabus download link cannot be empty.");
+                        }
+                        addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
+                    }
+                }
 
-            productService.validateLinks(addProductDto);
             productService.validateFormComplexity(addProductDto);
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
 
-            productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate); // Save external product with provided dates and get status code
-            productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-            productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+            productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+
+            if(!saveDraft)
+            {
+                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+            }
+            else if(saveDraft)
+
+            {
+                if(addProductDto.getReservedCategory()!=null)
+                {
+                    productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                    productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReservedCategory(), product);
+                }
+            }
 
             CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
 
-            StateCode notifyingAuthority = null;
+            StateCode stateCode = null;
             if (addProductDto.getState() != null) {
-                notifyingAuthority = districtService.getStateByStateId(addProductDto.getState());
+                stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
 
-            productService.validatePhysicalRequirement(addProductDto, null);
-            productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, notifyingAuthority, customGender, customSector, qualification, customStream, customSubject, currentDate);
-
+            if(!saveDraft)
+            {
+                if(addProductDto.getPhysicalRequirement()!=null)
+                {
+                    productService.validatePhysicalRequirement(addProductDto, null);
+                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                }
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+            }
+            else if(saveDraft)
+            {
+                if(addProductDto.getPhysicalRequirement()!=null)
+                {
+                    productService.validatePhysicalRequirement(addProductDto, null);
+                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
+                }
+                if(reserveCategoryService!=null)
+                {
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                }else{
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                }
+                return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -230,10 +316,9 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
 
         try {
 
@@ -278,7 +363,6 @@ public class ProductController extends CatalogEndpoint {
             productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
             productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
-
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
 
@@ -308,6 +392,24 @@ public class ProductController extends CatalogEndpoint {
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
+
+            if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
+            }
+            else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
+            {
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
+            }
+            else if(!saveAsDraft)
+            {
+                if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
+                {
+                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,physicalRequirementDtoList,wrapper);
+                }
+            }
             wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -321,7 +423,6 @@ public class ProductController extends CatalogEndpoint {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
 
     @GetMapping("/get-product-by-id/{productId}")
@@ -435,7 +536,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
-
+                
             return ResponseService.generateSuccessResponse("PRODUCT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -597,7 +698,8 @@ public class ProductController extends CatalogEndpoint {
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -605,41 +707,18 @@ public class ProductController extends CatalogEndpoint {
             }
 
             String jwtToken = authHeader.substring(7);
-
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
-            List<CustomProduct> products = productService.filterProductsByRoleAndUserId(roleId, userId, page, limit);
-            long totalProducts = productService.countTotalProducts(roleId, userId);
 
-            if (products.isEmpty()) {
-                return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
-            }
+            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit,showDraftProducts);
 
-            List<CustomProductWrapper> responses = new ArrayList<>();
-            for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
-                    CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(customProduct);
-                    responses.add(wrapper);
-                }
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("products", responses);
-            response.put("currentPage", page);
-            response.put("totalItems", totalProducts);
-            response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
-
-            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
-
-        }catch(IllegalArgumentException illegalArgumentException)
-        {
+        } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 }

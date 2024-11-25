@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Customer;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
@@ -185,6 +186,7 @@ public class CustomerEndpoint {
     }
 
     @RequestMapping(value = "get-customer", method = RequestMethod.GET)
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     public ResponseEntity<?> retrieveCustomerById(@RequestParam Long customerId) {
         try {
             if (customerService == null) {
@@ -206,6 +208,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
         try {
@@ -240,7 +243,11 @@ public class CustomerEndpoint {
 
             if(details.containsKey("hidePhoneNumber"))
             {
+                customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
+                if((Boolean)details.get("hidePhoneNumber").equals(true))
+                {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
+                }
                 details.remove("secondaryMobileNumber");
                 details.remove("whatsappNumber");
                 details.remove("hidePhoneNumber");
@@ -450,6 +457,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId) {
         try {
@@ -469,6 +477,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser,Constant.roleServiceProvider,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleAdminServiceProvider})
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
@@ -546,7 +555,6 @@ public class CustomerEndpoint {
 
 
                         fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-
 
                         if (removeFileTypes != null && removeFileTypes) {
 
@@ -763,6 +771,7 @@ public class CustomerEndpoint {
 
     }
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId) {
         try {
@@ -807,6 +816,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
         try {
@@ -848,6 +858,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdminServiceProvider})
     @RequestMapping(value = "delete", method = RequestMethod.DELETE)
     public ResponseEntity<?> deleteCustomer(@RequestParam String customerId) {
         try {
@@ -874,6 +885,7 @@ public class CustomerEndpoint {
 
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "add-address", method = RequestMethod.POST)
     public ResponseEntity<?> addAddress(@RequestParam Long customerId, @RequestBody Map<String, Object> addressDetails) {
         try {
@@ -1029,6 +1041,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @PostMapping("/save-form/{customer_id}")
     public ResponseEntity<?>saveForm(@PathVariable long customer_id,@RequestParam long product_id)
     {
@@ -1055,7 +1068,7 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             Map<String,Object>responseBody=new HashMap<>();
-            /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
+           /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
@@ -1069,6 +1082,7 @@ public class CustomerEndpoint {
         }
     }
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @DeleteMapping("/unsave-form/{customer_id}")
     public ResponseEntity<?>unSaveForm(@PathVariable long customer_id,@RequestParam long product_id)
     {
@@ -1102,6 +1116,7 @@ public class CustomerEndpoint {
         }
     }
     @GetMapping(value = "/forms/show-saved-forms")
+    @Authorize(value = {Constant.roleUser})
     public ResponseEntity<?> getSavedForms(HttpServletRequest request, @RequestParam long customer_id) throws Exception {
         try {
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
@@ -1213,7 +1228,9 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
+
     public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);

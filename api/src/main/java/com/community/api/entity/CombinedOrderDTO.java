@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Map;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -13,4 +15,6 @@ import lombok.Setter;
 public class CombinedOrderDTO {
    private OrderDTO orderDetails;
    private CustomProductWrapper productDetails;
+   private CustomServiceProviderTicket ticket;
+   private OrderCustomerDetailsDTO customerDetails;
 }

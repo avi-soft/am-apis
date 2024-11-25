@@ -52,6 +52,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(4L, "REJECTED", "Rejected State."));
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
+            entityManager.persist(new CustomProductState(7L, "DRAFT", "Draft State."));
         }
 
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketState c", Long.class).getSingleResult() == 0) {
@@ -555,13 +556,37 @@ public class CommandLineService implements CommandLineRunner {
 
             entityManager.createNativeQuery(sql).executeUpdate();
         }
+        count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
+        if (count == 0) {
+
+            entityManager.merge(new BoardUniversity(1L, "Delhi University", "Delhi", "DU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(3L, "Jawaharlal Nehru University", "Delhi", "JNU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(4L, "Uttar Pradesh Board", "Lucknow", "UPB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(5L, "Punjab University", "Chandigarh", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(6L, "Maharashtra State Board", "Mumbai", "MSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(7L, "Rajasthan University", "Jaipur", "RU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(8L, "Karnataka State Board", "Bangalore", "KSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(9L, "Tamil Nadu State Board", "Chennai", "TNSB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(10L, "University of Mumbai", "Mumbai", "UM", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(11L, "Osmania University", "Hyderabad", "OU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(12L, "West Bengal State University", "Kolkata", "WBSU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(13L, "University of Calcutta", "Kolkata", "CU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(14L, "Andhra Pradesh Board", "Vijayawada", "APB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(15L, "University of Madras", "Chennai", "UM", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(16L, "University of Kerala", "Thiruvananthapuram", "UK", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(17L, "Gujarat Secondary and Higher Secondary Education Board", "Gandhinagar", "GSHSEB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(18L, "University of Pune", "Pune", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
+
         if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
         {
             entityManager.merge(new FileType(1,"PNG"));
             entityManager.merge(new FileType(2, "JPG"));
             entityManager.merge(new FileType(3, "PDF"));
         }
-
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
         query.executeUpdate();
