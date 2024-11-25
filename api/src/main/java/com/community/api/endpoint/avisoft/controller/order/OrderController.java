@@ -27,6 +27,7 @@ import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.ServiceProviderTicketService;
 import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TicketStateService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 
 import javassist.NotFoundException;
@@ -91,6 +92,8 @@ public class OrderController
     private OrderDTOService orderDTOService;
     @Autowired
     private JwtUtil jwtTokenUtil;
+    @Autowired
+    private TicketStateService ticketStateService;
     @Autowired
     private SharedUtilityService sharedUtilityService;
     @Autowired
@@ -336,6 +339,7 @@ public class OrderController
             CombinedOrderDTO combinedOrderDTO=orderDTOService.wrapOrder(order,customOrderState,customServiceProviderTicket,customerDetailsDTO);
             CustomTicketWrapper wrapper=new CustomTicketWrapper();
             wrapper.customWrapDetails(customServiceProviderTicket,combinedOrderDTO);
+            ticketStateService.updateStateAndStatus(customServiceProviderTicket.getTicketId(),1L,null);
             return ResponseService.generateSuccessResponse("Order Assigned",wrapper, HttpStatus.OK);
         }catch (Exception e)
         {

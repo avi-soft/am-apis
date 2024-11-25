@@ -18,9 +18,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TicketStateService {
@@ -68,6 +70,7 @@ public class TicketStateService {
             throw new Exception("Some Exception caught: " + exception.getMessage());
         }
     }
+    @Transactional
     public ResponseEntity<?> updateStateAndStatus(Long ticketId,Long ticketStateId,Long ticketStatusId)
     {
         try {
@@ -85,16 +88,22 @@ public class TicketStateService {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(ticketStatusId);
                 if (ticketStatus == null)
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
-                query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE, Long.class);
+                query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE);
                 query.setParameter("ticketStateId", ticketStateId);
-                List<Long> resultList = query.getResultList();
-                if (!resultList.contains(ticketStatusId))
+                List<BigInteger> resultList = query.getResultList();
+                // Convert BigInteger list to Long list
+                List<Long> resultListLong = resultList.stream()
+                        .map(BigInteger::longValue)  // Convert BigInteger to long
+                        .collect(Collectors.toList());
+                /*System.out.println(resultList.get(0)+","+resultList.get(1));
+                System.out.println(resultList.get(0).getClass().getName());*/
+                if (!resultListLong.contains(ticketStatusId))
                     return ResponseService.generateErrorResponse("Invalid Status selected for ticket State :" + ticketState.getTicketState(), HttpStatus.BAD_REQUEST);
                 ticket.setTicketStatus(ticketStatus);
             }
             Order order=orderService.findOrderById(ticket.getOrder().getId());
             CustomOrderState orderState=entityManager.find(CustomOrderState.class,order.getId());
-            query=entityManager.createNativeQuery(Constant.GET_ORDER_STATE_LINKED_WITH_TICKET,Integer.class);
+            query=entityManager.createNativeQuery(Constant.GET_ORDER_STATE_LINKED_WITH_TICKET);
             query.setParameter("ticketStateId",ticketStateId);
             Integer orderStateId=(Integer)query.getSingleResult();
             orderState.setOrderStateId(orderStateId);

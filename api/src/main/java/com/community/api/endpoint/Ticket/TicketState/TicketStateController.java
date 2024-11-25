@@ -7,11 +7,13 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.TicketStateService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -52,8 +54,8 @@ public class TicketStateController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @PostMapping("/ticket/{ticketId}/state/{ticketStateId}/status/{ticketStatusId}")
-    public ResponseEntity<?>updateTicketStateAndStatus(@PathVariable Long ticketId,@PathVariable Long ticketStateId,@PathVariable Long ticketStatusId)
+    @PostMapping("/ticket/{ticketId}/state/{ticketStateId}")
+    public ResponseEntity<?>updateTicketStateAndStatus(@PathVariable Long ticketId,@PathVariable Long ticketStateId,@RequestParam(required = false) Long ticketStatusId)
     {
      try{
          return ticketStateService.updateStateAndStatus(ticketId,ticketStateId,ticketStatusId);
