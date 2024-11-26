@@ -91,6 +91,7 @@ public class SubjectService {
         }
     }
 
+    @Transactional
     public CustomSubject saveSubject(AddSubjectDto addSubjectDto) throws Exception {
         try{
 
