@@ -39,9 +39,12 @@ public class StreamController {
             }
 
             streamService.validateAddStreamDto(addStreamDto);
-            streamService.saveStream(addStreamDto);
+            CustomStream customStream = streamService.saveStream(addStreamDto);
 
-            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", addStreamDto, HttpStatus.OK);
+            if(customStream == null) {
+                return ResponseService.generateErrorResponse("SOMETHING WENT WRONG", HttpStatus.BAD_REQUEST);
+            }
+            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", customStream, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
