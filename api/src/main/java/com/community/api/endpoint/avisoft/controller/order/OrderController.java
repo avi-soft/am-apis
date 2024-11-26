@@ -232,9 +232,9 @@ public class OrderController
             OrderDTO orderDTO=null;
             CustomServiceProviderTicket customServiceProviderTicket=null;
             for(BigInteger orderId:orders) {
-                Order order = orderService.findOrderById(orderId.longValue());
-                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
-                if (order != null) {
+                try{
+                    Order order = orderService.findOrderById(orderId.longValue());
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                     Customer customer=customerService.readCustomerById(order.getCustomer().getId());
                     CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
@@ -250,6 +250,10 @@ public class OrderController
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order,orderState,customServiceProviderTicket,customerDetailsDTO));
+                }
+                catch (NullPointerException e)
+                {
+                    continue;
                 }
             }
             return ResponseService.generateSuccessResponse("Orders",orderDetails,HttpStatus.OK);

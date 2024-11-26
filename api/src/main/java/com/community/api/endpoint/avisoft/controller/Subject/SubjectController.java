@@ -39,9 +39,12 @@ public class SubjectController {
             }
 
             subjectService.validateAddSubjectDto(addSubjectDto);
-            subjectService.saveSubject(addSubjectDto);
+            CustomSubject customSubject = subjectService.saveSubject(addSubjectDto);
 
-            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", addSubjectDto, HttpStatus.OK);
+            if(customSubject == null) {
+                return ResponseService.generateErrorResponse("SOMETHING WENT WRONG", HttpStatus.BAD_REQUEST);
+            }
+            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", customSubject, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }catch (Exception exception) {
