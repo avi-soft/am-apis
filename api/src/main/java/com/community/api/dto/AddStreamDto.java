@@ -11,6 +11,7 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AddStreamDto {
+
     @NotNull
     @JsonProperty("stream_name")
     private String streamName;

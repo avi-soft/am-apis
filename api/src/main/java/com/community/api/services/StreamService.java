@@ -5,6 +5,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.Privileges;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -92,16 +93,15 @@ public class StreamService {
         }
     }
 
-    public void saveStream(AddStreamDto addStreamDto) throws Exception {
+    public CustomStream saveStream(AddStreamDto addStreamDto) throws Exception {
         try{
-            Query query = entityManager.createQuery("INSERT INTO custom_stream (stream_name, stream_description) VALUES (:streamName, :streamDescription");
-            query.setParameter("streamName", addStreamDto.getStreamName());
-            query.setParameter("streamDescription", addStreamDto.getStreamDescription());
 
-            int affectedRow = query.executeUpdate();
-            if(affectedRow <= 0){
-                throw new IllegalArgumentException("ENTRY NOT ADDED IN THE DB");
-            }
+            CustomStream stream = new CustomStream();
+            stream.setStreamName(addStreamDto.getStreamName());
+            stream.setStreamDescription(addStreamDto.getStreamDescription());
+
+            // Persist the new subject object to the database
+            return entityManager.merge(stream);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());

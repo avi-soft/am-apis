@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.util.Collections;
 import java.util.List;
 
@@ -90,16 +91,15 @@ public class SubjectService {
         }
     }
 
-    public void saveSubject(AddSubjectDto addSubjectDto) throws Exception {
+    public CustomSubject saveSubject(AddSubjectDto addSubjectDto) throws Exception {
         try{
-            Query query = entityManager.createQuery("INSERT INTO custom_subject (subject_name, subject_description) VALUES (:subjectName, :subjectDescription");
-            query.setParameter("subjectName", addSubjectDto.getSubjectName());
-            query.setParameter("subjectDescription", addSubjectDto.getSubjectDescription());
 
-            int affectedRow = query.executeUpdate();
-            if(affectedRow <= 0){
-                throw new IllegalArgumentException("ENTRY NOT ADDED IN THE DB");
-            }
+            CustomSubject subject = new CustomSubject();
+            subject.setSubjectName(addSubjectDto.getSubjectName());
+            subject.setSubjectDescription(addSubjectDto.getSubjectDescription());
+
+            // Persist the new subject object to the database
+            return entityManager.merge(subject);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
