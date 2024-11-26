@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -76,14 +77,14 @@ public class ServiceProviderTicketService {
 
     public void autoAssigner() throws Exception {
         try {
-            // we are fetching SP who are in approved state (later we will do only active)
-            List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L);
-            // later will do order which are in particular state. (write now just fetching which are in state 3).
 
-            if (availableServiceProvider.isEmpty()) {
-                throw new IllegalArgumentException("No Service Provider is in required State.");
-            }
-            logger.info("Available service Provider according to condition(in autoAssigner()) method: " + availableServiceProvider.size());
+            // Extract the body (which is the actual list of service providers)
+//            List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L).getBody();
+//
+//            if (availableServiceProvider.isEmpty()) {
+//                throw new IllegalArgumentException("No Service Provider is in required State.");
+//            }
+//            logger.info("Available service Provider according to condition(in autoAssigner()) method: " + availableServiceProvider.size());
 
             OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
             // auto assigner will run only on those order which are in NEW STATE.
@@ -97,8 +98,10 @@ public class ServiceProviderTicketService {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
 
+            System.out.println("RBTA");
             randomBindingTicketAllocation(customOrders);
-            verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
+//            System.out.println("VDTA");
+//            verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
@@ -173,7 +176,7 @@ public class ServiceProviderTicketService {
                             assignedOrders.add(order);
                             break;
                         } else {
-                            logger.info("Service Provider limit exceeded for the day with serviceProvider: " + serviceProvider);
+                            logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
                     }
                 }
@@ -217,16 +220,15 @@ public class ServiceProviderTicketService {
                             assignedOrders.add(order);
                             break;
                         } else {
-                            logger.info("Service Provider limit exceeded for the day with serviceProvider: " + serviceProvider);
+                            logger.info("Service Provider limit exceeded for the day serviceProvider details: " + serviceProvider);
                         }
                     }
                 }
 
-                Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
+                /*Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);*/
 
             }
-
             logger.info("Total orders assigned by RBTA method is: " + assignedOrders.size());
 
         } catch (Exception exception) {
@@ -347,11 +349,10 @@ public class ServiceProviderTicketService {
             logger.info("Total Service Provider: " + availableServiceProvider.size());
 
             List<Order> assignedOrders = new ArrayList<>();
-            logger.info("custom orders size is: " + customOrders.size());
-
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
             Role role = roleService.getRoleByRoleId(4);
+
             while (iterator.hasNext()) {
 
                 CustomOrderState customOrderState = iterator.next();
@@ -414,15 +415,14 @@ public class ServiceProviderTicketService {
                             assignedOrders.add(order);
                             break;
                         } else {
-                            logger.info("Service Provider limit exceeded for the day with serviceProvider: " + serviceProvider);
-
+                            logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
                     }
 
                 }
 
-                Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
+                /*Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);*/
             }
             logger.info("Total orders assigned by VDTA method is: " + assignedOrders.size());
 
