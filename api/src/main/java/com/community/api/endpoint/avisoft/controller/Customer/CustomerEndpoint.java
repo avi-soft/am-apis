@@ -481,7 +481,7 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
