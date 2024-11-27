@@ -76,7 +76,7 @@ public class ServiceProviderTicketService {
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
-    public void autoAssigner() throws Exception {
+    public List<Order> autoAssigner() throws Exception {
         try {
             logger.info("AUTO-ASSIGNER");
             ResponseEntity<?> responseEntity = serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L);
@@ -111,10 +111,12 @@ public class ServiceProviderTicketService {
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
+            List<Order> assignedOrders = new ArrayList<>();
 
-            randomBindingTicketAllocation(customOrders);
-            verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
+            randomBindingTicketAllocation(customOrders, assignedOrders);
+            verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedOrders);
 
+            return assignedOrders;
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
@@ -123,11 +125,10 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders) throws Exception {
+    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<Order> assignedOrders) throws Exception {
         try {
             logger.info("Random Binding Ticket Allocation");
             logger.info("Total Orders received by RBTA are: " + customOrders.size());
-            List<Order> assignedOrders = new ArrayList<>();
 
             boolean assigned;
 
@@ -331,13 +332,11 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider) throws Exception {
+    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<Order> assignedOrders) throws Exception {
         try {
             logger.info("Vertical Distribution Ticket Allocation");
             logger.info("Total orders received for VDTA: " + customOrders.size());
             logger.info("Total Service Provider: " + availableServiceProvider.size());
-
-            List<Order> assignedOrders = new ArrayList<>();
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
@@ -353,7 +352,6 @@ public class ServiceProviderTicketService {
 
                 for (Map<String, Object> serviceProviderMap : availableServiceProvider) {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
-
 
                     if (serviceProvider.getIsActive()) {
 
