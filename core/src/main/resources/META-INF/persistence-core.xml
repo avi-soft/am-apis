@@ -34,12 +34,28 @@
         <class>com.community.api.endpoint.serviceProvider.ServiceProviderEntity</class>
         <class>com.community.api.endpoint.serviceProvider.ServiceProviderStatus</class>
         <class>com.community.api.entity.CustomOtp</class>
+        <class>com.community.api.entity.Qualification</class>
         <class>com.community.api.entity.StateCode</class>
         <class>com.community.api.entity.ServiceProviderAddress</class>
         <class>com.community.api.entity.ServiceProviderAddressRef</class>
         <class>com.community.api.entity.Privileges</class>
         <class>com.community.api.entity.Role</class>
         <class>com.community.api.entity.Districts</class>
+        <class>com.community.api.entity.ServiceProviderInfra</class>
+        <class>com.community.api.entity.ServiceProviderLanguage</class>
+        <class>com.community.api.entity.ServiceProviderTest</class>
+        <class>com.community.api.entity.Image</class>
+        <class>com.community.api.entity.SignatureImage</class>
+        <class>com.community.api.entity.TypingText</class>
+        <class>com.community.api.entity.ResizedImage</class>
+        <class>com.community.api.utils.ServiceProviderDocument</class>
+        <class>com.community.api.entity.ServiceProviderTestStatus</class>
+        <class>com.community.api.entity.ServiceProviderRank</class>
+        <class>com.community.api.entity.CustomAdmin</class>
+        <class>com.community.api.entity.ScoringCriteria</class>
+        <class>com.community.api.entity.FileType</class>
+        <class>com.community.api.entity.BoardUniversity</class>
+        <class>com.community.api.entity.UploadedPdf</class>
 
         <class>com.community.api.entity.CustomProduct</class>
         <class>com.community.api.entity.CustomProductState</class>
@@ -52,6 +68,7 @@
         <class>com.community.api.entity.CustomTicketStatus</class>
         <class>com.community.api.entity.CustomTicketType</class>
         <class>com.community.api.entity.CustomServiceProviderTicket</class>
+        <class>com.community.api.entity.CustomTicketHistory</class>
         <class>com.community.api.entity.CustomProductRejectionStatus</class>
         <class>com.community.api.entity.CustomGender</class>
         <class>com.community.api.entity.CustomProductGenderPhysicalRequirementRef</class>
@@ -77,44 +94,7 @@
         <non-jta-data-source>jdbc/cmsStorage</non-jta-data-source>
         <exclude-unlisted-classes/>
     </persistence-unit>
-    <persistence-unit name="blPU" transaction-type="RESOURCE_LOCAL">
-        <non-jta-data-source>jdbc/web</non-jta-data-source>
 
-        <!-- Added this line -->
-        <class>com.community.api.entity.CustomCustomer</class>
-        <class>com.community.api.entity.Skill</class>
-        <class>com.community.api.utils.Document</class>
-        <class>com.community.api.utils.DocumentType</class>
-        <class>com.community.api.entity.QualificationDetails</class>
-        <class>com.community.api.endpoint.serviceProvider.ServiceProviderEntity</class>
-        <class>com.community.api.endpoint.serviceProvider.ServiceProviderStatus</class>
-        <class>com.community.api.entity.CustomOtp</class>
-        <class>com.community.api.entity.Qualification</class>
-        <class>com.community.api.entity.StateCode</class>
-        <class>com.community.api.entity.ServiceProviderAddress</class>
-        <class>com.community.api.entity.ServiceProviderAddressRef</class>
-        <class>com.community.api.entity.Privileges</class>
-        <class>com.community.api.entity.Role</class>
-        <class>com.community.api.entity.Districts</class>
-        <class>com.community.api.entity.ServiceProviderInfra</class>
-        <class>com.community.api.entity.ServiceProviderLanguage</class>
-        <class>com.community.api.entity.ServiceProviderTest</class>
-        <class>com.community.api.entity.Image</class>
-        <class>com.community.api.entity.SignatureImage</class>
-        <class>com.community.api.entity.TypingText</class>
-        <class>com.community.api.entity.ResizedImage</class>
-        <class>com.community.api.utils.ServiceProviderDocument</class>
-        <class>com.community.api.entity.ServiceProviderTestStatus</class>
-        <class>com.community.api.entity.ServiceProviderRank</class>
-        <class>com.community.api.entity.CustomAdmin</class>
-        <class>com.community.api.entity.ScoringCriteria</class>
-        <class>com.community.api.entity.FileType</class>
-        <class>com.community.api.entity.BoardUniversity</class>
-        <class>com.community.api.entity.UploadedPdf</class>
-        <exclude-unlisted-classes/>
-    </persistence-unit>
-
-
-    psql -h0.tcp.ngrok.io -p13890 -UdbUsername -dDbName
+<!--    psql -h0.tcp.ngrok.io -p13890 -UdbUsername -dDbName-->
 
 </persistence>
