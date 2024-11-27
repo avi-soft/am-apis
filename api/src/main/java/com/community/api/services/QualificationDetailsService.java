@@ -8,14 +8,13 @@ import com.community.api.entity.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.*;
 import com.community.api.utils.DocumentType;
+import com.community.api.utils.ServiceProviderDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getIntegerList;
 
 @Service
 public class QualificationDetailsService {
@@ -26,8 +25,9 @@ public class QualificationDetailsService {
     ServiceProviderServiceImpl serviceProviderService;
     BoardUniversityService boardUniversityService;
     StreamService streamService ;
+    SubjectService subjectService;
 
-    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService) {
+    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService,SubjectService subjectService) {
         this.entityManager = entityManager;
         this.qualificationController = qualificationController;
         this.qualificationService = qualificationService;
@@ -35,6 +35,7 @@ public class QualificationDetailsService {
         this.serviceProviderService=serviceProviderService;
         this.boardUniversityService=boardUniversityService;
         this.streamService=streamService;
+        this.subjectService=subjectService;
     }
 
     @Transactional
@@ -43,7 +44,7 @@ public class QualificationDetailsService {
 
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
-            checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
+//            checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
             List<DocumentType> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
@@ -56,7 +57,23 @@ public class QualificationDetailsService {
             List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
             qualificationDetails.setSubject_ids(subjects);
             qualificationDetails.setService_provider(serviceProviderEntity);
-            serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
+            if(serviceProviderEntity.getQualificationDetailsList().isEmpty())
+            {
+                serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
+            }
+            else if(!serviceProviderEntity.getQualificationDetailsList().isEmpty())
+            {
+                serviceProviderEntity.getQualificationDetailsList().clear();
+                serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
+                List<ServiceProviderDocument> serviceProviderDocuments= serviceProviderEntity.getDocuments();
+                if(!serviceProviderDocuments.isEmpty())
+                {
+                    for(ServiceProviderDocument serviceProviderDocument: serviceProviderDocuments)
+                    {
+                        iterateQualificationsToDeleteDocumentsForServiceProvider(serviceProviderDocument,qualifications);
+                    }
+                }
+            }
             entityManager.persist(qualificationDetails);
             giveQualificationScore(userId);
             return qualificationDetails;
@@ -75,6 +92,8 @@ public class QualificationDetailsService {
         qualificationDetails.setStream_id(streamToAdd);
         List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
         qualificationDetails.setSubject_ids(subjects);
+        createSubjectDetails(qualificationDetails);
+        validateQualificationDetail(qualificationDetails);
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         entityManager.persist(qualificationDetails);
@@ -294,31 +313,42 @@ public class QualificationDetailsService {
         throw new IllegalArgumentException("Stream with id "+ streamId+ " does not exist");
     }
 
-public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
-    if (subjectIds == null || subjectIds.isEmpty()) {
-        throw new IllegalArgumentException("Subjects list cannot be empty");
+    public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            throw new IllegalArgumentException("Subjects list cannot be empty");
+        }
+
+        // Query to check which subject IDs exist in the database
+        List<Long> existingSubjectIds = entityManager.createQuery(
+                        "SELECT s.subjectId FROM CustomSubject s WHERE s.subjectId IN :subjectIds",
+                        Long.class)
+                .setParameter("subjectIds", subjectIds)
+                .getResultList();
+
+        // Check if any IDs from the request do not exist
+        List<Long> missingSubjectIds = subjectIds.stream()
+                .filter(id -> !existingSubjectIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!missingSubjectIds.isEmpty()) {
+            throw new IllegalArgumentException("The following subject IDs do not exist: " + missingSubjectIds);
+        }
+
+        // Return the validated list of IDs
+        return subjectIds;
     }
 
-    // Query to check which subject IDs exist in the database
-    List<Long> existingSubjectIds = entityManager.createQuery(
-                    "SELECT s.subjectId FROM CustomSubject s WHERE s.subjectId IN :subjectIds",
-                    Long.class)
-            .setParameter("subjectIds", subjectIds)
-            .getResultList();
-
-    // Check if any IDs from the request do not exist
-    List<Long> missingSubjectIds = subjectIds.stream()
-            .filter(id -> !existingSubjectIds.contains(id))
-            .collect(Collectors.toList());
-
-    if (!missingSubjectIds.isEmpty()) {
-        throw new IllegalArgumentException("The following subject IDs do not exist: " + missingSubjectIds);
+    @Transactional
+    public void iterateQualificationsToDeleteDocumentsForServiceProvider(ServiceProviderDocument serviceProviderDocument, List<DocumentType> qualifications)
+    {
+        for(DocumentType qualification: qualifications)
+        {
+            if(qualification.getDocument_type_id().equals(serviceProviderDocument.getDocumentType().getDocument_type_id()))
+            {
+                entityManager.remove(serviceProviderDocument);
+            }
+        }
     }
-
-    // Return the validated list of IDs
-    return subjectIds;
-}
-
 
     public void giveQualificationScore(Long userId) throws CustomerDoesNotExistsException {
         ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
@@ -384,4 +414,96 @@ public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
         serviceProviderService.assignRank(serviceProviderEntity,totalScore);
         entityManager.merge(serviceProviderEntity);
     }
+
+    public void validateQualificationDetail(QualificationDetails qualificationDetails)
+    {
+        if(qualificationDetails.getQualification_id().equals(14) || qualificationDetails.getQualification_id().equals(15))
+        {
+            if(qualificationDetails.getSubjectDetails().size()<5)
+            {
+                throw new IllegalArgumentException("You have to add at least five subjects");
+            }
+        }
+
+        if(!qualificationDetails.getQualification_id().equals(14))
+        {
+            throw new IllegalArgumentException("Stream id cannot be null");
+        }
+
+        if(qualificationDetails.getTotal_marks_type()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether the you want to add the total marks in normal marks, cgpa or grade");
+        }
+        if(!qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage")&& !qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA") && !qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Grade"))
+        {
+            throw new IllegalArgumentException("Total marks type must be either percentage or Grade or CGPA");
+        }
+        if(qualificationDetails.getTotal_marks_type().trim().isEmpty())
+        {
+            throw new IllegalArgumentException("Total marks type cannot be empty");
+        }
+
+        if(qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage"))
+        {
+           Double percentage= (qualificationDetails.getMarks_obtained()/qualificationDetails.getTotal_marks())*100;
+           qualificationDetails.setTotal_percentage(percentage);
+        }
+        else if(qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA") || qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Grade"))
+        {
+            if(qualificationDetails.getTotal_percentage()==null)
+            {
+                throw new IllegalArgumentException("Percentage of total marks cannot be null");
+            }
+        }
+    }
+
+    @Transactional
+    public void createSubjectDetails(QualificationDetails qualificationDetail) {
+        if(qualificationDetail.getSubject_marks_type()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether the you want to add the subject marks in normal marks, cgpa or grade");
+        }
+        if(!qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !qualificationDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") && !qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+        {
+            throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA");
+        }
+        if(qualificationDetail.getSubject_marks_type().trim().isEmpty())
+        {
+            throw new IllegalArgumentException("Subject marks type cannot be empty");
+        }
+
+        List<Long> subjectIds = qualificationDetail.getSubject_ids(); // Selected subject IDs
+        List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubjectDetails(); // User-provided details
+
+        List<SubjectDetail> subjectDetailsList = new ArrayList<>();
+
+        for (Long subjectId : subjectIds) {
+            // Find the subject
+            CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
+            if (customSubject == null) {
+                throw new IllegalArgumentException("Subject with ID " + subjectId + " not found");
+            }
+
+            // Match user input with the subject ID
+            SubjectDetail userDetail = userProvidedDetails.stream()
+                    .filter(detail -> detail.getSubject_detail_id().equals(subjectId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Details for subject ID " + subjectId + " are missing"));
+
+            // Create and populate SubjectDetail
+            SubjectDetail subjectDetail = new SubjectDetail();
+            subjectDetail.setCustomSubject(customSubject);
+            subjectDetail.setQualificationDetails(qualificationDetail);
+            subjectDetail.setSubject_marks_obtained(userDetail.getSubject_marks_obtained());
+            subjectDetail.setSubject_total_marks(userDetail.getSubject_total_marks());
+            // Automatically set default values for other fields if needed
+            subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
+
+            subjectDetailsList.add(subjectDetail);
+        }
+
+        qualificationDetail.setSubjectDetails(subjectDetailsList);
+        entityManager.merge(qualificationDetail);
+    }
+
 }

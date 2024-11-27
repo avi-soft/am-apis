@@ -1,12 +1,11 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Fetch;
@@ -48,10 +47,11 @@ public class QualificationDetails {
     @Column(name = "examination_registration_number",nullable = true)
     private Long examination_registration_number;
 
-
-    @NotNull(message = "stream id is required")
-    @Column(name = "stream_id", nullable = false)
+    @Column(name = "stream_id")
     private Long stream_id;
+
+    @Column(name= "subject_marks_type")
+    private String subject_marks_type;
 
     @NotBlank(message = "Grade or percentage value is required")
     @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
@@ -61,15 +61,25 @@ public class QualificationDetails {
 
     @Min(value = 1, message = "Total marks must be greater than zero")
     @Column(name = "total_marks", nullable = false)
-    private Long total_marks;
+    private Double total_marks;
 
     @Min(value = 0, message = "Marks obtained cannot be negative")
     @Column(name = "marks_obtained", nullable = false)
-    private Long marks_obtained;
+    private Double marks_obtained;
 
     @NotNull(message = "Qualification id is required")
     @Column(name = "qualification_id", nullable = false)
     private Integer qualification_id;
+
+    @NotNull(message = "You have to select whether you are adding total marks in actual marks, CGPA or Grade")
+    @Column(name = "total_marks_type", nullable = false)
+    private String total_marks_type;
+
+    @Min(value = 0, message = "Percentage must not be less than 0")
+    @Max(value = 100, message = "Percentage must not be greater than 100")
+    @Column(name = "total_percentage" , nullable = false)
+    private Double total_percentage;
+
 
     @AssertTrue(message = "Total marks cannot be less than marks obtained")
     private Boolean isMarksTotalValid() {
@@ -87,6 +97,9 @@ public class QualificationDetails {
     @Fetch(FetchMode.SUBSELECT)
     private List<Long> subject_ids;
 
+    @OneToMany(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<SubjectDetail> subjectDetails = new ArrayList<>();
 
     @JsonBackReference
     @ManyToOne

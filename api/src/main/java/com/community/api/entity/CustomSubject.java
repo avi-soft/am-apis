@@ -26,6 +26,15 @@ public class CustomSubject {
     @Column(name = "subject_name")
     protected String subjectName;
 
+    public CustomSubject(Long subjectId, String subjectName, String subjectDescription) {
+        this.subjectId = subjectId;
+        this.subjectName = subjectName;
+        this.subjectDescription = subjectDescription;
+    }
+
     @Column(name = "subject_description")
     protected String subjectDescription;
+
+    @Column(name = "subject_marks_type", unique = true, nullable = false)
+    private String subject_marks_type;
 }

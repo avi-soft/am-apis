@@ -42,10 +42,10 @@ public class UpdateQualificationDto
     private String grade_or_percentage_value;
 
     @Min(value = 1, message = "Total marks must be greater than zero")
-    private Long total_marks;
+    private Double total_marks;
 
     @Min(value = 0, message = "Marks obtained cannot be negative")
-    private Long marks_obtained;
+    private Double marks_obtained;
 
     private Integer qualification_id;
 
