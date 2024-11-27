@@ -98,7 +98,7 @@ public class TicketController {
     public ResponseEntity<?> autoAssigner() {
         try{
             serviceProviderTicketService.autoAssigner();
-            return ResponseService.generateSuccessResponse("DONE TILL HERE",null, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Auto Assigner run successfully",null, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

@@ -1276,4 +1276,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         List<ServiceProviderEntity> results = query.getResultList();
         return results;
     }
+
+    public void serviceProviderTicketAssignedIncrement(ServiceProviderEntity serviceProvider) throws Exception {
+        try {
+            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+            entityManager.merge(serviceProvider);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
+        }
+    }
 }
