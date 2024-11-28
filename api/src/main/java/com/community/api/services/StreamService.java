@@ -82,11 +82,17 @@ public class StreamService {
     public Boolean validateAddStreamDto(AddStreamDto addStreamDto) throws Exception {
         try{
 
-            if(addStreamDto.getStreamName() == null || addStreamDto.getStreamDescription().trim().isEmpty() || addStreamDto.getStreamName().length() < 30) {
-                throw new IllegalArgumentException("STREAM NAME CANNOT BE NULL, EMPTY AND LENGTH <= 30");
+            if(addStreamDto.getStreamName() == null || addStreamDto.getStreamName().trim().isEmpty()) {
+                throw new IllegalArgumentException("STREAM NAME CANNOT BE NULL, EMPTY");
+            }else {
+                addStreamDto.setStreamName(addStreamDto.getStreamName().trim());
             }
-            if( (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().trim().isEmpty()) || (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().length() < 255) ) {
+
+            if( (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().trim().isEmpty()) || (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().length() > 255) ) {
                 throw new IllegalArgumentException("STREAM DESCRIPTION CANNOT BE EMPTY AND LENGTH <= 255");
+            }
+            if(addStreamDto.getStreamDescription() != null) {
+                addStreamDto.setStreamDescription(addStreamDto.getStreamDescription().trim());
             }
             return true;
         } catch(IllegalArgumentException illegalArgumentException) {
@@ -101,14 +107,12 @@ public class StreamService {
     @Transactional
     public CustomStream saveStream(AddStreamDto addStreamDto, Long creatorId, Role creatorRole) throws Exception {
         try{
-
             CustomStream stream = new CustomStream();
             stream.setStreamName(addStreamDto.getStreamName());
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
             stream.setCreatorRole(creatorRole);
-
             return entityManager.merge(stream);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -117,13 +121,14 @@ public class StreamService {
     }
 
     @Transactional
-    public void removeStreamById(Long streamId) throws Exception {
+    public void removeStreamById(CustomStream stream) throws Exception {
         try {
 
-            CustomStream stream = getStreamByStreamId(streamId);
             if(stream == null) {
                 throw new IllegalArgumentException("No Stream Found");
             }
+            stream.setArchived('Y');
+            entityManager.merge(stream);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);

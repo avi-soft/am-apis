@@ -12,6 +12,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -44,7 +47,7 @@ public class StreamController {
     }
 
     @PostMapping("/add-stream")
-    public ResponseEntity<?> addStream(@RequestBody AddStreamDto addStreamDto, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> addStream(@Valid @RequestBody AddStreamDto addStreamDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!streamService.validiateAuthorization(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A STREAM", HttpStatus.UNAUTHORIZED);
@@ -63,6 +66,9 @@ public class StreamController {
                 return ResponseService.generateErrorResponse("SOMETHING WENT WRONG", HttpStatus.BAD_REQUEST);
             }
             return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", customStream, HttpStatus.OK);
+        } catch (MethodArgumentNotValidException methodArgumentNotValidException) {
+            exceptionHandlingService.handleException(methodArgumentNotValidException);
+            return ResponseService.generateErrorResponse(  "Method Argument Not Valid Exception Caught: " + methodArgumentNotValidException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(  "Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
@@ -86,7 +92,7 @@ public class StreamController {
         }
     }
 
-    @GetMapping("/get-stream-by-id/{streamId}")
+    @GetMapping("/get-stream-by-id/{streamIdString}")
     public ResponseEntity<?> getStreamByStreamId(@PathVariable String streamIdString) {
         try {
             Long streamId = Long.parseLong(streamIdString);
@@ -115,8 +121,7 @@ public class StreamController {
             if (stream == null) {
                 return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.NOT_FOUND);
             }
-            stream.setArchived('Y');
-            entityManager.merge(stream);
+            streamService.removeStreamById(stream);
             return ResponseService.generateSuccessResponse("STREAM SUCCESSFULLY ARCHIVED", stream, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
