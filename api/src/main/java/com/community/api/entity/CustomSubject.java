@@ -10,6 +10,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "custom_subject")
@@ -23,6 +24,7 @@ public class CustomSubject {
     @Column(name = "subject_id")
     protected Long subjectId;
 
+    @NotNull
     @Column(name = "subject_name")
     protected String subjectName;
 
