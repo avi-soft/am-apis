@@ -1,22 +1,22 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.validation.constraints.NotNull;
 import java.util.Date;
 @AllArgsConstructor
 @Getter
 @Setter
 @NoArgsConstructor
 public class ManualAssignmentDetails {
+
         @JsonProperty("ticket_state")
         public Long ticketState;
-
+        @Nullable
         @JsonProperty("ticket_status")
         public Long ticketStatus;
 
