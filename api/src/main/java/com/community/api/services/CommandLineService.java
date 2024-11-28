@@ -195,16 +195,16 @@ public class CommandLineService implements CommandLineRunner {
         }
 
         if(entityManager.createQuery("SELECT COUNT(s) FROM CustomSubject s", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new CustomSubject(1L, "Mathematics", "Description of Mathematics"));
-            entityManager.merge(new CustomSubject(2L, "Physics", "Description of Physics"));
-            entityManager.merge(new CustomSubject(3L, "Chemistry", "Description of Chemistry"));
-            entityManager.merge(new CustomSubject(4L, "Biology", "Description of Biology"));
-            entityManager.merge(new CustomSubject(5L, "English", "Description of English"));
-            entityManager.merge(new CustomSubject(6L, "History", "Description of History"));
-            entityManager.merge(new CustomSubject(7L, "Geography", "Description of Geography"));
-            entityManager.merge(new CustomSubject(8L, "Computer Science", "Description of Computer Science"));
-            entityManager.merge(new CustomSubject(9L, "Art", "Description of Art"));
-            entityManager.merge(new CustomSubject(10L, "Physical Education", "Description of Physical Education"));
+            entityManager.merge(new CustomSubject(1L, 'N', "Mathematics", "Description of Mathematics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(2L, 'N', "Physics", "Description of Physics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(3L, 'N', "Chemistry", "Description of Chemistry", new Date(), null, null));
+            entityManager.merge(new CustomSubject(4L, 'N', "Biology", "Description of Biology", new Date(), null, null));
+            entityManager.merge(new CustomSubject(5L, 'N', "English", "Description of English", new Date(), null, null));
+            entityManager.merge(new CustomSubject(6L, 'N', "History", "Description of History", new Date(), null, null));
+            entityManager.merge(new CustomSubject(7L, 'N', "Geography", "Description of Geography", new Date(), null, null));
+            entityManager.merge(new CustomSubject(8L, 'N',"Computer Science", "Description of Computer Science", new Date(), null, null));
+            entityManager.merge(new CustomSubject(9L, 'N', "Art", "Description of Art", new Date(), null, null));
+            entityManager.merge(new CustomSubject(10L, 'N', "Physical Education", "Description of Physical Education", new Date(), null, null));
         }
 
         if (entityManager.createQuery("SELECT COUNT(r) FROM Role r", Long.class).getSingleResult() == 0) {

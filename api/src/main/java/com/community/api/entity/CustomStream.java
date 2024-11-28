@@ -1,7 +1,6 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +13,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
@@ -42,14 +40,14 @@ public class CustomStream {
     @NotBlank
     @Column(name = "stream_name")
     @JsonProperty("stream_name")
-    @Pattern(regexp = "^[a-zA-Z ]*$", message = "Stream name must contains only Alphabets.")
+    @Pattern(regexp = "^[a-zA-Z -]*$", message = "Stream name must contains only Alphabets and hyphen.")
     protected String streamName;
 
     @NotBlank
     @Column(name = "stream_description")
     @JsonProperty("stream_description")
     @Size(max = 255)
-    @Pattern(regexp = "^[a-zA-Z0-9 ]*$", message = "Stream description must contains only Alphabets and Digits.")
+    @Pattern(regexp = "^[a-zA-Z0-9 ,.!?';:()&-]*$", message = "Stream description must contains only Alphabets and Digits.")
     protected String streamDescription;
 
     @Column(name = "created_at")
