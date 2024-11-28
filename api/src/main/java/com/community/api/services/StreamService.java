@@ -79,6 +79,23 @@ public class StreamService {
         }
     }
 
+    public CustomStream getStreamByStreamId(String streamName) {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_STREAM_BY_STREAM_ID, CustomStream.class);
+            query.setParameter("streamId", streamId);
+            List<CustomStream> stream = query.getResultList();
+
+            if (!stream.isEmpty()) {
+                return stream.get(0);
+            }
+            return null;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return null;
+        }
+    }
+
     public Boolean validateAddStreamDto(AddStreamDto addStreamDto) throws Exception {
         try{
 
