@@ -29,6 +29,7 @@ import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 import static org.broadleafcommerce.common.util.sql.importsql.DemoSqlServerSingleLineSqlCommandExtractor.CURRENT_TIMESTAMP;
 
@@ -181,29 +182,29 @@ public class CommandLineService implements CommandLineRunner {
         }
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomStream c", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new CustomStream(1L, "SCIENCE", "Description of Science"));
-            entityManager.merge(new CustomStream(2L, "ARTS", "Description of Arts"));
-            entityManager.merge(new CustomStream(3L, "COMMERCE", "Description of Commerce"));
-            entityManager.merge(new CustomStream(4L, "ENGINEERING", "Description of Engineering"));
-            entityManager.merge(new CustomStream(5L, "MEDICINE", "Description of Medicine"));
-            entityManager.merge(new CustomStream(6L, "HUMANITIES", "Description of Humanities"));
-            entityManager.merge(new CustomStream(7L, "SOCIAL SCIENCES", "Description of Social Sciences"));
-            entityManager.merge(new CustomStream(8L, "TECHNOLOGY", "Description of Technology"));
-            entityManager.merge(new CustomStream(9L, "MATHEMATICS", "Description of Mathematics"));
-            entityManager.merge(new CustomStream(10L, "DESIGN", "Description of Design"));
+            entityManager.merge(new CustomStream(1L, 'N', "SCIENCE", "Description of Science", new Date(), null, null));
+            entityManager.merge(new CustomStream(2L, 'N', "ARTS", "Description of Arts", new Date(), null, null));
+            entityManager.merge(new CustomStream(3L, 'N', "COMMERCE", "Description of Commerce", new Date(), null, null));
+            entityManager.merge(new CustomStream(4L, 'N', "ENGINEERING", "Description of Engineering", new Date(), null, null));
+            entityManager.merge(new CustomStream(5L, 'N', "MEDICINE", "Description of Medicine", new Date(), null, null));
+            entityManager.merge(new CustomStream(6L, 'N', "HUMANITIES", "Description of Humanities", new Date(), null, null));
+            entityManager.merge(new CustomStream(7L, 'N', "SOCIAL SCIENCES", "Description of Social Sciences", new Date(), null, null));
+            entityManager.merge(new CustomStream(8L, 'N', "TECHNOLOGY", "Description of Technology", new Date(), null, null));
+            entityManager.merge(new CustomStream(9L, 'N', "MATHEMATICS", "Description of Mathematics", new Date(), null, null));
+            entityManager.merge(new CustomStream(10L, 'N', "DESIGN", "Description of Design", new Date(), null, null));
         }
 
         if(entityManager.createQuery("SELECT COUNT(s) FROM CustomSubject s", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new CustomSubject(1L, "Mathematics", "Description of Mathematics"));
-            entityManager.merge(new CustomSubject(2L, "Physics", "Description of Physics"));
-            entityManager.merge(new CustomSubject(3L, "Chemistry", "Description of Chemistry"));
-            entityManager.merge(new CustomSubject(4L, "Biology", "Description of Biology"));
-            entityManager.merge(new CustomSubject(5L, "English", "Description of English"));
-            entityManager.merge(new CustomSubject(6L, "History", "Description of History"));
-            entityManager.merge(new CustomSubject(7L, "Geography", "Description of Geography"));
-            entityManager.merge(new CustomSubject(8L, "Computer Science", "Description of Computer Science"));
-            entityManager.merge(new CustomSubject(9L, "Art", "Description of Art"));
-            entityManager.merge(new CustomSubject(10L, "Physical Education", "Description of Physical Education"));
+            entityManager.merge(new CustomSubject(1L, 'N', "Mathematics", "Description of Mathematics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(2L, 'N', "Physics", "Description of Physics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(3L, 'N', "Chemistry", "Description of Chemistry", new Date(), null, null));
+            entityManager.merge(new CustomSubject(4L, 'N', "Biology", "Description of Biology", new Date(), null, null));
+            entityManager.merge(new CustomSubject(5L, 'N', "English", "Description of English", new Date(), null, null));
+            entityManager.merge(new CustomSubject(6L, 'N', "History", "Description of History", new Date(), null, null));
+            entityManager.merge(new CustomSubject(7L, 'N', "Geography", "Description of Geography", new Date(), null, null));
+            entityManager.merge(new CustomSubject(8L, 'N',"Computer Science", "Description of Computer Science", new Date(), null, null));
+            entityManager.merge(new CustomSubject(9L, 'N', "Art", "Description of Art", new Date(), null, null));
+            entityManager.merge(new CustomSubject(10L, 'N', "Physical Education", "Description of Physical Education", new Date(), null, null));
         }
 
         if (entityManager.createQuery("SELECT COUNT(r) FROM Role r", Long.class).getSingleResult() == 0) {
