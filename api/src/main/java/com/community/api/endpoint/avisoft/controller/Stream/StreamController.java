@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -34,9 +33,6 @@ public class StreamController {
     private final StreamService streamService;
     private final RoleService roleService;
     private final JwtUtil jwtTokenUtil;
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
     @Autowired
     public StreamController(ExceptionHandlingService exceptionHandlingService, StreamService streamService, RoleService roleService, JwtUtil jwtTokenUtil) {
@@ -83,7 +79,7 @@ public class StreamController {
         try {
             List<CustomStream> applicationScopeList = streamService.getAllStream();
             if (applicationScopeList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO STREAM IS FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.NOT_FOUND);
             }
             return ResponseService.generateSuccessResponse("STREAMS FOUND", applicationScopeList, HttpStatus.OK);
         } catch (Exception exception) {
