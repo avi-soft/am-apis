@@ -77,13 +77,31 @@ public class SubjectService {
             return null;
         }
     }
+
+    public List<CustomSubject> getSubjectBySubjectName(String subjectName) throws Exception {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_SUBJECT_BY_SUBJECT_NAME, CustomSubject.class);
+            query.setParameter("subjectName", subjectName);
+            List<CustomSubject> subject = query.getResultList();
+
+            return subject;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+        }
+    }
+
     public Boolean validateAddSubjectDto(AddSubjectDto addSubjectDto) throws Exception {
         try{
 
             if(addSubjectDto.getSubjectName() != null) {
                 addSubjectDto.setSubjectName(addSubjectDto.getSubjectName().trim());
             }
-
+            List<CustomSubject> subjects = getSubjectBySubjectName(addSubjectDto.getSubjectName());
+            if(subjects != null && !subjects.isEmpty()) {
+                throw new IllegalArgumentException("Duplicate Unarchived Subject Name");
+            }
             if(addSubjectDto.getSubjectDescription() != null) {
                 addSubjectDto.setSubjectDescription(addSubjectDto.getSubjectDescription().trim());
             }
