@@ -36,7 +36,7 @@ public class TicketTypeService {
         }
     }
 
-    public CustomTicketType getTicketTypeByTicketTypeId(Long ticketTypeId) throws Exception {
+    public CustomTicketType getTicketTypeByTicketTypeId(Long ticketTypeId) throws Exception{
         try {
 
             Query query = entityManager.createQuery(Constant.GET_TICKET_TYPE_BY_TICKET_TYPE_ID, CustomTicketType.class);
@@ -49,6 +49,9 @@ public class TicketTypeService {
                 throw new IllegalArgumentException("No ticket type found with this ticket type id");
             }
 
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some Exception Caught: " + exception.getMessage());

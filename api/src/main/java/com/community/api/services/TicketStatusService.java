@@ -50,6 +50,9 @@ public class TicketStatusService {
                 throw new IllegalArgumentException("No ticket status found with this ticket status id");
             }
 
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some Exception Caught: " + exception.getMessage());

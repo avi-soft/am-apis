@@ -74,11 +74,15 @@ public class TicketStateService {
                 throw new IllegalArgumentException("No ticket state found with this ticket state id");
             }
 
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some Exception caught: " + exception.getMessage());
         }
     }
+
     @Transactional
     public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId)
     {

@@ -50,9 +50,11 @@ import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -345,9 +347,12 @@ public class OrderController {
             wrapper.customWrapDetails(customServiceProviderTicket, combinedOrderDTO);
 
             return ResponseService.generateSuccessResponse("Order Assigned", wrapper, HttpStatus.OK);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

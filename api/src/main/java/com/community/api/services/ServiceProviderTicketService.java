@@ -226,7 +226,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    @Transactional
+//    @Transactional
     public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo) throws Exception {
         try {
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
@@ -236,7 +236,8 @@ public class ServiceProviderTicketService {
             Date createdDate = dateFormat.parse(formattedDate);
 
             if (createTicketDto.getTargetCompletionDate() != null) {
-                dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
+                formattedDate = dateFormat.format(createTicketDto.getTargetCompletionDate());
+                dateFormat.parse(formattedDate);
                 if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
                     ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                 }
