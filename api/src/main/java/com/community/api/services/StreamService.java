@@ -79,17 +79,29 @@ public class StreamService {
         }
     }
 
+    public List<CustomStream> getStreamByStreamName(String streamName) throws Exception {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_STREAM_BY_STREAM_NAME, CustomStream.class);
+            query.setParameter("streamName", streamName);
+            List<CustomStream> stream = query.getResultList();
+
+            return stream;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+        }
+    }
+
     public Boolean validateAddStreamDto(AddStreamDto addStreamDto) throws Exception {
         try{
 
-            if(addStreamDto.getStreamName() == null || addStreamDto.getStreamName().trim().isEmpty()) {
-                throw new IllegalArgumentException("STREAM NAME CANNOT BE NULL, EMPTY");
-            }else {
+            if(addStreamDto.getStreamName() != null) {
                 addStreamDto.setStreamName(addStreamDto.getStreamName().trim());
             }
-
-            if( (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().trim().isEmpty()) || (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().length() > 255) ) {
-                throw new IllegalArgumentException("STREAM DESCRIPTION CANNOT BE EMPTY AND LENGTH <= 255");
+            List<CustomStream> streams = getStreamByStreamName(addStreamDto.getStreamName());
+            if(streams != null && !streams.isEmpty()) {
+                throw new IllegalArgumentException("Duplicate Unarchived Stream Name");
             }
             if(addStreamDto.getStreamDescription() != null) {
                 addStreamDto.setStreamDescription(addStreamDto.getStreamDescription().trim());
