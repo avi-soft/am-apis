@@ -32,9 +32,9 @@ public class UpdateQualificationDto
 
     private Long stream_id;
 
-    @Min(value = 0, message = "Percentage must not be less than 0")
-    @Max(value = 100, message = "Percentage must not be greater than 100")
-    private Double total_percentage_value;
+    @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
+    @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
+    private Double cumulative_percentage_value;
 
     private String total_marks;
 

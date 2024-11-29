@@ -68,8 +68,8 @@ public class QualificationDetails {
     @Column(name = "total_marks_type", nullable = false)
     private String total_marks_type;
 
-    @Min(value = 0, message = "Percentage must not be less than 0")
-    @Max(value = 100, message = "Percentage must not be greater than 100")
+    @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
+    @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
     @Column(name = "cumulative_percentage_value" , nullable = false)
     private Double cumulative_percentage_value;
 
