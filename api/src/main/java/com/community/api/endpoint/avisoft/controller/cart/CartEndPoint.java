@@ -323,7 +323,7 @@ public class CartEndPoint extends BaseEndpoint {
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
             Double subTotal = 0.0;
-            Double platformfee=0.0;
+            Double platformfee=100.0;
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -351,17 +351,15 @@ public class CartEndPoint extends BaseEndpoint {
                         }
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer);
                         products.add(productDetails);
-
-                        productFee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
-                        platformfee=100.0;
-                        subTotal = productFee + platformfee;
+                        productFee=productFee+productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
                     }
                 }
+                subTotal=orderItemList.size()*platformfee+productFee;
                 response.put("cart_id", cart.getId());
                 response.put("products", products.toArray());
-                response.put("sub_total", subTotal);
+                response.put("sub_total", productFee);
                 response.put("price", productFee);
-                response.put("total_platform_fee", platformfee);
+                response.put("total_platform_fee", orderItemList.size()*platformfee);
                 for(OrderItem orderItem:archievedItems)
                 {
                     cart.getOrderItems().remove(orderItem);

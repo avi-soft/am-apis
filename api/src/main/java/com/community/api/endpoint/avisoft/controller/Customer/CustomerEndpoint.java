@@ -555,6 +555,7 @@ public class CustomerEndpoint {
                     }
 
                     for (MultipartFile file : fileList) {
+
                         // Validate document
                         documentStorageService.validateDocument(file, documentTypeObj);
 

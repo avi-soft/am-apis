@@ -13,6 +13,7 @@ import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderStateRef;
 import com.community.api.entity.Role;
+import com.community.api.entity.SuccessResponse;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -74,30 +76,61 @@ public class ServiceProviderTicketService {
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
-    public void autoAssigner() throws Exception {
-        try{
-            // we are fetching SP who are in approved state (later we will do only active)
-            List<Map<String, Object>> availableServiceProvider = (List<Map<String, Object>>) serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 1L);
-            logger.info("*************" + availableServiceProvider.size());
-            // later will do order which are in particular state. (write now just fetching which are in state 2).
+    public List<Order> autoAssigner() throws Exception {
+        try {
+            logger.info("AUTO-ASSIGNER");
+            ResponseEntity<?> responseEntity = serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L);
+
+            // Check if the response body is of type SuccessResponse
+            List<Map<String, Object>> availableServiceProvider = null;
+            if (responseEntity.getBody() instanceof SuccessResponse) {
+                SuccessResponse successResponse = (SuccessResponse) responseEntity.getBody();
+
+                // Extract the data (which should be a List<Map<String, Object>>)
+                if (successResponse.getData() instanceof List<?>) {
+                    availableServiceProvider = (List<Map<String, Object>>) successResponse.getData();
+                }
+            } else {
+                throw new RuntimeException("Unable to fetch the available service provider as not getting SuccessResponse");
+            }
+
+            if (availableServiceProvider.isEmpty()) {
+                throw new IllegalArgumentException("No Service Provider is in required State.");
+            }
+
+            logger.info("Available service Provider according to condition(in autoAssigner()) method: " + availableServiceProvider.size());
+
             OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
+            // auto assigner will run only on those order which are in NEW STATE.
+
+            if (orderStateRef == null) {
+                throw new IllegalArgumentException("No Order State Ref Found with id 1(NEW).");
+            }
+
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
+            if (customOrders.isEmpty()) {
+                throw new IllegalArgumentException("No Orders to Assign");
+            }
+            List<Order> assignedOrders = new ArrayList<>();
 
-            randomBindingTicketAllocation(customOrders);
-            verticalDistributionTicketAllocation(customOrders, availableServiceProvider);
+            randomBindingTicketAllocation(customOrders, assignedOrders);
+            verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedOrders);
 
-        } catch (Exception exception){
+            return assignedOrders;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
             throw new Exception("Exception caught: " + exception.getMessage());
         }
     }
 
-    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders) throws Exception {
+    @Transactional
+    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<Order> assignedOrders) throws Exception {
         try {
+            logger.info("Random Binding Ticket Allocation");
+            logger.info("Total Orders received by RBTA are: " + customOrders.size());
 
-            logger.info("Total Orders at the moments are: " + customOrders.size());
-            List<Order> assignedOrders = new ArrayList<>();
-
-            boolean assigned = false;
+            boolean assigned;
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
             while (iterator.hasNext()) {
@@ -113,60 +146,78 @@ public class ServiceProviderTicketService {
                 CustomCustomer customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
 
                 List<CustomerReferrer> referrers = customer.getMyReferrer();
-                logger.info("Referrer list:" + referrers.size());
-                for (CustomerReferrer refferer : referrers) {
-                    ServiceProviderEntity serviceProvider = refferer.getServiceProvider();
-                    logger.info("REFFEREER ID: " + serviceProvider.getService_provider_id());
+                logger.info("Referrer list for customer: "+ customer + " is: " + referrers.size());
+
+                if(referrers.isEmpty()) {
+                    logger.info("Referrer List is empty for custom: " + customer);
+                    continue;
+                }
+
+                for (CustomerReferrer referrer : referrers) {
+                    ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+                    logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
 
                     if (serviceProvider.getIsActive()) {
-                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
-                        CreateTicketDto createTicketDto = new CreateTicketDto();
-                        createTicketDto.setTicketState(1L);
-                        createTicketDto.setTicketType(1L);
-                        createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
-                        createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
-                        assigned = true;
-                        iterator.remove();
-                        assignedOrders.add(order);
-                        break;
+                        if( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
+                            // assign him the ticket
+                            // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                            CreateTicketDto createTicketDto = new CreateTicketDto();
+                            createTicketDto.setTicketState(1L);
+                            createTicketDto.setTicketType(1L);
+                            createTicketDto.setTicketStatus(1L);
+                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+
+                            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                            entityManager.merge(customOrderState);
+                            serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                            assigned = true;
+                            iterator.remove();
+                            assignedOrders.add(order);
+                            break;
+                        } else {
+                            logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
+                        }
                     }
-
                 }
-                // now search for creator of product.
+
+                // If there is no one in referrer list of custom to whom we can assign this ticket
                 if (!assigned) {
+
                     logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
                     if (serviceProvider.getIsActive()) {
-                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
-                        CreateTicketDto createTicketDto = new CreateTicketDto();
-                        createTicketDto.setTicketState(1L);
-                        createTicketDto.setTicketType(1L);
-                        createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                        createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
-                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
-                        logger.info("ticket state: " + serviceProviderTicket.getTicketState().getTicketState());
+                        if ( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
+                            // assign him the ticket
+                            // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                            CreateTicketDto createTicketDto = new CreateTicketDto();
+                            createTicketDto.setTicketState(1L);
+                            createTicketDto.setTicketType(1L);
+                            createTicketDto.setTicketStatus(1L);
+                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
-                        serviceProviderTicket.setModifiedDate(new Date());
-                        serviceProviderTicket.setTicketAssignDate(new Date());
-                        customOrders.remove(customOrderState);
-                        assignedOrders.add(order);
-                        break;
+                            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                            entityManager.merge(customOrderState);
+                            serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                            iterator.remove();
+                            assignedOrders.add(order);
+                            break;
+                        } else {
+                            logger.info("Service Provider limit exceeded for the day serviceProvider details: " + serviceProvider);
+                        }
                     }
                 }
-
-                Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
-
             }
-
             logger.info("Total orders assigned by RBTA method is: " + assignedOrders.size());
 
         } catch (Exception exception) {
@@ -205,25 +256,25 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
             customServiceProviderTicket.setAssigneeRole(createTicketDto.getAssigneeRole());
 
-            if(assignedTo != null) {
+            if (assignedTo != null) {
                 customServiceProviderTicket.setAssignee(assignedTo.getService_provider_id());
             }
 
-            if(createTicketDto.getTicketState() != null) {
+            if (createTicketDto.getTicketState() != null) {
                 CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
             }
 
-            if(createTicketDto.getTicketType() != null) {
+            if (createTicketDto.getTicketType() != null) {
                 CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 customServiceProviderTicket.setTicketType(ticketType);
             } else {
                 throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
             }
 
-            if(createTicketDto.getTicketStatus()!=null){
+            if (createTicketDto.getTicketStatus() != null) {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
@@ -280,19 +331,15 @@ public class ServiceProviderTicketService {
         }
     }
 
-
-    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider) throws Exception {
-        try{
-            logger.info("INSIDE VDTA FOR Ticket Allocation");
-            logger.info("Total orders recieved for VDTA: " + customOrders.size());
+    @Transactional
+    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<Order> assignedOrders) throws Exception {
+        try {
+            logger.info("Vertical Distribution Ticket Allocation");
+            logger.info("Total orders received for VDTA: " + customOrders.size());
             logger.info("Total Service Provider: " + availableServiceProvider.size());
 
-            List<Order> assignedOrders = new ArrayList<>();
-            logger.info("custom orders size is: " + customOrders.size());
-
-
             Iterator<CustomOrderState> iterator = customOrders.iterator();
-            Role role = roleService.getRoleByRoleId(4);
+
             while (iterator.hasNext()) {
 
                 CustomOrderState customOrderState = iterator.next();
@@ -307,28 +354,29 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
 
                     if (serviceProvider.getIsActive()) {
-                        // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
-                        CreateTicketDto createTicketDto = new CreateTicketDto();
-                        createTicketDto.setTicketState(1L);
-                        createTicketDto.setTicketType(1L);
-                        createTicketDto.setTicketStatus(1L);
-                        createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                        createTicketDto.setAssigneeRole(role);
-                        CustomServiceProviderTicket serviceProviderTicket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
-                        serviceProviderTicket.setModifiedDate(new Date());
-                        serviceProviderTicket.setTicketAssignDate(new Date());
-                        iterator.remove();
-                        assignedOrders.add(order);
 
-                        // Link that ticket to the service provider and increment its ticketAllocated and everthing.
-                        availableServiceProvider.remove(serviceProviderMap);
-                        break;
+                        if ( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
+
+                            CreateTicketDto createTicketDto = new CreateTicketDto();
+                            createTicketDto.setTicketState(1L);
+                            createTicketDto.setTicketType(1L);
+                            createTicketDto.setTicketStatus(1L);
+                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+
+                            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                            entityManager.merge(customOrderState);
+                            serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                            iterator.remove();
+                            assignedOrders.add(order);
+                            break;
+                        } else {
+                            logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
+                        }
                     }
-
                 }
-
-                Long pid = Long.valueOf(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
             }
             logger.info("Total orders assigned by VDTA method is: " + assignedOrders.size());
 
@@ -340,10 +388,10 @@ public class ServiceProviderTicketService {
     }
 
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
-        try{
+        try {
             String sql = "SELECT * FROM custom_service_provider_ticket";
             return entityManager.createNativeQuery(sql, CustomServiceProviderTicket.class).getResultList();
-        } catch(Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
         }
@@ -382,11 +430,11 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.ticketType IN :types ");
             }
 
-            if(dateFrom != null && dateTo != null) {
+            if (dateFrom != null && dateTo != null) {
                 jpql.append("AND c.createdDate >= :dateFrom AND c.createdDate <= :dateTo ");
             }
 
-            if(userId != null && role != null) {
+            if (userId != null && role != null) {
                 jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
             }
 
@@ -400,11 +448,11 @@ public class ServiceProviderTicketService {
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
-            if(dateFrom != null && dateTo != null) {
+            if (dateFrom != null && dateTo != null) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
             }
-            if(userId != null && role != null) {
+            if (userId != null && role != null) {
                 query.setParameter("userId", userId);
                 query.setParameter("role", role);
             }
@@ -419,7 +467,7 @@ public class ServiceProviderTicketService {
 
     public CustomServiceProviderTicket fetchTicketByTicketId(Long ticketId) throws Exception {
         try {
-            if(ticketId == null || ticketId <= 0) {
+            if (ticketId == null || ticketId <= 0) {
                 throw new IllegalArgumentException("TicketId cannot be <=0 or null");
             }
             System.out.println("ticketId is: " + ticketId);
