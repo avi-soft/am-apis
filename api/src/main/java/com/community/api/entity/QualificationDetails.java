@@ -23,7 +23,7 @@ import java.util.List;
 public class QualificationDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long qualification_detail_id;
     @NotBlank(message = "Institution name is required")
     @Size(max = 255, message = "Institution name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
@@ -35,17 +35,16 @@ public class QualificationDetails {
     @Temporal(TemporalType.TIMESTAMP)
     private Date date_of_passing;
 
-    @NotNull(message = "board or university id is required")
-    @Column(name = "board_university_id", nullable = false)
-    private Long board_university_id;
-
-//    @NotNull(message = "Examination Role Number is required")
     @Column(name = "examination_role_number",nullable = true)
     private Long examination_role_number;
 
-//    @NotNull(message = "Examination Registration Number is required")
+    //    @NotNull(message = "Examination Registration Number is required")
     @Column(name = "examination_registration_number",nullable = true)
     private Long examination_registration_number;
+
+    @NotNull(message = "board or university id is required")
+    @Column(name = "board_university_id", nullable = false)
+    private Long board_university_id;
 
     @Column(name = "stream_id")
     private Long stream_id;
@@ -53,19 +52,13 @@ public class QualificationDetails {
     @Column(name= "subject_marks_type")
     private String subject_marks_type;
 
-    @NotBlank(message = "Grade or percentage value is required")
-    @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
-    @Size(max = 10, message = "Grade or percentage value should not exceed 10 characters")
-    @Column(name = "grade_or_percentage_value", nullable = false)
-    private String grade_or_percentage_value;
-
-    @Min(value = 1, message = "Total marks must be greater than zero")
+    @NotNull(message = "total marks cannot be null")
     @Column(name = "total_marks", nullable = false)
-    private Double total_marks;
+    private String total_marks;
 
-    @Min(value = 0, message = "Marks obtained cannot be negative")
+    @NotNull(message = "marks obtained cannot be null")
     @Column(name = "marks_obtained", nullable = false)
-    private Double marks_obtained;
+    private String marks_obtained;
 
     @NotNull(message = "Qualification id is required")
     @Column(name = "qualification_id", nullable = false)
@@ -77,14 +70,13 @@ public class QualificationDetails {
 
     @Min(value = 0, message = "Percentage must not be less than 0")
     @Max(value = 100, message = "Percentage must not be greater than 100")
-    @Column(name = "total_percentage" , nullable = false)
-    private Double total_percentage;
+    @Column(name = "total_percentage_value" , nullable = false)
+    private Double cumulative_percentage_value;
 
-
-    @AssertTrue(message = "Total marks cannot be less than marks obtained")
-    private Boolean isMarksTotalValid() {
-        return total_marks >= marks_obtained;
-    }
+    @Size(max = 255, message = "Subject name should not exceed 255 characters")
+    @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
+    @Column(name = "subject_name")
+    private String subject_name;
 
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne
@@ -99,7 +91,7 @@ public class QualificationDetails {
 
     @OneToMany(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private List<SubjectDetail> subjectDetails = new ArrayList<>();
+    private List<SubjectDetail> subject_details = new ArrayList<>();
 
     @JsonBackReference
     @ManyToOne

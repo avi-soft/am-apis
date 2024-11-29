@@ -1,15 +1,14 @@
 package com.community.api.dto;
 
-import com.community.api.entity.CustomSubject;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.community.api.entity.SubjectDetail;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Column;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.*;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -29,29 +28,29 @@ public class UpdateQualificationDto
 
     private Long board_university_id;
 
-    private Long examination_role_number;
-
-    private Long examination_registration_number;
-
     private List<Long> subject_ids;
 
     private Long stream_id;
 
-    @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
-    @Size(max = 10, message = "Grade or percentage value should not exceed 10 characters")
-    private String grade_or_percentage_value;
+    @Min(value = 0, message = "Percentage must not be less than 0")
+    @Max(value = 100, message = "Percentage must not be greater than 100")
+    private Double total_percentage_value;
 
-    @Min(value = 1, message = "Total marks must be greater than zero")
-    private Double total_marks;
+    private String total_marks;
 
-    @Min(value = 0, message = "Marks obtained cannot be negative")
-    private Double marks_obtained;
+    private String marks_obtained;
 
     private Integer qualification_id;
+    @Size(max = 255, message = "Subject name should not exceed 255 characters")
+    @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
+    private String subject_name;
 
-    @AssertTrue(message = "Total marks cannot be less than marks obtained")
-    private boolean isMarksTotalValid() {
-        return total_marks >= marks_obtained;
-    }
+    private Long examination_role_number;
+
+    private Long examination_registration_number;
+
+    private String total_marks_type;
+    private String subject_marks_type;
+    private List<SubjectDetail> subject_details = new ArrayList<>();
 
 }
