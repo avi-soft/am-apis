@@ -26,13 +26,18 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -475,7 +480,42 @@ public class SharedUtilityService {
         EXCEEDS_NESTED_SIZE,
         INVALID_TYPE
     }
+    public static int isValidAndInPast(Date targetCompletionDate) {
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = dateFormat.format(new Date());
+            Date currentDate = dateFormat.parse(formattedDate);
+            // Convert the Date object to ZonedDateTime in the system's default time zone
+            ZonedDateTime inputDateTime = targetCompletionDate.toInstant()
+                    .atZone(ZoneId.of("Asia/Kolkata"));
 
+            // Get the current date and time in IST
+            ZonedDateTime currentDateTimeInIST = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+
+            // Debugging: Print the parsed input date in IST and the current date-time in IST
+            System.out.println("Parsed Date (IST): " + inputDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+            System.out.println("Current Date (IST): " + currentDateTimeInIST.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+
+            // Check if the parsed date in IST is before the current date and time in IST
+            if (inputDateTime.isBefore(currentDateTimeInIST)) {
+                return 1; // Date is in the past
+            } else {
+                return 0; // Date is valid but not in the past
+            }
+
+        }catch (NumberFormatException numberFormatException)
+        {
+            return -1;
+        }
+        catch (Exception e) {
+            // Handle errors like conversion errors
+            System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();  // Print the exception details for debugging
+            return -1; // Return -1 if there is any error
+        }
+    }
 
 }
+
+
 

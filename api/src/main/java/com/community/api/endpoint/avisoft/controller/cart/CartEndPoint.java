@@ -317,7 +317,7 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
         try {
-
+            double productFee=0.0;
             List<OrderItem>archievedItems=new ArrayList<>();
             Long id = Long.valueOf(customerId);
             if(id==null)
@@ -352,17 +352,15 @@ public class CartEndPoint extends BaseEndpoint {
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer);
                         products.add(productDetails);
 
-                        platformfee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
-                        if(customProduct!=null)
-                            platformfee=platformfee+platformfee;
-                        if(platformfee==null)
-                            platformfee=0.0;
-                        subTotal = subTotal + platformfee;
+                        productFee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
+                        platformfee=100.0;
+                        subTotal = productFee + platformfee;
                     }
                 }
                 response.put("cart_id", cart.getId());
                 response.put("products", products.toArray());
                 response.put("sub_total", subTotal);
+                response.put("price", productFee);
                 response.put("total_platform_fee", platformfee);
                 for(OrderItem orderItem:archievedItems)
                 {

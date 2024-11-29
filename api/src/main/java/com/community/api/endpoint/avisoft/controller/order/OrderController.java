@@ -339,7 +339,6 @@ public class OrderController
             CombinedOrderDTO combinedOrderDTO=orderDTOService.wrapOrder(order,customOrderState,customServiceProviderTicket,customerDetailsDTO);
             CustomTicketWrapper wrapper=new CustomTicketWrapper();
             wrapper.customWrapDetails(customServiceProviderTicket,combinedOrderDTO);
-            ticketStateService.updateStateAndStatus(customServiceProviderTicket.getTicketId(),1L,null);
             return ResponseService.generateSuccessResponse("Order Assigned",wrapper, HttpStatus.OK);
         }catch (Exception e)
         {
@@ -347,7 +346,6 @@ public class OrderController
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Transactional
     @GetMapping("/{orderId}/availableSp")
     public ResponseEntity<?>getEligibleSp(@PathVariable Long orderId,@RequestParam (defaultValue = "0") int page ,@RequestParam(defaultValue = "10") int limit)
     {

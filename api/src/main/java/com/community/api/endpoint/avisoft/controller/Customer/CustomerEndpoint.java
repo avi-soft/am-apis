@@ -12,6 +12,7 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
+import com.community.api.services.FileDownloadService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.CustomCustomerService;
@@ -42,6 +43,7 @@ import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
+import org.hibernate.engine.jdbc.StreamUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -68,8 +70,13 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import javax.validation.constraints.Size;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -124,7 +131,8 @@ public class CustomerEndpoint {
 
     @Autowired
     private static ResponseService responseService;
-
+    @Autowired
+    private FileDownloadService fileDownloadService;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -248,9 +256,14 @@ public class CustomerEndpoint {
                 {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
                 }
-                details.remove("secondaryMobileNumber");
-                details.remove("whatsappNumber");
-                details.remove("hidePhoneNumber");
+                if(errorMessages.isEmpty()) {
+                    customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
+                    customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));
+                    customCustomer.setHidePhoneNumber((Boolean) details.get("hidePhoneNumber"));
+                    }
+                    details.remove("secondaryMobileNumber");
+                    details.remove("whatsappNumber");
+                    details.remove("hidePhoneNumber");
             }
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
@@ -481,11 +494,12 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "files") List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            System.out.println("size:"+files.size());
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }

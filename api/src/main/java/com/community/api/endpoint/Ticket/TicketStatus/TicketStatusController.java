@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.List;
 
 @RestController
@@ -51,7 +50,8 @@ public class TicketStatusController {
             return ResponseService.generateSuccessResponse("TICKET STATUS FOUND", ticketStatus, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(Constant
+                    .SOME_EXCEPTION_OCCURRED + " : " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
