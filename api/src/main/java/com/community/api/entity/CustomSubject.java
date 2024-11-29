@@ -28,4 +28,5 @@ public class CustomSubject {
 
     @Column(name = "subject_description")
     protected String subjectDescription;
+
 }

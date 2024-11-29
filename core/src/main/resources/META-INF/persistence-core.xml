@@ -111,6 +111,7 @@
         <class>com.community.api.entity.FileType</class>
         <class>com.community.api.entity.BoardUniversity</class>
         <class>com.community.api.entity.UploadedPdf</class>
+        <class>com.community.api.entity.SubjectDetail</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

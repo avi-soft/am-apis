@@ -1,8 +1,11 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.ArrayList;
+import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Fetch;
@@ -20,7 +23,7 @@ import java.util.List;
 public class QualificationDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long qualification_detail_id;
     @NotBlank(message = "Institution name is required")
     @Size(max = 255, message = "Institution name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
@@ -28,54 +31,53 @@ public class QualificationDetails {
     private String institution_name;
 
     @NotNull(message = "Date of passing is required")
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date of passing must be in the format YYYY-MM-DD.")
     @Column(name = "date_of_passing", nullable = false)
-    private String date_of_passing;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date date_of_passing;
+
+    @Column(name = "examination_role_number",nullable = true)
+    private Long examination_role_number;
+
+    //    @NotNull(message = "Examination Registration Number is required")
+    @Column(name = "examination_registration_number",nullable = true)
+    private Long examination_registration_number;
 
     @NotNull(message = "board or university id is required")
     @Column(name = "board_university_id", nullable = false)
     private Long board_university_id;
 
-//    @NotNull(message = "Examination Role Number is required")
-    @Column(name = "examination_role_number",nullable = true)
-    private Long examination_role_number;
-
-//    @NotNull(message = "Examination Registration Number is required")
-    @Column(name = "examination_registration_number",nullable = true)
-    private Long examination_registration_number;
-
-
-    @NotNull(message = "stream id is required")
-    @Column(name = "stream_id", nullable = false)
+    @Column(name = "stream_id")
     private Long stream_id;
 
-    @NotBlank(message = "Grade or percentage value is required")
-    @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
-    @Size(max = 10, message = "Grade or percentage value should not exceed 10 characters")
-    @Column(name = "grade_or_percentage_value", nullable = false)
-    private String grade_or_percentage_value;
+    @Column(name= "subject_marks_type")
+    private String subject_marks_type;
 
-    @Min(value = 1, message = "Total marks must be greater than zero")
+    @NotNull(message = "total marks cannot be null")
     @Column(name = "total_marks", nullable = false)
-    private Long total_marks;
+    private String total_marks;
 
-    @Min(value = 0, message = "Marks obtained cannot be negative")
+    @NotNull(message = "marks obtained cannot be null")
     @Column(name = "marks_obtained", nullable = false)
-    private Long marks_obtained;
+    private String marks_obtained;
 
     @NotNull(message = "Qualification id is required")
     @Column(name = "qualification_id", nullable = false)
     private Integer qualification_id;
 
-    @AssertTrue(message = "Total marks cannot be less than marks obtained")
-    private Boolean isMarksTotalValid() {
-        return total_marks >= marks_obtained;
-    }
+    @NotNull(message = "You have to select whether you are adding total marks in actual marks, CGPA or Grade")
+    @Column(name = "total_marks_type", nullable = false)
+    private String total_marks_type;
 
-    //    @AssertTrue(message = "Year of passing must be less than or equal to the current year")
-//    private boolean isYearOfPassingValid() {
-//        return year_of_passing <= Year.now().getValue();
-//    }
+    @Min(value = 0, message = "Percentage must not be less than 0")
+    @Max(value = 100, message = "Percentage must not be greater than 100")
+    @Column(name = "total_percentage_value" , nullable = false)
+    private Double cumulative_percentage_value;
+
+    @Size(max = 255, message = "Subject name should not exceed 255 characters")
+    @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
+    @Column(name = "subject_name")
+    private String subject_name;
+
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
@@ -87,6 +89,9 @@ public class QualificationDetails {
     @Fetch(FetchMode.SUBSELECT)
     private List<Long> subject_ids;
 
+    @OneToMany(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<SubjectDetail> subject_details = new ArrayList<>();
 
     @JsonBackReference
     @ManyToOne
