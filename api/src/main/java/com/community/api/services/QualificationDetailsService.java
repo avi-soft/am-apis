@@ -398,8 +398,8 @@ public class QualificationDetailsService {
             qualificationDetailsToUpdate.setStream_id(streamToAdd);
         }
 
-        if (Objects.nonNull(qualification.getTotal_percentage_value())) {
-            qualificationDetailsToUpdate.setCumulative_percentage_value(qualification.getTotal_percentage_value());
+        if (Objects.nonNull(qualification.getCumulative_percentage_value())) {
+            qualificationDetailsToUpdate.setCumulative_percentage_value(qualification.getCumulative_percentage_value());
         }
 
         if (Objects.nonNull(qualification.getDate_of_passing())) {
