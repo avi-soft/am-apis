@@ -90,7 +90,17 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
-
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderTicketLinkage o", Long.class).getSingleResult() == 0) {
+            entityManager.persist((new OrderTicketLinkage(1,1,null,null)));
+            entityManager.persist((new OrderTicketLinkage(2,3,1L,null)));
+            entityManager.persist((new OrderTicketLinkage(3,4,1L,null)));
+            entityManager.persist((new OrderTicketLinkage(4,6,2L,2L)));
+            entityManager.persist((new OrderTicketLinkage(5,6,2L,5L)));
+            entityManager.persist((new OrderTicketLinkage(6,6,3L,3L)));
+            entityManager.persist((new OrderTicketLinkage(7,6,3L,4L)));
+            entityManager.persist((new OrderTicketLinkage(8,6,4L,6L)));
+            entityManager.persist((new OrderTicketLinkage(9,7,5L,null)));
+        }
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
         {
             // AUTO_ASSIGNED (ID 1)
