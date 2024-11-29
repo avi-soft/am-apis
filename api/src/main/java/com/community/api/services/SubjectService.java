@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.dto.AddSubjectDto;
+import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -13,7 +14,9 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -49,6 +52,7 @@ public class SubjectService {
 
     public List<CustomSubject> getAllSubject() {
         try {
+
             List<CustomSubject> subjectList = entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class).getResultList();
             return subjectList;
         } catch (Exception exception) {
@@ -66,10 +70,8 @@ public class SubjectService {
 
             if (!stream.isEmpty()) {
                 return stream.get(0);
-            } else {
-                return null;
             }
-
+            return null;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return null;
@@ -77,32 +79,54 @@ public class SubjectService {
     }
     public Boolean validateAddSubjectDto(AddSubjectDto addSubjectDto) throws Exception {
         try{
-            if(addSubjectDto.getSubjectName() == null || addSubjectDto.getSubjectDescription().trim().isEmpty()) {
-                throw new IllegalArgumentException("SUBJECT NAME CANNOT BE NULL OR EMPTY");
+
+            if(addSubjectDto.getSubjectName() != null) {
+                addSubjectDto.setSubjectName(addSubjectDto.getSubjectName().trim());
             }
-            if(addSubjectDto.getSubjectDescription() != null && addSubjectDto.getSubjectDescription().trim().isEmpty()) {
-                throw new IllegalArgumentException("SUBJECT DESCRIPTION CANNOT BE EMPTY");
+
+            if(addSubjectDto.getSubjectDescription() != null) {
+                addSubjectDto.setSubjectDescription(addSubjectDto.getSubjectDescription().trim());
             }
             return true;
+        } catch(IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("ILLEGAL ARGUMENT EXCEPTION OCCURRED: "+ illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+        }
+
+    }
+
+    @Transactional
+    public CustomSubject saveSubject(AddSubjectDto addSubjectDto, Long creatorId, Role creatorRole) throws Exception {
+        try{
+            CustomSubject subject = new CustomSubject();
+            subject.setSubjectName(addSubjectDto.getSubjectName());
+            subject.setSubjectDescription(addSubjectDto.getSubjectDescription());
+            subject.setCreatedDate(new Date());
+            subject.setCreatorUserId(creatorId);
+            subject.setCreatorRole(creatorRole);
+            return entityManager.merge(subject);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
         }
     }
 
-    public void saveSubject(AddSubjectDto addSubjectDto) throws Exception {
-        try{
-            Query query = entityManager.createQuery("INSERT INTO custom_subject (subject_name, subject_description) VALUES (:subjectName, :subjectDescription");
-            query.setParameter("subjectName", addSubjectDto.getSubjectName());
-            query.setParameter("subjectDescription", addSubjectDto.getSubjectDescription());
+    @Transactional
+    public void removeSubjectById(CustomSubject subject) throws Exception {
+        try {
 
-            int affectedRow = query.executeUpdate();
-            if(affectedRow <= 0){
-                throw new IllegalArgumentException("ENTRY NOT ADDED IN THE DB");
+            if(subject == null) {
+                throw new IllegalArgumentException("No Subject Found");
             }
+            subject.setArchived('Y');
+            entityManager.merge(subject);
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
         }
     }
 

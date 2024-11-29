@@ -23,6 +23,7 @@ import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -97,8 +98,14 @@ public class TicketController {
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
-            serviceProviderTicketService.autoAssigner();
-            return ResponseService.generateSuccessResponse("DONE TILL HERE",null, HttpStatus.OK);
+            List<Order> assignedOrder = serviceProviderTicketService.autoAssigner();
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedOrder, HttpStatus.OK);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException runtimeException) {
+            exceptionHandlingService.handleException(runtimeException);
+            return ResponseService.generateErrorResponse("Runtime Exception Caught: " + runtimeException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -217,7 +224,7 @@ public class TicketController {
         }
     }
 
-    @Transactional
+    /*@Transactional
     @PostMapping("/add")
     public ResponseEntity<?> createTicket(@RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
 
@@ -290,5 +297,5 @@ public class TicketController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-    }
+    }*/
 }

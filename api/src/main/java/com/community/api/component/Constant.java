@@ -149,10 +149,10 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_BY_ID= "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name";
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId";
-    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c";
-    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c";
-    public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
-    public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId";
+    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y'";
+    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y'";
+    public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId AND c.archived != 'Y'";
+    public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId AND c.archived != 'Y'";
     public static final String GET_ALL_SECTOR = "SELECT c FROM CustomSector c";
     public static final String GET_SECTOR_BY_SECTOR_ID = "SELECT c FROM CustomSector c WHERE c.sectorId = :sectorId";
     public static final String GET_QUALIFICATION_BY_ID = "SELECT c FROM Qualification c WHERE c.qualification_id = :qualificationId";
@@ -199,4 +199,6 @@ public class Constant {
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
+    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
 }

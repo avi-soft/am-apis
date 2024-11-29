@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
@@ -133,7 +134,11 @@ public class AccountEndPoint {
             } else {
                 return loginWithUsernameOtp(loginDetails, session);
             }
-        } catch (Exception e) {
+        }catch (PersistenceException persistenceException)
+        {
+            return ResponseService.generateErrorResponse("Error logging in :"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
 
