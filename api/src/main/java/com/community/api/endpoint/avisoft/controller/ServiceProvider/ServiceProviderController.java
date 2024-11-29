@@ -94,6 +94,8 @@ public class ServiceProviderController {
         try {
             Skill skill = entityManager.find(Skill.class, skillId);
             ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             List<Skill> listOfSkills = serviceProviderEntity.getSkills();
             listOfSkills.add(skill);
             serviceProviderEntity.setSkills(listOfSkills);
@@ -112,6 +114,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
@@ -131,8 +135,9 @@ public class ServiceProviderController {
             if (serviceProviderToBeDeleted == null)
                 return responseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
             else
-                entityManager.remove(serviceProviderToBeDeleted);
-            return responseService.generateSuccessResponse("Service Provider Deleted", null, HttpStatus.OK);
+                serviceProviderToBeDeleted.setIsArchived(true);
+                entityManager.merge(serviceProviderToBeDeleted);
+            return responseService.generateSuccessResponse("Service Provider Archived", null, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -152,6 +157,8 @@ public class ServiceProviderController {
             passwordDetails = sanitizerService.sanitizeInputMap(passwordDetails);
             // String newPassword = (String) passwordDetails.get("newPassword");
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
             if (serviceProvider.getPassword() == null) {
@@ -183,6 +190,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> getServiceProviderById(@RequestParam Long userId) throws Exception {
         try {
             ServiceProviderEntity serviceProviderEntity = serviceProviderService.getServiceProviderById(userId);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProviderEntity == null) {
                 throw new Exception("ServiceProvider with ID " + userId + " not found");
             }
@@ -254,7 +263,8 @@ public class ServiceProviderController {
 
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                if(serviceProvider.getIsArchived().equals(false))
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
 
             return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);

@@ -256,6 +256,10 @@ public class CustomerEndpoint {
                 {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
                 }
+                if(secondaryMobileNumber!=null &&!customCustomerService.isValidMobileNumber(secondaryMobileNumber))
+                    errorMessages.add("Secondary mobile is invalid");
+                if(details.containsKey("whatsappNumber")&& !customCustomerService.isValidMobileNumber((String)details.get("whatsappNumber")))
+                    errorMessages.add("Invalid Whatsapp NUmber");
                 if(errorMessages.isEmpty()) {
                     customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
                     customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));

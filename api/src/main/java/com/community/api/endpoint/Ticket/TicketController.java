@@ -99,6 +99,7 @@ public class TicketController {
     public ResponseEntity<?> autoAssigner() {
         try{
             List<Order> assignedOrder = serviceProviderTicketService.autoAssigner();
+            assignedOrder = null;
             return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedOrder, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
