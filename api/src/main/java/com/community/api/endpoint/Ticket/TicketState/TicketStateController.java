@@ -72,10 +72,10 @@ public class TicketStateController {
         }
     }
     @PutMapping("/ticket/update/{ticketId}")
-    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto manualAssignmentDetails, @PathVariable Long ticketId)
+    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId)
     {
      try{
-         return ticketStateService.updateTicket(manualAssignmentDetails,ticketId);
+         return ticketStateService.updateTicket(createTicketDto,ticketId);
      }
      catch (Exception e)
         {

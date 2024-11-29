@@ -480,7 +480,7 @@ public class SharedUtilityService {
         EXCEEDS_NESTED_SIZE,
         INVALID_TYPE
     }
-    public static int isValidAndInPast(Date targetCompletionDate) {
+    public  int isInValidOrInPast(Date targetCompletionDate) {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String formattedDate = dateFormat.format(new Date());
@@ -491,10 +491,6 @@ public class SharedUtilityService {
 
             // Get the current date and time in IST
             ZonedDateTime currentDateTimeInIST = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-
-            // Debugging: Print the parsed input date in IST and the current date-time in IST
-            System.out.println("Parsed Date (IST): " + inputDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-            System.out.println("Current Date (IST): " + currentDateTimeInIST.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
             // Check if the parsed date in IST is before the current date and time in IST
             if (inputDateTime.isBefore(currentDateTimeInIST)) {

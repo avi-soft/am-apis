@@ -80,7 +80,7 @@ public class TicketStateService {
         }
     }
     @Transactional
-    public ResponseEntity<?> updateTicket(CreateTicketDto manualAssignmentDetails, Long ticketId)
+    public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId)
     {
         try {
             CustomTicketState ticketState=null;
@@ -89,70 +89,68 @@ public class TicketStateService {
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
-            if (manualAssignmentDetails.getTicketState() != null) {
-                ticketState = getTicketStateByTicketId(manualAssignmentDetails.getTicketState());
+            if (createTicketDTO.getTicketState() != null) {
+                ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 if(ticketState==null)
                     return ResponseService.generateErrorResponse("Ticket state not found",HttpStatus.NOT_FOUND);
                 ticket.setTicketState(ticketState);
             }
             Query query=null;
-            if(manualAssignmentDetails.getTicketStatus()!=null) {
-                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(manualAssignmentDetails.getTicketStatus());
+            if(createTicketDTO.getTicketStatus()!=null) {
+                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
                 query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE);
-                query.setParameter("ticketStateId", manualAssignmentDetails.getTicketState());
+                query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                 List<BigInteger> resultList = query.getResultList();
                 // Convert BigInteger list to Long list
                 List<Long> resultListLong = resultList.stream()
                         .map(BigInteger::longValue)  // Convert BigInteger to long
                         .collect(Collectors.toList());
-                System.out.println(manualAssignmentDetails.getTicketStatus());
-                System.out.println(resultListLong.size());
                 if(resultListLong.isEmpty())
                     return ResponseService.generateErrorResponse("No status is available for ticket state : "+ticketState.getTicketState(),HttpStatus.NOT_FOUND);
-                if (!resultListLong.contains(manualAssignmentDetails.getTicketStatus()))
+                if (!resultListLong.contains(createTicketDTO.getTicketStatus()))
                     return ResponseService.generateErrorResponse("Invalid Status selected for ticket State :" + ticketState.getTicketState(), HttpStatus.BAD_REQUEST);
                 ticket.setTicketStatus(ticketStatus);
             }
-            if(manualAssignmentDetails.getAssigneeRole()!=null && manualAssignmentDetails.getAssignee()!=null)
+            if(createTicketDTO.getAssigneeRole()!=null && createTicketDTO.getAssignee()!=null)
             {
-                String  roleName=roleService.findRoleName(manualAssignmentDetails.getAssigneeRole());
-                Role role=roleService.getRoleByRoleId(manualAssignmentDetails.getAssigneeRole());
+                String  roleName=roleService.findRoleName(createTicketDTO.getAssigneeRole());
+                Role role=roleService.getRoleByRoleId(createTicketDTO.getAssigneeRole());
                 if(role==null)
                     return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.NOT_FOUND);
                 else if((!roleName.equals(Constant.roleAdmin))&&(!roleName.equals(Constant.roleServiceProvider)))
-                    return ResponseService.generateErrorResponse("Cannot assign ticket to : "+roleService.findRoleName(manualAssignmentDetails.getAssigneeRole()),HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("Cannot assign ticket to : "+roleService.findRoleName(createTicketDTO.getAssigneeRole()),HttpStatus.NOT_FOUND);
                 if(roleName.equals(Constant.roleServiceProvider))
                 {
-                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, manualAssignmentDetails.getAssignee());
+                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                     if(serviceProvider==null)
                         return ResponseService.generateErrorResponse("Assignee not found",HttpStatus.NOT_FOUND);
                 }
                 else if(roleName.equals(Constant.roleAdmin))
                 {
-                    CustomAdmin customAdmin=entityManager.find(CustomAdmin.class,manualAssignmentDetails.getAssignee());
+                    CustomAdmin customAdmin=entityManager.find(CustomAdmin.class,createTicketDTO.getAssignee());
                     if(customAdmin==null)
                         return ResponseService.generateErrorResponse("Assignee not found",HttpStatus.NOT_FOUND);
                 }
-                ticket.setAssignee(manualAssignmentDetails.getAssignee());
+                ticket.setAssignee(createTicketDTO.getAssignee());
                 ticket.setAssigneeRole(role);
             }
-            if(manualAssignmentDetails.getTargetCompletionDate()!=null)
+            if(createTicketDTO.getTargetCompletionDate()!=null)
             {
-              if(sharedUtilityService.isValidAndInPast(manualAssignmentDetails.getTargetCompletionDate())==1)
+              if(sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate())==1)
               {
                   return ResponseService.generateErrorResponse("Target Completion date cannot be in past",HttpStatus.BAD_REQUEST);
               }
-              if(sharedUtilityService.isValidAndInPast(manualAssignmentDetails.getTargetCompletionDate())==-1)
+              if(sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate())==-1)
                   return ResponseService.generateErrorResponse("Invalid Date-Time",HttpStatus.BAD_REQUEST);
-              ticket.setTargetCompletionDate(manualAssignmentDetails.getTargetCompletionDate());
+              ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
             Order order=orderService.findOrderById(ticket.getOrder().getId());
             CustomOrderState orderState=entityManager.find(CustomOrderState.class,order.getId());
             query=entityManager.createNativeQuery(Constant.GET_ORDER_STATE_LINKED_WITH_TICKET);
             if(ticketState!=null) {
-                query.setParameter("ticketStateId", manualAssignmentDetails.getTicketState());
+                query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                 Integer orderStateId = (Integer) query.getFirstResult();
                 orderState.setOrderStateId(orderStateId);
                 entityManager.merge(orderState);
