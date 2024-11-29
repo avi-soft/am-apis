@@ -1,6 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomJobGroup;
@@ -79,7 +80,7 @@ public class TicketStateService {
         }
     }
     @Transactional
-    public ResponseEntity<?> updateTicket(ManualAssignmentDetails manualAssignmentDetails,Long ticketId)
+    public ResponseEntity<?> updateTicket(CreateTicketDto manualAssignmentDetails, Long ticketId)
     {
         try {
             CustomTicketState ticketState=null;

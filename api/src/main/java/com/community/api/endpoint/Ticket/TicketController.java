@@ -224,7 +224,7 @@ public class TicketController {
         }
     }
 
-    @Transactional
+    /*@Transactional
     @PostMapping("/add")
     public ResponseEntity<?> createTicket(@RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
 
@@ -297,5 +297,5 @@ public class TicketController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-    }
+    }*/
 }

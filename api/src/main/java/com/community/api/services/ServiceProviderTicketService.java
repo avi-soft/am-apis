@@ -167,7 +167,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketType(1L);
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicketDto.setAssigneeRole(4);
                             createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
@@ -202,7 +202,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketType(1L);
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicketDto.setAssigneeRole(4);
                             createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
@@ -254,7 +254,8 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
-            customServiceProviderTicket.setAssigneeRole(createTicketDto.getAssigneeRole());
+            Role role = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
+            customServiceProviderTicket.setAssigneeRole(role);
 
             if (assignedTo != null) {
                 customServiceProviderTicket.setAssignee(assignedTo.getService_provider_id());
@@ -362,7 +363,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketType(1L);
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                            createTicketDto.setAssigneeRole(roleService.getRoleByRoleId(4));
+                            createTicketDto.setAssigneeRole(4);
                             createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());

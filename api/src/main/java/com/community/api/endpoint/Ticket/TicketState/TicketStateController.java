@@ -1,6 +1,7 @@
 package com.community.api.endpoint.Ticket.TicketState;
 
 import com.community.api.component.Constant;
+import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.Ticket.TicketStatus.TicketStatusController;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -71,7 +72,7 @@ public class TicketStateController {
         }
     }
     @PutMapping("/ticket/update/{ticketId}")
-    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody ManualAssignmentDetails manualAssignmentDetails, @PathVariable Long ticketId)
+    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto manualAssignmentDetails, @PathVariable Long ticketId)
     {
      try{
          return ticketStateService.updateTicket(manualAssignmentDetails,ticketId);
