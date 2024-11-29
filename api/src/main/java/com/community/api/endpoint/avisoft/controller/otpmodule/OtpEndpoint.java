@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
@@ -120,6 +121,9 @@ public class OtpEndpoint {
             } else {
                 return responseService.generateErrorResponse(ApiConstants.RATE_LIMIT_EXCEEDED, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
             }
+        }catch (PersistenceException persistenceException)
+        {
+            return ResponseService.generateErrorResponse("Error sending otp:"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Some error occurred" + e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -220,7 +224,10 @@ public class OtpEndpoint {
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
-        } catch (Exception e) {
+        } catch (PersistenceException persistenceException)
+        {
+            return ResponseService.generateErrorResponse("Error verifying otp:"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Otp verification error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

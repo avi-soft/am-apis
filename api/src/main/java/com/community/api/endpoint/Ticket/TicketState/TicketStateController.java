@@ -1,19 +1,33 @@
 package com.community.api.endpoint.Ticket.TicketState;
 
 import com.community.api.component.Constant;
+import com.community.api.dto.CreateTicketDto;
+import com.community.api.endpoint.Ticket.TicketStatus.TicketStatusController;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.ManualAssignmentDetails;
 import com.community.api.services.ResponseService;
 import com.community.api.services.TicketStateService;
+import com.community.api.services.TicketStatusService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 public class TicketStateController {
@@ -23,6 +37,12 @@ public class TicketStateController {
 
     @Autowired
     TicketStateService ticketStateService;
+
+    @Autowired
+    private TicketStatusService ticketStatusService;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @GetMapping("/get-all-ticket-states")
     public ResponseEntity<?> getAllTicketStates() {
@@ -49,6 +69,40 @@ public class TicketStateController {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @PutMapping("/ticket/update/{ticketId}")
+    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId)
+    {
+     try{
+         return ticketStateService.updateTicket(createTicketDto,ticketId);
+     }
+     catch (Exception e)
+        {
+         exceptionHandlingService.handleException(e);
+         return ResponseService.generateErrorResponse("Error updating ticket state :"+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @GetMapping("/get-all-status/{ticketStateId}")
+    public ResponseEntity<?>getAllStatusForAState(@PathVariable Long ticketStateId) {
+        try {
+            Query query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE);
+            query.setParameter("ticketStateId", ticketStateId);
+            List<BigInteger> resultList = query.getResultList();
+            // Convert BigInteger list to Long list
+            List<Long> resultListLong = resultList.stream()
+                    .map(BigInteger::longValue)  // Convert BigInteger to long
+                    .collect(Collectors.toList());
+            List<CustomTicketStatus> listOfStatuses = new ArrayList<>();
+            for (Long statusId : resultListLong) {
+                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(statusId);
+                listOfStatuses.add(customTicketStatus);
+            }
+            return ResponseService.generateSuccessResponse("Status List : ",listOfStatuses,HttpStatus.OK);
+        }catch (Exception e)
+        {
+            exceptionHandlingService.handleException(e);
+            return ResponseService.generateErrorResponse("Some error occured while fetching : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.community.api.dto;
 
-import com.community.api.entity.Role;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,12 +24,15 @@ public class CreateTicketDto {
     @JsonProperty("ticket_type")
     private Long ticketType;
 
+    @NotNull
     @JsonProperty("assignee")
     private Long assignee;
 
+    @NotNull
     @JsonProperty("assignee_role")
-    private Role assigneeRole;
+    private Integer assigneeRole;
 
+    @NotNull
     @JsonProperty("target_completion_time")
     private Date targetCompletionDate;
 
