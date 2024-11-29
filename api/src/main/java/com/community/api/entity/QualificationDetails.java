@@ -70,7 +70,7 @@ public class QualificationDetails {
 
     @Min(value = 0, message = "Percentage must not be less than 0")
     @Max(value = 100, message = "Percentage must not be greater than 100")
-    @Column(name = "total_percentage_value" , nullable = false)
+    @Column(name = "cumulative_percentage_value" , nullable = false)
     private Double cumulative_percentage_value;
 
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
