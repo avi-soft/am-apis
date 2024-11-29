@@ -357,7 +357,7 @@ public class CartEndPoint extends BaseEndpoint {
                 subTotal=orderItemList.size()*platformfee+productFee;
                 response.put("cart_id", cart.getId());
                 response.put("products", products.toArray());
-                response.put("sub_total", productFee);
+                response.put("sub_total", subTotal);
                 response.put("price", productFee);
                 response.put("total_platform_fee", orderItemList.size()*platformfee);
                 for(OrderItem orderItem:archievedItems)
