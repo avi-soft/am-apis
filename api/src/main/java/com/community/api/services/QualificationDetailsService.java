@@ -92,10 +92,18 @@ public class QualificationDetailsService {
         List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
         Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
-        List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
-        qualificationDetails.setSubject_ids(subjects);
-        createSubjectDetails(qualificationDetails);
-        validateSubjectSizeForCustomer(qualificationDetails);
+        if(qualificationDetails.getQualification_id().equals(14) || qualificationDetails.getQualification_id().equals(15)) {
+            if (qualificationDetails.getSubject_ids() == null || qualificationDetails.getSubject_ids().isEmpty()) {
+                throw new IllegalArgumentException("Subjects list cannot be empty");
+            }
+        }
+        if(!(qualificationDetails.getSubject_ids()==null|| qualificationDetails.getSubject_ids().isEmpty()))
+        {
+            List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
+            qualificationDetails.setSubject_ids(subjects);
+            createSubjectDetails(qualificationDetails);
+            validateSubjectSizeForCustomer(qualificationDetails);
+        }
         validateQualificationDetail(qualificationDetails);
         List<CustomStream> streams= streamService.getAllStream();
         Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
@@ -418,6 +426,16 @@ public class QualificationDetailsService {
                     }
                 }
             }
+            else
+            {
+                if(qualificationIdToUpdate.equals(14) || qualificationIdToUpdate.equals(15))
+                {
+                    if(qualificationDetailsToUpdate.getSubject_ids().isEmpty() || qualificationDetailsToUpdate.getSubject_ids()==null)
+                    {
+                        throw new IllegalArgumentException("You have to add at least five subjects");
+                    }
+                }
+            }
         }
         return entityManager.merge(qualificationDetailsToUpdate);
     }
@@ -575,28 +593,28 @@ public class QualificationDetailsService {
     }
 
     public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
-        if (subjectIds == null || subjectIds.isEmpty()) {
-            throw new IllegalArgumentException("Subjects list cannot be empty");
-        }
-
         // Query to check which subject IDs exist in the database
-        List<Long> existingSubjectIds = entityManager.createQuery(
-                        "SELECT s.subjectId FROM CustomSubject s WHERE s.subjectId IN :subjectIds",
-                        Long.class)
-                .setParameter("subjectIds", subjectIds)
-                .getResultList();
+        if(!(subjectIds==null|| subjectIds.isEmpty()))
+        {
+            List<Long> existingSubjectIds = entityManager.createQuery(
+                            "SELECT s.subjectId FROM CustomSubject s WHERE s.subjectId IN :subjectIds",
+                            Long.class)
+                    .setParameter("subjectIds", subjectIds)
+                    .getResultList();
 
-        // Check if any IDs from the request do not exist
-        List<Long> missingSubjectIds = subjectIds.stream()
-                .filter(id -> !existingSubjectIds.contains(id))
-                .collect(Collectors.toList());
+            // Check if any IDs from the request do not exist
+            List<Long> missingSubjectIds = subjectIds.stream()
+                    .filter(id -> !existingSubjectIds.contains(id))
+                    .collect(Collectors.toList());
 
-        if (!missingSubjectIds.isEmpty()) {
-            throw new IllegalArgumentException("The following subject IDs do not exist: " + missingSubjectIds);
+            if (!missingSubjectIds.isEmpty()) {
+                throw new IllegalArgumentException("The following subject IDs do not exist: " + missingSubjectIds);
+            }
+
+            // Return the validated list of IDs
+            return subjectIds;
         }
-
-        // Return the validated list of IDs
-        return subjectIds;
+       return null;
     }
 
     @Transactional
