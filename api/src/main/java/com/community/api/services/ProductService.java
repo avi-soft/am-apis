@@ -408,7 +408,7 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> status, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
+    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
 
         // Initialize the JPQL query
         StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
@@ -434,8 +434,8 @@ public class ProductService {
             jpql.append("AND p.productState IN :states ");
         }
 
-        if (status != null && !status.isEmpty()) {
-            for (Long id : status) {
+        if (statuses != null && !statuses.isEmpty()) {
+            for (Long id : statuses) {
                 CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(id);
                 if (productRejectionStatus == null) {
                     throw new IllegalArgumentException("NO PRODUCT STATUS FOUND WITH THIS ID: " + id);
