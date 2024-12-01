@@ -410,107 +410,116 @@ public class ProductService {
 
     public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
 
-        // Initialize the JPQL query
-        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
-                .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
-                .append("JOIN SkuImpl s ON s.defaultProduct = p ")
-                .append("WHERE 1=1 "); // Use this to simplify appending conditions
+        try {
 
-        // List to hold query parameters
-        List<CustomProductState> customProductStates = new ArrayList<>();
-        List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
-        List<Category> categoryList = new ArrayList<>();
-        List<CustomReserveCategory> customReserveCategoryList = new ArrayList<>();
+            // Initialize the JPQL query
+            StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
+                    .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
+                    .append("JOIN SkuImpl s ON s.defaultProduct = p ")
+                    .append("WHERE 1=1 "); // Use this to simplify appending conditions
 
-        // Conditionally build the query
-        if (states != null && !states.isEmpty()) {
-            for (Long id : states) {
-                CustomProductState productState = productStateService.getProductStateById(id);
-                if (productState == null) {
-                    throw new IllegalArgumentException("NO PRODUCT STATE FOUND WITH THIS ID: " + id);
+            // List to hold query parameters
+            List<CustomProductState> customProductStates = new ArrayList<>();
+            List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
+            List<Category> categoryList = new ArrayList<>();
+            List<CustomReserveCategory> customReserveCategoryList = new ArrayList<>();
+
+            // Conditionally build the query
+            if (states != null && !states.isEmpty()) {
+                for (Long id : states) {
+                    CustomProductState productState = productStateService.getProductStateById(id);
+                    if (productState == null) {
+                        throw new IllegalArgumentException("NO PRODUCT STATE FOUND WITH THIS ID: " + id);
+                    }
+                    customProductStates.add(productState);
                 }
-                customProductStates.add(productState);
+                jpql.append("AND p.productState IN :states ");
             }
-            jpql.append("AND p.productState IN :states ");
-        }
 
-        if (statuses != null && !statuses.isEmpty()) {
-            for (Long id : statuses) {
-                CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(id);
-                if (productRejectionStatus == null) {
-                    throw new IllegalArgumentException("NO PRODUCT STATUS FOUND WITH THIS ID: " + id);
+            if (statuses != null && !statuses.isEmpty()) {
+                for (Long id : statuses) {
+                    CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(id);
+                    if (productRejectionStatus == null) {
+                        throw new IllegalArgumentException("NO PRODUCT STATUS FOUND WITH THIS ID: " + id);
+                    }
+                    productRejectionStatuses.add(productRejectionStatus);
                 }
-                productRejectionStatuses.add(productRejectionStatus);
+                jpql.append("AND p.rejectionStatus IN :statuses ");
             }
-            jpql.append("AND p.rejectionStatus IN :statuses ");
-        }
 
-        if (categories != null && !categories.isEmpty()) {
-            for (Long id : categories) {
-                Category category = catalogService.findCategoryById(id);
-                if (category == null) {
-                    throw new IllegalArgumentException("NO CATEGORY FOUND WITH THIS ID: " + id);
+            if (categories != null && !categories.isEmpty()) {
+                for (Long id : categories) {
+                    Category category = catalogService.findCategoryById(id);
+                    if (category == null) {
+                        throw new IllegalArgumentException("NO CATEGORY FOUND WITH THIS ID: " + id);
+                    }
+                    categoryList.add(category);
                 }
-                categoryList.add(category);
+                jpql.append("AND p.defaultCategory IN :categories ");
             }
-            jpql.append("AND p.defaultCategory IN :categories ");
-        }
 
-        if (reserveCategories != null && !reserveCategories.isEmpty()) {
-            for (Long id : reserveCategories) {
-                customReserveCategoryList.add(reserveCategoryService.getReserveCategoryById(id));
+            if (reserveCategories != null && !reserveCategories.isEmpty()) {
+                for (Long id : reserveCategories) {
+                    customReserveCategoryList.add(reserveCategoryService.getReserveCategoryById(id));
+                }
+                jpql.append("AND r.customReserveCategory IN :reserveCategories ");
             }
-            jpql.append("AND r.customReserveCategory IN :reserveCategories ");
-        }
 
-        if (title != null && !title.isEmpty()) {
-            jpql.append("AND p.metaTitle LIKE :title ");
-        }
+            if (title != null && !title.isEmpty()) {
+                jpql.append("AND p.metaTitle LIKE :title ");
+            }
 
-        if (fee != null) {
-            jpql.append("AND r.fee > :fee ");
-        }
+            if (fee != null) {
+                jpql.append("AND r.fee > :fee ");
+            }
 
-        if (post != null) {
-            jpql.append("AND r.post > :post ");
-        }
+            if (post != null) {
+                jpql.append("AND r.post > :post ");
+            }
 
-        if (startRange != null && endRange != null) {
-            jpql.append("AND s.activeStartDate BETWEEN :startRange AND :endRange ");
-        }
+            if (startRange != null && endRange != null) {
+                jpql.append("AND s.activeStartDate BETWEEN :startRange AND :endRange ");
+            }
 
-        // Create the query with the final JPQL string
-        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+            // Create the query with the final JPQL string
+            TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
 
-        // Set parameters
-        if (!customProductStates.isEmpty()) {
-            query.setParameter("states", customProductStates);
-        }
-        if(!productRejectionStatuses.isEmpty()) {
-            query.setParameter("status", productRejectionStatuses);
-        }
-        if (!categoryList.isEmpty()) {
-            query.setParameter("categories", categoryList);
-        }
-        if (!customReserveCategoryList.isEmpty()) {
-            query.setParameter("reserveCategories", customReserveCategoryList);
-        }
-        if (title != null && !title.isEmpty()) {
-            query.setParameter("title", "%" + title + "%");
-        }
-        if (fee != null) {
-            query.setParameter("fee", fee);
-        }
-        if (post != null) {
-            query.setParameter("post", post);
-        }
-        if (startRange != null && endRange != null) {
-            query.setParameter("startRange", startRange);
-            query.setParameter("endRange", endRange);
-        }
+            // Set parameters
+            if (!customProductStates.isEmpty()) {
+                query.setParameter("states", customProductStates);
+            }
+            if (!productRejectionStatuses.isEmpty()) {
+                query.setParameter("status", productRejectionStatuses);
+            }
+            if (!categoryList.isEmpty()) {
+                query.setParameter("categories", categoryList);
+            }
+            if (!customReserveCategoryList.isEmpty()) {
+                query.setParameter("reserveCategories", customReserveCategoryList);
+            }
+            if (title != null && !title.isEmpty()) {
+                query.setParameter("title", "%" + title + "%");
+            }
+            if (fee != null) {
+                query.setParameter("fee", fee);
+            }
+            if (post != null) {
+                query.setParameter("post", post);
+            }
+            if (startRange != null && endRange != null) {
+                query.setParameter("startRange", startRange);
+                query.setParameter("endRange", endRange);
+            }
 
-        // Execute and return the result
-        return query.getResultList();
+            // Execute and return the result
+            return query.getResultList();
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
+        }
     }
 
     public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts) {
