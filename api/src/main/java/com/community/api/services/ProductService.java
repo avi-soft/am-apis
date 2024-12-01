@@ -489,7 +489,7 @@ public class ProductService {
                 query.setParameter("states", customProductStates);
             }
             if (!productRejectionStatuses.isEmpty()) {
-                query.setParameter("status", productRejectionStatuses);
+                query.setParameter("statuses", productRejectionStatuses);
             }
             if (!categoryList.isEmpty()) {
                 query.setParameter("categories", categoryList);
