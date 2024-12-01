@@ -408,7 +408,7 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) {
+    public List<CustomProduct> filterProducts(List<Long> states, List<Long> status, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
 
         // Initialize the JPQL query
         StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
@@ -418,6 +418,7 @@ public class ProductService {
 
         // List to hold query parameters
         List<CustomProductState> customProductStates = new ArrayList<>();
+        List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
         List<Category> categoryList = new ArrayList<>();
         List<CustomReserveCategory> customReserveCategoryList = new ArrayList<>();
 
@@ -431,6 +432,17 @@ public class ProductService {
                 customProductStates.add(productState);
             }
             jpql.append("AND p.productState IN :states ");
+        }
+
+        if (status != null && !status.isEmpty()) {
+            for (Long id : status) {
+                CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(id);
+                if (productRejectionStatus == null) {
+                    throw new IllegalArgumentException("NO PRODUCT STATUS FOUND WITH THIS ID: " + id);
+                }
+                productRejectionStatuses.add(productRejectionStatus);
+            }
+            jpql.append("AND p.rejectionStatus IN :statuses ");
         }
 
         if (categories != null && !categories.isEmpty()) {
@@ -473,6 +485,9 @@ public class ProductService {
         // Set parameters
         if (!customProductStates.isEmpty()) {
             query.setParameter("states", customProductStates);
+        }
+        if(!productRejectionStatuses.isEmpty()) {
+            query.setParameter("status", productRejectionStatuses);
         }
         if (!categoryList.isEmpty()) {
             query.setParameter("categories", categoryList);
