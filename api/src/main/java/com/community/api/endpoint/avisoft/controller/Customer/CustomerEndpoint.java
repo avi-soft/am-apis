@@ -51,6 +51,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -65,7 +66,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
@@ -75,9 +79,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDateTime;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -498,25 +505,112 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "files") List<MultipartFile> files,
+            @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            System.out.println("size:"+files.size());
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            String queryStringArchive=null;
+            String queryStringArchiveId=null;
 
+            //**********DELETE DOCUMENT :START*********
+            if(removeFileTypes.equals(true))
+            {
+                if(role.equals(Constant.roleUser)) {
+                    queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
+                    queryStringArchiveId=String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "document","custom_customer_id");
+                }
+                else if (role.equals(Constant.roleServiceProvider)) {
+                    queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "service_provider_documents", "service_provider_id");
+                    queryStringArchiveId=String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "service_provider_documents","service_provider_id");
+                }
+                for(Integer fileType:fileTypes) {
+                    DocumentType documentTypeObj = em.createQuery(
+                                    "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                            .setParameter("documentTypeId", fileType)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (documentTypeObj == null) {
+                        return ResponseService.generateErrorResponse(
+                                "Unknown document type for file: " + fileType,
+                                HttpStatus.BAD_REQUEST);
+                    }
+                    try {
+                        Query query = entityManager.createNativeQuery(queryStringArchiveId);
+                        query.setParameter("userId", customerId);
+                        query.setParameter("documentTypeId", fileType);
+                        BigInteger id = (BigInteger) query.getSingleResult();
+                        query = entityManager.createNativeQuery(queryStringArchive);
+                        query.setParameter("userId", customerId);
+                        query.setParameter("documentTypeId", fileType);
+                        int result = query.executeUpdate();
+                        System.out.println("rows affected :"+result);
+                        if (result == 1) {
+                            switch (role) {
+                                case Constant.roleUser:
+                                    System.out.println("CID:" + id.longValue());
+                                    Document document = entityManager.find(Document.class, id.longValue());
+                                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                                    if (customCustomer.getDocuments() != null) {
+                                        Iterator<Document> iterator = customCustomer.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            Document documentToDeleteC = iterator.next();
+                                            if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(customCustomer);  // merge after modification
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case Constant.roleServiceProvider:
+                                    System.out.println("SID:" + id.longValue());
+                                    ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
+                                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+                                    if (serviceProvider.getDocuments() != null) {
+                                        Iterator<ServiceProviderDocument> iterator = serviceProvider.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            ServiceProviderDocument documentToDelete = iterator.next();
+                                            if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                                System.out.println("hiSp");
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(serviceProvider);  // merge after modification
+                                                break;
+                                            }
+                                        }
+                                        deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                                    }
+                            }
+                        }
+                        else
+                            return ResponseService.generateErrorResponse("No documents found",HttpStatus.NOT_FOUND);
+                        return ResponseService.generateSuccessResponse("Success",deleteLogs,HttpStatus.OK);
+                    }catch (NoResultException noResultException)
+                    {
+                        return ResponseService.generateErrorResponse("No record found",HttpStatus.NOT_FOUND);
+                    }
+                    catch (PersistenceException persistenceException)
+                    {
+                        return ResponseService.generateErrorResponse("No operation to perform",HttpStatus.NOT_FOUND);
+                    }
+                }
+            }
+            //*******DELETE DOCUMENT :END**********
             if (customerId == null || files == null || fileTypes == null) {
                 return ResponseService.generateErrorResponse("Invalid request parameters.", HttpStatus.BAD_REQUEST);
             }
 
-            String jwtToken = authHeader.substring(7);
 
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
             if (role == null) {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
