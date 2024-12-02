@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.tomcat.util.bcel.Const;
@@ -70,12 +71,18 @@ public class StreamService {
             List<CustomStream> stream = query.getResultList();
 
             if (!stream.isEmpty()) {
+                if(stream.get(0).getArchived() == 'Y'){
+                    throw new IllegalArgumentException("Subject is already Archived");
+                }
                 return stream.get(0);
             }
             return null;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new IllegalArgumentException("Exception Caught: " + exception.getMessage());
         }
     }
 
