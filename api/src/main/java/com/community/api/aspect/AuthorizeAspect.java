@@ -43,7 +43,7 @@ public class AuthorizeAspect {
     private ExceptionHandlingImplement exceptionHandling;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String BEARER_PREFIX = Constant.BEARER_CONST;;
     private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
 
     // Pointcut to match methods annotated with @Authorize
@@ -76,7 +76,7 @@ public class AuthorizeAspect {
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             return false;  // No valid authorization header
         }
-        // Extract the JWT token (substring after "Bearer ")
+        // Extract the JWT token (substring after Constant.BEARER_CONST;)
         String jwt = authorizationHeader.substring(BEARER_PREFIX_LENGTH);
         // Extract the roleId from the JWT token using the JwtUtil class
         Integer roleId = jwtUtil.extractRoleId(jwt);

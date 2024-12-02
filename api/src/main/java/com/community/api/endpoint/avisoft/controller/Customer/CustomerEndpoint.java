@@ -218,7 +218,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             List<String> errorMessages = new ArrayList<>();
 
@@ -429,7 +429,7 @@ public class CustomerEndpoint {
             }
 
             em.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
         }catch(NoSuchFieldException e)
         {
@@ -476,14 +476,14 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
-            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer);
+            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer,authHeader);
 
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
@@ -504,7 +504,7 @@ public class CustomerEndpoint {
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
             System.out.println("size:"+files.size());
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
 
@@ -792,7 +792,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             updates=sanitizerService.sanitizeInputMap(updates);
@@ -824,7 +824,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
@@ -837,7 +837,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -854,14 +854,14 @@ public class CustomerEndpoint {
                 if (customer.getPassword() == null || customer.getPassword().isEmpty()) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 System.out.println(password+","+customer.getPassword());
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
 
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 else
                 {
@@ -1000,7 +1000,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "address-details", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId) {
+    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             Long customerID = Long.valueOf(customerId);
             if (customerService == null) {
@@ -1038,14 +1038,14 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer) {
-        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(Constant.BEARER_CONST)) {
             return ResponseEntity.badRequest().body("Token is required");
         }
 
@@ -1225,9 +1225,13 @@ public class CustomerEndpoint {
     @GetMapping("/get-all-customers")
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
             TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
             query.setFirstResult(startPosition);
@@ -1235,7 +1239,7 @@ public class CustomerEndpoint {
             List<Map> results = new ArrayList<>();
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
-                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd));
+                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd,authHeader));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {

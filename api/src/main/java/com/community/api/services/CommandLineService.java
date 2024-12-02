@@ -414,12 +414,13 @@ public class CommandLineService implements CommandLineRunner {
         count = entityManager.createQuery("SELECT COUNT(e) FROM Qualification e", Long.class).getSingleResult();
 
         if (count == 0) {
-            entityManager.persist(new Qualification(1L, "MATRICULATION", "Completed secondary education or equivalent"));
-            entityManager.persist(new Qualification(2L, "INTERMEDIATE", "Completed higher secondary education or equivalent"));
+            entityManager.persist(new Qualification(1L, "MATRICULATION/10th", "Completed secondary education or equivalent"));
+            entityManager.persist(new Qualification(2L, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent"));
             entityManager.persist(new Qualification(3L, "BACHELORS", "Completed undergraduate degree program"));
             entityManager.persist(new Qualification(4L, "MASTERS", "Completed postgraduate degree program"));
             entityManager.persist(new Qualification(5L, "DOCTORATE", "Completed doctoral degree program"));
-
+            entityManager.persist(new Qualification(6L, "DIPLOMA", "Completed a diploma program"));
+            entityManager.persist(new Qualification(7L, "ITI", "Completed an ITI (Industrial Training Institute) program"));
         }
 
         count = entityManager.createQuery("SELECT COUNT(e) FROM TypingText e", Long.class).getSingleResult();

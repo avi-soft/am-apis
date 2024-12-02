@@ -56,7 +56,7 @@
         <class>com.community.api.entity.FileType</class>
         <class>com.community.api.entity.BoardUniversity</class>
         <class>com.community.api.entity.UploadedPdf</class>
-
+        <class>com.community.api.entity.SubjectDetail</class>
         <class>com.community.api.entity.CustomProduct</class>
         <class>com.community.api.entity.CustomProductState</class>
         <class>com.community.api.entity.CustomApplicationScope</class>
