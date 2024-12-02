@@ -151,9 +151,9 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId";
     public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y'";
     public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y'";
-    public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId AND c.archived != 'Y'";
+    public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
     public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
-    public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId AND c.archived != 'Y'";
+    public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId";
     public static final String GET_STREAM_BY_STREAM_NAME = "SELECT c FROM CustomStream c WHERE LOWER(c.streamName) = LOWER(:streamName) AND c.archived != 'Y'";
     public static final String GET_ALL_SECTOR = "SELECT c FROM CustomSector c";
     public static final String GET_SECTOR_BY_SECTOR_ID = "SELECT c FROM CustomSector c WHERE c.sectorId = :sectorId";
