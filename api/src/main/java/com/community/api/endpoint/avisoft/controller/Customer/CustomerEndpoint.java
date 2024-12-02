@@ -80,9 +80,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.LocalDateTime;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -543,32 +545,48 @@ public class CustomerEndpoint {
                         Query query = entityManager.createNativeQuery(queryStringArchiveId);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
-                        Integer id = (Integer) query.getSingleResult();
+                        BigInteger id = (BigInteger) query.getSingleResult();
                         query = entityManager.createNativeQuery(queryStringArchive);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
                         int result = query.executeUpdate();
                         System.out.println("rows affected :"+result);
                         if (result == 1) {
-                            switch (role)
-                            {
+                            switch (role) {
                                 case Constant.roleUser:
-                                    Document document=entityManager.find(Document.class,id.longValue());
-                                    CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-                                    if(customCustomer.getDocuments().contains(document)) {
-                                        customCustomer.getDocuments().remove(document);
-                                        entityManager.merge(customCustomer);
+                                    System.out.println("CID:" + id.longValue());
+                                    Document document = entityManager.find(Document.class, id.longValue());
+                                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                                    if (customCustomer.getDocuments() != null) {
+                                        Iterator<Document> iterator = customCustomer.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            Document documentToDeleteC = iterator.next();
+                                            if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(customCustomer);  // merge after modification
+                                                break;
+                                            }
+                                        }
                                     }
                                     break;
                                 case Constant.roleServiceProvider:
-                                    ServiceProviderDocument serviceProviderDocument=entityManager.find(ServiceProviderDocument.class,id.longValue());
-                                    ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,customerId);
-                                    if(serviceProvider.getDocuments().contains(serviceProviderDocument)) {
-                                        serviceProvider.getDocuments().remove(serviceProviderDocument);
-                                        entityManager.merge(serviceProvider);
+                                    System.out.println("SID:" + id.longValue());
+                                    ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
+                                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+                                    if (serviceProvider.getDocuments() != null) {
+                                        Iterator<ServiceProviderDocument> iterator = serviceProvider.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            ServiceProviderDocument documentToDelete = iterator.next();
+                                            if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                                System.out.println("hiSp");
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(serviceProvider);  // merge after modification
+                                                break;
+                                            }
+                                        }
+                                        deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
                                     }
                             }
-                            deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
                         }
                         else
                             return ResponseService.generateErrorResponse("No documents found",HttpStatus.NOT_FOUND);
