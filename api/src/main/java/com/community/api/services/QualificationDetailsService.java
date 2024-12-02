@@ -4,9 +4,18 @@ import com.community.api.component.Constant;
 import com.community.api.dto.UpdateQualificationDto;
 import com.community.api.endpoint.avisoft.controller.Qualification.QualificationController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.ScoringCriteria;
+import com.community.api.entity.SubjectDetail;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
-import com.community.api.services.exception.*;
+import com.community.api.services.exception.CustomerDoesNotExistsException;
+import com.community.api.services.exception.EntityAlreadyExistsException;
+import com.community.api.services.exception.EntityDoesNotExistsException;
+import com.community.api.services.exception.ExaminationDoesNotExistsException;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
@@ -14,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,8 +63,8 @@ public class QualificationDetailsService {
             List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
             qualificationDetails.setBoard_university_id(boardUniversityToAdd);
-//            List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
-//            qualificationDetails.setSubject_ids(subjects);
+    /*      List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
+            qualificationDetails.setSubject_ids(subjects);*/
             if(qualificationDetails.getSubject_name()==null)
             {
                 throw new IllegalArgumentException("Subject_name cannot be null");
@@ -642,7 +654,7 @@ public class QualificationDetailsService {
 
     public void giveQualificationScore(Long userId) throws CustomerDoesNotExistsException {
         ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
-        TypedQuery<ScoringCriteria> typedQuery=  entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA,ScoringCriteria.class);
+        TypedQuery<ScoringCriteria> typedQuery=  entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA, ScoringCriteria.class);
         List<ScoringCriteria> scoringCriteriaList = typedQuery.getResultList();
 
         Integer totalScore=0;
