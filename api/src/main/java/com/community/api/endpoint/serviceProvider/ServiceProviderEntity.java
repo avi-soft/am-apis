@@ -106,6 +106,8 @@ public class ServiceProviderEntity  {
 
     private String pan_number;
 
+    @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isArchived = false;
     @Size(min = 9, max = 13)
     private String mobileNumber;
     private String otp;
