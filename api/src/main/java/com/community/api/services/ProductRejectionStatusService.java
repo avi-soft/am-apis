@@ -42,6 +42,9 @@ public class ProductRejectionStatusService {
             }
             throw new IllegalArgumentException("NO REJECTION STATE IS FOUND WITH THIS ID");
 
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage());
