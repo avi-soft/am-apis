@@ -504,7 +504,7 @@ public class CustomerEndpoint {
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
             System.out.println("size:"+files.size());
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
 
@@ -1045,7 +1045,7 @@ public class CustomerEndpoint {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(Constant.BEARER_CONST)) {
             return ResponseEntity.badRequest().body("Token is required");
         }
 

@@ -423,7 +423,7 @@ public class AccountEndPoint {
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
-            String authHeader="Bearer ";
+            String authHeader=Constant.BEARER_CONST;;
             String username = (String) loginDetails.get("username");
             String password = (String) loginDetails.get("password");
             Integer role = (Integer) loginDetails.get("role");
@@ -543,7 +543,7 @@ public class AccountEndPoint {
     public ResponseEntity<?> loginWithCustomerPassword(@RequestBody Map<String, Object> loginDetails, HttpSession session,
                                                        HttpServletRequest request) {
         try {
-            String authHeader="Bearer ";
+            String authHeader=Constant.BEARER_CONST;;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 

@@ -134,7 +134,7 @@ public class OtpEndpoint {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, HttpServletRequest request) {
         try {
-            String authHeader="Bearer ";
+            String authHeader=Constant.BEARER_CONST;;
             loginDetails=sanitizerService.sanitizeInputMap(loginDetails);
 
             if (loginDetails == null) {

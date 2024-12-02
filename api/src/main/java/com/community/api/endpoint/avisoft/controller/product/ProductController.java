@@ -702,7 +702,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
 
