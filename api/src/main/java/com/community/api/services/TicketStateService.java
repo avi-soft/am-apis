@@ -89,6 +89,7 @@ public class TicketStateService {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            System.out.println("USER ID"+tokenUserId);
             String roleName = roleService.getRoleByRoleId(roleId).getRole_name();
             CustomTicketState ticketState=null;
             if (ticketId == null)

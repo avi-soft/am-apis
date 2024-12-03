@@ -203,7 +203,5 @@ public class Constant {
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
     public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
     public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
-    public static final String BEARER_CONST=Constant.BEARER_CONST;
-
-    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT c FROM CustomTicketHistory c WHERE c.ticketId = :ticketId";
+    public static final String BEARER_CONST= "Bearer ";
 }
