@@ -353,48 +353,90 @@ public class AccountEndPoint {
             }
 
             String username = (String) loginDetails.get("username");
+            String mobileNumber = (String) loginDetails.get("mobileNumber");
             String password = (String) loginDetails.get("password");
             Integer role = (Integer) loginDetails.get("role");
+            String countryCode = (String) loginDetails.getOrDefault("countryCode", Constant.COUNTRY_CODE);
 
-            if (username == null || password == null || role == null) {
-                return responseService.generateErrorResponse("username or password or role cannot be empty", HttpStatus.BAD_REQUEST);
+            if(mobileNumber==null && username==null)
+            {
+                return ResponseService.generateErrorResponse("Either mobileNumber or username should be provided",HttpStatus.BAD_REQUEST );
+            }
+            if ( password == null || role == null ) {
+                return responseService.generateErrorResponse("password, role cannot be empty", HttpStatus.BAD_REQUEST);
+            }
+            String usernameOrMobileNumber= null;
+            String returnMessageToshow=null;
+            if(username!=null)
+            {
+                usernameOrMobileNumber=username;
+                returnMessageToshow="username";
+            }
+            else if(mobileNumber!=null)
+            {
+                usernameOrMobileNumber=mobileNumber;
+                returnMessageToshow="mobile Number";
             }
             if(roleService.findRoleName(role).equals(Constant.ADMIN))
             {
-                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                CustomAdmin customAdmin=null;
+                if(username!=null)
+                {
+                     customAdmin=adminService.findAdminByUsername(username);
+                }
+                else if(mobileNumber!=null)
+                {
+                    customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
+                }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
                 }
                 if (customAdmin.getRole() ==2) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    return responseService.generateErrorResponse("Custom Admin with " +returnMessageToshow +" "+usernameOrMobileNumber+" does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
                 }
             }
             if(roleService.findRoleName(role).equals(Constant.SUPER_ADMIN))
             {
-                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                CustomAdmin customAdmin=null;
+                if(username!=null)
+                {
+                    customAdmin=adminService.findAdminByUsername(username);
+                }
+                else if(mobileNumber!=null)
+                {
+                    customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
+                }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
                 }
                 if (customAdmin.getRole() ==1) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    return responseService.generateErrorResponse("Custom Admin with " +returnMessageToshow +" "+usernameOrMobileNumber+" does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
                 }
             } if(roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
             {
-                CustomAdmin customAdmin=adminService.findAdminByUsername(username);
+                CustomAdmin customAdmin=null;
+                if(username!=null)
+                {
+                    customAdmin=adminService.findAdminByUsername(username);
+                }
+                else if(mobileNumber!=null)
+                {
+                    customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
+                }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
                 }
                 if (customAdmin.getRole() ==3) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
-                    return responseService.generateErrorResponse("Custom Admin with username " + username + " does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
+                    return responseService.generateErrorResponse("Custom Admin with " +returnMessageToshow +" "+usernameOrMobileNumber+" does not have "+ roleService.findRoleName(role)+" role", HttpStatus.BAD_REQUEST);
                 }
             }
 
@@ -406,7 +448,6 @@ public class AccountEndPoint {
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
-
         }
     }
 
