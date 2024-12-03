@@ -79,6 +79,10 @@ public class CustomTicketHistory {
     @JsonProperty("ticket_assign_time")
     private Date ticketAssignDate;
 
+    @Column(name = "")
+    @JsonProperty("created_date")
+    private Date createdDate;
+
     @OneToOne
     @JsonBackReference
     @JoinColumn(name = "ORDER_ID")
