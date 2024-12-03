@@ -602,5 +602,44 @@ public class CommandLineService implements CommandLineRunner {
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
         query.executeUpdate();
+
+        long institutionCount = entityManager.createQuery("SELECT count(i) FROM Institution i", Long.class).getSingleResult();
+        if (institutionCount == 0) {
+            entityManager.merge(new Institution(1L, "All India Institute of Medical Sciences", "New Delhi", "AIIMS", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(2L, "Indian Institute of Technology Bombay", "Mumbai", "IITB", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(3L, "Indian Institute of Science", "Bangalore", "IISC", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(4L, "National Institute of Technology Tiruchirappalli", "Tiruchirappalli", "NITT", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(5L, "Delhi Technological University", "New Delhi", "DTU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(6L, "Jawaharlal Nehru Technological University", "Hyderabad", "JNTUH", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(7L, "Banaras Hindu University", "Varanasi", "BHU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(8L, "University of Hyderabad", "Hyderabad", "UOH", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(9L, "Vellore Institute of Technology", "Vellore", "VIT", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(10L, "Manipal Academy of Higher Education", "Manipal", "MAHE", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(11L, "Amity University", "Noida", "AU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(12L, "Birla Institute of Technology and Science", "Pilani", "BITS", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(13L, "SRM Institute of Science and Technology", "Chennai", "SRM", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(14L, "Christ University", "Bangalore", "CU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(15L, "Savitribai Phule Pune University", "Pune", "SPPU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(16L, "Indian Statistical Institute", "Kolkata", "ISI", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(17L, "Tata Institute of Fundamental Research", "Mumbai", "TIFR", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(18L, "National Law School of India University", "Bangalore", "NLSIU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(19L, "Indian Institute of Technology Kanpur", "Kanpur", "IITK", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(20L, "Indian Institute of Technology Delhi", "New Delhi", "IITD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(21L, "Jamia Millia Islamia", "New Delhi", "JMI", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(22L, "Aligarh Muslim University", "Aligarh", "AMU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(23L, "Visva-Bharati University", "Santiniketan", "VBU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(24L, "Indian Institute of Management Ahmedabad", "Ahmedabad", "IIMA", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(25L, "Indian Institute of Management Bangalore", "Bangalore", "IIMB", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(26L, "Indian Institute of Technology Kharagpur", "Kharagpur", "IITKGP", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(27L, "Indian Institute of Technology Madras", "Chennai", "IITM", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(28L, "Indian Institute of Technology Guwahati", "Guwahati", "IITG", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(29L, "Indian School of Business", "Hyderabad", "ISB", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(30L, "University of Mysore", "Mysore", "UOM", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(31L, "Anna University", "Chennai", "AU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(32L, "University of Delhi", "New Delhi", "DU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(33L, "University of Calicut", "Calicut", "UOC", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(34L, "Guru Nanak Dev University", "Amritsar", "GNDU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new Institution(35L, "Punjab University", "Chandigarh", "PU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
     }
 }
