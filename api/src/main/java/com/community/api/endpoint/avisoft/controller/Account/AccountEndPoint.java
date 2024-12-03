@@ -102,7 +102,6 @@ public class AccountEndPoint {
         this.adminService = adminService;
     }
 
-
     @PostMapping("/login-with-otp")
     @ResponseBody
     public ResponseEntity<?> verifyAndLogin(@RequestBody Map<String, Object> loginDetails, HttpSession session) {
@@ -147,14 +146,30 @@ public class AccountEndPoint {
             if (!sharedUtilityService.validateInputMap(loginDetails).equals(SharedUtilityService.ValidationResult.SUCCESS)) {
                 return ResponseService.generateErrorResponse("Invalid Request Body", HttpStatus.UNPROCESSABLE_ENTITY);
             }
-            String roleName = roleService.findRoleName((Integer) loginDetails.get("role"));
+            Integer roleId = null;
+
+            if (loginDetails.containsKey("role")) {
+                Object roleValue = loginDetails.get("role");
+                if (roleValue instanceof Integer) {
+                    roleId = (Integer) roleValue;
+                }
+            }
+            if (roleId == null) {
+                throw new IllegalArgumentException("Role information is missing or invalid.");
+            }
+            String roleName = roleService.findRoleName(roleId);
             if (roleName.equals("EMPTY"))
                 return ResponseService.generateErrorResponse("Role not found", HttpStatus.NOT_FOUND);
             //validating input map
 
             loginDetails = sanitizerService.sanitizeInputMap(loginDetails);//@TODO-Need to sanitize this too
             String mobile_number = (String) loginDetails.get("mobileNumber");
-            //}
+            String username = (String) loginDetails.get("username");
+            if (mobile_number == null && username == null)
+            {
+                throw new IllegalArgumentException("Either mobile number or username is required");
+            }
+
             if (mobile_number != null) {
 
                 int i = 0;
@@ -176,7 +191,7 @@ public class AccountEndPoint {
             }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
 
         }
     }
