@@ -8,6 +8,7 @@ import com.community.api.entity.BoardUniversity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
+import com.community.api.entity.Institution;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.SubjectDetail;
@@ -37,10 +38,11 @@ public class QualificationDetailsService {
     SharedUtilityService sharedUtilityService;
     ServiceProviderServiceImpl serviceProviderService;
     BoardUniversityService boardUniversityService;
+    InstitutionService institutionService;
     StreamService streamService ;
     SubjectService subjectService;
 
-    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService,SubjectService subjectService) {
+    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService,SubjectService subjectService,InstitutionService institutionService) {
         this.entityManager = entityManager;
         this.qualificationController = qualificationController;
         this.qualificationService = qualificationService;
@@ -49,6 +51,7 @@ public class QualificationDetailsService {
         this.boardUniversityService=boardUniversityService;
         this.streamService=streamService;
         this.subjectService=subjectService;
+        this.institutionService=institutionService;
     }
 
     @Transactional
@@ -60,6 +63,9 @@ public class QualificationDetailsService {
             List<DocumentType> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
+            List<Institution> institutions= institutionService.getAllInstitutions();
+            Long institutionToAdd= findInstitutionId(qualificationDetails.getInstitution_id(),institutions);
+            qualificationDetails.setInstitution_id(institutionToAdd);
             List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
             qualificationDetails.setBoard_university_id(boardUniversityToAdd);
@@ -98,9 +104,11 @@ public class QualificationDetailsService {
         CustomCustomer customCustomer = findCustomCustomerById(userId);
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
         List<DocumentType> qualifications = qualificationService.getAllQualifications();
-        Integer qualificationToAdd = null;
-        qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
+        Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         qualificationDetails.setQualification_id(qualificationToAdd);
+        List<Institution> institutions= institutionService.getAllInstitutions();
+        Long institutionToAdd= findInstitutionId(qualificationDetails.getInstitution_id(),institutions);
+        qualificationDetails.setInstitution_id(institutionToAdd);
         List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
         Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
@@ -275,32 +283,35 @@ public class QualificationDetailsService {
             Long boardUniversityToAdd= findBoardUniversityById(qualification.getBoard_university_id(),boardUniversities);
             qualificationDetailsToUpdate.setBoard_university_id(boardUniversityToAdd);
         }
-
-        if (Objects.nonNull(qualification.getInstitution_name())) {
-            qualificationDetailsToUpdate.setInstitution_name(qualification.getInstitution_name());
+        if(Objects.nonNull(qualification.getInstitution_id()))
+        {
+            List<Institution> institutions = institutionService.getAllInstitutions();
+            Long institutionToAdd= findInstitutionId(qualification.getInstitution_id(),institutions);
+            qualificationDetailsToUpdate.setInstitution_id(institutionToAdd);
         }
+
         if (Objects.nonNull(qualification.getExamination_role_number())) {
             qualificationDetailsToUpdate.setExamination_role_number(qualification.getExamination_role_number());
         }
         if (Objects.nonNull(qualification.getExamination_registration_number())) {
             qualificationDetailsToUpdate.setExamination_registration_number(qualification.getExamination_registration_number());
         }
-        if(Objects.nonNull(qualification.getSubject_marks_type()))
-        {
-            if(!qualification.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !qualification.getSubject_marks_type().equalsIgnoreCase("CGPA") && !qualification.getSubject_marks_type().equalsIgnoreCase("Grade"))
-            {
-                throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA");
-            }
-            if(qualification.getSubject_marks_type().trim().isEmpty())
-            {
-                throw new IllegalArgumentException("Subject marks type cannot be empty");
-            }
-            qualificationDetailsToUpdate.setSubject_marks_type(qualification.getSubject_marks_type());
-            subjectMarksType=qualification.getSubject_marks_type();
-        }
-        else {
-            subjectMarksType=qualificationDetailsToUpdate.getSubject_marks_type();
-        }
+//        if(Objects.nonNull(qualification.getSubject_marks_type()))
+//        {
+//            if(!qualification.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !qualification.getSubject_marks_type().equalsIgnoreCase("CGPA") && !qualification.getSubject_marks_type().equalsIgnoreCase("Grade"))
+//            {
+//                throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA");
+//            }
+//            if(qualification.getSubject_marks_type().trim().isEmpty())
+//            {
+//                throw new IllegalArgumentException("Subject marks type cannot be empty");
+//            }
+//            qualificationDetailsToUpdate.setSubject_marks_type(qualification.getSubject_marks_type());
+//            subjectMarksType=qualification.getSubject_marks_type();
+//        }
+//        else {
+//            subjectMarksType=qualificationDetailsToUpdate.getSubject_marks_type();
+//        }
         if(Objects.nonNull(qualification.getTotal_marks_type()))
         {
             if(!qualification.getTotal_marks_type().equalsIgnoreCase("Percentage")&& !qualification.getTotal_marks_type().equalsIgnoreCase("CGPA") && !qualification.getTotal_marks_type().equalsIgnoreCase("Grade"))
@@ -429,7 +440,7 @@ public class QualificationDetailsService {
         {
             if(Objects.nonNull(qualification.getSubject_ids()))
             {
-                createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate,subjectMarksType);
+                createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
                 if(qualificationIdToUpdate.equals(14) || qualificationIdToUpdate.equals(15))
                 {
                     if(qualification.getSubject_details().size()<5)
@@ -592,6 +603,17 @@ public class QualificationDetailsService {
         }
         throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+ " does not exist");
     }
+    public Long findInstitutionId(Long institutionId,List<Institution> institutions)
+    {
+        for(Institution institution : institutions)
+        {
+            if(institution.getInstitution_id().equals(institutionId))
+            {
+                return institution.getInstitution_id();
+            }
+        }
+        throw new IllegalArgumentException("Institution with id "+ institutionId+ " does not exist");
+    }
     public Long findStreamId(Long streamId,List<CustomStream> streams)
     {
         for(CustomStream customStream : streams)
@@ -731,18 +753,6 @@ public class QualificationDetailsService {
     @Transactional
     public void createSubjectDetails(QualificationDetails qualificationDetail) {
 
-        if(qualificationDetail.getSubject_marks_type()==null)
-        {
-            throw new IllegalArgumentException("You have to select whether the you want to add the subject marks in normal marks, cgpa or grade");
-        }
-        if(!qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !qualificationDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") && !qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
-        {
-            throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA");
-        }
-        if(qualificationDetail.getSubject_marks_type().trim().isEmpty())
-        {
-            throw new IllegalArgumentException("Subject marks type cannot be empty");
-        }
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
 
@@ -773,11 +783,12 @@ public class QualificationDetailsService {
             subjectDetail.setQualificationDetails(qualificationDetail);
             subjectDetail.setSubject_marks_obtained(userDetail.getSubject_marks_obtained());
             subjectDetail.setSubject_total_marks(userDetail.getSubject_total_marks());
-            if(qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Percentage"))
+            subjectDetail.setSubject_marks_type(userDetail.getSubject_marks_type());
+            if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage"))
             {
                 subjectDetail.setSubject_equivalent_percentage((Double.parseDouble(userDetail.getSubject_marks_obtained())/Double.parseDouble(userDetail.getSubject_total_marks()))*100);
             }
-            else if(qualificationDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+            else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
             {
                 subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
             }
@@ -787,7 +798,7 @@ public class QualificationDetailsService {
     }
 
     @Transactional
-    public void createSubjectDetailsForUpdateQualification(UpdateQualificationDto qualificationDetail, QualificationDetails qualificationDetailsToUpdate,String subjectMarksType) {
+    public void createSubjectDetailsForUpdateQualification(UpdateQualificationDto qualificationDetail, QualificationDetails qualificationDetailsToUpdate) {
 
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
@@ -810,16 +821,17 @@ public class QualificationDetailsService {
             }
 
             SubjectDetail subjectDetail = new SubjectDetail();
-            validateSubjectDetailsForUpdateQualification(userDetail, customSubject,subjectMarksType);
+            validateSubjectDetailsForUpdateQualification(userDetail, customSubject);
             subjectDetail.setCustomSubject(customSubject);
             subjectDetail.setQualificationDetails(qualificationDetailsToUpdate);
             subjectDetail.setSubject_marks_obtained(userDetail.getSubject_marks_obtained());
             subjectDetail.setSubject_total_marks(userDetail.getSubject_total_marks());
-            if(subjectMarksType.equalsIgnoreCase("Percentage"))
+            subjectDetail.setSubject_marks_type(userDetail.getSubject_marks_type());
+            if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage"))
             {
                 subjectDetail.setSubject_equivalent_percentage((Double.parseDouble(userDetail.getSubject_marks_obtained())/Double.parseDouble(userDetail.getSubject_total_marks()))*100);
             }
-            else if(subjectMarksType.equalsIgnoreCase("CGPA") || qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+            else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
             {
                 subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
             }
@@ -841,7 +853,21 @@ public class QualificationDetailsService {
         {
             throw new IllegalArgumentException("Both obtained and total subject marks cannot be empty for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
         }
-        if(qualificationDetails.getSubject_marks_type().equalsIgnoreCase("Grade")|| qualificationDetails.getSubject_marks_type().equalsIgnoreCase("CGPA"))
+
+        if(subjectDetail.getSubject_marks_type()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether the you want to add the total marks in normal marks, cgpa or grade for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+
+        if(!subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") && !subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+        {
+            throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+        if(subjectDetail.getSubject_marks_type().trim().isEmpty())
+        {
+            throw new IllegalArgumentException("Subject marks type cannot be empty for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+        if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade")|| subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
         {
             if(subjectDetail.getSubject_equivalent_percentage()==null)
             {
@@ -853,7 +879,7 @@ public class QualificationDetailsService {
             }
         }
 
-        if(qualificationDetails.getSubject_marks_type().equalsIgnoreCase("Percentage") || qualificationDetails.getSubject_marks_type().equalsIgnoreCase("CGPA"))
+        if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
         {
             try {
                 String marksObtainedStr = subjectDetail.getSubject_marks_obtained();
@@ -886,7 +912,7 @@ public class QualificationDetailsService {
             }
 
         }
-        else if(qualificationDetails.getSubject_marks_type().equalsIgnoreCase("Grade"))
+        else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
         {
             String gradeObtained = subjectDetail.getSubject_marks_obtained();
             String gradeTotal = subjectDetail.getSubject_total_marks();
@@ -907,7 +933,7 @@ public class QualificationDetailsService {
         }
     }
 
-    public void validateSubjectDetailsForUpdateQualification(SubjectDetail subjectDetail,CustomSubject customSubject,String subjectMarksType)
+    public void validateSubjectDetailsForUpdateQualification(SubjectDetail subjectDetail,CustomSubject customSubject)
     {
         if(subjectDetail.getSubject_marks_obtained() ==null|| subjectDetail.getSubject_total_marks()==null)
         {
@@ -917,7 +943,20 @@ public class QualificationDetailsService {
         {
             throw new IllegalArgumentException("Both obtained and total subject marks cannot be empty for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
         }
-        if(subjectMarksType.equalsIgnoreCase("Grade")|| subjectMarksType.equalsIgnoreCase("CGPA"))
+        if(subjectDetail.getSubject_marks_type()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether the you want to add the total marks in normal marks, cgpa or grade for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+
+        if(!subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") && !subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+        {
+            throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+        if(subjectDetail.getSubject_marks_type().trim().isEmpty())
+        {
+            throw new IllegalArgumentException("Subject marks type cannot be empty for subject "+ customSubject.getSubjectName() + " with subject_id "+ customSubject.getSubjectId());
+        }
+        if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade")|| subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
         {
             if(subjectDetail.getSubject_equivalent_percentage()==null)
             {
@@ -929,7 +968,7 @@ public class QualificationDetailsService {
             }
         }
 
-        if(subjectMarksType.equalsIgnoreCase("Percentage") || subjectMarksType.equalsIgnoreCase("CGPA"))
+        if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
         {
             try {
                 String marksObtainedStr = subjectDetail.getSubject_marks_obtained();
@@ -962,7 +1001,7 @@ public class QualificationDetailsService {
             }
 
         }
-        else if(subjectMarksType.equalsIgnoreCase("Grade"))
+        else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
         {
             String gradeObtained = subjectDetail.getSubject_marks_obtained();
             String gradeTotal = subjectDetail.getSubject_total_marks();
