@@ -66,15 +66,21 @@ public class SubjectService {
 
             Query query = entityManager.createQuery(Constant.GET_SUBJECT_BY_SUBJECT_ID, CustomSubject.class);
             query.setParameter("subjectId", subjectId);
-            List<CustomSubject> stream = query.getResultList();
+            List<CustomSubject> subject = query.getResultList();
 
-            if (!stream.isEmpty()) {
-                return stream.get(0);
+            if (!subject.isEmpty()) {
+                if(subject.get(0).getArchived() == 'Y'){
+                    throw new IllegalArgumentException("Subject is already Archived");
+                }
+                return subject.get(0);
             }
             return null;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new IllegalArgumentException("Exception Caught: " + exception.getMessage());
         }
     }
 

@@ -641,7 +641,8 @@ public class ProductController extends CatalogEndpoint {
     public ResponseEntity<?> getFilterProducts(
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
-            @RequestParam(value = "status", required = false) List<Long> state,
+            @RequestParam(value = "state", required = false) List<Long> state,
+            @RequestParam(value = "status", required = false) List<Long> status,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
@@ -659,7 +660,7 @@ public class ProductController extends CatalogEndpoint {
                 String formattedDateTo = dateFormat.format(dateTo);
                 dateTo = dateFormat.parse(formattedDateTo);
             }
-            List<CustomProduct> products = productService.filterProducts(state, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
+            List<CustomProduct> products = productService.filterProducts(state, status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
 
             if (products.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
@@ -702,7 +703,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
 

@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -350,14 +351,14 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id) {
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer()));
+                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(),authHeader));
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
         } catch (IllegalArgumentException e) {

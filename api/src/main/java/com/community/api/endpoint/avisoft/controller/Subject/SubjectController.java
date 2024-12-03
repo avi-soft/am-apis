@@ -2,14 +2,11 @@ package com.community.api.endpoint.avisoft.controller.Subject;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.AddStreamDto;
 import com.community.api.dto.AddSubjectDto;
-import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
-import com.community.api.services.StreamService;
 import com.community.api.services.SubjectService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,6 +110,7 @@ public class SubjectController {
     @DeleteMapping("/remove-subject-by-id/{subjectIdString}")
     public ResponseEntity<?> removeSubjectBySubjectId(@PathVariable String subjectIdString) {
         try {
+
             Long subjectId = Long.parseLong(subjectIdString);
             CustomSubject subject = subjectService.getSubjectBySubjectId(subjectId);
             if (subject == null) {

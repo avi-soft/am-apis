@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -202,7 +203,7 @@ public class AccountEndPoint {
                 if (mobileNumber.startsWith("0"))
                     mobileNumber = mobileNumber.substring(1);
                 if (customCustomerService.isValidMobileNumber(mobileNumber) && isNumeric(mobileNumber)) {
-                    return loginWithCustomerPassword(loginDetails, session, request);
+                    return loginWithCustomerPassword(loginDetails,session,request);
                 } else {
                     return responseService.generateErrorResponse(ApiConstants.INVALID_MOBILE_NUMBER, HttpStatus.BAD_REQUEST);
                 }
@@ -463,7 +464,7 @@ public class AccountEndPoint {
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
-
+            String authHeader=Constant.BEARER_CONST;;
             String username = (String) loginDetails.get("username");
             String password = (String) loginDetails.get("password");
             Integer role = (Integer) loginDetails.get("role");
@@ -485,18 +486,20 @@ public class AccountEndPoint {
 
                     String tokenKey = "authToken_" + customCustomer.getMobileNumber();
                     String existingToken = customCustomer.getToken();
+                    authHeader=authHeader+existingToken;
                     String ipAddress = request.getRemoteAddr();
                     String userAgent = request.getHeader("User-Agent");
                     if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been signed in");
                         return ResponseEntity.ok(response);
 
                     } else {
                         String token = jwtUtil.generateToken(customer.getId(), role, ipAddress, userAgent);
                         customCustomer.setToken(token);
+                        authHeader=authHeader+token;
                         em.persist(customCustomer);
                         session.setAttribute(tokenKey, token);
-                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been signed in");
+                        OtpEndpoint.ApiResponse response = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been signed in");
                         return ResponseEntity.ok(response);
                     }
                 } else {
@@ -581,7 +584,7 @@ public class AccountEndPoint {
     public ResponseEntity<?> loginWithCustomerPassword(@RequestBody Map<String, Object> loginDetails, HttpSession session,
                                                        HttpServletRequest request) {
         try {
-
+            String authHeader=Constant.BEARER_CONST;;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
@@ -611,9 +614,9 @@ public class AccountEndPoint {
                         String existingToken = existingCustomer.getToken();
                         String ipAddress = request.getRemoteAddr();
                         String userAgent = request.getHeader("User-Agent");
-
+                        authHeader=authHeader+existingToken;
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
 
                         } else {
 
@@ -621,7 +624,7 @@ public class AccountEndPoint {
                             existingCustomer.setToken(token);
                             em.persist(existingCustomer);
                             session.setAttribute(tokenKey, token);
-                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
+                            return ResponseEntity.ok(new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
                         }
 
                     } else {
