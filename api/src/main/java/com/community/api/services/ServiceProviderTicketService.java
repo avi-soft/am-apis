@@ -355,9 +355,9 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
 
                     if (serviceProvider.getIsActive()) {
-
+                        logger.info("sp id:" + serviceProvider.getService_provider_id());
                         if ( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
-
+                            logger.info("sp who are active and approved: " + serviceProvider.getService_provider_id());
                             CreateTicketDto createTicketDto = new CreateTicketDto();
                             createTicketDto.setTicketState(1L);
                             createTicketDto.setTicketType(1L);
@@ -374,6 +374,7 @@ public class ServiceProviderTicketService {
                             assignedOrders.add(order);
                             break;
                         } else {
+                            logger.info("sp who are active and approved: else " + serviceProvider.getService_provider_id());
                             logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
                     }

@@ -69,6 +69,8 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolationException;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -402,6 +404,15 @@ public class CustomerEndpoint {
                     errorMessages.add(fieldName + " cannot be null");
                     continue;
                 }
+                if (field.isAnnotationPresent(Pattern.class)) {
+                    Pattern patternAnnotation = field.getAnnotation(Pattern.class);
+                    String regex = patternAnnotation.regexp();
+                    String message = patternAnnotation.message(); // Get custom message
+                    if (!newValue.toString().matches(regex)) {
+                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        continue;
+                    }
+                }
                 // Validate not null
 
                 // Validate size if applicable
@@ -431,7 +442,14 @@ public class CustomerEndpoint {
             em.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
-        }catch(NoSuchFieldException e)
+        }catch (DataIntegrityViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ConstraintViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch(NoSuchFieldException e)
         {
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }

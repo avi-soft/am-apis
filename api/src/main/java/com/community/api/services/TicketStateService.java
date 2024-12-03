@@ -86,18 +86,35 @@ public class TicketStateService {
     public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId,String authHeader)
     {
         try {
+            if(createTicketDTO==null||(createTicketDTO.getTicketStatus()==null&&createTicketDTO.getTicketState()==null&&createTicketDTO.getTicketType()==null&&createTicketDTO.getAssignee()==null&&createTicketDTO.getAssigneeRole()==null&&createTicketDTO.getTargetCompletionDate()==null))
+            {
+                return ResponseService.generateErrorResponse("Need at least one parameter to update",HttpStatus.BAD_REQUEST);
+            }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             System.out.println("USER ID"+tokenUserId);
-            String roleName = roleService.getRoleByRoleId(roleId).getRole_name();
+            String roleNameToken = roleService.getRoleByRoleId(roleId).getRole_name();
             CustomTicketState ticketState=null;
             if (ticketId == null)
                 return ResponseService.generateErrorResponse("Ticket Id not provided", HttpStatus.BAD_REQUEST);
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
-            if(roleName.equals(Constant.roleServiceProvider)&&!ticket.getAssignee().equals(tokenUserId))
+            if(roleNameToken.equals(Constant.roleServiceProvider))
+            {
+                if(!tokenUserId.equals(ticket.getAssignee()))
+                {
+                    return ResponseService.generateErrorResponse("Not authorized to update the ticket",HttpStatus.UNAUTHORIZED);
+                }
+                if(createTicketDTO.getTargetCompletionDate()!=null)
+                    return ResponseService.generateErrorResponse("Cannot update target Completion date",HttpStatus.UNAUTHORIZED);
+                if(createTicketDTO.getAssignee()!=null||createTicketDTO.getAssigneeRole()!=null)
+                    return ResponseService.generateErrorResponse("Cannot update assignee role/id",HttpStatus.UNAUTHORIZED);
+                if(createTicketDTO.getTicketType()!=null)
+                    return ResponseService.generateErrorResponse("Cannot update ticket type",HttpStatus.UNAUTHORIZED);
+            }
+            if(roleNameToken.equals(Constant.roleServiceProvider)&&!ticket.getAssignee().equals(tokenUserId))
                 return ResponseService.generateErrorResponse("Not authorized to perform action on this ticket",HttpStatus.UNAUTHORIZED);
             if (createTicketDTO.getTicketState() != null) {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
@@ -105,15 +122,15 @@ public class TicketStateService {
                     return ResponseService.generateErrorResponse("Ticket state not found",HttpStatus.NOT_FOUND);
                 ticket.setTicketState(ticketState);
             }
-            if(createTicketDTO.getTicketStatus()!=null&&createTicketDTO.getTicketState()==null)
-                return ResponseService.generateErrorResponse("Ticket State Required",HttpStatus.BAD_REQUEST);
+            if((createTicketDTO.getTicketStatus()!=null&&createTicketDTO.getTicketState()==null)||(createTicketDTO.getTicketStatus()==null&&createTicketDTO.getTicketState()!=null))
+                return ResponseService.generateErrorResponse("Both ticket State and status Required for the request",HttpStatus.BAD_REQUEST);
             Query query=null;
             if(createTicketDTO.getTicketStatus()!=null) {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
-                if(createTicketDTO.getTicketState().equals(ticket.getTicketState().getTicketStateId()))
-                    return ResponseService.generateErrorResponse("Selected state already set",HttpStatus.BAD_REQUEST);
+                /*if(createTicketDTO.getTicketState().equals(ticket.getTicketState().getTicketStateId()))
+                    return ResponseService.generateErrorResponse("Selected state already set",HttpStatus.BAD_REQUEST);*/
                 query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE);
                 query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                 List<BigInteger> resultList = query.getResultList();
@@ -129,20 +146,20 @@ public class TicketStateService {
             }
             if(createTicketDTO.getAssigneeRole()!=null)
             {
-                Role role=entityManager.find(Role.class,roleId);
+                Role role=entityManager.find(Role.class,createTicketDTO.getAssigneeRole());
             if(role==null)
                 return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.NOT_FOUND);
-            else if((!roleName.equals(Constant.roleAdmin))&&(!roleName.equals(Constant.roleServiceProvider)))
+            else if((!role.getRole_name().equals(Constant.roleAdmin))&&(!role.getRole_name().equals(Constant.roleServiceProvider)))
                 return ResponseService.generateErrorResponse("Cannot assign ticket to : "+roleService.findRoleName(createTicketDTO.getAssigneeRole()),HttpStatus.NOT_FOUND);
             if(createTicketDTO.getAssignee()!=null)
             {
-                if(roleName.equals(Constant.roleServiceProvider))
+                if(role.getRole_name().equals(Constant.roleServiceProvider))
                 {
                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                     if(serviceProvider==null)
                         return ResponseService.generateErrorResponse("Assignee not found",HttpStatus.NOT_FOUND);
                 }
-                else if(roleName.equals(Constant.roleAdmin))
+                else if(role.getRole_name().equals(Constant.roleAdmin))
                 {
                     CustomAdmin customAdmin=entityManager.find(CustomAdmin.class,createTicketDTO.getAssignee());
                     if(customAdmin==null)
