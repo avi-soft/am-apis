@@ -471,7 +471,7 @@ public class ServiceProviderTicketService {
             if (ticketId == null || ticketId <= 0) {
                 throw new IllegalArgumentException("TicketId cannot be <=0 or null");
             }
-            System.out.println("ticketId is: " + ticketId);
+
             Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID, CustomServiceProviderTicket.class);
             query.setParameter("ticketId", ticketId);
             List<CustomServiceProviderTicket> ticket = query.getResultList();
