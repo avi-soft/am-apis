@@ -303,7 +303,6 @@ public class AdminService
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
         if (passwordEncoder.matches(password, customAdmin.getPassword())) {
-            System.out.println("inside the match");
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenAdmin_" + customAdmin.getMobileNumber();

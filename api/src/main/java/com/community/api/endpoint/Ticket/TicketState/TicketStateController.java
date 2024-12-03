@@ -1,5 +1,6 @@
 package com.community.api.endpoint.Ticket.TicketState;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.Ticket.TicketStatus.TicketStatusController;
@@ -63,18 +64,6 @@ public class TicketStateController {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    @PutMapping("/ticket/update/{ticketId}")
-    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization")String authHeader)
-    {
-     try{
-         return ticketStateService.updateTicket(createTicketDto,ticketId,authHeader);
-     }
-     catch (Exception e)
-        {
-         exceptionHandlingService.handleException(e);
-         return ResponseService.generateErrorResponse("Error updating ticket state :"+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @GetMapping("/get-all-status/{ticketStateId}")
