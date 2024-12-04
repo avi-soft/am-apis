@@ -311,7 +311,7 @@ public class DocumentStorageService {
         newDocument.setName(file.getOriginalFilename());
         newDocument.setCustom_customer(customCustomer);
         newDocument.setDocumentType(documentTypeObj);
-
+        newDocument.setIsArchived(false);
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
@@ -329,7 +329,7 @@ public class DocumentStorageService {
         newDocument.setName(file.getOriginalFilename());
         newDocument.setServiceProviderEntity(serviceProviderEntity);
         newDocument.setDocumentType(documentTypeObj);
-
+        newDocument.setIsArchived(false);
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId

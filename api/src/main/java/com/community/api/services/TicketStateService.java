@@ -88,7 +88,7 @@ public class TicketStateService {
         try {
             if(createTicketDTO==null||(createTicketDTO.getTicketStatus()==null&&createTicketDTO.getTicketState()==null&&createTicketDTO.getTicketType()==null&&createTicketDTO.getAssignee()==null&&createTicketDTO.getAssigneeRole()==null&&createTicketDTO.getTargetCompletionDate()==null))
             {
-                return ResponseService.generateErrorResponse("Need at least one parameter to update",HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Atleast one parameter is required to update the ticket",HttpStatus.BAD_REQUEST);
             }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -108,11 +108,11 @@ public class TicketStateService {
                     return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
                 }
                 if(createTicketDTO.getTargetCompletionDate()!=null)
-                    return ResponseService.generateErrorResponse("Cannot update target Completion date",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Service Provider is not authorized to update completion date",HttpStatus.UNAUTHORIZED);
                 if(createTicketDTO.getAssignee()!=null||createTicketDTO.getAssigneeRole()!=null)
-                    return ResponseService.generateErrorResponse("Cannot update assignee role/id",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Service Provider is not authorized to update Assignee role or Assignee id",HttpStatus.UNAUTHORIZED);
                 if(createTicketDTO.getTicketType()!=null)
-                    return ResponseService.generateErrorResponse("Cannot update ticket type",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Service Provider is not authorized to  update ticket type",HttpStatus.UNAUTHORIZED);
             }
             if(roleNameToken.equals(Constant.roleServiceProvider)&&!ticket.getAssignee().equals(tokenUserId))
                 return ResponseService.generateErrorResponse("Not authorized to perform action on this ticket",HttpStatus.UNAUTHORIZED);
