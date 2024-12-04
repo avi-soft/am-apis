@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
+import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.services.*;
@@ -97,6 +98,24 @@ public class OtpEndpoint {
             String countryCode = customerDetails.getCountryCode() == null || customerDetails.getCountryCode().isEmpty()
                     ? Constant.COUNTRY_CODE
                     : customerDetails.getCountryCode();
+
+
+            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
+            if(customAdmin!=null)
+            {
+                if(customAdmin.getRole()==1)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"SuperAdmin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==2)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"Admin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==3)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
+                }
+            }
 
             CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhoneWithOtp(customerDetails.getMobileNumber(), countryCode);
             if (existingCustomer != null) {
@@ -239,14 +258,29 @@ public class OtpEndpoint {
             String mobileNumber = (String) signupDetails.get("mobileNumber");
             String countryCode = (String) signupDetails.get("countryCode");
 
-
+            if (countryCode == null || countryCode.isEmpty()) {
+                countryCode = Constant.COUNTRY_CODE;
+            }
             mobileNumber = mobileNumber.startsWith("0") ? mobileNumber.substring(1) : mobileNumber;
             if (customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode) != null) {
                 return responseService.generateErrorResponse(ApiConstants.NUMBER_REGISTERED_AS_CUSTOMER, HttpStatus.BAD_REQUEST);
             }
 
-            if (countryCode == null || countryCode.isEmpty()) {
-                countryCode = Constant.COUNTRY_CODE;
+            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
+            if(customAdmin!=null)
+            {
+                if(customAdmin.getRole()==1)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"SuperAdmin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==2)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"Admin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==3)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
+                }
             }
 
             if (!serviceProviderService.isValidMobileNumber(mobileNumber)) {
