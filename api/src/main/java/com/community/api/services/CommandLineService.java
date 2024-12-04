@@ -31,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 import static com.community.api.component.Constant.MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN;
+import static com.community.api.component.Constant.PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN;
 import static org.broadleafcommerce.common.util.sql.importsql.DemoSqlServerSingleLineSqlCommandExtractor.CURRENT_TIMESTAMP;
 
 @Component
@@ -371,6 +372,7 @@ public class CommandLineService implements CommandLineRunner {
         if(count==0)
         {
             entityManager.createNativeQuery(MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN).executeUpdate();
+            entityManager.createNativeQuery(PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN).executeUpdate();
             entityManager.merge(new CustomAdmin(1L,2,passwordEncoder.encode("Admin#01"),"admin","7740066387","+91",0,currentDate,"SUPER_ADMIN"));
             entityManager.merge(new CustomAdmin(2L,1,passwordEncoder.encode("SuperAdmin#1357"),"superadmin","9872548680","+91",0,currentDate,"SUPER_ADMIN"));
             entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,currentDate,"SUPER_ADMIN"));
