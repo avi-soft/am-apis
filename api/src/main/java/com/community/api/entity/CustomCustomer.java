@@ -36,7 +36,7 @@ public class CustomCustomer extends CustomerImpl {
     private String mobileNumber;
 
     @Nullable
-    @Column(name = "otp", unique = true)
+    @Column(name = "otp", unique = false)
     private String otp;
 
     @Nullable

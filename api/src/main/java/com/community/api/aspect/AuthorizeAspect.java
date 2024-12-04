@@ -63,7 +63,7 @@ public class AuthorizeAspect {
             // Validate role
             if (!checkValidRole(Constant.request, requiredRoles)) {
                 //Send a custom response back (if you need to terminate the request)
-                return ResponseService.generateErrorResponse("You do not have sufficient permissions to access this resource.",HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             }
         }
         // Proceed with the method execution if the role is valid

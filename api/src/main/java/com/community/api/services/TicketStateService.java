@@ -105,7 +105,7 @@ public class TicketStateService {
             {
                 if(!tokenUserId.equals(ticket.getAssignee()))
                 {
-                    return ResponseService.generateErrorResponse("Not authorized to update the ticket",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
                 }
                 if(createTicketDTO.getTargetCompletionDate()!=null)
                     return ResponseService.generateErrorResponse("Cannot update target Completion date",HttpStatus.UNAUTHORIZED);
@@ -123,7 +123,7 @@ public class TicketStateService {
                 ticket.setTicketState(ticketState);
             }
             if((createTicketDTO.getTicketStatus()!=null&&createTicketDTO.getTicketState()==null)||(createTicketDTO.getTicketStatus()==null&&createTicketDTO.getTicketState()!=null))
-                return ResponseService.generateErrorResponse("Both ticket State and status Required for the request",HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Ticket state and status must be provided together.",HttpStatus.BAD_REQUEST);
             Query query=null;
             if(createTicketDTO.getTicketStatus()!=null) {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
@@ -169,10 +169,10 @@ public class TicketStateService {
                 ticket.setAssigneeRole(role);
             }
             else
-                return ResponseService.generateErrorResponse("Assignee id should be given",HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse( "Assignee and role must be provided together." ,HttpStatus.NOT_FOUND);
             }
             if(createTicketDTO.getAssigneeRole()==null&&createTicketDTO.getAssignee()!=null)
-                return ResponseService.generateErrorResponse("Specify the role",HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Assignee and role must be provided together.",HttpStatus.BAD_REQUEST);
             if(createTicketDTO.getTargetCompletionDate()!=null)
             {
               if(sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate())==1)
@@ -192,6 +192,8 @@ public class TicketStateService {
                 orderState.setOrderStateId(orderStateId);
                 entityManager.merge(orderState);
             }
+            ticket.setModifierId(tokenUserId);
+            ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
             return ResponseService.generateSuccessResponse("Ticket Updated",ticket,HttpStatus.OK);
         }
