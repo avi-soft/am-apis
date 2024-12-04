@@ -5,10 +5,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Check;
 
 import javax.persistence.*;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.util.Date;
 
 @Entity
 @AllArgsConstructor
@@ -22,6 +26,7 @@ public class CustomAdmin
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long admin_id;
 
+    @Min(0)
     private int role;
     private String password;
     private String user_name;
@@ -32,10 +37,11 @@ public class CustomAdmin
     @Column(columnDefinition = "TEXT")
     private String token;
     private int signedUp=0;
-    private String created_at,updated_at,created_by, modified_by;
+    private Date created_at,updated_at;
+    private String created_by, modified_by;
 
 
-    public CustomAdmin(Long admin_id, int role, String password,String user_name, String mobileNumber,String country_code,int signedUp, String created_at, String created_by) {
+    public CustomAdmin(Long admin_id, int role, String password,String user_name, String mobileNumber,String country_code,int signedUp, Date created_at, String created_by) {
         this.admin_id = admin_id;
         this.role = role;
         this.password = password;
