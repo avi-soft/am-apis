@@ -90,6 +90,7 @@ public class TicketStateService {
             throw new Exception(exception.getMessage());
         }
     }
+
     @Transactional
     public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId,String authHeader)
     {
@@ -216,16 +217,19 @@ public class TicketStateService {
             entityManager.merge(ticket);
             return ResponseService.generateSuccessResponse("Ticket Updated",ticket,HttpStatus.OK);
         }
-        catch (PersistenceException e)
+        catch (PersistenceException persistenceException)
         {
+            exceptionHandlingService.handleApiException(persistenceException);
             return ResponseService.generateErrorResponse("Cannot find valid result : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (IllegalArgumentException illegalArgumentException)
         {
+            exceptionHandlingService.handleApiException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(),HttpStatus.NOT_FOUND);
         }
-        catch(Exception e)
+        catch(Exception exception)
          {
-             return ResponseService.generateErrorResponse("Error updating ticket :"+e.getMessage(),HttpStatus.NOT_FOUND);
+             exceptionHandlingService.handleApiException(exception);
+             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.NOT_FOUND);
          }
     }
 }
