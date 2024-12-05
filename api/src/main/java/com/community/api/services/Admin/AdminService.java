@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -188,15 +189,17 @@ public class AdminService
 
             String storedOtp = customAdmin.getOtp();
             String ipAddress = request.getRemoteAddr();
+            LocalDateTime otpExpirationTime = customAdmin.getOtpExpirationTime();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenAdmin_" + mobileNumber;
-
 
             if (otpEntered == null || otpEntered.trim().isEmpty()) {
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
-                customAdmin.setOtp(null);
+                if (otpExpirationTime != null && otpExpirationTime.isBefore(LocalDateTime.now())) {
+                    return responseService.generateErrorResponse("OTP has expired. Please request a new OTP.", HttpStatus.BAD_REQUEST);
+                }
                 entityManager.merge(customAdmin);
 
 
@@ -210,10 +213,6 @@ public class AdminService
 
 
                     return ResponseEntity.ok(responseBody);
-                }
-                else if(existingToken!=null && !jwtUtil.validateToken(existingToken,ipAddress,userAgent))
-                {
-                    return ResponseService.generateErrorResponse("OTP has expired. Please request a new one.",HttpStatus.BAD_REQUEST);
                 }
                 else {
                     String newToken = jwtUtil.generateToken(customAdmin.getAdmin_id(), role, ipAddress, userAgent);
