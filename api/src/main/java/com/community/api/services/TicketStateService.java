@@ -13,8 +13,10 @@ import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.ManualAssignmentDetails;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
+import org.hibernate.query.criteria.internal.expression.function.CurrentTimeFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +28,14 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,7 +87,7 @@ public class TicketStateService {
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some Exception caught: " + exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
     @Transactional
@@ -148,7 +156,7 @@ public class TicketStateService {
             {
                 Role role=entityManager.find(Role.class,createTicketDTO.getAssigneeRole());
             if(role==null)
-                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Invalid role id",HttpStatus.NOT_FOUND);
             else if((!role.getRole_name().equals(Constant.roleAdmin))&&(!role.getRole_name().equals(Constant.roleServiceProvider)))
                 return ResponseService.generateErrorResponse("Cannot assign ticket to : "+roleService.findRoleName(createTicketDTO.getAssigneeRole()),HttpStatus.NOT_FOUND);
             if(createTicketDTO.getAssignee()!=null)
@@ -173,6 +181,14 @@ public class TicketStateService {
             }
             if(createTicketDTO.getAssigneeRole()==null&&createTicketDTO.getAssignee()!=null)
                 return ResponseService.generateErrorResponse("Assignee and role must be provided together.",HttpStatus.BAD_REQUEST);
+           /* ObjectMapper objectMapper = new ObjectMapper();
+
+// Assuming createTicketDTO is an instance of CreateTicketDto
+            Map<String, Object> map = objectMapper.convertValue(createTicketDTO, Map.class);
+
+            if (map.containsKey("target_completion_time") && createTicketDTO.getTargetCompletionDate() == null) {
+                return ResponseService.generateErrorResponse("Cannot pass an empty date", HttpStatus.BAD_REQUEST);
+            }*/
             if(createTicketDTO.getTargetCompletionDate()!=null)
             {
               if(sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate())==1)
@@ -192,6 +208,9 @@ public class TicketStateService {
                 orderState.setOrderStateId(orderStateId);
                 entityManager.merge(orderState);
             }
+            LocalDateTime localDateTime = LocalDateTime.now();
+            Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+            ticket.setModifiedDate(date);
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
@@ -200,7 +219,11 @@ public class TicketStateService {
         catch (PersistenceException e)
         {
             return ResponseService.generateErrorResponse("Cannot find valid result : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch(Exception e)
+        }catch (IllegalArgumentException illegalArgumentException)
+        {
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(),HttpStatus.NOT_FOUND);
+        }
+        catch(Exception e)
          {
              return ResponseService.generateErrorResponse("Error updating ticket :"+e.getMessage(),HttpStatus.NOT_FOUND);
          }

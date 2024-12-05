@@ -28,6 +28,7 @@ import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
@@ -218,13 +219,14 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new CustomSubject(9L, 'N', "Art", "Description of Art", new Date(), null, null));
             entityManager.merge(new CustomSubject(10L, 'N', "Physical Education", "Description of Physical Education", new Date(), null, null));
         }
-
+        LocalDateTime localDateTime = LocalDateTime.now();
+        Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
         if (entityManager.createQuery("SELECT COUNT(r) FROM Role r", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new Role(1, "SUPER_ADMIN", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(2, "ADMIN", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(3, "ADMIN_SERVICE_PROVIDER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(4, "SERVICE_PROVIDER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(5, "CUSTOMER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
+            entityManager.merge(new Role(1, "SUPER_ADMIN", date.toString(),date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(2, "ADMIN", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(3, "ADMIN_SERVICE_PROVIDER", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(4, "SERVICE_PROVIDER", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(5, "CUSTOMER", date.toString(), date.toString(), "SUPER_ADMIN"));
         }
 
         Long count = entityManager.createQuery("SELECT COUNT(d) FROM Districts d", Long.class).getSingleResult();

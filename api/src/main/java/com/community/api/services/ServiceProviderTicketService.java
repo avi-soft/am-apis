@@ -1,6 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
@@ -63,6 +64,9 @@ public class ServiceProviderTicketService {
 
     @Autowired
     TicketStatusService ticketStatusService;
+
+    @Autowired
+    JwtUtil jwtTokenUtil;
 
     @Autowired
     ProductService productService;
@@ -168,7 +172,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -203,7 +207,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -227,10 +231,9 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo) throws Exception {
+    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo,Integer creatorRoleId,Long creatorId) throws Exception {
         try {
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
-
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
@@ -253,6 +256,8 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
+            customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
+            customServiceProviderTicket.setUserId(creatorId);
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
             Role role = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
             customServiceProviderTicket.setAssigneeRole(role);
@@ -364,7 +369,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
