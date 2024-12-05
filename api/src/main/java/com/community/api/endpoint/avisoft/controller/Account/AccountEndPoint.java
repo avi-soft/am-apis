@@ -404,7 +404,11 @@ public class AccountEndPoint {
                     customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
                 }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
+                }
+                if(!customAdmin.getPassword().equals(password))
+                {
+                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
                 }
                 if (customAdmin.getRole() ==2) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
@@ -425,7 +429,11 @@ public class AccountEndPoint {
                     customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
                 }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
+                }
+                if(!customAdmin.getPassword().equals(password))
+                {
+                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
                 }
                 if (customAdmin.getRole() ==1) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
@@ -445,7 +453,11 @@ public class AccountEndPoint {
                     customAdmin=adminService.findAdminByPhone(mobileNumber,countryCode);
                 }
                 if (customAdmin == null) {
-                    return responseService.generateErrorResponse("Custom Admin "+" not found", HttpStatus.NOT_FOUND);
+                    return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
+                }
+                if(!customAdmin.getPassword().equals(password))
+                {
+                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
                 }
                 if (customAdmin.getRole() ==3) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
