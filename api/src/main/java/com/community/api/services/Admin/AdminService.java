@@ -139,7 +139,6 @@ public class AdminService
                         return responseService.generateErrorResponse("Custom Admin with username "+ username+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
                     }
                 }
-                System.out.println(customAdmin);
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("No records found ", HttpStatus.NOT_FOUND);
 
@@ -211,7 +210,12 @@ public class AdminService
 
 
                     return ResponseEntity.ok(responseBody);
-                } else {
+                }
+                else if(existingToken!=null && !jwtUtil.validateToken(existingToken,ipAddress,userAgent))
+                {
+                    return ResponseService.generateErrorResponse("OTP has expired. Please request a new one.",HttpStatus.BAD_REQUEST);
+                }
+                else {
                     String newToken = jwtUtil.generateToken(customAdmin.getAdmin_id(), role, ipAddress, userAgent);
 
                     customAdmin.setToken(newToken);
@@ -225,7 +229,7 @@ public class AdminService
                     return ResponseEntity.ok(responseBody);
                 }
             } else {
-                return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("Invalid OTP. Please try again.", HttpStatus.BAD_REQUEST);
 
             }
 
@@ -303,7 +307,6 @@ public class AdminService
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
         if (passwordEncoder.matches(password, customAdmin.getPassword())) {
-            System.out.println("inside the match");
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenAdmin_" + customAdmin.getMobileNumber();
@@ -344,6 +347,9 @@ public class AdminService
 
             }
             CustomAdmin existingAdmin = findAdminByUsername(username);
+            if (existingAdmin == null) {
+                throw new IllegalArgumentException("Custom Admin with username "+ username+ " not found");
+            }
             if(role.equals(Constant.ADMIN))
             {
                 if (existingAdmin.getRole() ==2) {
@@ -402,7 +408,7 @@ public class AdminService
             }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

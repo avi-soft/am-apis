@@ -36,7 +36,7 @@ public class CustomCustomer extends CustomerImpl {
     private String mobileNumber;
 
     @Nullable
-    @Column(name = "otp", unique = true)
+    @Column(name = "otp", unique = false)
     private String otp;
 
     @Nullable
@@ -46,6 +46,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "father_name")
+    @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
     private String fathersName;
 
     @Nullable

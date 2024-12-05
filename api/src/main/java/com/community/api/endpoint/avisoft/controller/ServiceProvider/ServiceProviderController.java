@@ -1,47 +1,54 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
-import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.CustomOrderState;
+import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderAddressRef;
+import com.community.api.entity.Skill;
 import com.community.api.services.DistrictService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
-import com.community.api.services.*;
+import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
-import com.community.api.utils.Document;
 
-import com.community.api.utils.ServiceProviderDocument;
-import com.twilio.http.Request;
-
-import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.net.http.HttpRequest;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 
 @RestController
 @RequestMapping("/service-providers")
@@ -79,8 +86,8 @@ public class ServiceProviderController {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    private DummyAssignerService dummyAssignerService;
+    /*@Autowired
+    private DummyAssignerService dummyAssignerService;*/
 
     @Transactional
     @PostMapping("/assign-skill")
@@ -88,6 +95,8 @@ public class ServiceProviderController {
         try {
             Skill skill = entityManager.find(Skill.class, skillId);
             ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             List<Skill> listOfSkills = serviceProviderEntity.getSkills();
             listOfSkills.add(skill);
             serviceProviderEntity.setSkills(listOfSkills);
@@ -106,6 +115,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
@@ -125,8 +136,9 @@ public class ServiceProviderController {
             if (serviceProviderToBeDeleted == null)
                 return responseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
             else
-                entityManager.remove(serviceProviderToBeDeleted);
-            return responseService.generateSuccessResponse("Service Provider Deleted", null, HttpStatus.OK);
+                serviceProviderToBeDeleted.setIsArchived(true);
+                entityManager.merge(serviceProviderToBeDeleted);
+            return responseService.generateSuccessResponse("Service Provider Archived", null, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -146,6 +158,8 @@ public class ServiceProviderController {
             passwordDetails = sanitizerService.sanitizeInputMap(passwordDetails);
             // String newPassword = (String) passwordDetails.get("newPassword");
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
             if (serviceProvider.getPassword() == null) {
@@ -177,6 +191,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> getServiceProviderById(@RequestParam Long userId) throws Exception {
         try {
             ServiceProviderEntity serviceProviderEntity = serviceProviderService.getServiceProviderById(userId);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProviderEntity == null) {
                 throw new Exception("ServiceProvider with ID " + userId + " not found");
             }
@@ -248,7 +264,8 @@ public class ServiceProviderController {
 
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                if(serviceProvider.getIsArchived().equals(false))
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
 
             return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
@@ -310,6 +327,7 @@ public class ServiceProviderController {
     }
 
 
+    @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(@RequestParam(required = false) String state,
                                                    @RequestParam(required = false) String district,
@@ -321,7 +339,7 @@ public class ServiceProviderController {
             Map<String, String[]> uri = request.getParameterMap();
             if ((uri.containsKey("state") && state == null) || (uri.containsKey("first_name") && first_name == null) || (uri.containsKey("last_name") && last_name == null) || (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
-            return ResponseService.generateSuccessResponse("Service Providers", serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id), HttpStatus.OK);
+           return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -333,14 +351,14 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id) {
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer()));
+                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(),authHeader));
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -396,7 +414,7 @@ public class ServiceProviderController {
         }
     }
 
-    @Transactional
+    /*@Transactional
     @PostMapping("/{serviceProviderId}/order-requests/{orderRequestId}")
     public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam String action, @RequestParam(required = false) Integer statusId) {
         try {
@@ -478,7 +496,7 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse("Need to provide return status", HttpStatus.BAD_REQUEST);
                 orderState.setOrderStatusId(statusId);
                 orderState.setOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId());
-                /*entityManager.merge(order);*/
+                entityManager.merge(order);
                 entityManager.merge(orderRequest);
                 entityManager.merge(orderState);
                 dummyAssignerService.dummyAssigner(order);
@@ -489,7 +507,7 @@ public class ServiceProviderController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching order Requests: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }
+    }*/
 
     @Transactional
     @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}", method = RequestMethod.PUT)

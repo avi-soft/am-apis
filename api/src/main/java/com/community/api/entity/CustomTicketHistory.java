@@ -19,17 +19,20 @@ import javax.persistence.Table;
 import java.util.Date;
 
 @Entity
-@Table(name = "custom_service_provider_ticket")
+@Table(name = "custom_ticket_history")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CustomServiceProviderTicket {
+public class CustomTicketHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ticket_history_id")
+    protected Long ticketHistoryId;
+
     @Column(name = "ticket_id")
     @JsonProperty("ticket_id")
-    private Long ticketId;
+    protected Long ticketId;
 
     @ManyToOne
     @JoinColumn(name = "ticket_state_id")
@@ -45,19 +48,6 @@ public class CustomServiceProviderTicket {
     @JoinColumn(name = "ticket_type_id")
     @JsonProperty("ticket_type")
     protected CustomTicketType ticketType;
-
-    @Column(name = "creator_user_id")
-    @JsonProperty("creator_user_id")
-    private Long userId;
-
-    @Column(name = "created_date")
-    @JsonProperty("creator_date")
-    private Date createdDate;
-
-    @ManyToOne
-    @JoinColumn(name = "creator_role_id")
-    @JsonProperty("creator_role_id")
-    private Role creatorRole;
 
     @Column(name = "modified_date")
     @JsonProperty("modified_date")
@@ -95,7 +85,7 @@ public class CustomServiceProviderTicket {
     @JsonProperty("order")
     private OrderImpl order;
 
-    @Column(name = "comment")
+    @Column
     @JsonProperty("comment")
     private String comment;
 }
