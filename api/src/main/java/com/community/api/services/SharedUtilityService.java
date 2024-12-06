@@ -428,17 +428,17 @@ public class SharedUtilityService {
                     // Fetch the qualification by qualification_id
                     DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
                     BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
+                    Institution institution= entityManager.find(Institution.class,qualificationDetail.getInstitution_id());
                     CustomStream customStream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
 
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_name", qualificationDetail.getInstitution_name());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
-                    qualificationInfo.put("subject_marks_type",qualificationDetail.getSubject_marks_type());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
@@ -456,6 +456,11 @@ public class SharedUtilityService {
                         qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
                     } else {
                         qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
+                    }
+                    if (institution != null) {
+                        qualificationInfo.put("institution_name", institution.getInstitution_name());
+                    }else {
+                        qualificationInfo.put("institution_name", "Unknown Institution");
                     }
                     if (customStream != null) {
                         qualificationInfo.put("stream_name", customStream.getStreamName());
@@ -492,15 +497,16 @@ public class SharedUtilityService {
                     // Fetch the qualification by qualification_id
                     DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
                     BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
+                    Institution institution= entityManager.find(Institution.class,qualificationDetail.getInstitution_id());
                     CustomStream customStream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
 
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_name", qualificationDetail.getInstitution_name());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
@@ -519,6 +525,11 @@ public class SharedUtilityService {
                         qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
                     }else {
                         qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
+                    }
+                    if (institution != null) {
+                        qualificationInfo.put("institution_name", institution.getInstitution_name());
+                    }else {
+                        qualificationInfo.put("institution_name", "Unknown Institution");
                     }
                     if (customStream != null) {
                         qualificationInfo.put("stream_name", customStream.getStreamName());
