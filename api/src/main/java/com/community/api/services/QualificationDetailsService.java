@@ -25,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -612,6 +614,11 @@ public class QualificationDetailsService {
     }
 
     public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {
+        Set<Long> uniqueSubjectIds = new HashSet<>(subjectIds);
+        if (uniqueSubjectIds.size() != subjectIds.size()) {
+            throw new IllegalArgumentException("Duplicate subject IDs are not allowed.");
+        }
+
         // Query to check which subject IDs exist in the database
         if(!(subjectIds==null|| subjectIds.isEmpty()))
         {
