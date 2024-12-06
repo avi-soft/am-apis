@@ -2,15 +2,9 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.BoardUniversity;
-import com.community.api.entity.CustomAdmin;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomerAddressDTO;
-import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
@@ -175,6 +169,15 @@ public class SharedUtilityService {
         // }
         // customerDetails.put("referres",refSp);
         customerDetails.put("countryCode", customCustomer.getCountryCode());
+        List<ReferrerDTO>ref=new ArrayList<>();
+        for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+        {
+            ReferrerDTO referrerDTO=new ReferrerDTO();
+            referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+            referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
+            ref.add(referrerDTO);
+        }
+        customerDetails.put("referrers",ref);
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
         customerDetails.put("mothersName", customCustomer.getMothersName());
