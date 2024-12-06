@@ -43,11 +43,10 @@ public class QualificationDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
-    @NotBlank(message = "Institution name is required")
-    @Size(max = 255, message = "Institution name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
-    @Column(name = "institution_name", nullable = false)
-    private String institution_name;
+
+    @NotNull(message = "institution id is required")
+    @Column(name = "institution_id", nullable = false)
+    private Long institution_id;
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
@@ -67,9 +66,6 @@ public class QualificationDetails {
 
     @Column(name = "stream_id")
     private Long stream_id;
-
-    @Column(name= "subject_marks_type")
-    private String subject_marks_type;
 
     @NotNull(message = "total marks cannot be null")
     @Column(name = "total_marks", nullable = false)
