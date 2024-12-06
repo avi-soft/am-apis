@@ -816,7 +816,7 @@ public class QualificationDetailsService {
             {
                 subjectDetail.setSubject_equivalent_percentage((Double.parseDouble(userDetail.getSubject_marks_obtained())/Double.parseDouble(userDetail.getSubject_total_marks()))*100);
             }
-            else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || qualificationDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+            else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
             {
                 subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
             }
