@@ -350,7 +350,7 @@ public class OrderController {
             return ResponseService.generateSuccessResponse("Order Assigned", wrapper, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

@@ -14,6 +14,7 @@ import com.community.api.entity.ManualAssignmentDetails;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.twilio.exception.ApiException;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.hibernate.query.criteria.internal.expression.function.CurrentTimeFunction;
@@ -217,19 +218,16 @@ public class TicketStateService {
             entityManager.merge(ticket);
             return ResponseService.generateSuccessResponse("Ticket Updated",ticket,HttpStatus.OK);
         }
-        catch (PersistenceException persistenceException)
+        catch (ApiException persistenceException)
         {
-            exceptionHandlingService.handleApiException(persistenceException);
-            return ResponseService.generateErrorResponse("Cannot find valid result : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Cannot find valid result : "+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }catch (IllegalArgumentException illegalArgumentException)
         {
-            exceptionHandlingService.handleApiException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(),HttpStatus.NOT_FOUND);
         }
         catch(Exception exception)
-         {
-             exceptionHandlingService.handleApiException(exception);
-             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.NOT_FOUND);
-         }
+        {
+            return ResponseService.generateErrorResponse(exception.getMessage(),HttpStatus.NOT_FOUND);
+        }
     }
 }

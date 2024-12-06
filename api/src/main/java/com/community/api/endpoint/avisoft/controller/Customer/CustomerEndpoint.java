@@ -486,7 +486,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
