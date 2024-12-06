@@ -305,7 +305,7 @@ public class AccountEndPoint {
             else if (roleService.findRoleName(role).equals(Constant.ADMIN) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    roleService.findRoleName(customAdmin.getRole());
+                    roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.ADMIN)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
@@ -323,7 +323,7 @@ public class AccountEndPoint {
             else if (roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    roleService.findRoleName(customAdmin.getRole());
+                    roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
@@ -341,7 +341,7 @@ public class AccountEndPoint {
             else if (roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    roleService.findRoleName(customAdmin.getRole());
+                    roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.roleAdminServiceProvider)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
