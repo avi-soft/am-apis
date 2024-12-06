@@ -6,6 +6,7 @@ import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 
+import com.community.api.entity.Role;
 import com.community.api.services.*;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
@@ -232,7 +233,7 @@ public class AccountEndPoint {
     @RequestMapping(value = "phone-otp", method = RequestMethod.POST)
     private ResponseEntity<?> loginWithPhoneOtp(Map<String, Object> loginDetails, HttpSession session) throws UnsupportedEncodingException, UnsupportedEncodingException {
         try {
-
+            String roleToCheck=null;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
@@ -294,10 +295,12 @@ public class AccountEndPoint {
                 }
 
             }
+
             else if (roleService.findRoleName(role).equals(Constant.ADMIN) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    if (customAdmin.getRole() == 2) {
+                    roleService.findRoleName(customAdmin.getRole());
+                    if (roleToCheck.equals(Constant.ADMIN)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
@@ -314,7 +317,8 @@ public class AccountEndPoint {
             else if (roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    if (customAdmin.getRole() == 1) {
+                    roleService.findRoleName(customAdmin.getRole());
+                    if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
@@ -331,7 +335,8 @@ public class AccountEndPoint {
             else if (roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider) ) {
                 CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
-                    if (customAdmin.getRole() == 3) {
+                    roleService.findRoleName(customAdmin.getRole());
+                    if (roleToCheck.equals(Constant.roleAdminServiceProvider)) {
                         if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
@@ -362,7 +367,7 @@ public class AccountEndPoint {
     public ResponseEntity<?> adminLoginWithPassword(@RequestBody Map<String, Object> loginDetails, HttpSession session, HttpServletRequest request)
     {
         try {
-
+            String roleToCheck=null;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
             }
@@ -406,11 +411,8 @@ public class AccountEndPoint {
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
                 }
-                if(!customAdmin.getPassword().equals(password))
-                {
-                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
-                }
-                if (customAdmin.getRole() ==2) {
+                roleToCheck=roleService.findRoleName(customAdmin.getRole());
+                if (roleToCheck.equals(Constant.ADMIN)) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
@@ -431,11 +433,8 @@ public class AccountEndPoint {
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
                 }
-                if(!customAdmin.getPassword().equals(password))
-                {
-                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
-                }
-                if (customAdmin.getRole() ==1) {
+                roleToCheck=roleService.findRoleName(customAdmin.getRole());
+                if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
@@ -455,11 +454,8 @@ public class AccountEndPoint {
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("Custom Admin with "+ usernameOrMobileNumber+" not found", HttpStatus.NOT_FOUND);
                 }
-                if(!customAdmin.getPassword().equals(password))
-                {
-                    return ResponseService.generateErrorResponse("You have entered wrong password",HttpStatus.BAD_REQUEST);
-                }
-                if (customAdmin.getRole() ==3) {
+                roleToCheck=roleService.findRoleName(customAdmin.getRole());
+                if (roleToCheck.equals(Constant.roleAdminServiceProvider)) {
                     return adminService.loginWithPasswordForAdmin(loginDetails, request,session);
                 }
                 else{
