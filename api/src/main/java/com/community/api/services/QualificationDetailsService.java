@@ -296,22 +296,7 @@ public class QualificationDetailsService {
         if (Objects.nonNull(qualification.getExamination_registration_number())) {
             qualificationDetailsToUpdate.setExamination_registration_number(qualification.getExamination_registration_number());
         }
-//        if(Objects.nonNull(qualification.getSubject_marks_type()))
-//        {
-//            if(!qualification.getSubject_marks_type().equalsIgnoreCase("Percentage")&& !qualification.getSubject_marks_type().equalsIgnoreCase("CGPA") && !qualification.getSubject_marks_type().equalsIgnoreCase("Grade"))
-//            {
-//                throw new IllegalArgumentException("Subject marks type must be either percentage or Grade or CGPA");
-//            }
-//            if(qualification.getSubject_marks_type().trim().isEmpty())
-//            {
-//                throw new IllegalArgumentException("Subject marks type cannot be empty");
-//            }
-//            qualificationDetailsToUpdate.setSubject_marks_type(qualification.getSubject_marks_type());
-//            subjectMarksType=qualification.getSubject_marks_type();
-//        }
-//        else {
-//            subjectMarksType=qualificationDetailsToUpdate.getSubject_marks_type();
-//        }
+
         if(Objects.nonNull(qualification.getTotal_marks_type()))
         {
             if(!qualification.getTotal_marks_type().equalsIgnoreCase("Percentage")&& !qualification.getTotal_marks_type().equalsIgnoreCase("CGPA") && !qualification.getTotal_marks_type().equalsIgnoreCase("Grade"))
