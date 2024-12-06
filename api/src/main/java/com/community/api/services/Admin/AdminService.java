@@ -334,7 +334,7 @@ public class AdminService
                 return ResponseEntity.ok(responseBody);
             }
         } else {
-            return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse("You have entered wrong Password", HttpStatus.BAD_REQUEST);
         }
     }
 
