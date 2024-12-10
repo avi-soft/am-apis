@@ -1,9 +1,12 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.util.ArrayList;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
@@ -21,8 +24,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -50,7 +55,6 @@ public class QualificationDetails {
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
@@ -112,4 +116,18 @@ public class QualificationDetails {
     @ManyToOne
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity service_provider;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "document_id", referencedColumnName = "documentId")
+    private Document document;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @JoinTable(
+            name = "qualification_detail_other_item",
+            joinColumns = @JoinColumn(name = "qualification_detail_id"),
+            inverseJoinColumns = @JoinColumn(name = "other_item_id")
+    )
+    private List<OtherItem> otherItems = new ArrayList<>();
+
 }

@@ -40,11 +40,8 @@ public class QualificationController {
     @GetMapping("/get-all-qualifications")
 
     public ResponseEntity<?> getAllQualifications() {
-//        TypedQuery<DocumentType> query = entityManager.createQuery(FIND_ALL_QUALIFICATIONS_QUERY, DocumentType.class);
-        List<DocumentType> qualifications = entityManager.createQuery(
-                        FIND_ALL_QUALIFICATIONS_QUERY, DocumentType.class)
-                .setParameter("exam", "%" + "Completed" + "%")
-                .getResultList();
+        TypedQuery<Qualification> query = entityManager.createQuery(FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
+        List<Qualification> qualifications = query.getResultList();
         if(qualifications.isEmpty())
         {
             return responseService.generateResponse(HttpStatus.OK,"Qualification List is Empty", qualifications);

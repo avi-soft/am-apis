@@ -17,7 +17,7 @@ import javax.validation.constraints.Size;
 public class Qualification
 {
     @Id
-    private Long qualification_id;
+    private Integer qualification_id;
 
     @Column(name = "qualification_name", nullable = false)
     private String qualification_name;

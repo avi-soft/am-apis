@@ -323,13 +323,13 @@ public class CommandLineService implements CommandLineRunner {
         count = entityManager.createQuery("SELECT COUNT(e) FROM Qualification e", Long.class).getSingleResult();
 
         if (count == 0) {
-            entityManager.persist(new Qualification(1L, "MATRICULATION/10th", "Completed secondary education or equivalent"));
-            entityManager.persist(new Qualification(2L, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent"));
-            entityManager.persist(new Qualification(3L, "BACHELORS", "Completed undergraduate degree program"));
-            entityManager.persist(new Qualification(4L, "MASTERS", "Completed postgraduate degree program"));
-            entityManager.persist(new Qualification(5L, "DOCTORATE", "Completed doctoral degree program"));
-            entityManager.persist(new Qualification(6L, "DIPLOMA", "Completed a diploma program"));
-            entityManager.persist(new Qualification(7L, "ITI", "Completed an ITI (Industrial Training Institute) program"));
+            entityManager.persist(new Qualification(1, "MATRICULATION/10th", "Completed secondary education or equivalent"));
+            entityManager.persist(new Qualification(2, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent"));
+            entityManager.persist(new Qualification(3, "BACHELORS", "Completed undergraduate degree program"));
+            entityManager.persist(new Qualification(4, "MASTERS", "Completed postgraduate degree program"));
+            entityManager.persist(new Qualification(5, "DOCTORATE", "Completed doctoral degree program"));
+            entityManager.persist(new Qualification(6, "DIPLOMA", "Completed a diploma program"));
+            entityManager.persist(new Qualification(7, "ITI", "Completed an ITI (Industrial Training Institute) program"));
         }
 
         count = entityManager.createQuery("SELECT COUNT(e) FROM TypingText e", Long.class).getSingleResult();
@@ -423,8 +423,7 @@ public class CommandLineService implements CommandLineRunner {
 
          count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
          if (count == 0) {
-
-            entityManager.merge(new BoardUniversity(1L, "Delhi University", "Delhi", "DU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+            entityManager.merge(new BoardUniversity(1L,"Others", "NA","Not Applicable","NA",now,now,"SUPER_ADMIN","SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(3L, "Jawaharlal Nehru University", "Delhi", "JNU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(4L, "Uttar Pradesh Board", "Lucknow", "UPB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));

@@ -28,20 +28,16 @@ public class QualificationService {
     private QualificationService qualificationService;
     @Autowired
     private ResponseService responseService;
-    public List<DocumentType> getAllQualifications() {
-//        TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
-        List<DocumentType> qualifications = entityManager.createQuery(
-                        FIND_ALL_QUALIFICATIONS_QUERY, DocumentType.class)
-                .setParameter("exam", "%" + "Completed" + "%")
-                .getResultList();
-//        List<Qualification> qualifications = query.getResultList();
+    public List<Qualification> getAllQualifications() {
+        TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
+        List<Qualification> qualifications = query.getResultList();
         return qualifications;
     }
 //    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in dscription
     @Transactional
     public Qualification addQualification(@RequestBody Qualification qualification) {
         Qualification qualificationToBeSaved =new Qualification();
-        long id = findCount() + 1;
+        int id = findCount() + 1;
         if (qualification.getQualification_name() == null || qualification.getQualification_name().trim().isEmpty()) {
             throw new IllegalArgumentException("Qualification name cannot be empty or consist only of whitespace");
         }
@@ -60,11 +56,10 @@ public class QualificationService {
         }
 
 
-        List<DocumentType> qualifications = qualificationService.getAllQualifications();
-        for (DocumentType existingQualification : qualifications) {
-            if (existingQualification.getDocument_type_name().equalsIgnoreCase(qualification.getQualification_name())) {
+        List<Qualification> qualifications = qualificationService.getAllQualifications();
+        for (Qualification existingQualification : qualifications) {
+            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())) {
                 throw new IllegalArgumentException("Qualification with the same name already exists");
-
             }
         }
         qualificationToBeSaved.setQualification_id(id);
@@ -75,9 +70,9 @@ public class QualificationService {
     }
 
     //need to be change here
-    public long findCount() {
+    public int findCount() {
         String queryString = Constant.GET_QUALIFICATIONS_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
+        TypedQuery<Integer> query = entityManager.createQuery(queryString, Integer.class);
         return query.getSingleResult();
     }
 

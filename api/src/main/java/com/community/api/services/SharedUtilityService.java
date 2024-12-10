@@ -28,6 +28,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -398,75 +400,101 @@ public class SharedUtilityService {
     public  boolean isValidEmail(String email) {
         return email != null && email.matches(Constant.EMAIL_REGEXP);
     }
-    public List<Map<String, Object>> mapQualificationsForCustomer(List<QualificationDetails> qualificationDetails) {
-        return qualificationDetails.stream()
-                .map(qualificationDetail -> {
-                    Map<String, Object> qualificationInfo = new HashMap<>();
+public List<Map<String, Object>> mapQualificationsForCustomer(List<QualificationDetails> qualificationDetails) {
+    return qualificationDetails.stream()
+            .map(qualificationDetail -> {
+                Map<String, Object> qualificationInfo = new HashMap<>();
 
-                    // Fetch the qualification by qualification_id
-                    DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
-                    BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
-                    Institution institution= entityManager.find(Institution.class,qualificationDetail.getInstitution_id());
-                    CustomStream customStream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
+                // Fetch the qualification by qualification_id
+                DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
+                Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
-                    // Populate the map with necessary fields from qualificationDetail
-                    qualificationInfo.put("qualification_detail_id",qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
-                    qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
-                    qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
-                    qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
-                    qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
-                    qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
-                    qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
-                    qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
-                    qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
-                    qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
-                    qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
+                // Fetch the BoardUniversity
+                BoardUniversity boardUniversity = entityManager.find(BoardUniversity.class, qualificationDetail.getBoard_university_id());
 
-
-                    // Replace the qualification_id with qualification_name
-                    if (qualification != null) {
-                        qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
-                    } else {
-                        qualificationInfo.put("qualification_name", "Unknown Qualification");
+                // Determine the board_university_name
+                String boardUniversityName = null;
+                if (qualificationDetail.getBoard_university_id() .equals(1L)) {
+                    // Check the `otherItems` for a matching "Board or University" field
+                    Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
+                            .filter(otherItem ->
+                                    otherItem.getField_name().equalsIgnoreCase("Board or University") &&
+                                            Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
+                            .findFirst();
+                    if (otherItemOpt.isPresent()) {
+                        boardUniversityName = otherItemOpt.get().getTyped_text();
                     }
-                    if (boardUniversity != null) {
-                        qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
-                    }else {
-                        qualificationInfo.put("board_university_name", "Unknown BoardUniversity");
-                    }
-                    if (institution != null) {
-                        qualificationInfo.put("institution_name", institution.getInstitution_name());
-                    }else {
-                        qualificationInfo.put("institution_name", "Unknown Institution");
-                    }
-                    if (customStream != null) {
-                        qualificationInfo.put("stream_name", customStream.getStreamName());
-                    }else {
-                        qualificationInfo.put("stream_name", "Unknown Stream");
-                    }
-                    List<Map<String, Object>> subjects = qualificationDetail.getSubject_ids().stream()
-                            .map(subjectId -> {
-                                Map<String, Object> subjectInfo = new HashMap<>();
-                                CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
-                                if (subject != null) {
-                                    subjectInfo.put("subject_id", subject.getSubjectId());
-                                    subjectInfo.put("subject_name", subject.getSubjectName());
-                                } else {
-                                    subjectInfo.put("subject_id", subjectId);
-                                    subjectInfo.put("subject_name", "Unknown Subject");
-                                }
-                                return subjectInfo;
-                            })
-                            .collect(Collectors.toList());
+                }
 
-                    // Add the subjects list to the qualificationInfo map
-                    qualificationInfo.put("subjects", subjects);
-                    qualificationInfo.put("subject_details",qualificationDetail.getSubject_details());
+                if (boardUniversityName == null) {
+                    // Use the BoardUniversity name if no valid entry in `otherItems` is found
+                    boardUniversityName = boardUniversity != null ? boardUniversity.getBoard_university_name() : "Unknown BoardUniversity";
+                }
 
-                    return qualificationInfo;
-                }).collect(Collectors.toList());
-    }
+                // Populate the map
+                qualificationInfo.put("qualification_detail_id", qualificationDetail.getQualification_detail_id());
+                qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
+                qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
+                qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
+                qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
+                qualificationInfo.put("stream_id", qualificationDetail.getStream_id());
+                qualificationInfo.put("total_marks_type", qualificationDetail.getTotal_marks_type());
+                qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
+                qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
+                qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
+                qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
+
+                // Add qualification_name
+                if (qualification != null) {
+                    qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
+                } else {
+                    qualificationInfo.put("qualification_name", "Unknown Qualification");
+                }
+
+                // Add board_university_name
+                qualificationInfo.put("board_university_name", boardUniversityName);
+
+                // Add institution_name
+                if (institution != null) {
+                    qualificationInfo.put("institution_name", institution.getInstitution_name());
+                } else {
+                    qualificationInfo.put("institution_name", "Unknown Institution");
+                }
+
+                // Add stream_name
+                if (customStream != null) {
+                    qualificationInfo.put("stream_name", customStream.getStreamName());
+                } else {
+                    qualificationInfo.put("stream_name", "Unknown Stream");
+                }
+
+                // Add subjects
+                List<Map<String, Object>> subjects = qualificationDetail.getSubject_ids().stream()
+                        .map(subjectId -> {
+                            Map<String, Object> subjectInfo = new HashMap<>();
+                            CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+                            if (subject != null) {
+                                subjectInfo.put("subject_id", subject.getSubjectId());
+                                subjectInfo.put("subject_name", subject.getSubjectName());
+                            } else {
+                                subjectInfo.put("subject_id", subjectId);
+                                subjectInfo.put("subject_name", "Unknown Subject");
+                            }
+                            return subjectInfo;
+                        })
+                        .collect(Collectors.toList());
+
+                qualificationInfo.put("subjects", subjects);
+                qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
+
+                return qualificationInfo;
+            }).collect(Collectors.toList());
+}
+
+
+
     public List<Map<String, Object>> mapQualificationsForServiceProvider(List<QualificationDetails> qualificationDetails) {
         return qualificationDetails.stream()
                 .map(qualificationDetail -> {

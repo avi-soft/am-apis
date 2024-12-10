@@ -1,5 +1,6 @@
 package com.community.api.utils;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,9 @@ public class Document {
     @Lob
     private byte[] data;
 
+    @Column(name = "is_qualification_document")
+    private Boolean is_qualification_document=false;
+
     @JsonBackReference("documents-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
@@ -33,4 +37,7 @@ public class Document {
     @ManyToOne
     @JoinColumn(name = "document_type_Id")
     private DocumentType documentType;
+
+    @OneToOne(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    private QualificationDetails qualificationDetails;
 }

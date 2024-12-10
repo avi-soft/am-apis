@@ -110,6 +110,7 @@
         <class>com.community.api.entity.BoardUniversity</class>
         <class>com.community.api.entity.SubjectDetail</class>
         <class>com.community.api.entity.Institution</class>
+        <class>com.community.api.entity.OtherItem</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
