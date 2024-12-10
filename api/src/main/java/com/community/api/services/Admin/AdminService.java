@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +140,6 @@ public class AdminService
                         return responseService.generateErrorResponse("Custom Admin with username "+ username+" does not have role "+ roleService.findRoleName(role), HttpStatus.BAD_REQUEST);
                     }
                 }
-                System.out.println(customAdmin);
                 if (customAdmin == null) {
                     return responseService.generateErrorResponse("No records found ", HttpStatus.NOT_FOUND);
 
@@ -189,15 +189,17 @@ public class AdminService
 
             String storedOtp = customAdmin.getOtp();
             String ipAddress = request.getRemoteAddr();
+            LocalDateTime otpExpirationTime = customAdmin.getOtpExpirationTime();
             String userAgent = request.getHeader("User-Agent");
             String tokenKey = "authTokenAdmin_" + mobileNumber;
-
 
             if (otpEntered == null || otpEntered.trim().isEmpty()) {
                 return responseService.generateErrorResponse("OTP cannot be empty", HttpStatus.BAD_REQUEST);
             }
             if (otpEntered.equals(storedOtp)) {
-                customAdmin.setOtp(null);
+                if (otpExpirationTime != null && otpExpirationTime.isBefore(LocalDateTime.now())) {
+                    return responseService.generateErrorResponse("OTP has expired. Please request a new OTP.", HttpStatus.BAD_REQUEST);
+                }
                 entityManager.merge(customAdmin);
 
 
@@ -211,7 +213,8 @@ public class AdminService
 
 
                     return ResponseEntity.ok(responseBody);
-                } else {
+                }
+                else {
                     String newToken = jwtUtil.generateToken(customAdmin.getAdmin_id(), role, ipAddress, userAgent);
 
                     customAdmin.setToken(newToken);
@@ -225,7 +228,7 @@ public class AdminService
                     return ResponseEntity.ok(responseBody);
                 }
             } else {
-                return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
+                return responseService.generateErrorResponse("Invalid OTP. Please try again.", HttpStatus.BAD_REQUEST);
 
             }
 
@@ -331,7 +334,7 @@ public class AdminService
                 return ResponseEntity.ok(responseBody);
             }
         } else {
-            return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse("You have entered wrong Password", HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -343,6 +346,9 @@ public class AdminService
 
             }
             CustomAdmin existingAdmin = findAdminByUsername(username);
+            if (existingAdmin == null) {
+                throw new IllegalArgumentException("Custom Admin with username "+ username+ " not found");
+            }
             if(role.equals(Constant.ADMIN))
             {
                 if (existingAdmin.getRole() ==2) {
@@ -401,7 +407,7 @@ public class AdminService
             }
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }
