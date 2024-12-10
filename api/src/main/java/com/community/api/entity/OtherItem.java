@@ -49,9 +49,4 @@ public class OtherItem
     @Column(name = "field_name")
     String field_name;
 
-//    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-//    @JsonBackReference
-//    @JoinColumn(name = "source_id", referencedColumnName = "qualification_detail_id", nullable = true)
-//    private QualificationDetails qualificationDetails;
-
 }
