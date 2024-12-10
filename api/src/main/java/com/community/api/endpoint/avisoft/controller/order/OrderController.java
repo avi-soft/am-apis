@@ -261,9 +261,12 @@ public class OrderController {
     @Transactional
     //@Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
-    public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto) {
+    public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto,@RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (createTicketDto.getTicketType() == 1L) {
                 Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
                 query.setParameter("orderId", orderId);
@@ -331,7 +334,7 @@ public class OrderController {
             createTicketDto.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             createTicketDto.setTicketType(createTicketDto.getTicketType());*/
 
-            CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+            CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, serviceProvider,roleId,tokenUserId);
 
             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
             entityManager.merge(customOrderState);
@@ -347,7 +350,7 @@ public class OrderController {
             return ResponseService.generateSuccessResponse("Order Assigned", wrapper, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error assigning Request to Service Provider : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

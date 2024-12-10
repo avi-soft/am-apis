@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
+import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.services.*;
@@ -98,6 +99,24 @@ public class OtpEndpoint {
                     ? Constant.COUNTRY_CODE
                     : customerDetails.getCountryCode();
 
+
+            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
+            if(customAdmin!=null)
+            {
+                if(customAdmin.getRole()==1)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"SuperAdmin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==2)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"Admin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==3)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
+                }
+            }
+
             CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhoneWithOtp(customerDetails.getMobileNumber(), countryCode);
             if (existingCustomer != null) {
                 return responseService.generateErrorResponse(ApiConstants.CUSTOMER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
@@ -134,6 +153,7 @@ public class OtpEndpoint {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, HttpServletRequest request) {
         try {
+            String authHeader=Constant.BEARER_CONST;;
             loginDetails=sanitizerService.sanitizeInputMap(loginDetails);
 
             if (loginDetails == null) {
@@ -183,7 +203,6 @@ public class OtpEndpoint {
 
                 String storedOtp = existingCustomer.getOtp();
                 String ipAddress = request.getRemoteAddr();
-
                 String userAgent = request.getHeader("User-Agent");
                 String tokenKey = "authToken_" + mobileNumber;
                 Customer customer = customerService.readCustomerById(existingCustomer.getId());
@@ -194,20 +213,18 @@ public class OtpEndpoint {
 
 
                     String existingToken = existingCustomer.getToken();
-
                     if (existingToken!= null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
-
-
-                        ApiResponse response = new ApiResponse(existingToken,sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        authHeader=authHeader+existingToken;
+                        ApiResponse response = new ApiResponse(existingToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
 
                     } else {
                         String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                         session.setAttribute(tokenKey, newToken);
                         existingCustomer.setToken(newToken);
+                        authHeader=authHeader+newToken;
                         em.persist(existingCustomer);
-    
-                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
 
                     }
@@ -241,14 +258,29 @@ public class OtpEndpoint {
             String mobileNumber = (String) signupDetails.get("mobileNumber");
             String countryCode = (String) signupDetails.get("countryCode");
 
-
+            if (countryCode == null || countryCode.isEmpty()) {
+                countryCode = Constant.COUNTRY_CODE;
+            }
             mobileNumber = mobileNumber.startsWith("0") ? mobileNumber.substring(1) : mobileNumber;
             if (customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode) != null) {
                 return responseService.generateErrorResponse(ApiConstants.NUMBER_REGISTERED_AS_CUSTOMER, HttpStatus.BAD_REQUEST);
             }
 
-            if (countryCode == null || countryCode.isEmpty()) {
-                countryCode = Constant.COUNTRY_CODE;
+            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
+            if(customAdmin!=null)
+            {
+                if(customAdmin.getRole()==1)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"SuperAdmin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==2)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+"Admin", HttpStatus.BAD_REQUEST);
+                }
+                else if(customAdmin.getRole()==3)
+                {
+                    return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
+                }
             }
 
             if (!serviceProviderService.isValidMobileNumber(mobileNumber)) {

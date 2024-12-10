@@ -37,5 +37,6 @@ public class ServiceProviderDocument {
     @JoinColumn(name = "document_type_Id")
     private DocumentType documentType;
 
-
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isArchived;
 }

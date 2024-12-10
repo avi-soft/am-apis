@@ -26,8 +26,8 @@ public class Document {
     @Lob
     private byte[] data;
 
-    @Column(name = "is_qualification_document")
-    private boolean is_qualification_document=false;
+    @Column(name = "is_qualification_document",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_qualification_document=false;
 
     @JsonBackReference("documents-customer")
     @ManyToOne
@@ -41,4 +41,8 @@ public class Document {
     @OneToOne
     @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
     private QualificationDetails qualificationDetails;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isArchived;
+
 }

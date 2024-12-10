@@ -1,6 +1,8 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
+import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.BoardUniversity;
 import com.community.api.entity.CustomAdmin;
@@ -12,6 +14,7 @@ import com.community.api.entity.CustomerAddressDTO;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
 import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
@@ -53,7 +56,10 @@ public class SharedUtilityService {
     public ExceptionHandlingImplement exceptionHandling;
     @Autowired
     FileService fileService;
-
+    @Autowired
+    JwtUtil jwtTokenUtil;
+    @Autowired
+    RoleService roleService;
     @Autowired
     HttpServletRequest request;
     private EntityManager entityManager;
@@ -115,7 +121,11 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer) {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        String role = roleService.getRoleByRoleId(roleId).getRole_name();
         Map<String, Object> customerDetails = new HashMap<>();
         customerDetails.put("id", customer.getId());
         customerDetails.put("dateCreated", customer.getAuditable().getDateCreated());
@@ -150,8 +160,15 @@ public class SharedUtilityService {
             customerDetails.put("orderId", cart.getId());
         else
             customerDetails.put("orderId", null);
-        if (customCustomer.getHidePhoneNumber().equals(false))
+        if(role.equals(Constant.roleServiceProvider)) {
+            if (customCustomer.getHidePhoneNumber().equals(false)) {
+                customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+            }
+        }
+        else
+        {
             customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+        }
         customerDetails.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
         customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
@@ -162,6 +179,15 @@ public class SharedUtilityService {
         // }
         // customerDetails.put("referres",refSp);
         customerDetails.put("countryCode", customCustomer.getCountryCode());
+        List<ReferrerDTO>ref=new ArrayList<>();
+        for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+        {
+            ReferrerDTO referrerDTO=new ReferrerDTO();
+            referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+            referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
+            ref.add(referrerDTO);
+        }
+        customerDetails.put("referrers",ref);
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());
         customerDetails.put("mothersName", customCustomer.getMothersName());

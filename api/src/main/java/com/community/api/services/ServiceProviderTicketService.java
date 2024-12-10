@@ -1,6 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
@@ -63,6 +64,9 @@ public class ServiceProviderTicketService {
 
     @Autowired
     TicketStatusService ticketStatusService;
+
+    @Autowired
+    JwtUtil jwtTokenUtil;
 
     @Autowired
     ProductService productService;
@@ -168,7 +172,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -203,7 +207,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -227,17 +231,17 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo) throws Exception {
+    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo,Integer creatorRoleId,Long creatorId) throws Exception {
         try {
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
-
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
 
             if (createTicketDto.getTargetCompletionDate() != null) {
-                dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
-                if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                System.out.println("assigned date :"+createdDate);
+                System.out.println( " tc date :"+createTicketDto.getTargetCompletionDate());
+                if (!(createTicketDto.getTargetCompletionDate().after(new Date()))) {
                     ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                 }
             } else {
@@ -248,11 +252,12 @@ public class ServiceProviderTicketService {
 
                 createTicketDto.setTargetCompletionDate(newTargetDate);
             }
-
             customServiceProviderTicket.setTicketAssignDate(createdDate);
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
+            customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
+            customServiceProviderTicket.setUserId(creatorId);
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
             Role role = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
             customServiceProviderTicket.setAssigneeRole(role);
@@ -286,7 +291,7 @@ public class ServiceProviderTicketService {
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
-            throw new Exception("Some Exception Caught: " + exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 
@@ -355,16 +360,16 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
 
                     if (serviceProvider.getIsActive()) {
-
+                        logger.info("sp id:" + serviceProvider.getService_provider_id());
                         if ( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
-
+                            logger.info("sp who are active and approved: " + serviceProvider.getService_provider_id());
                             CreateTicketDto createTicketDto = new CreateTicketDto();
                             createTicketDto.setTicketState(1L);
                             createTicketDto.setTicketType(1L);
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider);
+                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -374,6 +379,7 @@ public class ServiceProviderTicketService {
                             assignedOrders.add(order);
                             break;
                         } else {
+                            logger.info("sp who are active and approved: else " + serviceProvider.getService_provider_id());
                             logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
                     }

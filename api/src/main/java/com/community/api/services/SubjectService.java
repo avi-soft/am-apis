@@ -66,24 +66,48 @@ public class SubjectService {
 
             Query query = entityManager.createQuery(Constant.GET_SUBJECT_BY_SUBJECT_ID, CustomSubject.class);
             query.setParameter("subjectId", subjectId);
-            List<CustomSubject> stream = query.getResultList();
+            List<CustomSubject> subject = query.getResultList();
 
-            if (!stream.isEmpty()) {
-                return stream.get(0);
+            if (!subject.isEmpty()) {
+                if(subject.get(0).getArchived() == 'Y'){
+                    throw new IllegalArgumentException("Subject is already Archived");
+                }
+                return subject.get(0);
             }
             return null;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new IllegalArgumentException("Exception Caught: " + exception.getMessage());
         }
     }
+
+    public List<CustomSubject> getSubjectBySubjectName(String subjectName) throws Exception {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_SUBJECT_BY_SUBJECT_NAME, CustomSubject.class);
+            query.setParameter("subjectName", subjectName);
+            List<CustomSubject> subject = query.getResultList();
+
+            return subject;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+        }
+    }
+
     public Boolean validateAddSubjectDto(AddSubjectDto addSubjectDto) throws Exception {
         try{
 
             if(addSubjectDto.getSubjectName() != null) {
                 addSubjectDto.setSubjectName(addSubjectDto.getSubjectName().trim());
             }
-
+            List<CustomSubject> subjects = getSubjectBySubjectName(addSubjectDto.getSubjectName());
+            if(subjects != null && !subjects.isEmpty()) {
+                throw new IllegalArgumentException("Duplicate Unarchived Subject Name");
+            }
             if(addSubjectDto.getSubjectDescription() != null) {
                 addSubjectDto.setSubjectDescription(addSubjectDto.getSubjectDescription().trim());
             }

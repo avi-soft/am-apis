@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.tomcat.util.bcel.Const;
@@ -70,26 +71,44 @@ public class StreamService {
             List<CustomStream> stream = query.getResultList();
 
             if (!stream.isEmpty()) {
+                if(stream.get(0).getArchived() == 'Y'){
+                    throw new IllegalArgumentException("Subject is already Archived");
+                }
                 return stream.get(0);
             }
             return null;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new IllegalArgumentException("Exception Caught: " + exception.getMessage());
+        }
+    }
+
+    public List<CustomStream> getStreamByStreamName(String streamName) throws Exception {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_STREAM_BY_STREAM_NAME, CustomStream.class);
+            query.setParameter("streamName", streamName);
+            List<CustomStream> stream = query.getResultList();
+
+            return stream;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
         }
     }
 
     public Boolean validateAddStreamDto(AddStreamDto addStreamDto) throws Exception {
         try{
 
-            if(addStreamDto.getStreamName() == null || addStreamDto.getStreamName().trim().isEmpty()) {
-                throw new IllegalArgumentException("STREAM NAME CANNOT BE NULL, EMPTY");
-            }else {
+            if(addStreamDto.getStreamName() != null) {
                 addStreamDto.setStreamName(addStreamDto.getStreamName().trim());
             }
-
-            if( (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().trim().isEmpty()) || (addStreamDto.getStreamDescription() != null && addStreamDto.getStreamDescription().length() > 255) ) {
-                throw new IllegalArgumentException("STREAM DESCRIPTION CANNOT BE EMPTY AND LENGTH <= 255");
+            List<CustomStream> streams = getStreamByStreamName(addStreamDto.getStreamName());
+            if(streams != null && !streams.isEmpty()) {
+                throw new IllegalArgumentException("Duplicate Unarchived Stream Name");
             }
             if(addStreamDto.getStreamDescription() != null) {
                 addStreamDto.setStreamDescription(addStreamDto.getStreamDescription().trim());
