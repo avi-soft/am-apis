@@ -31,6 +31,8 @@ public class DocumentType {
     private String document_type_name;
     @Column(name = "description")
     private String description;
+    @Column(name = "is_qualification_document")
+    private Boolean is_qualification_document;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

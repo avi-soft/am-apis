@@ -84,6 +84,7 @@
         <class>com.community.api.entity.BankDetails</class>
         <class>com.community.api.entity.OrderTicketLinkage</class>
         <class>com.community.api.entity.Institution</class>
+        <class>com.community.api.entity.OtherItem</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

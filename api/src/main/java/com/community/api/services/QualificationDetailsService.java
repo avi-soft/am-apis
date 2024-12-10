@@ -9,6 +9,8 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Institution;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.SubjectDetail;
@@ -57,62 +59,67 @@ public class QualificationDetailsService {
     }
 
     @Transactional
-    public QualificationDetails addQualificationDetails(Long userId, QualificationDetails qualificationDetails, String roleName)
+    public QualificationDetails addQualificationDetails(Long userId, QualificationDetails qualificationDetails,String boardUniversityOthers,Integer roleId, String roleName )
             throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
 
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
-            List<DocumentType> qualifications = qualificationService.getAllQualifications();
+            List<Qualification> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
-            List<Institution> institutions= institutionService.getAllInstitutions();
-            Long institutionToAdd= findInstitutionId(qualificationDetails.getInstitution_id(),institutions);
+            List<Institution> institutions = institutionService.getAllInstitutions();
+            Long institutionToAdd = findInstitutionId(qualificationDetails.getInstitution_id(), institutions);
             qualificationDetails.setInstitution_id(institutionToAdd);
-            List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
-            Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
+            List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
+            Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
+            OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
             qualificationDetails.setBoard_university_id(boardUniversityToAdd);
     /*      List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
             qualificationDetails.setSubject_ids(subjects);*/
-            if(qualificationDetails.getSubject_name()==null)
-            {
+            if (qualificationDetails.getSubject_name() == null) {
                 throw new IllegalArgumentException("Subject_name cannot be null");
             }
             validateQualificationDetail(qualificationDetails);
-            List<CustomStream> streams= streamService.getAllStream();
-            Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
+            List<CustomStream> streams = streamService.getAllStream();
+            Long streamToAdd = findStreamId(qualificationDetails.getStream_id(), streams);
             qualificationDetails.setStream_id(streamToAdd);
             qualificationDetails.setService_provider(serviceProviderEntity);
-            if(serviceProviderEntity.getQualificationDetailsList().isEmpty())
-            {
+            if (serviceProviderEntity.getQualificationDetailsList().isEmpty()) {
                 serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
-            }
-            else if(!serviceProviderEntity.getQualificationDetailsList().isEmpty())
-            {
+            } else if (!serviceProviderEntity.getQualificationDetailsList().isEmpty()) {
                 serviceProviderEntity.getQualificationDetailsList().clear();
                 serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
-                List<ServiceProviderDocument> serviceProviderDocuments= serviceProviderEntity.getDocuments();
-                if(!serviceProviderDocuments.isEmpty())
-                {
-                    for(ServiceProviderDocument serviceProviderDocument: serviceProviderDocuments)
-                    {
-                        iterateQualificationsToDeleteDocumentsForServiceProvider(serviceProviderDocument,qualifications);
+                List<ServiceProviderDocument> serviceProviderDocuments = serviceProviderEntity.getDocuments();
+                if (!serviceProviderDocuments.isEmpty()) {
+                    for (ServiceProviderDocument serviceProviderDocument : serviceProviderDocuments) {
+                        iterateQualificationsToDeleteDocumentsForServiceProvider(serviceProviderDocument, qualifications);
                     }
                 }
             }
             entityManager.persist(qualificationDetails);
+            if(boardUniversityOthers!=null)
+            {
+                qualificationDetails.setOtherItems(new ArrayList<>(List.of(boardUniversityOtherItemToAdd)));
+                QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+                entityManager.merge(boardUniversityOtherItemToAdd);
+                giveQualificationScore(userId);
+                return addedQualificationDetails;
+            }
             giveQualificationScore(userId);
             return qualificationDetails;
+
         }
         CustomCustomer customCustomer = findCustomCustomerById(userId);
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
-        List<DocumentType> qualifications = qualificationService.getAllQualifications();
+        List<Qualification> qualifications = qualificationService.getAllQualifications();
         Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         qualificationDetails.setQualification_id(qualificationToAdd);
-        List<Institution> institutions= institutionService.getAllInstitutions();
-        Long institutionToAdd= findInstitutionId(qualificationDetails.getInstitution_id(),institutions);
+        List<Institution> institutions = institutionService.getAllInstitutions();
+        Long institutionToAdd = findInstitutionId(qualificationDetails.getInstitution_id(), institutions);
         qualificationDetails.setInstitution_id(institutionToAdd);
-        List<BoardUniversity> boardUniversities= boardUniversityService.getAllBoardUniversities();
-        Long boardUniversityToAdd= findBoardUniversityById(qualificationDetails.getBoard_university_id(),boardUniversities);
+        List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
+        Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
+        OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
         if(qualificationDetails.getQualification_id().equals(14) || qualificationDetails.getQualification_id().equals(15)) {
             if (qualificationDetails.getSubject_ids() == null || qualificationDetails.getSubject_ids().isEmpty()) {
@@ -133,7 +140,14 @@ public class QualificationDetailsService {
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         entityManager.persist(qualificationDetails);
-        return qualificationDetails;
+        if(boardUniversityOthers!=null)
+        {
+            qualificationDetails.setOtherItems(new ArrayList<>(List.of(boardUniversityOtherItemToAdd)));
+            QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+            entityManager.merge(boardUniversityOtherItemToAdd);
+            return addedQualificationDetails;
+        }
+       return qualificationDetails;
     }
 
     @Transactional
@@ -172,7 +186,7 @@ public class QualificationDetailsService {
         if (qualificationDetailsToDelete == null) {
             throw new EntityDoesNotExistsException("QualificationDetails with id " + qualificationId + " does not exists");
         }
-        List<DocumentType> qualifications= qualificationService.getAllQualifications();
+        List<Qualification> qualifications= qualificationService.getAllQualifications();
         qualificationDetails.remove(qualificationDetailsToDelete);
         entityManager.remove(qualificationDetailsToDelete);
         if(roleName.equalsIgnoreCase("CUSTOMER"))
@@ -264,7 +278,7 @@ public class QualificationDetailsService {
         }
 
         if (Objects.nonNull(qualification.getQualification_id())) {
-            List<DocumentType> qualificationDetailsList = qualificationService.getAllQualifications();
+            List<Qualification> qualificationDetailsList = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualification.getQualification_id(), qualificationDetailsList);
             qualificationDetailsToUpdate.setQualification_id(qualificationToAdd);
 
@@ -570,10 +584,10 @@ public class QualificationDetailsService {
         }
     }
 
-    public Integer findQualificationId(Integer qualificationId, List<DocumentType> qualifications) throws ExaminationDoesNotExistsException {
-        for (DocumentType qualification : qualifications) {
-            if (qualification.getDocument_type_id().equals(qualificationId)) {
-                return qualification.getDocument_type_id();
+    public Integer findQualificationId(Integer qualificationId, List<Qualification> qualifications) throws ExaminationDoesNotExistsException {
+        for (Qualification qualification : qualifications) {
+            if (qualification.getQualification_id().equals(qualificationId)) {
+                return qualification.getQualification_id();
             }
         }
         throw new ExaminationDoesNotExistsException("Qualification with id " + qualificationId + " does not exist");
@@ -644,22 +658,22 @@ public class QualificationDetailsService {
     }
 
     @Transactional
-    public void iterateQualificationsToDeleteDocumentsForServiceProvider(ServiceProviderDocument serviceProviderDocument, List<DocumentType> qualifications)
+    public void iterateQualificationsToDeleteDocumentsForServiceProvider(ServiceProviderDocument serviceProviderDocument, List<Qualification> qualifications)
     {
-        for(DocumentType qualification: qualifications)
+        for(Qualification qualification: qualifications)
         {
-            if(qualification.getDocument_type_id().equals(serviceProviderDocument.getDocumentType().getDocument_type_id()))
+            if(qualification.getQualification_id().equals(serviceProviderDocument.getDocumentType().getDocument_type_id()))
             {
                 entityManager.remove(serviceProviderDocument);
             }
         }
     }
     @Transactional
-    public void iterateQualificationsToDeleteDocumentsForCustomer(Document custmerDocument, List<DocumentType> qualifications)
+    public void iterateQualificationsToDeleteDocumentsForCustomer(Document custmerDocument, List<Qualification> qualifications)
     {
-        for(DocumentType qualification: qualifications)
+        for(Qualification qualification: qualifications)
         {
-            if(qualification.getDocument_type_id().equals(custmerDocument.getDocumentType().getDocument_type_id()))
+            if(qualification.getQualification_id().equals(custmerDocument.getDocumentType().getDocument_type_id()))
             {
                 entityManager.remove(custmerDocument);
             }
@@ -1012,6 +1026,29 @@ public class QualificationDetailsService {
                         + customSubject.getSubjectName() + " with subject_id " + customSubject.getSubjectId());
             }
         }
+    }
+
+    public OtherItem handleOtherCaseForBoardUniversity(Long foundedBoardUniversityId,String boardUniversityOthers,Integer roleId,Long userId)
+    {
+        if(foundedBoardUniversityId.equals(1L))
+        {
+            if(boardUniversityOthers==null) {
+                throw new IllegalArgumentException("You have to enter a text for other board/university");
+            }
+            if(boardUniversityOthers.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other board/university");
+            }
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(boardUniversityOthers);
+            otherItem.setField_name("Board or University");
+            otherItem.setSource_name("Qualification Details");
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
     }
 
 }
