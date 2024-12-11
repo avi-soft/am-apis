@@ -5,9 +5,16 @@ import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
+import javax.servlet.http.HttpServletRequest;
+
 public class Constant {
 
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
+    public static final long MAX_SIGNATURE_IMAGE_SIZE= 1 * 1024 * 1024;
+    public static final long MIN_SIGNATURE_IMAGE_SIZE= 300 * 1024;
+    public static final long MAX_PDF_SIZE =  1 * 1024 * 1024;
+    public static final long MIN_PDF_SIZE = 500 * 1024;
     public static String COUNTRY_CODE = "+91";
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
@@ -41,9 +48,11 @@ public class Constant {
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
     public static String FETCH_ROLE = "SELECT r.role_name FROM Role r WHERE r.role_id = :role_id";
-    public static String roleUser = "CUSTOMER";
-    public static String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
-    public static String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleUser = "CUSTOMER";
+    public static final String roleSuperAdmin = "SUPER_ADMIN";
+    public static final String roleAdmin="ADMIN";
+    public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
+    public static final String roleServiceProvider = "SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";
@@ -70,6 +79,8 @@ public class Constant {
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
     public static String CANNOT_ADD_MORE_THAN_ONE_FORM="You can only add one of this form. Please choose a different form if you need more";
+    public static String MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin " + "ADD CONSTRAINT chk_mobile_number " + "CHECK (mobilenumber ~ '^[+]?[0-9]{9,13}$')";
+    public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
     public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category";
@@ -83,6 +94,7 @@ public class Constant {
     public static String GET_PRODUCT_STATE_BY_ID = "SELECT c FROM CustomProductState c WHERE c.productStateId = :productStateId";
     public static String GET_PRODUCT_STATE_BY_NAME = "SELECT c FROM CustomProductState c WHERE c.productState = :productStateName";
     public static String PRODUCT_STATE_NEW = "NEW";
+    public static String PRODUCT_STATE_DRAFT="DRAFT";
     public static String PRODUCT_STATE_MODIFIED = "MODIFIED";
     public static String PRODUCT_STATE_LIVE = "LIVE";
     public static String PRODUCT_STATE_APPROVED = "APPROVED";
@@ -141,10 +153,12 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_BY_ID= "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name";
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId";
-    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c";
-    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c";
+    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y'";
+    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y'";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
+    public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
     public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId";
+    public static final String GET_STREAM_BY_STREAM_NAME = "SELECT c FROM CustomStream c WHERE LOWER(c.streamName) = LOWER(:streamName) AND c.archived != 'Y'";
     public static final String GET_ALL_SECTOR = "SELECT c FROM CustomSector c";
     public static final String GET_SECTOR_BY_SECTOR_ID = "SELECT c FROM CustomSector c WHERE c.sectorId = :sectorId";
     public static final String GET_QUALIFICATION_BY_ID = "SELECT c FROM Qualification c WHERE c.qualification_id = :qualificationId";
@@ -153,8 +167,8 @@ public class Constant {
     public static final String EMAIL_REGEXP="^[\\w-\\.]+@[\\w-]+\\.[a-zA-Z]{2,}$";
     public static final String GET_ALL_ORDERS_OF_ONE_CUSTOMER="SELECT o from blc_ ";
     public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber";;
-
-    public static final String GET_ALL_ORDERS="SELECT o.order_id FROM blc_order o WHERE o.order_status <> 'IN_PROCESS'";
+    public static final String CHECK_FOR_REPEATED_REF="SELECT COUNT(*) FROM customer_referrer c WHERE c.customer_id = :customerId AND c.service_provider_id = :spId";
+    public static final String GET_ALL_ORDERS="SELECT order_id FROM order_state";
     public static final String SEARCH_ORDER_QUERY="SELECT o.order_id FROM order_state o WHERE o.order_state_id =:orderStateId";
     public static final String GET_NEW_ORDERS="SELECT o.order_id FROM order_state o WHERE o.order_state_id = 1";
     public static final String GET_SP_ORDER_REQUEST="SELECT o.order_request_id FROM SP_orders_requests o WHERE o.order_id = :orderId AND o.service_provider_id = :serviceProviderId ";
@@ -181,4 +195,21 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
     public static final CustomOrderState ORDER_STATE_RETURNED = new CustomOrderState(5);
+    public static HttpServletRequest request=null;
+
+
+    public static final String GET_ALL_ORDER_STATE = "SELECT c FROM OrderStateRef c";
+    public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
+    public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
+    public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
+    public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
+    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String BEARER_CONST= "Bearer ";
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
+
+
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
 }

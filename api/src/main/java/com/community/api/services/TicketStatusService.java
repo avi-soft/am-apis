@@ -21,18 +21,23 @@ public class TicketStatusService {
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
 
-    public List<CustomTicketStatus> getAllTicketStatus() {
+    public List<CustomTicketStatus> getAllTicketStatus() throws Exception {
         try {
             List<CustomTicketStatus> ticketStatusList = entityManager.createQuery(Constant.GET_ALL_TICKET_STATUS, CustomTicketStatus.class).getResultList();
-            return ticketStatusList;
+
+            if (!ticketStatusList.isEmpty()) {
+                return ticketStatusList;
+            } else {
+                throw new IllegalArgumentException("No ticket status found with this ticket status id");
+            }
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-//            return null;
-            return Collections.emptyList();
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
     }
 
-    public CustomTicketStatus getTicketStatusByTicketStatusId(Long ticketStatusId) {
+    public CustomTicketStatus getTicketStatusByTicketStatusId(Long ticketStatusId) throws Exception {
         try {
 
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_BY_TICKET_STATUS_ID, CustomTicketStatus.class);
@@ -42,12 +47,12 @@ public class TicketStatusService {
             if (!ticketState.isEmpty()) {
                 return ticketState.get(0);
             } else {
-                return null;
+                throw new IllegalArgumentException("No ticket status found with this ticket status id");
             }
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return null;
+            throw new Exception(exception.getMessage());
         }
     }
 }

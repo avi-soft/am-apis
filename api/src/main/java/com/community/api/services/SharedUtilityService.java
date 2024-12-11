@@ -1,6 +1,8 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
+import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -21,8 +23,11 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,32 +35,46 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class SharedUtilityService {
-    private EntityManager entityManager;
     public ReserveCategoryService reserveCategoryService;
-    private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
+    @Autowired
+    public OrderService orderService;
+    @Autowired
+    public ExceptionHandlingImplement exceptionHandling;
     @Autowired
     FileService fileService;
-
+    @Autowired
+    JwtUtil jwtTokenUtil;
+    @Autowired
+    RoleService roleService;
     @Autowired
     HttpServletRequest request;
+    private EntityManager entityManager;
+    private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
+
+    public static String getCurrentTimestamp() {
+        // Get the current date and time with timezone
+        ZonedDateTime zonedDateTime = ZonedDateTime.now();
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSXXX");
+        return zonedDateTime.format(formatter);
+    }
+
     @Autowired
     public void setEntityManager(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
-    @Autowired
-    public void setReserveCategoryService(ReserveCategoryService reserveCategoryService)
-    {
-        this.reserveCategoryService=reserveCategoryService;
-    }
-    @Autowired
-    public OrderService orderService;
 
     @Autowired
-    public ExceptionHandlingImplement exceptionHandling;
+    public void setReserveCategoryService(ReserveCategoryService reserveCategoryService) {
+        this.reserveCategoryService = reserveCategoryService;
+    }
+
     @Autowired
     public void setProductReserveCategoryFeePostRefService(ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService) {
         this.productReserveCategoryFeePostRefService = productReserveCategoryFeePostRefService;
@@ -65,46 +84,32 @@ public class SharedUtilityService {
         TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
         return query.getSingleResult();
     }
-    public static String getCurrentTimestamp() {
-        // Get the current date and time with timezone
-        ZonedDateTime zonedDateTime = ZonedDateTime.now();
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSXXX");
-        return zonedDateTime.format(formatter);
-    }
-    public Map<String,Object> createProductResponseMap(Product product, OrderItem orderItem,CustomCustomer customer)
-    {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer) {
         Map<String, Object> productDetails = new HashMap<>();
-        CustomProduct customProduct=entityManager.find(CustomProduct.class,product.getId());
-        if(orderItem!=null)
-            productDetails.put("order_item_id",orderItem.getId());
+        CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+        if (orderItem != null)
+            productDetails.put("order_item_id", orderItem.getId());
         productDetails.put("product_id", product.getId());
         productDetails.put("url", product.getUrl());
-        productDetails.put("meta_title",product.getName());
+        productDetails.put("meta_title", product.getName());
         productDetails.put("url_key", product.getUrlKey());
-        productDetails.put("platform_fee",customProduct.getPlatformFee());
+        productDetails.put("platform_fee", customProduct.getPlatformFee());
         productDetails.put("display_template", product.getDisplayTemplate());
         productDetails.put("default_sku_id", product.getDefaultSku().getId());
         productDetails.put("default_sku_name", product.getDefaultSku().getName());
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
-        Double fee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId()).getFee();
-        if(fee==null)
-        {
-            fee=10.0; //@TODO - make it constant free
+        Double fee = productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId()).getFee();
+        if (fee == null) {
+            fee = 10.0; //@TODO - make it constant free
         }
         //@TODO-Fee is dependent on category
-        productDetails.put("fee",fee);//this is dummy data
-        productDetails.put("category_id",product.getDefaultCategory().getId());
+        productDetails.put("fee", fee);//this is dummy data
+        productDetails.put("category_id", product.getDefaultCategory().getId());
         productDetails.put("active_end_date", product.getDefaultSku().getActiveEndDate());
         return productDetails;
-    }
-    public enum ValidationResult {
-        SUCCESS,
-        EXCEEDS_MAX_SIZE,
-        EXCEEDS_NESTED_SIZE,
-        INVALID_TYPE
     }
 
     @Transactional
@@ -294,9 +299,9 @@ public class SharedUtilityService {
 
         return customerDetails;
     }
-    public ValidationResult validateInputMap(Map<String,Object>inputMap)
-    {
-        if(inputMap.keySet().size()>Constant.MAX_REQUEST_SIZE)
+
+    public ValidationResult validateInputMap(Map<String, Object> inputMap) {
+        if (inputMap.keySet().size() > Constant.MAX_REQUEST_SIZE)
             return ValidationResult.EXCEEDS_MAX_SIZE;
 
         // Iterate through the map entries to check for nested maps
@@ -316,6 +321,7 @@ public class SharedUtilityService {
         return ValidationResult.SUCCESS;
 
     }
+
     @Transactional
     public Map<String, Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider) {
         Map<String, Object> serviceProviderDetails = new HashMap<>();
@@ -409,7 +415,7 @@ public class SharedUtilityService {
         return serviceProviderDetails;
     }
 
-    public Map<String,Object> trimStringValues(Map<String, Object> map) {
+    public Map<String, Object> trimStringValues(Map<String, Object> map) {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() instanceof String) {
                 // Trim the string and update the map
@@ -419,7 +425,8 @@ public class SharedUtilityService {
         }
         return map;
     }
-    public  boolean isValidEmail(String email) {
+
+    public boolean isValidEmail(String email) {
         return email != null && email.matches(Constant.EMAIL_REGEXP);
     }
 
@@ -567,7 +574,6 @@ public class SharedUtilityService {
                 }).collect(Collectors.toList());
     }
 
-
     public boolean isFutureDate(String dateStr) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         sdf.setLenient(false);
@@ -575,36 +581,69 @@ public class SharedUtilityService {
             Date inputDate = sdf.parse(dateStr);
             Date currentDate = new Date();
             return inputDate.after(currentDate);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return false;
         }
     }
-    public Map<String,Object> adminDetailsMap(CustomAdmin customAdmin)
-    {
-        Map<String,Object>customAdminDetails=new HashMap<>();
-        if(customAdmin.getRole()==2)
-        {
-            customAdminDetails.put("admin_id",customAdmin.getAdmin_id());
-        }
-        else if(customAdmin.getRole()==1)
-        {
-            customAdminDetails.put("super_admin_id",customAdmin.getAdmin_id());
-        }
-        else if(customAdmin.getRole()==3)
-        {
-            customAdminDetails.put("admin_service_provider_id",customAdmin.getAdmin_id());
+
+    public Map<String, Object> adminDetailsMap(CustomAdmin customAdmin) {
+        Map<String, Object> customAdminDetails = new HashMap<>();
+        if (customAdmin.getRole() == 2) {
+            customAdminDetails.put("admin_id", customAdmin.getAdmin_id());
+        } else if (customAdmin.getRole() == 1) {
+            customAdminDetails.put("super_admin_id", customAdmin.getAdmin_id());
+        } else if (customAdmin.getRole() == 3) {
+            customAdminDetails.put("admin_service_provider_id", customAdmin.getAdmin_id());
         }
 
         customAdminDetails.put("role_id", customAdmin.getRole());
         customAdminDetails.put("user_name", customAdmin.getUser_name());
         customAdminDetails.put("password", customAdmin.getPassword());
         customAdminDetails.put("otp", customAdmin.getOtp());
-        customAdminDetails.put("mobile_number",customAdmin.getMobileNumber());
+        customAdminDetails.put("mobile_number", customAdmin.getMobileNumber());
         customAdminDetails.put("country_code", customAdmin.getCountry_code());
         return customAdminDetails;
     }
 
+    public enum ValidationResult {
+        SUCCESS,
+        EXCEEDS_MAX_SIZE,
+        EXCEEDS_NESTED_SIZE,
+        INVALID_TYPE
+    }
+    public  int isInValidOrInPast(Date targetCompletionDate) {
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = dateFormat.format(new Date());
+            Date currentDate = dateFormat.parse(formattedDate);
+            // Convert the Date object to ZonedDateTime in the system's default time zone
+            ZonedDateTime inputDateTime = targetCompletionDate.toInstant()
+                    .atZone(ZoneId.of("Asia/Kolkata"));
+
+            // Get the current date and time in IST
+            ZonedDateTime currentDateTimeInIST = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+
+            // Check if the parsed date in IST is before the current date and time in IST
+            if (inputDateTime.isBefore(currentDateTimeInIST)) {
+                return 1; // Date is in the past
+            } else {
+                return 0; // Date is valid but not in the past
+            }
+
+        }catch (NumberFormatException numberFormatException)
+        {
+            return -1;
+        }
+        catch (Exception e) {
+            // Handle errors like conversion errors
+            System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();  // Print the exception details for debugging
+            return -1; // Return -1 if there is any error
+        }
+    }
 
 }
+
+
 

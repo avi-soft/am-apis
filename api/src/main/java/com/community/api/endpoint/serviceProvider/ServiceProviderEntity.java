@@ -1,10 +1,11 @@
 package com.community.api.endpoint.serviceProvider;
 
-import com.community.api.entity.*;
-import com.community.api.utils.Document;
-
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderRequest;
 import com.community.api.entity.Privileges;
+import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.ResizedImage;
+import com.community.api.entity.ServiceProviderAcceptedOrders;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderInfra;
 import com.community.api.entity.ServiceProviderLanguage;
@@ -12,7 +13,6 @@ import com.community.api.entity.ServiceProviderRank;
 import com.community.api.entity.ServiceProviderTest;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.entity.Skill;
-import com.community.api.entity.*;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -26,14 +26,27 @@ import lombok.Setter;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
-import javax.persistence.*;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "service_provider")
@@ -57,17 +70,13 @@ public class ServiceProviderEntity  {
     private String user_name;
 
 
-
-
-//    @Lob
-//    @Basic(fetch = FetchType.LAZY)
-//    @Column(name = "businessPhoto", columnDefinition="BLOB")
-//    @OneToOne(cascade = CascadeType.ALL)
-//    @JoinColumn(name = "business_photo_id")
-   /* @OneToOne(cascade = CascadeType.ALL)
+    /*@Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "businessPhoto", columnDefinition="BLOB")
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "business_photo_id")
+    @OneToOne(cascade = CascadeType.ALL)
     private Document business_photo;*/
-
-
 
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "First name must contain only alphabets")
@@ -79,6 +88,9 @@ public class ServiceProviderEntity  {
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
     private String father_name;
+    @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
+    @Column(name = "mother_name")
+    private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
     private String date_of_birth;
@@ -94,6 +106,8 @@ public class ServiceProviderEntity  {
 
     private String pan_number;
 
+    @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isArchived = false;
     @Size(min = 9, max = 13)
     private String mobileNumber;
     private String otp;
@@ -113,6 +127,7 @@ public class ServiceProviderEntity  {
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Please enter a valid email address.")*/
     private String secondary_email;
+    @JsonIgnore
     private String password;
     @Nullable
     private Boolean is_running_business_unit=false;
@@ -218,7 +233,7 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ResizedImage> resizedImages;
 
-
+    @JsonIgnore
     private String token;
     @Column
     private Integer totalSkillTestPoints;
@@ -228,6 +243,7 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrals = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "serviceProviderEntity", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.EAGER)
     @Fetch(FetchMode.SUBSELECT)
     private List<ServiceProviderDocument> documents;
@@ -253,6 +269,15 @@ public class ServiceProviderEntity  {
 
     @Column(name="maximum_binding_size")
     private Integer maximumBindingSize;
+
+    @Column(name="ticket_completed")    // will keep track of number of ticket completed by the serviceProvider.
+    private Long ticketCompleted=0L;
+
+    @Column(name="ticket_pending")      // will keep track of number of ticket pending for the corresponding SP.
+    private Integer ticketPending=0;
+
+    @Column(name="ticket_assigned")
+    private Integer ticketAssigned=0;
 
 }
 

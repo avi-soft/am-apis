@@ -1,4 +1,3 @@
-
 package com.community.api.services;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
@@ -18,17 +17,23 @@ import com.community.api.entity.ServiceProviderLanguage;
 import com.community.api.entity.Skill;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.*;
+import com.community.api.utils.DocumentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import javax.management.Query;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
+import static com.community.api.component.Constant.MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN;
+import static com.community.api.component.Constant.PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN;
 import static org.broadleafcommerce.common.util.sql.importsql.DemoSqlServerSingleLineSqlCommandExtractor.CURRENT_TIMESTAMP;
 
 @Component
@@ -43,7 +48,7 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-
+        // Check if data already exists to avoid duplication
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomProductState(1L, "NEW", "New State."));
             entityManager.persist(new CustomProductState(2L, "MODIFIED", "Modified State."));
@@ -51,9 +56,98 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomProductState(4L, "REJECTED", "Rejected State."));
             entityManager.persist(new CustomProductState(5L, "LIVE", "Live State."));
             entityManager.persist(new CustomProductState(6L, "EXPIRED", "Expired State."));
-            entityManager.persist(new CustomProductState(7L,"DRAFT", "Draft State."));
+            entityManager.persist(new CustomProductState(7L, "DRAFT", "Draft State."));
         }
 
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketState c", Long.class).getSingleResult() == 0) {
+            entityManager.merge(new CustomTicketState(1L, "TO-DO", "Ticket is not assigned to any service provider"));
+            entityManager.merge(new CustomTicketState(2L, "IN-PROGRESS", "It's under progress"));
+            entityManager.merge(new CustomTicketState(3L, "ON-HOLD", "It's on hold"));
+            entityManager.merge(new CustomTicketState(4L, "IN-REVIEW", "It's rejected"));
+            entityManager.merge(new CustomTicketState(5L, "CLOSE", "Closed successfully"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketStatus c", Long.class).getSingleResult() == 0) {
+            entityManager.merge(new CustomTicketStatus(1L, "NOT-REACHABLE", "User is unreachable"));
+            entityManager.merge(new CustomTicketStatus(2L, "VALIDATING-DOCUMENT", "Validating documents"));
+            entityManager.merge(new CustomTicketStatus(3L, "MISSING-DOCUMENT", "Missing documents"));
+            entityManager.merge(new CustomTicketStatus(4L, "USER-NOT-REACHABLE", "User Not reachable"));
+            entityManager.merge(new CustomTicketStatus(5L, "UPLOADING-DOCUMENT", "Uploading documents"));
+            entityManager.merge(new CustomTicketStatus(6L, "FILLING-PERSONAL-DETAILS", "Filling personal details"));
+            entityManager.merge(new CustomTicketStatus(7L, "SOME-OTHER-STATUS", "Some other status"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(c) FROM CustomTicketType c", Long.class).getSingleResult() == 0) {
+            entityManager.merge(new CustomTicketType(1L, "PRIMARY", "Primary ticket of SP"));
+            entityManager.merge(new CustomTicketType(2L, "REVIEW-TICKET", "Review ticket of SP"));
+            entityManager.merge(new CustomTicketType(3L, "MISCELLANEOUS", "Miscellaneous (any other ticket)"));
+        }
+
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
+            entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
+            entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
+            entityManager.persist(new OrderStateRef(3, "UNASSIGNED", "Order is unassigned."));
+            entityManager.persist(new OrderStateRef(4, "ASSIGNED", "Order assigned."));
+            entityManager.persist(new OrderStateRef(5, "RETURNED", "Order returned."));
+            entityManager.persist(new OrderStateRef(6, "IN_PROGRESS", "Order is in progress."));
+            entityManager.persist(new OrderStateRef(7, "COMPLETED", "Order completed."));
+            entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
+        }
+        if (entityManager.createQuery("SELECT COUNT(o) FROM OrderTicketLinkage o", Long.class).getSingleResult() == 0) {
+            entityManager.persist((new OrderTicketLinkage(1,1,null,null)));
+            entityManager.persist((new OrderTicketLinkage(2,3,1L,null)));
+            entityManager.persist((new OrderTicketLinkage(3,4,1L,null)));
+            entityManager.persist((new OrderTicketLinkage(4,6,2L,2L)));
+            entityManager.persist((new OrderTicketLinkage(5,6,2L,5L)));
+            entityManager.persist((new OrderTicketLinkage(6,6,3L,3L)));
+            entityManager.persist((new OrderTicketLinkage(7,6,3L,4L)));
+            entityManager.persist((new OrderTicketLinkage(8,6,4L,6L)));
+            entityManager.persist((new OrderTicketLinkage(9,7,5L,null)));
+        }
+        if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
+        {
+            // AUTO_ASSIGNED (ID 1)
+            entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 2, "Order automatically assigned."));
+            // UNASSIGNED (ID 2)
+            entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 3, "Order is unassigned."));
+            // ASSIGNED (ID 3)
+            entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 4, "Order assigned by super admin."));
+            entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 4, "Order assigned by Auto Assigner."));
+            // RETURNED (ID 4)
+            entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 5, "Order cannot be done."));
+            entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 5, "Order is a duplicate."));
+            // IN_PROGRESS (ID 5)
+            entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 6, "Order is in progress."));
+            // COMPLETED (ID 6)
+            entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 7, "Order fulfilled."));
+            entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 7, "Order duplicate."));
+            entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 7, "Order not valid or created as a test."));
+            entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 7, "Order could not be completed because the student/customer was not reachable."));
+            entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 7, "Necessary document to complete the order was unavailable."));
+            entityManager.persist(new CustomOrderStatus(13, "NEW_ORDER", 1, "New Order Generated"));
+        }
+
+        if(entityManager.createQuery("SELECT COUNT(c) FROM CustomOrderStatus c",Long.class).getSingleResult()==0)
+        {
+            // AUTO_ASSIGNED (ID 1)
+            entityManager.persist(new CustomOrderStatus(1, "AUTO_ASSIGNED", 1, "Order automatically assigned."));
+            // UNASSIGNED (ID 2)
+            entityManager.persist(new CustomOrderStatus(2, "UNASSIGNED", 2, "Order is unassigned."));
+            // ASSIGNED (ID 3)
+            entityManager.persist(new CustomOrderStatus(3, "ASSIGNED_BY_SUPER_ADMIN", 3, "Order assigned by super admin."));
+            entityManager.persist(new CustomOrderStatus(4, "ASSIGNED_BY_AUTO_ASSIGNER", 3, "Order assigned by Auto Assigner."));
+            // RETURNED (ID 4)
+            entityManager.persist(new CustomOrderStatus(5, "CANNOT_BE_DONE", 4, "Order cannot be done."));
+            entityManager.persist(new CustomOrderStatus(6, "DUPLICATE_ORDER", 4, "Order is a duplicate."));
+            // IN_PROGRESS (ID 5)
+            entityManager.persist(new CustomOrderStatus(7, "IN_PROGRESS", 5, "Order is in progress."));
+            // COMPLETED (ID 6)
+            entityManager.persist(new CustomOrderStatus(8, "FULFILLED", 6, "Order fulfilled."));
+            entityManager.persist(new CustomOrderStatus(9, "DUPLICATE", 6, "Order duplicate."));
+            entityManager.persist(new CustomOrderStatus(10, "DUMMY_ORDER", 6, "Order not valid or created as a test."));
+            entityManager.persist(new CustomOrderStatus(11, "STUDENT_UNREACHABLE", 6, "Order could not be completed because the student/customer was not reachable."));
+            entityManager.persist(new CustomOrderStatus(12, "DOCUMENT_NOT_AVAILABLE", 6, "Necessary document to complete the order was unavailable."));
+        }
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomJobGroup c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomJobGroup(1L, 'A', "Executive Management"));
             entityManager.persist(new CustomJobGroup(2L, 'B', "Professional and Technical"));
@@ -101,37 +195,38 @@ public class CommandLineService implements CommandLineRunner {
         }
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomStream c", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new CustomStream(1L, "SCIENCE", "Description of Science"));
-            entityManager.merge(new CustomStream(2L, "ARTS", "Description of Arts"));
-            entityManager.merge(new CustomStream(3L, "COMMERCE", "Description of Commerce"));
-            entityManager.merge(new CustomStream(4L, "ENGINEERING", "Description of Engineering"));
-            entityManager.merge(new CustomStream(5L, "MEDICINE", "Description of Medicine"));
-            entityManager.merge(new CustomStream(6L, "HUMANITIES", "Description of Humanities"));
-            entityManager.merge(new CustomStream(7L, "SOCIAL SCIENCES", "Description of Social Sciences"));
-            entityManager.merge(new CustomStream(8L, "TECHNOLOGY", "Description of Technology"));
-            entityManager.merge(new CustomStream(9L, "MATHEMATICS", "Description of Mathematics"));
-            entityManager.merge(new CustomStream(10L, "DESIGN", "Description of Design"));
+            entityManager.merge(new CustomStream(1L, 'N', "SCIENCE", "Description of Science", new Date(), null, null));
+            entityManager.merge(new CustomStream(2L, 'N', "ARTS", "Description of Arts", new Date(), null, null));
+            entityManager.merge(new CustomStream(3L, 'N', "COMMERCE", "Description of Commerce", new Date(), null, null));
+            entityManager.merge(new CustomStream(4L, 'N', "ENGINEERING", "Description of Engineering", new Date(), null, null));
+            entityManager.merge(new CustomStream(5L, 'N', "MEDICINE", "Description of Medicine", new Date(), null, null));
+            entityManager.merge(new CustomStream(6L, 'N', "HUMANITIES", "Description of Humanities", new Date(), null, null));
+            entityManager.merge(new CustomStream(7L, 'N', "SOCIAL SCIENCES", "Description of Social Sciences", new Date(), null, null));
+            entityManager.merge(new CustomStream(8L, 'N', "TECHNOLOGY", "Description of Technology", new Date(), null, null));
+            entityManager.merge(new CustomStream(9L, 'N', "MATHEMATICS", "Description of Mathematics", new Date(), null, null));
+            entityManager.merge(new CustomStream(10L, 'N', "DESIGN", "Description of Design", new Date(), null, null));
         }
 
         if(entityManager.createQuery("SELECT COUNT(s) FROM CustomSubject s", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new CustomSubject(1L, "Mathematics", "Description of Mathematics"));
-            entityManager.merge(new CustomSubject(2L, "Physics", "Description of Physics"));
-            entityManager.merge(new CustomSubject(3L, "Chemistry", "Description of Chemistry"));
-            entityManager.merge(new CustomSubject(4L, "Biology", "Description of Biology"));
-            entityManager.merge(new CustomSubject(5L, "English", "Description of English"));
-            entityManager.merge(new CustomSubject(6L, "History", "Description of History"));
-            entityManager.merge(new CustomSubject(7L, "Geography", "Description of Geography"));
-            entityManager.merge(new CustomSubject(8L, "Computer Science", "Description of Computer Science"));
-            entityManager.merge(new CustomSubject(9L, "Art", "Description of Art"));
-            entityManager.merge(new CustomSubject(10L, "Physical Education", "Description of Physical Education"));
+            entityManager.merge(new CustomSubject(1L, 'N', "Mathematics", "Description of Mathematics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(2L, 'N', "Physics", "Description of Physics", new Date(), null, null));
+            entityManager.merge(new CustomSubject(3L, 'N', "Chemistry", "Description of Chemistry", new Date(), null, null));
+            entityManager.merge(new CustomSubject(4L, 'N', "Biology", "Description of Biology", new Date(), null, null));
+            entityManager.merge(new CustomSubject(5L, 'N', "English", "Description of English", new Date(), null, null));
+            entityManager.merge(new CustomSubject(6L, 'N', "History", "Description of History", new Date(), null, null));
+            entityManager.merge(new CustomSubject(7L, 'N', "Geography", "Description of Geography", new Date(), null, null));
+            entityManager.merge(new CustomSubject(8L, 'N',"Computer Science", "Description of Computer Science", new Date(), null, null));
+            entityManager.merge(new CustomSubject(9L, 'N', "Art", "Description of Art", new Date(), null, null));
+            entityManager.merge(new CustomSubject(10L, 'N', "Physical Education", "Description of Physical Education", new Date(), null, null));
         }
-
+        LocalDateTime localDateTime = LocalDateTime.now();
+        Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
         if (entityManager.createQuery("SELECT COUNT(r) FROM Role r", Long.class).getSingleResult() == 0) {
-            entityManager.merge(new Role(1, "SUPER_ADMIN", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(2, "ADMIN", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(3, "ADMIN_SERVICE_PROVIDER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(4, "SERVICE_PROVIDER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
-            entityManager.merge(new Role(5, "CUSTOMER", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, "SUPER_ADMIN"));
+            entityManager.merge(new Role(1, "SUPER_ADMIN", date.toString(),date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(2, "ADMIN", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(3, "ADMIN_SERVICE_PROVIDER", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(4, "SERVICE_PROVIDER", date.toString(), date.toString(), "SUPER_ADMIN"));
+            entityManager.merge(new Role(5, "CUSTOMER", date.toString(), date.toString(), "SUPER_ADMIN"));
         }
 
         Long count = entityManager.createQuery("SELECT COUNT(d) FROM Districts d", Long.class).getSingleResult();
@@ -323,13 +418,13 @@ public class CommandLineService implements CommandLineRunner {
         count = entityManager.createQuery("SELECT COUNT(e) FROM Qualification e", Long.class).getSingleResult();
 
         if (count == 0) {
-            entityManager.persist(new Qualification(1, "MATRICULATION/10th", "Completed secondary education or equivalent"));
-            entityManager.persist(new Qualification(2, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent"));
-            entityManager.persist(new Qualification(3, "BACHELORS", "Completed undergraduate degree program"));
-            entityManager.persist(new Qualification(4, "MASTERS", "Completed postgraduate degree program"));
-            entityManager.persist(new Qualification(5, "DOCTORATE", "Completed doctoral degree program"));
-            entityManager.persist(new Qualification(6, "DIPLOMA", "Completed a diploma program"));
-            entityManager.persist(new Qualification(7, "ITI", "Completed an ITI (Industrial Training Institute) program"));
+            entityManager.persist(new Qualification(1, "MATRICULATION/10th", "Completed secondary education or equivalent",true,false));
+            entityManager.persist(new Qualification(2, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent",true,true));
+            entityManager.persist(new Qualification(3, "BACHELORS", "Completed undergraduate degree program",false,true));
+            entityManager.persist(new Qualification(4, "MASTERS", "Completed postgraduate degree program",false,true));
+            entityManager.persist(new Qualification(5, "DOCTORATE", "Completed doctoral degree program",false,true));
+            entityManager.persist(new Qualification(6, "DIPLOMA", "Completed a diploma program",false,true));
+            entityManager.persist(new Qualification(7, "ITI", "Completed an ITI (Industrial Training Institute) program",false,true));
         }
 
         count = entityManager.createQuery("SELECT COUNT(e) FROM TypingText e", Long.class).getSingleResult();
@@ -366,11 +461,14 @@ public class CommandLineService implements CommandLineRunner {
         }
 
         count= entityManager.createQuery("SELECT count(e) FROM CustomAdmin e", Long.class).getSingleResult();
+        Date currentDate = new Date();
         if(count==0)
         {
-            entityManager.merge(new CustomAdmin(1L,2,passwordEncoder.encode("Admin#01"),"admin","7740066387","+91",0,now,"SUPER_ADMIN"));
-            entityManager.merge(new CustomAdmin(2L,1,passwordEncoder.encode("SuperAdmin#1357"),"superadmin","9872548680","+91",0,now,"SUPER_ADMIN"));
-            entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,now,"SUPER_ADMIN"));
+            entityManager.createNativeQuery(MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN).executeUpdate();
+            entityManager.createNativeQuery(PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN).executeUpdate();
+            entityManager.merge(new CustomAdmin(1L,2,passwordEncoder.encode("Admin#01"),"admin","7740066387","+91",0,currentDate,"SUPER_ADMIN"));
+            entityManager.merge(new CustomAdmin(2L,1,passwordEncoder.encode("SuperAdmin#1357"),"superadmin","9872548680","+91",0,currentDate,"SUPER_ADMIN"));
+            entityManager.merge(new CustomAdmin(3L,3,passwordEncoder.encode("AdminServiceProvider#02"),"adminserviceprovider","7710393096","+91",0,currentDate,"SUPER_ADMIN"));
         }
 
         count = entityManager.createQuery("SELECT count(e) FROM ScoringCriteria e", Long.class).getSingleResult();
@@ -400,16 +498,15 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new ScoringCriteria(12L, "Staff", "Individual (no staff)", 0));
 
             //Infra Scoring (For individual)
-            entityManager.merge(new ScoringCriteria(13L, "Infrastructure", "Service Provider having Equal to 5 or more than 5 infrastructures", 20));
-            entityManager.merge(new ScoringCriteria(14L, "Infrastructure", "Service Provider having between 2 and 4 infrastructures", 10));
-            entityManager.merge(new ScoringCriteria(15L, "Infrastructure", "Service Provider having 1 infrastructure", 5));
-            entityManager.merge(new ScoringCriteria(16L, "Infrastructure", "Service Provider having 0 infrastructure", 0));
+            entityManager.merge(new ScoringCriteria(13L,"Infrastructure","Service Provider having Equal to 5 or more than 5 infrastructures",20));
+            entityManager.merge(new ScoringCriteria(14L,"Infrastructure","Service Provider having between 2 and 4 infrastructures",10));
+            entityManager.merge(new ScoringCriteria(15L,"Infrastructure","Service Provider having 1 infrastructure",5));
+            entityManager.merge(new ScoringCriteria(16L,"Infrastructure","Service Provider having 0 infrastructure",0));
 
             //PartTimeOrFullTime Scoring (For Individual)
-            entityManager.merge(new ScoringCriteria(17L, "PartTimeOrFullTime", "Service Provider who is Full time", 10));
-            entityManager.merge(new ScoringCriteria(18L, "PartTimeOrFullTime", "Service Provider who is Part time", 0));
+            entityManager.merge(new ScoringCriteria(17L,"PartTimeOrFullTime","Service Provider who is Full time",10));
+            entityManager.merge(new ScoringCriteria(18L,"PartTimeOrFullTime","Service Provider who is Part time",0));
         }
-
         if (entityManager.createQuery("SELECT COUNT(o) FROM OrderStateRef o", Long.class).getSingleResult() == 0) {
             entityManager.persist(new OrderStateRef(1, "NEW", "Order is generated"));
             entityManager.persist(new OrderStateRef(2, "AUTO_ASSIGNED", "Order automatically assigned."));
@@ -421,8 +518,67 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new OrderStateRef(8, "IN_REVIEW", "Order is in review."));
         }
 
-         count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
-         if (count == 0) {
+        count = entityManager.createQuery("SELECT count(dt) FROM DocumentType dt", Long.class).getSingleResult();
+
+        if (count == 0) {
+            entityManager.persist(new DocumentType(1,  "Aadhaar_Card_Front","Front side of a government-issued ID card in India.", "200KB", "100KB",false));
+            entityManager.persist(new DocumentType(2,  "Pan_Card","A permanent account number card for tax purposes in India.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(3,  "Passport_Size_Photo","A small photo typically used for official documents.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(4,  "Signature", "A handwritten sign used to authenticate documents.", "200KB", "100KB",false));
+            entityManager.persist(new DocumentType(5,  "Ews_Certificate","Certificate for individuals and families below a certain income threshold to access various benefits and concessions.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(6,  "Diploma", "Completed an undergraduate or vocational course, certifying knowledge and skills in a specific field.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(7,  "Graduation","Awarded upon completion of a degree program, signifying fulfillment of academic requirements in a specific discipline.",  "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(8,  "Post_Graduation",  "Issued after completing a postgraduate degree, acknowledging advanced training in a specialized field.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(9,  "Caste_Certificate","Certifies an individual's caste for reservations and benefits in education and employment.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(10, "Address_Certificate","Verifies an individual’s residential address for identity verification and other purposes.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(11, "Income_Certificate","Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(12, "Driving_License","Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(13, "Others", "Includes other document types not listed above, tailored to specific needs or contexts.", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(14, "Matriculation/10th","Completed secondary education or equivalent.",  "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(15, "Intermediate/12th", "Completed higher secondary education or equivalent.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(16, "Bachelors", "Completed undergraduate degree program education.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(17, "Masters","Completed postgraduate degree program education.",  "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(18, "Doctorate", "Completed doctoral degree program education.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(19, "Domicile", "The permanent home or principal residence of a person.", "500KB", "100KB",false));
+            entityManager.persist(new DocumentType(20, "Handicaped","An outdated term for individuals with physical or mental disabilities; 'person with a disability' is preferred today.",  "500KB", "100KB",false));
+            entityManager.persist(new DocumentType(21, "C-Form_Photo", "A C Form photo is a standardized ID photo for official documents.", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(22, "Ex-Service_Men","Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.",  "500KB", "100KB",false));
+            entityManager.persist(new DocumentType(23, "Business_Photo","A Standard proof of Running Business.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(24, "Personal_Photo", "A Personal Photograph of SP.", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(25, "Ncc_Certificate_A","NCC CERTIFICATE A.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(26, "Ncc_Certificate_B", "NCC CERTIFICATE B.", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(27, "Ncc_Certificate_C", "NCC CERTIFICATE C.", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(28, "Nss_Certificate","NSS CERTIFICATE.",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(29, "Sports_Certificate-State","SPORTS CERTIFICATE FOR STATE LEVEL",  "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(30, "Sports_Certificate-Centre", "SPORTS CERTIFICATE FOR CENTRE LEVEL", "2MB", "100KB",false));
+            entityManager.persist(new DocumentType(31, "Aadhaar_Card_Backside", "Back side of a government-issued ID card in India.", "200KB", "100KB",false));
+            entityManager.persist(new DocumentType(32, "Left_Thumb_Impression", "The left thumb impression of the individual, typically required for identity verification in official documents.", "200KB", "100KB",false));
+            entityManager.persist(new DocumentType(33, "Right_Thumb_Impression", "The right thumb impression of the individual, typically required for identity verification in official documents.", "200KB", "100KB",false));
+            entityManager.persist(new DocumentType(34, "ITI", "Completed Industrial Training Institute (ITI) certification, typically required for vocational and technical qualifications.", "300KB", "200KB",false));
+            entityManager.persist(new DocumentType(35, "Mark_Sheet", "Mark sheet of Qualification", "300KB", "200KB",true));
+        }
+         count = entityManager.createQuery(
+                        "SELECT COUNT(df) FROM DocumentType dt JOIN dt.required_document_types df", Long.class)
+                .getSingleResult();
+
+        if (count == 0) {
+            String sql = "INSERT INTO document_file_types (document_type_id, file_type_id) VALUES " +
+                    "(1, 2), (2, 3), (3, 1), (3, 2), (4,2), " +
+                    "(5, 3), (6,2), (7, 2), (8, 2), (9, 1), " +
+                    "(9, 2),(10, 1), (10, 2), (11, 1), (11, 2), " +
+                    "(12, 1), (12, 2), (13, 1), (13, 2), (14, 2), " +
+                    "(15, 2), (16, 2), (17, 2),(18, 2), (19, 2), (20, 2), " +
+                    "(22,2), (21, 1), (21, 2), (23, 1), (23, 2)," +
+                    "(24, 1), (24, 2), (25, 1), (25, 2), (26, 1), " +
+                    "(26, 2), (27, 1), (27, 2),(28, 1), (28, 2),  " +
+                    "(29, 1), (29, 2), (30, 1), (30, 2),(31,2)," +
+                    "(32,2),(33,2),(34,2)";
+
+            entityManager.createNativeQuery(sql).executeUpdate();
+        }
+
+        count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
+        if (count == 0) {
             entityManager.merge(new BoardUniversity(1L,"Others", "NA","Not Applicable","NA",now,now,"SUPER_ADMIN","SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(3L, "Jawaharlal Nehru University", "Delhi", "JNU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
@@ -444,6 +600,16 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
         }
+
+        if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
+        {
+            entityManager.merge(new FileType(1,"PNG"));
+            entityManager.merge(new FileType(2, "JPG"));
+            entityManager.merge(new FileType(3, "PDF"));
+        }
+        String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
+        javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
+        query.executeUpdate();
 
         long institutionCount = entityManager.createQuery("SELECT count(i) FROM Institution i", Long.class).getSingleResult();
         if (institutionCount == 0) {

@@ -1,7 +1,5 @@
 package com.community.api.dto;
 
-import com.community.api.entity.CustomTicketState;
-import com.community.api.entity.CustomTicketStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,13 +20,23 @@ public class CreateTicketDto {
     @JsonProperty("ticket_status")
     private Long ticketStatus;
 
+    @NotNull
     @JsonProperty("ticket_type")
     private Long ticketType;
 
-    @JsonProperty("assign_to")
-    private Long assignTo;
+    @NotNull
+    @JsonProperty("assignee")
+    private Long assignee;
 
+    @NotNull
+    @JsonProperty("assignee_role")
+    private Integer assigneeRole;
+
+    @NotNull
     @JsonProperty("target_completion_time")
     private Date targetCompletionDate;
+
+    @JsonProperty("comment")
+    private String comment;
 
 }

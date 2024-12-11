@@ -11,6 +11,7 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AddSectorDto {
+
     @NotNull
     @JsonProperty("sector_name")
     private String sectorName;

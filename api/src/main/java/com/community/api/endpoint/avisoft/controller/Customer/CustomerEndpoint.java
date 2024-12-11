@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Customer;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
@@ -12,13 +13,27 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.QualificationDetails;
-import com.community.api.services.*;
+import com.community.api.services.FileDownloadService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.SanitizerService;
+import com.community.api.services.CustomCustomerService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.ReserveCategoryDtoService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.RoleService;
+import com.community.api.services.FileService;
+import com.community.api.services.ProductReserveCategoryFeePostRefService;
+import com.community.api.services.DistrictService;
+import com.community.api.services.ApiConstants;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import lombok.Getter;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -29,23 +44,40 @@ import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
+import org.hibernate.engine.jdbc.StreamUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.Column;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolationException;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -58,7 +90,6 @@ import java.util.*;
 )
 
 public class CustomerEndpoint {
-
     private PasswordEncoder passwordEncoder;
     private CustomerService customerService;  //@TODO- do this task asap
     private ExceptionHandlingImplement exceptionHandling;
@@ -97,7 +128,8 @@ public class CustomerEndpoint {
 
     @Autowired
     private static ResponseService responseService;
-
+    @Autowired
+    private FileDownloadService fileDownloadService;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -159,6 +191,7 @@ public class CustomerEndpoint {
     }
 
     @RequestMapping(value = "get-customer", method = RequestMethod.GET)
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     public ResponseEntity<?> retrieveCustomerById(@RequestParam Long customerId) {
         try {
             if (customerService == null) {
@@ -180,8 +213,9 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             List<String> errorMessages = new ArrayList<>();
 
@@ -214,10 +248,23 @@ public class CustomerEndpoint {
 
             if(details.containsKey("hidePhoneNumber"))
             {
+                customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
+                if((Boolean)details.get("hidePhoneNumber").equals(true))
+                {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
-                details.remove("secondaryMobileNumber");
-                details.remove("whatsappNumber");
-                details.remove("hidePhoneNumber");
+                }
+                if(secondaryMobileNumber!=null &&!customCustomerService.isValidMobileNumber(secondaryMobileNumber))
+                    errorMessages.add("Secondary mobile is invalid");
+                if(details.containsKey("whatsappNumber")&& !customCustomerService.isValidMobileNumber((String)details.get("whatsappNumber")))
+                    errorMessages.add("Invalid Whatsapp NUmber");
+                if(errorMessages.isEmpty()) {
+                    customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
+                    customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));
+                    customCustomer.setHidePhoneNumber((Boolean) details.get("hidePhoneNumber"));
+                    }
+                    details.remove("secondaryMobileNumber");
+                    details.remove("whatsappNumber");
+                    details.remove("hidePhoneNumber");
             }
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
@@ -352,6 +399,15 @@ public class CustomerEndpoint {
                     errorMessages.add(fieldName + " cannot be null");
                     continue;
                 }
+                if (field.isAnnotationPresent(Pattern.class)) {
+                    Pattern patternAnnotation = field.getAnnotation(Pattern.class);
+                    String regex = patternAnnotation.regexp();
+                    String message = patternAnnotation.message(); // Get custom message
+                    if (!newValue.toString().matches(regex)) {
+                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        continue;
+                    }
+                }
                 // Validate not null
 
                 // Validate size if applicable
@@ -379,9 +435,16 @@ public class CustomerEndpoint {
             }
 
             em.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
-        }catch(NoSuchFieldException e)
+        }catch (DataIntegrityViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ConstraintViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch(NoSuchFieldException e)
         {
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -424,15 +487,16 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
-            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer);
+            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer,authHeader);
 
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
@@ -743,6 +807,7 @@ public class CustomerEndpoint {
                             throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
                         }
                     }
+
                     for (MultipartFile file : fileList) {
 
                         documentStorageService.validateDocument(file, documentTypeObj);
@@ -867,11 +932,13 @@ public class CustomerEndpoint {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             updates=sanitizerService.sanitizeInputMap(updates);
@@ -903,7 +970,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
@@ -914,8 +981,9 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -932,14 +1000,14 @@ public class CustomerEndpoint {
                 if (customer.getPassword() == null || customer.getPassword().isEmpty()) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 System.out.println(password+","+customer.getPassword());
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
 
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 else
                 {
@@ -955,6 +1023,7 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdminServiceProvider})
     @RequestMapping(value = "delete", method = RequestMethod.DELETE)
     public ResponseEntity<?> deleteCustomer(@RequestParam String customerId) {
         try {
@@ -981,6 +1050,7 @@ public class CustomerEndpoint {
 
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "add-address", method = RequestMethod.POST)
     public ResponseEntity<?> addAddress(@RequestParam Long customerId, @RequestBody Map<String, Object> addressDetails) {
         try {
@@ -1076,7 +1146,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "address-details", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId) {
+    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             Long customerID = Long.valueOf(customerId);
             if (customerService == null) {
@@ -1114,26 +1184,29 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer) {
-        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody Map<String, String> request) {
-        String token = request.get("token");
-        if (token == null || token.isEmpty()) {
+    public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(Constant.BEARER_CONST)) {
             return ResponseEntity.badRequest().body("Token is required");
         }
+
+        String token = authorizationHeader.substring(7);
         try {
             jwtUtil.logoutUser(token);
+            return responseService.generateSuccessResponse("Logged out successfully", null, HttpStatus.OK);
 
-            return ResponseEntity.ok("Logged out successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during logout");
         }
     }
+
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @PostMapping("/save-form/{customer_id}")
     public ResponseEntity<?>saveForm(@PathVariable long customer_id,@RequestParam long product_id)
     {
@@ -1174,6 +1247,7 @@ public class CustomerEndpoint {
         }
     }
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @DeleteMapping("/unsave-form/{customer_id}")
     public ResponseEntity<?>unSaveForm(@PathVariable long customer_id,@RequestParam long product_id)
     {
@@ -1207,6 +1281,7 @@ public class CustomerEndpoint {
         }
     }
     @GetMapping(value = "/forms/show-saved-forms")
+    @Authorize(value = {Constant.roleUser})
     public ResponseEntity<?> getSavedForms(HttpServletRequest request, @RequestParam long customer_id) throws Exception {
         try {
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
@@ -1296,9 +1371,13 @@ public class CustomerEndpoint {
     @GetMapping("/get-all-customers")
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
             TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
             query.setFirstResult(startPosition);
@@ -1306,7 +1385,7 @@ public class CustomerEndpoint {
             List<Map> results = new ArrayList<>();
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
-                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd));
+                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd,authHeader));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -1318,7 +1397,9 @@ public class CustomerEndpoint {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleUser})
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
+
     public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
