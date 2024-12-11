@@ -448,7 +448,7 @@ public class SharedUtilityService {
                         // Check the `otherItems` for a matching "Board or University" field
                         Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
                                 .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("Board or University") &&
+                                        otherItem.getField_name().equalsIgnoreCase("board_or_university") &&
                                                 Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
                                 .findFirst();
                         if (otherItemOpt.isPresent()) {
