@@ -121,7 +121,13 @@ public class QualificationDetailsService {
         Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
         OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
-        if(qualificationDetails.getQualification_id().equals(14) || qualificationDetails.getQualification_id().equals(15)) {
+        Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+        Boolean subjectValidationCheck= null;
+        if(qualificationToSearch!=null)
+        {
+            subjectValidationCheck=qualificationToSearch.getIs_subjects_required();
+        }
+        if(subjectValidationCheck.equals(true)) {
             if (qualificationDetails.getSubject_ids() == null || qualificationDetails.getSubject_ids().isEmpty()) {
                 throw new IllegalArgumentException("Subjects list cannot be empty");
             }
@@ -147,7 +153,7 @@ public class QualificationDetailsService {
             entityManager.merge(boardUniversityOtherItemToAdd);
             return addedQualificationDetails;
         }
-       return qualificationDetails;
+        return qualificationDetails;
     }
 
     @Transactional
@@ -200,7 +206,7 @@ public class QualificationDetailsService {
                 }
             }
         }
-       else if(roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER))
+        else if(roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER))
         {
             List<ServiceProviderDocument> serviceProviderDocuments= serviceProviderEntity.getDocuments();
             if(!serviceProviderDocuments.isEmpty())
@@ -439,10 +445,16 @@ public class QualificationDetailsService {
         }
         if("CUSTOMER".equalsIgnoreCase(roleName))
         {
+            Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationIdToUpdate);
+            Boolean subjectValidationCheck= null;
+            if(qualificationToSearch!=null)
+            {
+                subjectValidationCheck=qualificationToSearch.getIs_subjects_required();
+            }
             if(Objects.nonNull(qualification.getSubject_ids()))
             {
                 createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
-                if(qualificationIdToUpdate.equals(14) || qualificationIdToUpdate.equals(15))
+                if(subjectValidationCheck.equals(true))
                 {
                     if(qualification.getSubject_details().size()<5)
                     {
@@ -452,7 +464,7 @@ public class QualificationDetailsService {
             }
             else
             {
-                if(qualificationIdToUpdate.equals(14) || qualificationIdToUpdate.equals(15))
+                if(subjectValidationCheck.equals(true))
                 {
                     if(qualificationDetailsToUpdate.getSubject_ids().isEmpty() || qualificationDetailsToUpdate.getSubject_ids()==null)
                     {
@@ -466,7 +478,13 @@ public class QualificationDetailsService {
 
     public void validateQualificationDetail(QualificationDetails qualificationDetails)
     {
-        if(!qualificationDetails.getQualification_id().equals(14))
+        Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+        Boolean streamValidationCheck= null;
+        if(qualificationToSearch!=null)
+        {
+            streamValidationCheck=qualificationToSearch.getIs_stream_required();
+        }
+        if(streamValidationCheck.equals(true))
         {
             if(qualificationDetails.getStream_id()==null)
             {
@@ -654,7 +672,7 @@ public class QualificationDetailsService {
             // Return the validated list of IDs
             return subjectIds;
         }
-       return null;
+        return null;
     }
 
     @Transactional
@@ -747,7 +765,13 @@ public class QualificationDetailsService {
 
     public void validateSubjectSizeForCustomer(QualificationDetails qualificationDetails)
     {
-        if(qualificationDetails.getQualification_id().equals(14) || qualificationDetails.getQualification_id().equals(15))
+        Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+        Boolean subjectValidationCheck= null;
+        if(qualificationToSearch!=null)
+        {
+            subjectValidationCheck=qualificationToSearch.getIs_subjects_required();
+        }
+        if(subjectValidationCheck.equals(true))
         {
             if(qualificationDetails.getSubject_details().size()<5)
             {
@@ -758,10 +782,8 @@ public class QualificationDetailsService {
 
     @Transactional
     public void createSubjectDetails(QualificationDetails qualificationDetail) {
-
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
-
         if (subjectIds == null || subjectIds.isEmpty()) {
             throw new IllegalArgumentException("Subject IDs list cannot be empty");
         }
