@@ -57,7 +57,7 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
 
 
     public void customWrapDetails(CustomTicketHistory customTicketHistory) {
-        this.ticketId = customTicketHistory.getTicketId();
+        this.ticketId = customTicketHistory.getTicketId().getTicketId();
         this.ticketHistoryId = customTicketHistory.getTicketHistoryId();
         this.assigneeUserId = customTicketHistory.getAssignee();
         this.assigneeRole = customTicketHistory.getAssigneeRole();

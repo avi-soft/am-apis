@@ -26,7 +26,7 @@ public class TicketHistoryService {
                 throw new IllegalArgumentException("TicketId cannot be <=0 or null");
             }
 
-            Query query = entityManager.createQuery(Constant.GET_TICKET_HISTORY_BY_TICKET_ID, CustomTicketHistory.class);
+            Query query = entityManager.createNativeQuery(Constant.GET_TICKET_HISTORY_BY_TICKET_ID);
             query.setParameter("ticketId", ticketId);
             List<CustomTicketHistory> ticketHistory = query.getResultList();
 
