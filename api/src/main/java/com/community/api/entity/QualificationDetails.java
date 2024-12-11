@@ -1,9 +1,13 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.utils.Document;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.util.ArrayList;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
@@ -21,8 +25,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -112,4 +118,20 @@ public class QualificationDetails {
     @ManyToOne
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity service_provider;
+
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Document document;
+
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ServiceProviderDocument serviceProviderDocument;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @JoinTable(
+            name = "qualification_detail_other_item",
+            joinColumns = @JoinColumn(name = "qualification_detail_id"),
+            inverseJoinColumns = @JoinColumn(name = "other_item_id")
+    )
+    private List<OtherItem> otherItems = new ArrayList<>();
+
 }

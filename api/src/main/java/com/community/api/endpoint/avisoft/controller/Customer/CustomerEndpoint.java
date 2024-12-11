@@ -12,6 +12,7 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.QualificationDetails;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -26,6 +27,7 @@ import com.community.api.services.FileService;
 import com.community.api.services.ProductReserveCategoryFeePostRefService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.ApiConstants;
+import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -512,6 +514,7 @@ public class CustomerEndpoint {
             @RequestParam Long customerId,
             @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
+            @RequestParam(value = "qualificationDetailId",required = false) Long qualificationDetailId,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -657,6 +660,14 @@ public class CustomerEndpoint {
                                 HttpStatus.BAD_REQUEST);
                     }
 
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
+                    }
+
                     for (MultipartFile file : fileList) {
 
                         // Validate document
@@ -725,7 +736,12 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
-
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
                             if (filePath != null) {
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
                                 File oldFile = new File(absolutePath);
@@ -740,7 +756,14 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                    document.setIs_qualification_document(true);
+                                    document.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(document);
+                                }
                             }
                         }
                     }
@@ -776,6 +799,14 @@ public class CustomerEndpoint {
 
                     if (documentTypeObj == null) {
                         return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
+
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
                     }
                     for (MultipartFile file : fileList) {
 
@@ -846,6 +877,12 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
                             if (filePath != null) {
 
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
@@ -864,6 +901,14 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                    serviceProviderDocument.setIs_qualification_document(true);
+                                    serviceProviderDocument.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
                             }
                         }
                     }
@@ -1384,6 +1429,35 @@ public class CustomerEndpoint {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error setting customer's referrer " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId, CustomCustomer customCustomer) {
+        List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
+    }
+    public QualificationDetails findQualificationDetailForServiceProvider(Long qualificationDetailId,ServiceProviderEntity serviceProviderEntity) throws IllegalArgumentException {
+        List<QualificationDetails> qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
     }
 
 }

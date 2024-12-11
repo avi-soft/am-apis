@@ -1,5 +1,6 @@
 package com.community.api.utils;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,9 @@ public class Document {
     @Lob
     private byte[] data;
 
+    @Column(name = "is_qualification_document",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_qualification_document=false;
+
     @JsonBackReference("documents-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
@@ -34,6 +38,11 @@ public class Document {
     @JoinColumn(name = "document_type_Id")
     private DocumentType documentType;
 
+    @OneToOne
+    @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
+    private QualificationDetails qualificationDetails;
+
     @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isArchived;
+
 }

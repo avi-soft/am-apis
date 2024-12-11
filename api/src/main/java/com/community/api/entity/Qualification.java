@@ -17,11 +17,17 @@ import javax.validation.constraints.Size;
 public class Qualification
 {
     @Id
-    private Long qualification_id;
+    private Integer qualification_id;
 
     @Column(name = "qualification_name", nullable = false)
     private String qualification_name;
 
     @Column(name = "qualification_description", nullable = false)
     private String qualification_description;
+
+    @Column(name = "is_subjects_required", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean is_subjects_required;
+
+    @Column(name = "is_stream_required", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean is_stream_required;
 }
