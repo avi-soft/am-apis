@@ -38,5 +38,4 @@ public class CreateTicketDto {
 
     @JsonProperty("comment")
     private String comment;
-
 }

@@ -599,7 +599,7 @@ public class AccountEndPoint {
     public ResponseEntity<?> loginWithCustomerPassword(@RequestBody Map<String, Object> loginDetails, HttpSession session,
                                                        HttpServletRequest request) {
         try {
-            String authHeader=Constant.BEARER_CONST;;
+            String authHeader=Constant.BEARER_CONST;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
@@ -629,13 +629,14 @@ public class AccountEndPoint {
                         String existingToken = existingCustomer.getToken();
                         String ipAddress = request.getRemoteAddr();
                         String userAgent = request.getHeader("User-Agent");
-                        authHeader=authHeader+existingToken;
+
                         if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
+                            authHeader=authHeader+existingToken;
                             return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
 
                         } else {
-
                             String token = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
+                            authHeader=authHeader+token;
                             existingCustomer.setToken(token);
                             em.persist(existingCustomer);
                             session.setAttribute(tokenKey, token);

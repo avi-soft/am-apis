@@ -404,7 +404,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo,Long status) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -425,7 +425,13 @@ public class ServiceProviderTicketService {
                 }
                 jpql.append("AND c.ticketState IN :states ");
             }
-
+            if(status!=null)
+            {
+                CustomTicketStatus customTicketStatus=ticketStatusService.getTicketStatusByTicketStatusId(status);
+                if(customTicketStatus==null)
+                    throw new IllegalArgumentException("No ticket state found");
+                jpql.append("AND c.ticketStatus = :status");
+            }
             if (types != null && !types.isEmpty()) {
                 for (Long id : types) {
                     CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(id);
