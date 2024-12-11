@@ -1431,7 +1431,7 @@ public class CustomerEndpoint {
         }
     }
 
-    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId,CustomCustomer customCustomer) throws EntityDoesNotExistsException {
+    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId, CustomCustomer customCustomer) {
         List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
         QualificationDetails qualificationToFind = null;
         for (QualificationDetails qualificationDetails1 : qualificationDetails) {
@@ -1441,11 +1441,11 @@ public class CustomerEndpoint {
             }
         }
         if (qualificationToFind == null) {
-            throw new EntityDoesNotExistsException("Qualification details with id " + qualificationDetailId + " does not exists");
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
         }
         return qualificationToFind;
     }
-    public QualificationDetails findQualificationDetailForServiceProvider(Long qualificationDetailId,ServiceProviderEntity serviceProviderEntity) throws EntityDoesNotExistsException {
+    public QualificationDetails findQualificationDetailForServiceProvider(Long qualificationDetailId,ServiceProviderEntity serviceProviderEntity) throws IllegalArgumentException {
         List<QualificationDetails> qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
         QualificationDetails qualificationToFind = null;
         for (QualificationDetails qualificationDetails1 : qualificationDetails) {
@@ -1455,7 +1455,7 @@ public class CustomerEndpoint {
             }
         }
         if (qualificationToFind == null) {
-            throw new EntityDoesNotExistsException("Qualification details with id " + qualificationDetailId + " does not exists");
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
         }
         return qualificationToFind;
     }
