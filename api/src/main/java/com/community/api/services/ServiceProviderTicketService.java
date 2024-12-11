@@ -239,8 +239,9 @@ public class ServiceProviderTicketService {
             Date createdDate = dateFormat.parse(formattedDate);
 
             if (createTicketDto.getTargetCompletionDate() != null) {
-                dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
-                if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                System.out.println("assigned date :"+createdDate);
+                System.out.println( " tc date :"+createTicketDto.getTargetCompletionDate());
+                if (!(createTicketDto.getTargetCompletionDate().after(new Date()))) {
                     ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                 }
             } else {
@@ -251,7 +252,6 @@ public class ServiceProviderTicketService {
 
                 createTicketDto.setTargetCompletionDate(newTargetDate);
             }
-
             customServiceProviderTicket.setTicketAssignDate(createdDate);
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
@@ -291,7 +291,7 @@ public class ServiceProviderTicketService {
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
-            throw new Exception("Some Exception Caught: " + exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 

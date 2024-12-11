@@ -1230,7 +1230,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {
                     if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
-                        generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") = LOWER(:" + fieldsNames[i] + ")" + " AND ";
+                        // Use LIKE with the % wildcard at the end to match names that start with the provided value
+                        generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%'" + " AND ";
                     } else {
                         generalizedQuery += alias.get(fieldsNames[i]) + "." + fieldsNames[i] + " = :" + fieldsNames[i] + " AND ";
                     }
