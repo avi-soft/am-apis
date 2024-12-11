@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
@@ -35,7 +36,7 @@ public class QualificationService {
     }
 //    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in dscription
     @Transactional
-    public Qualification addQualification(@RequestBody Qualification qualification) {
+    public Qualification addQualification(@RequestBody Qualification qualification) throws Exception {
         Qualification qualificationToBeSaved =new Qualification();
         int id = findCount() + 1;
         if (qualification.getQualification_name() == null || qualification.getQualification_name().trim().isEmpty()) {
@@ -70,10 +71,19 @@ public class QualificationService {
     }
 
     //need to be change here
-    public int findCount() {
+    public int findCount() throws Exception {
+        try {
         String queryString = Constant.GET_QUALIFICATIONS_COUNT;
         TypedQuery<Integer> query = entityManager.createQuery(queryString, Integer.class);
         return query.getSingleResult();
+        } catch (NoResultException e) {
+            exceptionHandlingService.handleException(e);
+            throw new NoResultException("No any qualification is found");
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOMETHING WENT WRONG: "+ exception.getMessage());
+        }
     }
 
     public Qualification getQualificationByQualificationId(Long qualificationId) throws Exception {
