@@ -24,4 +24,10 @@ public class Qualification
 
     @Column(name = "qualification_description", nullable = false)
     private String qualification_description;
+
+    @Column(name = "is_subjects_required")
+    private Boolean is_subjects_required;
+
+    @Column(name = "is_stream_required")
+    private Boolean is_stream_required;
 }

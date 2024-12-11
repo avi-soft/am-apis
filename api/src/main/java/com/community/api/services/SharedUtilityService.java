@@ -289,8 +289,10 @@ public class SharedUtilityService {
                 documentDetails.put("documentId", document.getDocumentId());
                 documentDetails.put("name", document.getName());
                 documentDetails.put("filePath", document.getFilePath());
-
-
+                if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                {
+                    documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                }
                 String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                 documentDetails.put("fileUrl", fileUrl);
 
@@ -402,7 +404,10 @@ public class SharedUtilityService {
                 documentDetails.put("documentId", document.getDocumentId());
                 documentDetails.put("name", document.getName());
                 documentDetails.put("filePath", document.getFilePath());
-
+                if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                {
+                    documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                }
 
                 String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                 documentDetails.put("fileUrl", fileUrl);
@@ -438,7 +443,7 @@ public List<Map<String, Object>> mapQualificationsForCustomer(List<Qualification
             .map(qualificationDetail -> {
                 Map<String, Object> qualificationInfo = new HashMap<>();
                 // Fetch the qualification by qualification_id
-                DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
+                Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
                 Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
                 CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
@@ -480,7 +485,7 @@ public List<Map<String, Object>> mapQualificationsForCustomer(List<Qualification
 
                 // Add qualification_name
                 if (qualification != null) {
-                    qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
+                    qualificationInfo.put("qualification_name", qualification.getQualification_name());
                 } else {
                     qualificationInfo.put("qualification_name", "Unknown Qualification");
                 }
@@ -532,7 +537,7 @@ public List<Map<String, Object>> mapQualificationsForCustomer(List<Qualification
                     Map<String, Object> qualificationInfo = new HashMap<>();
 
                     // Fetch the qualification by qualification_id
-                    DocumentType qualification = entityManager.find(DocumentType.class, qualificationDetail.getQualification_id());
+                    Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
                     BoardUniversity boardUniversity= entityManager.find(BoardUniversity.class,qualificationDetail.getBoard_university_id());
                     Institution institution= entityManager.find(Institution.class,qualificationDetail.getInstitution_id());
                     CustomStream customStream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
@@ -554,7 +559,7 @@ public List<Map<String, Object>> mapQualificationsForCustomer(List<Qualification
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {
-                        qualificationInfo.put("qualification_name", qualification.getDocument_type_name());
+                        qualificationInfo.put("qualification_name", qualification.getQualification_name());
                     } else {
                         qualificationInfo.put("qualification_name", "Unknown Qualification");
                     }

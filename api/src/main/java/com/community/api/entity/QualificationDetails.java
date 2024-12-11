@@ -1,6 +1,7 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.utils.Document;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class QualificationDetails {
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
@@ -119,6 +121,9 @@ public class QualificationDetails {
 
     @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     private Document document;
+
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ServiceProviderDocument serviceProviderDocument;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
 
