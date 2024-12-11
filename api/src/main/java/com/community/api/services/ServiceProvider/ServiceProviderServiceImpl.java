@@ -615,7 +615,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
-            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating Service Provider : ", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1220,7 +1220,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
                 query.setParameter("test_status_id", test_status_id);
                 List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-                System.out.println("+++++++++++" + serviceProviderTestStatus.size());
                 if (serviceProviderTestStatus.size() == 0) {
 
                     throw new IllegalArgumentException("No Test Status is found with this id");
