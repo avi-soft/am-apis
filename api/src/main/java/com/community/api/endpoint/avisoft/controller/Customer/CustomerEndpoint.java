@@ -1479,5 +1479,15 @@ public class CustomerEndpoint {
         }
         return qualificationToFind;
     }
+    @Transactional
+    @PostMapping("/create-user")
+    public ResponseEntity<?> createUser()
+    {
+        CustomCustomer customCustomer=new CustomCustomer();
+        customCustomer.setId(customerService.findNextCustomerId());
+        entityManager.persist(customCustomer);
+        Long id=customCustomer.getId();
+        return ResponseService.generateSuccessResponse("User created successfully",customCustomer,HttpStatus.CREATED);
+    }
 
 }
