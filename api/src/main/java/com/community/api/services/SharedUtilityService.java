@@ -170,13 +170,19 @@ public class SharedUtilityService {
         // customerDetails.put("referres",refSp);
         customerDetails.put("countryCode", customCustomer.getCountryCode());
         List<ReferrerDTO>ref=new ArrayList<>();
+        ReferrerDTO primaryRef=new ReferrerDTO();
         for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
         {
+            if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
+                primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
+            }
             ReferrerDTO referrerDTO=new ReferrerDTO();
             referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
             referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
             ref.add(referrerDTO);
         }
+        customerDetails.put("primary_referrer",primaryRef);
         customerDetails.put("referrers",ref);
         customerDetails.put("otp", customCustomer.getOtp());
         customerDetails.put("fathersName", customCustomer.getFathersName());

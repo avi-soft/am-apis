@@ -53,6 +53,7 @@ public class Constant {
     public static final String roleAdmin="ADMIN";
     public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
     public static final String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleServiceProviderAdmin = "ADMIN_SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";

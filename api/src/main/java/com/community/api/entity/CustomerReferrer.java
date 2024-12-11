@@ -28,7 +28,8 @@ public class CustomerReferrer {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProvider;
-
+    @Column(name = "primary_ref")
+    private Boolean primaryRef;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

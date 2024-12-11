@@ -8,6 +8,7 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
+import com.community.api.endpoint.customer.CustomerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
@@ -486,10 +487,18 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)&&!customerId.equals(tokenUserId))
+            {
+                return ResponseService.generateErrorResponse("Forbidden access",HttpStatus.FORBIDDEN);
+            }
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -1324,6 +1333,7 @@ public class CustomerEndpoint {
     }
 
     @GetMapping("/get-all-customers")
+    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
@@ -1364,12 +1374,22 @@ public class CustomerEndpoint {
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<CustomerReferrer>referrerSp=customCustomer.getMyReferrer();
+            CustomerReferrer primaryRef = null;
             for(CustomerReferrer customerReferrer:referrerSp)
             {
+                if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()) {
+                    primaryRef = customerReferrer;
+                }
                 if(customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id))
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
             }
+            if(!referrerSp.isEmpty() && primaryRef != null) {
+                primaryRef.setPrimaryRef(false);
+                entityManager.merge(primaryRef);
+            }
+
             CustomerReferrer customerReferrer=new CustomerReferrer();
+            customerReferrer.setPrimaryRef(true); // by raman and ksitij will solve the complete issue of last refferer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
             customerReferrer.setServiceProvider(serviceProvider);
             customCustomer.getMyReferrer().add(customerReferrer);

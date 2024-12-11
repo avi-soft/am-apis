@@ -298,7 +298,11 @@ public class OrderController {
                     return ResponseService.generateErrorResponse("Invalid role", HttpStatus.BAD_REQUEST);
                 }
             }
-
+            if(createTicketDto.getTargetCompletionDate()!=null)
+            {
+                if(sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate())==1)
+                    return ResponseService.generateErrorResponse("Target completion date cannot be in past",HttpStatus.BAD_REQUEST);
+            }
             /*if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("Cannot assign order : " + errorMessages, HttpStatus.BAD_REQUEST);
             }*/
