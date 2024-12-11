@@ -1247,7 +1247,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
                 query.setParameter("test_status_id", test_status_id);
                 List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-                System.out.println("+++++++++++" + serviceProviderTestStatus.size());
                 if (serviceProviderTestStatus.size() == 0) {
 
                     throw new IllegalArgumentException("No Test Status is found with this id");

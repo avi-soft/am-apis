@@ -31,6 +31,8 @@ public class DocumentType {
     private String document_type_name;
     @Column(name = "description")
     private String description;
+    @Column(name = "is_qualification_document",nullable = false)
+    private Boolean is_qualification_document;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -45,12 +47,13 @@ public class DocumentType {
     @Column(name = "min_document_size")
     private String min_document_size;
 
-    public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size) {
+    public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size,Boolean is_qualification_document) {
         this.document_type_id = document_type_id;
         this.document_type_name = document_type_name;
         this.description = description;
         this.max_document_size = max_document_size;
         this.min_document_size = min_document_size;
+        this.is_qualification_document=is_qualification_document;
     }
     public DocumentType(String documentTypeName, String description) {
         this.document_type_name = documentTypeName;
