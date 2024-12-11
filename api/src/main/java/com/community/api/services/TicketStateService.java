@@ -214,7 +214,12 @@ public class TicketStateService {
             return ResponseService.generateErrorResponse("Cannot find valid result : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
+        }
+        catch (NotFoundException notFoundException)
+        {
+            return ResponseService.generateErrorResponse(notFoundException.getMessage(),HttpStatus.NOT_FOUND);
+        }
+        catch (Exception e) {
 
             return ResponseService.generateErrorResponse("Error updating ticket :" + e.getMessage(), HttpStatus.NOT_FOUND);
         }
@@ -229,6 +234,8 @@ public class TicketStateService {
             CustomTicketStatus status=ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
             if (!productId.equals(0L)) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+                if(customProduct==null)
+                    throw new NotFoundException("Product linked with ticket not found");
                 if (customProduct.getIsReviewRequired().equals(false) && status.getTicketStatus().equals("FORM-COMPLETED-REVIEW")) {
                     throw new UnsupportedOperationException("Review is not required for this ticket");
                 }
@@ -240,7 +247,7 @@ public class TicketStateService {
                     case "IN-PROGRESS":
                         return nextState.getTicketState().equals("ON-HOLD") || nextState.getTicketState().equals("IN-REVIEW")||nextState.getTicketState().equals("IN-PROGRESS");
                     case "ON-HOLD":
-                        return nextState.getTicketState().equals("IN-PROGRESS")||nextState.getTicketState().equals("ON-HOLD");
+                        return nextState.getTicketState().equals("IN-PROGRESS")||nextState.getTicketState().equals("ON-HOLD")||nextState.getTicketState().equals("IN-REVIEW");
                     case "IN-REVIEW":
                         return nextState.getTicketState().equals("CLOSE")||nextState.getTicketState().equals("IN-REVIEW");
                     case "CLOSE":
@@ -256,6 +263,8 @@ public class TicketStateService {
                 return !customServiceProviderTicket.getTicketState().getTicketState().equals("CLOSE");
             }
             return false; // Default: No transition allowed
+        }catch (NotFoundException nfexception) {
+            throw new Exception(nfexception.getMessage());
         } catch (Exception exception) {
             throw new Exception(exception.getMessage());
         }
