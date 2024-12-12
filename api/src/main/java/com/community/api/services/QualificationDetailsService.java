@@ -103,7 +103,7 @@ public class QualificationDetailsService {
             qualificationDetails.setService_provider(serviceProviderEntity);
 
             entityManager.persist(qualificationDetails);
-            if(boardUniversityOthers!=null)
+            if(boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))
             {
                 qualificationDetails.setOtherItems(new ArrayList<>(List.of(boardUniversityOtherItemToAdd)));
                 QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
@@ -152,7 +152,7 @@ public class QualificationDetailsService {
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         entityManager.persist(qualificationDetails);
-        if(boardUniversityOthers!=null)
+        if(boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))
         {
             qualificationDetails.setOtherItems(new ArrayList<>(List.of(boardUniversityOtherItemToAdd)));
             QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
@@ -313,7 +313,7 @@ public class QualificationDetailsService {
             OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
             qualificationDetailsToUpdate.setBoard_university_id(boardUniversityToAdd);
 
-            if(boardUniversityOthers!=null)
+            if(boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))
             {
                 List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                 OtherItem otherItemToClear = null;

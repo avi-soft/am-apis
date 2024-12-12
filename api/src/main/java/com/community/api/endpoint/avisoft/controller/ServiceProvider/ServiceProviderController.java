@@ -343,10 +343,12 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             String first_name = null;
             String last_name = null;
+
             if(mobileNumber!=null&&!mobileNumber.isEmpty()&& serviceProviderService.isValidMobileNumber(mobileNumber))
             {
                 return ResponseService.generateSuccessResponse("Service Provider",serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id),HttpStatus.OK);
             }
+
             if(full_name!=null) {
                 String[] name = separateName(full_name.trim());
                 if (!name[0].equals(""))
@@ -395,14 +397,22 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(),authHeader));
+                if(registeredByMe!=null&&registeredByMe.equals(true)) {
+                    if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
+                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                    }
+                }
+                else
+                {
+                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                }
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -594,5 +604,6 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 }
