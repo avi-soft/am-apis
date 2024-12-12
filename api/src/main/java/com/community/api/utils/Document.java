@@ -1,13 +1,16 @@
 package com.community.api.utils;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Entity
 @AllArgsConstructor
@@ -44,5 +47,10 @@ public class Document {
 
     @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isArchived;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    @JoinColumn(name = "document_validity_id", referencedColumnName = "id")
+    private DocumentValidity documentValidity;
 
 }

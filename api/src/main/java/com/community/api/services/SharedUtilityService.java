@@ -301,6 +301,10 @@ public class SharedUtilityService {
                 {
                     documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
                 }
+                if(document.getDocumentValidity()!=null)
+                {
+                    documentDetails.put("documentValidity",document.getDocumentValidity());
+                }
                 String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                 documentDetails.put("fileUrl", fileUrl);
 
@@ -415,6 +419,10 @@ public class SharedUtilityService {
                 if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
                 {
                     documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                }
+                if(document.getDocumentValidity()!=null)
+                {
+                    documentDetails.put("documentValidity",document.getDocumentValidity());
                 }
 
                 String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
