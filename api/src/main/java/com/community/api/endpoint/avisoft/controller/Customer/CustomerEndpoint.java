@@ -1578,7 +1578,7 @@ public class CustomerEndpoint {
             }
 
             CustomerReferrer customerReferrer=new CustomerReferrer();
-            customerReferrer.setPrimaryRef(true); // by raman and shit will solve the complete issue of last referrer as primary referee.;
+            customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
             customerReferrer.setServiceProvider(serviceProvider);
             customCustomer.getMyReferrer().add(customerReferrer);
