@@ -341,14 +341,15 @@ public class ServiceProviderController {
             Map<String, String[]> uri = request.getParameterMap();
             if ((uri.containsKey("state") && state == null) || (uri.containsKey("full_name") && full_name == null)|| (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
-            String[] name=separateName(full_name.trim());
-            String first_name=null;
-            String last_name=null;
-            if(!name[0].equals(""))
-                first_name=name[0];
-            if(!name[1].equals(""))
-                last_name=name[1];
-
+            String first_name = null;
+            String last_name = null;
+            if(full_name!=null) {
+                String[] name = separateName(full_name.trim());
+                if (!name[0].equals(""))
+                    first_name = name[0];
+                if (!name[1].equals(""))
+                    last_name = name[1];
+            }
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
 
@@ -390,14 +391,22 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(),authHeader));
+                if(registeredByMe!=null&&registeredByMe.equals(true)) {
+                    if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
+                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                    }
+                }
+                else
+                {
+                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                }
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -589,5 +598,6 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 }

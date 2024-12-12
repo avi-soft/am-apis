@@ -208,10 +208,15 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser})
+    @Authorize(value = {Constant.roleUser,Constant.roleServiceProvider})
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             List<String> errorMessages = new ArrayList<>();
 
             details=sanitizerService.sanitizeInputMap(details);
@@ -380,6 +385,9 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
+            if(customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -428,7 +436,8 @@ public class CustomerEndpoint {
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
             }
-
+            customCustomer.setModifiedById(tokenUserId);
+            customCustomer.setModifiedByRole(roleId);
             em.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
@@ -1572,7 +1581,7 @@ public class CustomerEndpoint {
             }
 
             CustomerReferrer customerReferrer=new CustomerReferrer();
-            customerReferrer.setPrimaryRef(true); // by raman and ksitij will solve the complete issue of last refferer as primary referee.;
+            customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
             customerReferrer.setServiceProvider(serviceProvider);
             customCustomer.getMyReferrer().add(customerReferrer);
