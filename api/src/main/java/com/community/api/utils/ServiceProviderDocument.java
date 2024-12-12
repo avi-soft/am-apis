@@ -1,7 +1,9 @@
 package com.community.api.utils;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,4 +49,9 @@ public class ServiceProviderDocument {
     @OneToOne(cascade = CascadeType.ALL,orphanRemoval = true)
     @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
     private QualificationDetails qualificationDetails;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JsonManagedReference
+    @JoinColumn(name = "document_validity_id", referencedColumnName = "id")
+    private DocumentValidity documentValidity;
 }
