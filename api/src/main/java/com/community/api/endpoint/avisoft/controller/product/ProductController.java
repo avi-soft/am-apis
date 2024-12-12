@@ -642,7 +642,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "state", required = false) List<Long> state,
-            @RequestParam(value = "status", required = false) List<Long> status,
+            @RequestParam(value = "rejection_status", required = false) List<Long> status,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
