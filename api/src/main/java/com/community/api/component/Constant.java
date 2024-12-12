@@ -19,9 +19,10 @@ public class Constant {
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
     public static String ID_QUERY = "SELECT c FROM CustomCustomer c WHERE c.customer_id = :customer_id";
-    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM DocumentType dt WHERE dt.description LIKE :exam";
+    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
     public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q";
+    public static final String FIND_ALL_INSTITUTION_QUERY= "SELECT q FROM Institution q";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
@@ -52,6 +53,7 @@ public class Constant {
     public static final String roleAdmin="ADMIN";
     public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
     public static final String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleServiceProviderAdmin = "ADMIN_SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";
@@ -73,10 +75,13 @@ public class Constant {
     public static String GET_STATES_LIST="Select s from StateCode s";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
+    public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
     public static String CANNOT_ADD_MORE_THAN_ONE_FORM="You can only add one of this form. Please choose a different form if you need more";
+    public static String MOBILE_NUMBER_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin " + "ADD CONSTRAINT chk_mobile_number " + "CHECK (mobilenumber ~ '^[+]?[0-9]{9,13}$')";
+    public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
     public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category";
@@ -149,10 +154,12 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_BY_ID= "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name";
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId";
-    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c";
-    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c";
+    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y'";
+    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y'";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
+    public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
     public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId";
+    public static final String GET_STREAM_BY_STREAM_NAME = "SELECT c FROM CustomStream c WHERE LOWER(c.streamName) = LOWER(:streamName) AND c.archived != 'Y'";
     public static final String GET_ALL_SECTOR = "SELECT c FROM CustomSector c";
     public static final String GET_SECTOR_BY_SECTOR_ID = "SELECT c FROM CustomSector c WHERE c.sectorId = :sectorId";
     public static final String GET_QUALIFICATION_BY_ID = "SELECT c FROM Qualification c WHERE c.qualification_id = :qualificationId";
@@ -199,4 +206,11 @@ public class Constant {
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
+    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String BEARER_CONST= "Bearer ";
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
+    public static final Long TICKET_STATE_IN_REVIEW=4L;
+    public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
 }

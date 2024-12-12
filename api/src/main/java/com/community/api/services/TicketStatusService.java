@@ -52,7 +52,7 @@ public class TicketStatusService {
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some Exception Caught: " + exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 }

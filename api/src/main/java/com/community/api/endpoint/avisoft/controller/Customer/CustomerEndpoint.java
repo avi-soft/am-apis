@@ -8,10 +8,13 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
+import com.community.api.endpoint.customer.CustomerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.services.FileDownloadService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.CustomCustomerService;
@@ -25,6 +28,7 @@ import com.community.api.services.FileService;
 import com.community.api.services.ProductReserveCategoryFeePostRefService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.ApiConstants;
+import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -42,6 +46,7 @@ import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
+import org.hibernate.engine.jdbc.StreamUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -61,21 +66,22 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.Column;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolationException;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Date;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -124,7 +130,8 @@ public class CustomerEndpoint {
 
     @Autowired
     private static ResponseService responseService;
-
+    @Autowired
+    private FileDownloadService fileDownloadService;
     @Autowired
     private FileService fileService;
     @Autowired
@@ -210,7 +217,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             List<String> errorMessages = new ArrayList<>();
 
@@ -248,9 +255,18 @@ public class CustomerEndpoint {
                 {
                 errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
                 }
-                details.remove("secondaryMobileNumber");
-                details.remove("whatsappNumber");
-                details.remove("hidePhoneNumber");
+                if(secondaryMobileNumber!=null &&!customCustomerService.isValidMobileNumber(secondaryMobileNumber))
+                    errorMessages.add("Secondary mobile is invalid");
+                if(details.containsKey("whatsappNumber")&& !customCustomerService.isValidMobileNumber((String)details.get("whatsappNumber")))
+                    errorMessages.add("Invalid Whatsapp NUmber");
+                if(errorMessages.isEmpty()) {
+                    customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
+                    customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));
+                    customCustomer.setHidePhoneNumber((Boolean) details.get("hidePhoneNumber"));
+                    }
+                    details.remove("secondaryMobileNumber");
+                    details.remove("whatsappNumber");
+                    details.remove("hidePhoneNumber");
             }
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
@@ -385,6 +401,15 @@ public class CustomerEndpoint {
                     errorMessages.add(fieldName + " cannot be null");
                     continue;
                 }
+                if (field.isAnnotationPresent(Pattern.class)) {
+                    Pattern patternAnnotation = field.getAnnotation(Pattern.class);
+                    String regex = patternAnnotation.regexp();
+                    String message = patternAnnotation.message(); // Get custom message
+                    if (!newValue.toString().matches(regex)) {
+                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        continue;
+                    }
+                }
                 // Validate not null
 
                 // Validate size if applicable
@@ -412,9 +437,16 @@ public class CustomerEndpoint {
             }
 
             em.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
-        }catch(NoSuchFieldException e)
+        }catch (DataIntegrityViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ConstraintViolationException ex) {
+            exceptionHandling.handleException(ex);
+            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch(NoSuchFieldException e)
         {
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -457,16 +489,24 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)&&!customerId.equals(tokenUserId))
+            {
+                return ResponseService.generateErrorResponse("Forbidden access",HttpStatus.FORBIDDEN);
+            }
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
-            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer);
+            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer,authHeader);
 
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
@@ -481,24 +521,113 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
+            @RequestParam(value = "qualificationDetailId",required = false) Long qualificationDetailId,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            String queryStringArchive=null;
+            String queryStringArchiveId=null;
 
+            //**********DELETE DOCUMENT :START*********
+            if(removeFileTypes!=null && removeFileTypes.equals(true))
+            {
+                if(role.equals(Constant.roleUser)) {
+                    queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
+                    queryStringArchiveId=String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "document","custom_customer_id");
+                }
+                else if (role.equals(Constant.roleServiceProvider)) {
+                    queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "service_provider_documents", "service_provider_id");
+                    queryStringArchiveId=String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "service_provider_documents","service_provider_id");
+                }
+                for(Integer fileType:fileTypes) {
+                    DocumentType documentTypeObj = em.createQuery(
+                                    "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                            .setParameter("documentTypeId", fileType)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (documentTypeObj == null) {
+                        return ResponseService.generateErrorResponse(
+                                "Unknown document type for file: " + fileType,
+                                HttpStatus.BAD_REQUEST);
+                    }
+                    try {
+                        Query query = entityManager.createNativeQuery(queryStringArchiveId);
+                        query.setParameter("userId", customerId);
+                        query.setParameter("documentTypeId", fileType);
+                        BigInteger id = (BigInteger) query.getSingleResult();
+                        query = entityManager.createNativeQuery(queryStringArchive);
+                        query.setParameter("userId", customerId);
+                        query.setParameter("documentTypeId", fileType);
+                        int result = query.executeUpdate();
+                        System.out.println("rows affected :"+result);
+                        if (result == 1) {
+                            switch (role) {
+                                case Constant.roleUser:
+                                    System.out.println("CID:" + id.longValue());
+                                    Document document = entityManager.find(Document.class, id.longValue());
+                                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                                    if (customCustomer.getDocuments() != null) {
+                                        Iterator<Document> iterator = customCustomer.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            Document documentToDeleteC = iterator.next();
+                                            if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(customCustomer);  // merge after modification
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case Constant.roleServiceProvider:
+                                    System.out.println("SID:" + id.longValue());
+                                    ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
+                                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+                                    if (serviceProvider.getDocuments() != null) {
+                                        Iterator<ServiceProviderDocument> iterator = serviceProvider.getDocuments().iterator();
+                                        while (iterator.hasNext()) {
+                                            ServiceProviderDocument documentToDelete = iterator.next();
+                                            if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                                System.out.println("hiSp");
+                                                iterator.remove();  // safely remove the document
+                                                entityManager.merge(serviceProvider);  // merge after modification
+                                                break;
+                                            }
+                                        }
+                                        deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                                    }
+                            }
+                        }
+                        else
+                            return ResponseService.generateErrorResponse("No documents found",HttpStatus.NOT_FOUND);
+                        return ResponseService.generateSuccessResponse("Document deleted successfully",deleteLogs,HttpStatus.OK);
+                    }catch (NoResultException noResultException)
+                    {
+                        return ResponseService.generateErrorResponse("No record found",HttpStatus.NOT_FOUND);
+                    }
+                    catch (PersistenceException persistenceException)
+                    {
+                        return ResponseService.generateErrorResponse("No operation to perform",HttpStatus.NOT_FOUND);
+                    }
+                }
+            }
+            //*******DELETE DOCUMENT :END**********
             if (customerId == null || files == null || fileTypes == null) {
                 return ResponseService.generateErrorResponse("Invalid request parameters.", HttpStatus.BAD_REQUEST);
             }
 
-            String jwtToken = authHeader.substring(7);
 
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
             if (role == null) {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -540,7 +669,16 @@ public class CustomerEndpoint {
                                 HttpStatus.BAD_REQUEST);
                     }
 
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
+                    }
+
                     for (MultipartFile file : fileList) {
+
                         // Validate document
                         documentStorageService.validateDocument(file, documentTypeObj);
 
@@ -607,13 +745,18 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
-
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
                             if (filePath != null) {
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
                                 File oldFile = new File(absolutePath);
                                 String oldFileName = oldFile.getName();
                                 String newFileName = file.getOriginalFilename();
-
+                                existingDocument.setIsArchived(false);
                                 if (!newFileName.equals(oldFileName)) {
                                     fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
                                     documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
@@ -622,7 +765,14 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                    document.setIs_qualification_document(true);
+                                    document.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(document);
+                                }
                             }
                         }
                     }
@@ -658,6 +808,14 @@ public class CustomerEndpoint {
 
                     if (documentTypeObj == null) {
                         return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
+
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
                     }
                     for (MultipartFile file : fileList) {
 
@@ -728,12 +886,19 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
                             if (filePath != null) {
 
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
                                 File oldFile = new File(absolutePath);
                                 String oldFileName = oldFile.getName();
                                 String newFileName = file.getOriginalFilename();
+                                existingDocument.setIsArchived(false);
                                 if (!newFileName.equals(oldFileName)) {
 //                                    oldFile.delete();
                                     fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
@@ -745,6 +910,14 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                    serviceProviderDocument.setIs_qualification_document(true);
+                                    serviceProviderDocument.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
                             }
                         }
                     }
@@ -770,10 +943,11 @@ public class CustomerEndpoint {
         }
 
     }
+
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             updates=sanitizerService.sanitizeInputMap(updates);
@@ -805,7 +979,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
@@ -818,7 +992,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -835,14 +1009,14 @@ public class CustomerEndpoint {
                 if (customer.getPassword() == null || customer.getPassword().isEmpty()) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 System.out.println(password+","+customer.getPassword());
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
 
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK);
                 }
                 else
                 {
@@ -981,7 +1155,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "address-details", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId) {
+    public ResponseEntity<?> retrieveAddressList(@RequestParam Long customerId, @RequestParam Long addressId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             Long customerID = Long.valueOf(customerId);
             if (customerService == null) {
@@ -1019,14 +1193,14 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer) {
-        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(Constant.BEARER_CONST)) {
             return ResponseEntity.badRequest().body("Token is required");
         }
 
@@ -1204,11 +1378,16 @@ public class CustomerEndpoint {
     }
 
     @GetMapping("/get-all-customers")
+    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
             TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
             query.setFirstResult(startPosition);
@@ -1216,7 +1395,7 @@ public class CustomerEndpoint {
             List<Map> results = new ArrayList<>();
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
-                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd));
+                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd,authHeader));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -1240,12 +1419,22 @@ public class CustomerEndpoint {
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<CustomerReferrer>referrerSp=customCustomer.getMyReferrer();
+            CustomerReferrer primaryRef = null;
             for(CustomerReferrer customerReferrer:referrerSp)
             {
+                if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()) {
+                    primaryRef = customerReferrer;
+                }
                 if(customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id))
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
             }
+            if(!referrerSp.isEmpty() && primaryRef != null) {
+                primaryRef.setPrimaryRef(false);
+                entityManager.merge(primaryRef);
+            }
+
             CustomerReferrer customerReferrer=new CustomerReferrer();
+            customerReferrer.setPrimaryRef(true); // by raman and ksitij will solve the complete issue of last refferer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
             customerReferrer.setServiceProvider(serviceProvider);
             customCustomer.getMyReferrer().add(customerReferrer);
@@ -1260,6 +1449,35 @@ public class CustomerEndpoint {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error setting customer's referrer " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId, CustomCustomer customCustomer) {
+        List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
+    }
+    public QualificationDetails findQualificationDetailForServiceProvider(Long qualificationDetailId,ServiceProviderEntity serviceProviderEntity) throws IllegalArgumentException {
+        List<QualificationDetails> qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
     }
 
 }

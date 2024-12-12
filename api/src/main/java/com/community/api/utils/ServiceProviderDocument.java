@@ -1,5 +1,6 @@
 package com.community.api.utils;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,5 +38,13 @@ public class ServiceProviderDocument {
     @JoinColumn(name = "document_type_Id")
     private DocumentType documentType;
 
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isArchived;
 
+    @Column(name = "is_qualification_document",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_qualification_document=false;
+
+    @OneToOne(cascade = CascadeType.ALL,orphanRemoval = true)
+    @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
+    private QualificationDetails qualificationDetails;
 }
