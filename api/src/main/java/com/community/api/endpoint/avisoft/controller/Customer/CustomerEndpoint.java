@@ -1617,6 +1617,7 @@ public class CustomerEndpoint {
         }
         return qualificationToFind;
     }
+
     public Boolean validateDate(Date dateOfIssue,Date validUpto) throws Exception {
         try {
             if(validUpto!=null)
@@ -1634,4 +1635,16 @@ public class CustomerEndpoint {
             throw new Exception(exception.getMessage());
         }
     }
+
+    @Transactional
+    @PostMapping("/create-user")
+    public ResponseEntity<?> createUser()
+    {
+        CustomCustomer customCustomer=new CustomCustomer();
+        customCustomer.setId(customerService.findNextCustomerId());
+        entityManager.persist(customCustomer);
+        Long id=customCustomer.getId();
+        return ResponseService.generateSuccessResponse("User created successfully",customCustomer,HttpStatus.CREATED);
+    }
+
 }

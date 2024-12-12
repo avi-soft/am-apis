@@ -9,6 +9,7 @@ import com.community.api.entity.OrderRequest;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.Skill;
+import com.community.api.entity.SuccessResponse;
 import com.community.api.services.DistrictService;
 import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
@@ -47,8 +48,10 @@ import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/service-providers")
@@ -331,15 +334,38 @@ public class ServiceProviderController {
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(@RequestParam(required = false) String state,
                                                    @RequestParam(required = false) String district,
-                                                   @RequestParam(required = false) String first_name,
-                                                   @RequestParam(required = false) String last_name,
+                                                   @RequestParam(required = false) String full_name,
                                                    @RequestParam(required = false) String mobileNumber,
                                                    @RequestParam(required = false) Long test_status_id, HttpServletRequest request) {
         try {
             Map<String, String[]> uri = request.getParameterMap();
-            if ((uri.containsKey("state") && state == null) || (uri.containsKey("first_name") && first_name == null) || (uri.containsKey("last_name") && last_name == null) || (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
+            if ((uri.containsKey("state") && state == null) || (uri.containsKey("full_name") && full_name == null)|| (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
-           return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+            String[] name=separateName(full_name.trim());
+            String first_name=null;
+            String last_name=null;
+            if(!name[0].equals(""))
+                first_name=name[0];
+            if(!name[1].equals(""))
+                last_name=name[1];
+
+            // First call with the provided order of first_name and last_name
+            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+
+            // Second call with swapped order of first_name and last_name
+            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
+
+            // Combine the responses (handling duplicates if necessary)
+            List<Map<String, Object>> responseList1 = (List<Map<String, Object>>) response1.getBody().getData();
+            List<Map<String, Object>> responseList2 = (List<Map<String, Object>>) response2.getBody().getData();
+
+            // Merging lists and removing duplicates if any
+            Set<Map<String, Object>> mergedResponse = new HashSet<>();
+            mergedResponse.addAll(responseList1);
+            mergedResponse.addAll(responseList2);
+
+            // Return the merged response as ResponseEntity<SuccessResponse>
+            return ResponseService.generateSuccessResponse("Service Providers", new ArrayList<>(mergedResponse), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -347,6 +373,19 @@ public class ServiceProviderController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+    public static String[] separateName(String fullName) {
+        // Find the last space in the full name
+        int lastSpaceIndex = fullName.lastIndexOf(" ");
+        // If there's no space, it means there's only one name
+        if (lastSpaceIndex == -1) {
+            return new String[]{fullName, ""}; // Only a first name
+        }
+        // First name is everything before the last space
+        String firstName = fullName.substring(0, lastSpaceIndex);
+        // Last name is everything after the last space
+        String lastName = fullName.substring(lastSpaceIndex + 1);
+        return new String[]{firstName, lastName};
     }
 
     @Transactional

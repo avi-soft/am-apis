@@ -241,4 +241,10 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "order_count")
     private Integer numberOfOrders;
+
+    @Column(name = "registered_by_sp",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean registeredBySp=false;
+
+    @Column(name = "profile_completed",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean profileComplete=false;
 }

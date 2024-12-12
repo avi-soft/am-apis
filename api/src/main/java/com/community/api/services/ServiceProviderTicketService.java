@@ -430,7 +430,7 @@ public class ServiceProviderTicketService {
                 CustomTicketStatus customTicketStatus=ticketStatusService.getTicketStatusByTicketStatusId(status);
                 if(customTicketStatus==null)
                     throw new IllegalArgumentException("No ticket state found");
-                jpql.append("AND c.ticketStatus = :status");
+                jpql.append("AND c.ticketStatus = :status ");
             }
             if (types != null && !types.isEmpty()) {
                 for (Long id : types) {
@@ -458,6 +458,11 @@ public class ServiceProviderTicketService {
             if (!customTicketStates.isEmpty()) {
                 query.setParameter("states", customTicketStates);
             }
+            if(status!=null) {
+                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
+                query.setParameter("status", customTicketStatus);
+            }
+
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
