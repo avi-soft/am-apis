@@ -275,7 +275,7 @@ public class AccountEndPoint {
                 Customer customer = customerService.readCustomerById(customerRecords.getId());
                 if (customer != null) {
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode,null);
 
                     Map<String, Object> responseBody = otpResponse.getBody();
 
@@ -573,7 +573,7 @@ public class AccountEndPoint {
                 if (customCustomer != null) {
                     String storedOtp = customCustomer.getOtp();
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE,null);
                     Map<String, Object> responseBody = otpResponse.getBody();
                     if (responseBody.get("otp")!=null) {
                         return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);

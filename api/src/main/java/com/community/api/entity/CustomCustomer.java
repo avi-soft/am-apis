@@ -247,4 +247,13 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "profile_completed",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean profileComplete=false;
+
+    @Column(name = "created_by_role", columnDefinition = "INTEGER DEFAULT 5")
+    private Integer createdByRole;
+    @Column(name = "created_by_id", columnDefinition = "BIGINT DEFAULT 0")
+    private Long createdById;
+    @Column(name = "modified_by_role", columnDefinition = "INTEGER DEFAULT 5")
+    private Integer modifiedByRole;
+    @Column(name = "modified_by_id", columnDefinition = "BIGINT DEFAULT 0")
+    private Long modifiedById;
 }
