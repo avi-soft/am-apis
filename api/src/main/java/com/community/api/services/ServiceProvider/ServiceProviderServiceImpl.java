@@ -1116,7 +1116,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (serviceProviderAddressToAdd.getAddress_type_id() == serviceProviderAddress.getAddress_type_id())
                     return ResponseService.generateErrorResponse("Cannot add another address of this type", HttpStatus.BAD_REQUEST);
             }
-            if(!isOnlyDigits(serviceProviderAddress.getState())||!isOnlyDigits(serviceProviderAddress.getDistrict()))
+            if(!isNumeric(serviceProviderAddress.getState())||!isNumeric(serviceProviderAddress.getDistrict()))
                 return ResponseService.generateErrorResponse("Invalid state or district",HttpStatus.BAD_REQUEST);
             serviceProviderAddress.setState(districtService.findStateById(Integer.parseInt(serviceProviderAddress.getState())));
             serviceProviderAddress.setDistrict(districtService.findDistrictById(Integer.parseInt(serviceProviderAddress.getDistrict())));
@@ -1165,7 +1165,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 errorList.add(field.getName() + "cannot be empty");
             }
         }
-        if(!isOnlyDigits(addressToupdate.getState())||!isOnlyDigits(addressToupdate.getDistrict()))
+        if(!isNumeric(dto.getState())||!isNumeric(dto.getDistrict()))
             errorList.add("Invalid state or district");
         if(!errorList.isEmpty())
             return errorList;
