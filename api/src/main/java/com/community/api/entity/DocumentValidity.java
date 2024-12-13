@@ -40,10 +40,10 @@ public class DocumentValidity {
     private Boolean is_valid_upto_na = false;
 
     @OneToOne(mappedBy = "documentValidity")
-    @JsonBackReference
+    @JsonBackReference("document-validity-customer")
     private Document document;
 
     @OneToOne(mappedBy = "documentValidity")
-    @JsonBackReference
+    @JsonBackReference("document-validity-service-provider")
     private ServiceProviderDocument serviceProviderDocument;
 }

@@ -187,7 +187,7 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @JsonManagedReference("qualificationDetailsList-customer")
     @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QualificationDetails> qualificationDetailsList;
+    private List<QualificationDetails> qualificationDetailsList = new ArrayList<>();
 
     @Nullable
     @JsonManagedReference("documents-customer")

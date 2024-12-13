@@ -51,7 +51,7 @@ public class ServiceProviderDocument {
     private QualificationDetails qualificationDetails;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("document-validity-service-provider")
     @JoinColumn(name = "document_validity_id", referencedColumnName = "id")
     private DocumentValidity documentValidity;
 }

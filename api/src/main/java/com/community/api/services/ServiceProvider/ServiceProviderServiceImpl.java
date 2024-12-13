@@ -1257,8 +1257,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {
                     if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
-                        // Use LIKE with the % wildcard at the end to match names that start with the provided value
-                        generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%'" + " AND ";
+                        String fieldValue = fields[i].toString().toLowerCase(); // Convert input to lower case
+                        // Check if the field value is longer than 2 characters (to avoid unnecessary wildcard matching)
+                        if (fieldValue.length() > 2) {
+                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
+                        } else {
+                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
+                        }
                     } else {
                         generalizedQuery += alias.get(fieldsNames[i]) + "." + fieldsNames[i] + " = :" + fieldsNames[i] + " AND ";
                     }

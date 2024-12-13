@@ -343,6 +343,12 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             String first_name = null;
             String last_name = null;
+
+            if(mobileNumber!=null&&!mobileNumber.isEmpty()&& serviceProviderService.isValidMobileNumber(mobileNumber))
+            {
+                return ResponseService.generateSuccessResponse("Service Provider",serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id),HttpStatus.OK);
+            }
+
             if(full_name!=null) {
                 String[] name = separateName(full_name.trim());
                 if (!name[0].equals(""))
