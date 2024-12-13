@@ -49,7 +49,7 @@ public class Document {
     private Boolean isArchived;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference("document-validity-customer")
     @JoinColumn(name = "document_validity_id", referencedColumnName = "id")
     private DocumentValidity documentValidity;
 

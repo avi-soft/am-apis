@@ -111,10 +111,10 @@ public class QualificationDetails {
     private List<Long> subject_ids;
 
     @OneToMany(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("subject-details")
     private List<SubjectDetail> subject_details = new ArrayList<>();
 
-    @JsonBackReference
+    @JsonBackReference("qualificationDetailsList-service-provider")
     @ManyToOne
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity service_provider;
