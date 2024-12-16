@@ -153,7 +153,8 @@ public class TicketController {
             @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
             @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
-            @RequestParam(value = "ticket_type", required = false) List<Long> type)
+            @RequestParam(value = "ticket_type", required = false) List<Long> type,
+            @RequestParam(value = "ticket_status", required = false) Long status)
     {
         try {
 
@@ -188,7 +189,7 @@ public class TicketController {
                 userId = jwtTokenUtil.extractId(jwtToken);
             }
 
-            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, role, dateFrom, dateTo);
+            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, role, dateFrom, dateTo,status);
             /*if (tickets.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }*/

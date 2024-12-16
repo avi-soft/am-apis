@@ -12,6 +12,8 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.DocumentValidity;
+import com.community.api.entity.QualificationDetails;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -32,7 +34,6 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
-import lombok.Getter;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -43,10 +44,10 @@ import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.hibernate.engine.jdbc.StreamUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -69,14 +70,9 @@ import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -212,10 +208,15 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser})
+    @Authorize(value = {Constant.roleUser,Constant.roleServiceProvider})
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             List<String> errorMessages = new ArrayList<>();
 
             details=sanitizerService.sanitizeInputMap(details);
@@ -384,6 +385,9 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
+            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -432,7 +436,8 @@ public class CustomerEndpoint {
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
             }
-
+            customCustomer.setModifiedById(tokenUserId);
+            customCustomer.setModifiedByRole(roleId);
             em.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
@@ -486,10 +491,18 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider})
+    @Authorize(value = {Constant.roleUser,Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getUserDetails(@PathVariable Long customerId ,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            List<String>deleteLogs=new ArrayList<>();
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)&&!customerId.equals(tokenUserId))
+            {
+                return ResponseService.generateErrorResponse("Forbidden access",HttpStatus.FORBIDDEN);
+            }
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -512,6 +525,9 @@ public class CustomerEndpoint {
             @RequestParam Long customerId,
             @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
+            @RequestParam(value = "qualificationDetailId",required = false) Long qualificationDetailId,
+            @RequestParam(value = "dateOfIssue", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateOfIssue,
+            @RequestParam(value = "validUpto", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date validUpto,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -657,6 +673,28 @@ public class CustomerEndpoint {
                                 HttpStatus.BAD_REQUEST);
                     }
 
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
+                    }
+
+                    if(documentTypeObj.getIs_issue_date_required().equals(true))
+                    {
+                        if(dateOfIssue==null)
+                        {
+                            throw new IllegalArgumentException("Date of issue cannot be null");
+                        }
+                        if(documentTypeObj.getIs_expiration_date_required().equals(true))
+                        {
+                            if(validUpto==null)
+                            {
+                                throw new IllegalArgumentException("Valid upto (expiration date of document) cannot be null");
+                            }
+                        }
+                    }
                     for (MultipartFile file : fileList) {
 
                         // Validate document
@@ -725,7 +763,56 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
 
+                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                            {
+                                DocumentValidity documentValidity=null;
+                                if(existingDocument.getDocumentValidity()==null)
+                                {
+                                     documentValidity= new DocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.persist(documentValidity);
+
+                                }
+                                else if(existingDocument.getDocumentValidity()!=null)
+                                {
+                                    documentValidity= existingDocument.getDocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.merge(documentValidity);
+                                }
+
+                            }
                             if (filePath != null) {
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
                                 File oldFile = new File(absolutePath);
@@ -740,7 +827,33 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                    document.setIs_qualification_document(true);
+                                    document.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(document);
+                                }
+                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                                {
+                                    DocumentValidity documentValidity= new DocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setDocument(document);
+                                    entityManager.persist(documentValidity);
+                                    document.setDocumentValidity(documentValidity);
+                                    entityManager.merge(document);
+                                }
                             }
                         }
                     }
@@ -776,6 +889,28 @@ public class CustomerEndpoint {
 
                     if (documentTypeObj == null) {
                         return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
+
+                    if(documentTypeObj.getIs_qualification_document().equals(true))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                        }
+                    }
+                    if(documentTypeObj.getIs_issue_date_required().equals(true))
+                    {
+                        if(dateOfIssue==null)
+                        {
+                            throw new IllegalArgumentException("Date of issue cannot be null");
+                        }
+                        if(documentTypeObj.getIs_expiration_date_required().equals(true))
+                        {
+                            if(validUpto==null)
+                            {
+                                throw new IllegalArgumentException("Valid upto (expiration date of document) cannot be null");
+                            }
+                        }
                     }
                     for (MultipartFile file : fileList) {
 
@@ -846,6 +981,46 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
+
+                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true)) {
+                                DocumentValidity documentValidity = null;
+                                if (existingDocument.getDocumentValidity() == null) {
+                                    documentValidity = new DocumentValidity();
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if (validUpto == null) {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    } else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setServiceProviderDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.persist(documentValidity);
+
+                                } else if (existingDocument.getDocumentValidity() != null) {
+                                    documentValidity = existingDocument.getDocumentValidity();
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if (validUpto == null) {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    } else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setServiceProviderDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.merge(documentValidity);
+                                }
+                            }
                             if (filePath != null) {
 
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
@@ -863,7 +1038,33 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                                {
+                                    QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
+                                    serviceProviderDocument.setIs_qualification_document(true);
+                                    serviceProviderDocument.setQualificationDetails(qualificationDetails);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
+                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                                {
+                                    DocumentValidity documentValidity= new DocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(validUpto);
+                                    }
+                                    documentValidity.setServiceProviderDocument(serviceProviderDocument);
+                                    entityManager.persist(documentValidity);
+                                    serviceProviderDocument.setDocumentValidity(documentValidity);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
                             }
                         }
                     }
@@ -1324,6 +1525,7 @@ public class CustomerEndpoint {
     }
 
     @GetMapping("/get-all-customers")
+    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
@@ -1364,12 +1566,22 @@ public class CustomerEndpoint {
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<CustomerReferrer>referrerSp=customCustomer.getMyReferrer();
+            CustomerReferrer primaryRef = null;
             for(CustomerReferrer customerReferrer:referrerSp)
             {
+                if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()) {
+                    primaryRef = customerReferrer;
+                }
                 if(customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id))
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
             }
+            if(!referrerSp.isEmpty() && primaryRef != null) {
+                primaryRef.setPrimaryRef(false);
+                entityManager.merge(primaryRef);
+            }
+
             CustomerReferrer customerReferrer=new CustomerReferrer();
+            customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
             customerReferrer.setServiceProvider(serviceProvider);
             customCustomer.getMyReferrer().add(customerReferrer);
@@ -1384,6 +1596,64 @@ public class CustomerEndpoint {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error setting customer's referrer " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId, CustomCustomer customCustomer) {
+        List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
+    }
+    public QualificationDetails findQualificationDetailForServiceProvider(Long qualificationDetailId,ServiceProviderEntity serviceProviderEntity) throws IllegalArgumentException {
+        List<QualificationDetails> qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
+    }
+
+    public Boolean validateDate(Date dateOfIssue,Date validUpto) throws Exception {
+        try {
+            if(validUpto!=null)
+            {
+                if (validUpto.before(dateOfIssue)) {
+                    throw new IllegalArgumentException("Valid upto Date cannot be before date of issue");
+                }
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    @Transactional
+    @PostMapping("/create-user")
+    public ResponseEntity<?> createUser()
+    {
+        CustomCustomer customCustomer=new CustomCustomer();
+        customCustomer.setId(customerService.findNextCustomerId());
+        entityManager.persist(customCustomer);
+        Long id=customCustomer.getId();
+        return ResponseService.generateSuccessResponse("User created successfully",customCustomer,HttpStatus.CREATED);
     }
 
 }

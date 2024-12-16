@@ -36,7 +36,7 @@ public class SubjectDetail {
     @Column(name= "subject_marks_type",nullable = false)
     private String subject_marks_type;
 
-    @JsonBackReference
+    @JsonBackReference("subject-details")
     @ManyToOne
     @JoinColumn(name = "qualification_detail_id", nullable = false)
     private QualificationDetails qualificationDetails;

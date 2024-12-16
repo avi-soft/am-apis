@@ -275,7 +275,7 @@ public class AccountEndPoint {
                 Customer customer = customerService.readCustomerById(customerRecords.getId());
                 if (customer != null) {
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(updated_mobile, countryCode,null);
 
                     Map<String, Object> responseBody = otpResponse.getBody();
 
@@ -573,7 +573,7 @@ public class AccountEndPoint {
                 if (customCustomer != null) {
                     String storedOtp = customCustomer.getOtp();
 
-                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE);
+                    ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(customCustomer.getMobileNumber(), Constant.COUNTRY_CODE,null);
                     Map<String, Object> responseBody = otpResponse.getBody();
                     if (responseBody.get("otp")!=null) {
                         return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);
@@ -607,7 +607,7 @@ public class AccountEndPoint {
     public ResponseEntity<?> loginWithCustomerPassword(@RequestBody Map<String, Object> loginDetails, HttpSession session,
                                                        HttpServletRequest request) {
         try {
-            String authHeader=Constant.BEARER_CONST;;
+            String authHeader=Constant.BEARER_CONST;
             if (loginDetails == null) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.BAD_REQUEST);
 
@@ -643,7 +643,6 @@ public class AccountEndPoint {
                             return ResponseEntity.ok(new OtpEndpoint.ApiResponse(existingToken, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in"));
 
                         } else {
-
                             String token = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                             authHeader=authHeader+token;
                             existingCustomer.setToken(token);

@@ -166,6 +166,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new CustomReserveCategory(3L, "ST", "Schedule Tribe", false));
             entityManager.persist(new CustomReserveCategory(4L, "OBC", "Other Backward Caste", false));
             entityManager.persist(new CustomReserveCategory(5L, "OTHERS", "Others", false));
+            entityManager.persist(new CustomReserveCategory(6L, "EWS", "Economically Weaker Section", false));
         }
 
         if(entityManager.createQuery("SELECT COUNT(c) FROM CustomProductRejectionStatus c", Long.class).getSingleResult() == 0) {
@@ -228,7 +229,6 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new Role(4, "SERVICE_PROVIDER", date.toString(), date.toString(), "SUPER_ADMIN"));
             entityManager.merge(new Role(5, "CUSTOMER", date.toString(), date.toString(), "SUPER_ADMIN"));
         }
-
         Long count = entityManager.createQuery("SELECT COUNT(d) FROM Districts d", Long.class).getSingleResult();
 
         if (count == 0) {
@@ -313,7 +313,6 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new Districts(70, "Yamunanagar", "HR"));
         }
 
-
         count = entityManager.createQuery("SELECT COUNT(s) FROM StateCode s", Long.class).getSingleResult();
 
         if (count == 0) {
@@ -349,12 +348,13 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new StateCode(28, "West Bengal", "WB"));
 
             // Union Territories
-            entityManager.persist(new StateCode(29, "Andaman and Nicobar Islands", "AN"));
-            entityManager.persist(new StateCode(30, "Chandigarh", "CH"));
-            entityManager.persist(new StateCode(31, "Dadra and Nagar Haveli and Daman and Diu", "DN"));
-            entityManager.persist(new StateCode(32, "Lakshadweep", "LD"));
-            entityManager.persist(new StateCode(33, "Delhi", "DL"));
-            entityManager.persist(new StateCode(34, "Puducherry", "PY"));
+            entityManager.persist(new StateCode(30, "Andaman and Nicobar Islands", "AN"));
+            entityManager.persist(new StateCode(31, "Chandigarh", "CH"));
+            entityManager.persist(new StateCode(32, "Dadra and Nagar Haveli and Daman and Diu", "DN"));
+            entityManager.persist(new StateCode(33, "Lakshadweep", "LD"));
+            entityManager.persist(new StateCode(34, "Delhi", "DL"));
+            entityManager.persist(new StateCode(35, "Puducherry", "PY"));
+            entityManager.persist(new StateCode(36, "Daman and Diu", "DD"));
         }
         count = entityManager.createQuery("SELECT COUNT(a) FROM ServiceProviderAddressRef a", Long.class).getSingleResult();
 
@@ -418,13 +418,13 @@ public class CommandLineService implements CommandLineRunner {
         count = entityManager.createQuery("SELECT COUNT(e) FROM Qualification e", Long.class).getSingleResult();
 
         if (count == 0) {
-            entityManager.persist(new Qualification(1L, "MATRICULATION/10th", "Completed secondary education or equivalent"));
-            entityManager.persist(new Qualification(2L, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent"));
-            entityManager.persist(new Qualification(3L, "BACHELORS", "Completed undergraduate degree program"));
-            entityManager.persist(new Qualification(4L, "MASTERS", "Completed postgraduate degree program"));
-            entityManager.persist(new Qualification(5L, "DOCTORATE", "Completed doctoral degree program"));
-            entityManager.persist(new Qualification(6L, "DIPLOMA", "Completed a diploma program"));
-            entityManager.persist(new Qualification(7L, "ITI", "Completed an ITI (Industrial Training Institute) program"));
+            entityManager.persist(new Qualification(1, "MATRICULATION/10th", "Completed secondary education or equivalent",true,false));
+            entityManager.persist(new Qualification(2, "INTERMEDIATE/12th", "Completed higher secondary education or equivalent",true,true));
+            entityManager.persist(new Qualification(3, "BACHELORS", "Completed undergraduate degree program",false,true));
+            entityManager.persist(new Qualification(4, "MASTERS", "Completed postgraduate degree program",false,true));
+            entityManager.persist(new Qualification(5, "DOCTORATE", "Completed doctoral degree program",false,true));
+            entityManager.persist(new Qualification(6, "DIPLOMA", "Completed a diploma program",false,true));
+            entityManager.persist(new Qualification(7, "ITI", "Completed an ITI (Industrial Training Institute) program",false,true));
         }
 
         count = entityManager.createQuery("SELECT COUNT(e) FROM TypingText e", Long.class).getSingleResult();
@@ -521,40 +521,43 @@ public class CommandLineService implements CommandLineRunner {
         count = entityManager.createQuery("SELECT count(dt) FROM DocumentType dt", Long.class).getSingleResult();
 
         if (count == 0) {
-            entityManager.persist(new DocumentType(1,  "Aadhaar_Card_Front","Front side of a government-issued ID card in India.", "200KB", "100KB"));
-            entityManager.persist(new DocumentType(2,  "Pan_Card","A permanent account number card for tax purposes in India.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(3,  "Passport_Size_Photo","A small photo typically used for official documents.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(4,  "Signature", "A handwritten sign used to authenticate documents.", "200KB", "100KB"));
-            entityManager.persist(new DocumentType(5,  "Ews_Certificate","Certificate for individuals and families below a certain income threshold to access various benefits and concessions.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(6,  "Diploma", "Completed an undergraduate or vocational course, certifying knowledge and skills in a specific field.", "300KB", "200KB"));
-            entityManager.persist(new DocumentType(7,  "Graduation","Awarded upon completion of a degree program, signifying fulfillment of academic requirements in a specific discipline.",  "300KB", "200KB"));
-            entityManager.persist(new DocumentType(8,  "Post_Graduation",  "Issued after completing a postgraduate degree, acknowledging advanced training in a specialized field.", "300KB", "200KB"));
-            entityManager.persist(new DocumentType(9,  "Caste_Certificate","Certifies an individual's caste for reservations and benefits in education and employment.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(10, "Address_Certificate","Verifies an individual’s residential address for identity verification and other purposes.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(11, "Income_Certificate","Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(12, "Driving_License","Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(13, "Others", "Includes other document types not listed above, tailored to specific needs or contexts.", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(14, "Matriculation/10th","Completed secondary education or equivalent.",  "300KB", "200KB"));
-            entityManager.persist(new DocumentType(15, "Intermediate/12th", "Completed higher secondary education or equivalent.", "300KB", "200KB"));
-            entityManager.persist(new DocumentType(16, "Bachelors", "Completed undergraduate degree program education.", "300KB", "200KB"));
-            entityManager.persist(new DocumentType(17, "Masters","Completed postgraduate degree program education.",  "300KB", "200KB"));
-            entityManager.persist(new DocumentType(18, "Doctorate", "Completed doctoral degree program education.", "300KB", "200KB"));
-            entityManager.persist(new DocumentType(19, "Domicile", "The permanent home or principal residence of a person.", "500KB", "100KB"));
-            entityManager.persist(new DocumentType(20, "Handicaped","An outdated term for individuals with physical or mental disabilities; 'person with a disability' is preferred today.",  "500KB", "100KB"));
-            entityManager.persist(new DocumentType(21, "C-Form_Photo", "A C Form photo is a standardized ID photo for official documents.", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(22, "Ex-Service_Men","Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.",  "500KB", "100KB"));
-            entityManager.persist(new DocumentType(23, "Business_Photo","A Standard proof of Running Business.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(24, "Personal_Photo", "A Personal Photograph of SP.", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(25, "Ncc_Certificate_A","NCC CERTIFICATE A.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(26, "Ncc_Certificate_B", "NCC CERTIFICATE B.", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(27, "Ncc_Certificate_C", "NCC CERTIFICATE C.", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(28, "Nss_Certificate","NSS CERTIFICATE.",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(29, "Sports_Certificate-State","SPORTS CERTIFICATE FOR STATE LEVEL",  "2MB", "100KB"));
-            entityManager.persist(new DocumentType(30, "Sports_Certificate-Centre", "SPORTS CERTIFICATE FOR CENTRE LEVEL", "2MB", "100KB"));
-            entityManager.persist(new DocumentType(31, "Aadhaar_Card_Backside", "Back side of a government-issued ID card in India.", "200KB", "100KB"));
-            entityManager.persist(new DocumentType(32, "Left_Thumb_Impression", "The left thumb impression of the individual, typically required for identity verification in official documents.", "200KB", "100KB"));
-            entityManager.persist(new DocumentType(33, "Right_Thumb_Impression", "The right thumb impression of the individual, typically required for identity verification in official documents.", "200KB", "100KB"));
-            entityManager.persist(new DocumentType(34, "ITI", "Completed Industrial Training Institute (ITI) certification, typically required for vocational and technical qualifications.", "300KB", "200KB"));
+            entityManager.persist(new DocumentType(1,  "Aadhaar_Card_Front","Front side of a government-issued ID card in India.", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(2,  "Pan_Card","A permanent account number card for tax purposes in India.",  "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(3,  "Live_Passport_Size_Photo","A live photo typically used for official documents.",  "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(4,  "Signature", "A handwritten sign used to authenticate documents.", "100KB", "50KB",false,false,false));
+            entityManager.persist(new DocumentType(5,  "Ews_Certificate","Certificate for individuals and families below a certain income threshold to access various benefits and concessions.",  "300KB", "200KB",false,true,true));
+            entityManager.persist(new DocumentType(6,  "Caste_Certificate","Certifies an individual's caste for reservations and benefits in education and employment.",  "300KB", "200KB",false,true,false));
+            entityManager.persist(new DocumentType(7, "Address_Certificate","Verifies an individual’s residential address for identity verification and other purposes.",  "500KB", "100KB",false,true,false));
+            entityManager.persist(new DocumentType(8, "Income_Certificate","Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.",  "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(9, "Driving_License","Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.",  "200KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(10, "Domicile", "The permanent home or principal residence of a person.", "300KB", "200KB",false,true,true));
+            entityManager.persist(new DocumentType(11, "Disability_Certificate","An outdated term for individuals with physical or mental disabilities; 'person with a disability' is preferred today.",  "300KB", "200KB",false,true,true));
+            entityManager.persist(new DocumentType(12, "Mark_Sheet","Mark sheet of Qualification",  "300KB", "200KB",true,false,false));
+            entityManager.persist(new DocumentType(13, "Others", "Includes other document types not listed above, tailored to specific needs or contexts.", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(14, "C-Form_Photo", "A C Form photo is a standardized ID photo for official documents.", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(15, "Ex-Service_Men","Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.",  "300KB", "200KB",false,false,false));
+            entityManager.persist(new DocumentType(16, "Business_Photo","A Standard proof of Running Business.",  "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(17, "Personal_Photo", "A Personal Photograph of SP.", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(18, "NCC_Certificate_A","NCC CERTIFICATE A.",  "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(19, "NCC_Certificate_B", "NCC CERTIFICATE B.", "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(20, "NCC_Certificate_C", "NCC CERTIFICATE C.", "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(21, "NSS_Certificate_A","NSS CERTIFICATE A",  "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(22, "Sports_Certificate-State","SPORTS CERTIFICATE FOR STATE LEVEL",  "200KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(23, "Sports_Certificate-Centre", "SPORTS CERTIFICATE FOR CENTRE LEVEL", "200KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(24, "Aadhaar_Card_Backside", "Back side of a government-issued ID card in India.", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(25, "Left_Thumb_Impression", "The left thumb impression of the individual, typically required for identity verification in official documents.", "100KB", "50KB",false,true,true));
+            entityManager.persist(new DocumentType(26, "Right_Thumb_Impression", "The right thumb impression of the individual, typically required for identity verification in official documents.", "100KB", "50KB",false,true,true));
+            entityManager.persist(new DocumentType(27, "White_Background_Passport_Size_Photo", "A white background passport size photo typically used for official documents", "200KB", "100KB",false,false,false));
+            entityManager.persist(new DocumentType(28, "NSS_Certificate_B","NSS CERTIFICATE B",  "500KB", "100KB",false,true,true));
+            entityManager.persist(new DocumentType(29, "NSS_Certificate_C","NSS CERTIFICATE C",  "500KB", "100KB",false,true,true));
+
+          }
+        if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
+        {
+            entityManager.merge(new FileType(1,"PNG"));
+            entityManager.merge(new FileType(2, "JPG"));
+            entityManager.merge(new FileType(3, "PDF"));
+            entityManager.merge(new FileType(4,"JPEG"));
         }
          count = entityManager.createQuery(
                         "SELECT COUNT(df) FROM DocumentType dt JOIN dt.required_document_types df", Long.class)
@@ -562,23 +565,21 @@ public class CommandLineService implements CommandLineRunner {
 
         if (count == 0) {
             String sql = "INSERT INTO document_file_types (document_type_id, file_type_id) VALUES " +
-                    "(1, 2), (2, 3), (3, 1), (3, 2), (4,2), " +
-                    "(5, 3), (6,2), (7, 2), (8, 2), (9, 1), " +
-                    "(9, 2),(10, 1), (10, 2), (11, 1), (11, 2), " +
-                    "(12, 1), (12, 2), (13, 1), (13, 2), (14, 2), " +
-                    "(15, 2), (16, 2), (17, 2),(18, 2), (19, 2), (20, 2), " +
-                    "(22,2), (21, 1), (21, 2), (23, 1), (23, 2)," +
-                    "(24, 1), (24, 2), (25, 1), (25, 2), (26, 1), " +
-                    "(26, 2), (27, 1), (27, 2),(28, 1), (28, 2),  " +
-                    "(29, 1), (29, 2), (30, 1), (30, 2),(31,2)," +
-                    "(32,2),(33,2),(34,2)";
-
+                    "(1, 2),(1,4), (2, 2),(2,4), (3, 2),(3,4), (4,2),(4,4), " +
+                    "(5 , 2),(5,4), (6,1),(6,2), (6,4),(7, 2),(7,4), (8, 2),(8,4), (9, 1), " +
+                    "(9, 2),(9,4), (10, 2),(10,4), (11, 2),(11,4), " +
+                    "(12, 2),(12,4), (13, 1), (13, 2),(13,4), (14, 2), (14,4)," +
+                    "(15, 2),(15,4), (16, 2),(16,4), (17, 2),(17,4),(18, 2),(18,4), (19, 2),(19,4), (20, 2),(20,4), " +
+                    "(22,2),(22,4), (21, 1), (21, 2),(21,4), (23, 1), (23, 2),(23,4)," +
+                    "(24, 2), (24,4), (25, 2),(25,4), " +
+                    "(26, 2),(26,4), (27, 2),(27,4),(28, 1), (28, 2),  (28,4)," +
+                    "(29, 1), (29, 2),(29,4)";
             entityManager.createNativeQuery(sql).executeUpdate();
         }
-        count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
-        if (count == 0) {
 
-            entityManager.merge(new BoardUniversity(1L, "Delhi University", "Delhi", "DU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+         count = entityManager.createQuery("SELECT count(b) FROM BoardUniversity b", Long.class).getSingleResult();
+         if (count == 0) {
+            entityManager.merge(new BoardUniversity(1L,"Others", "NA","Not Applicable","NA",now,now,"SUPER_ADMIN","SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(2L, "Central Board of Secondary Education", "Delhi", "CBSE", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(3L, "Jawaharlal Nehru University", "Delhi", "JNU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(4L, "Uttar Pradesh Board", "Lucknow", "UPB", "BOARD", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
@@ -600,12 +601,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
         }
 
-        if(entityManager.createQuery("SELECT COUNT(o) FROM FileType o",Long.class).getSingleResult()==0)
-        {
-            entityManager.merge(new FileType(1,"PNG"));
-            entityManager.merge(new FileType(2, "JPG"));
-            entityManager.merge(new FileType(3, "PDF"));
-        }
+
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
         query.executeUpdate();

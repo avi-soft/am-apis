@@ -55,7 +55,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Matcher;
 import javax.validation.constraints.Pattern;
+
+import static elemental2.core.JsRegExp.input;
+import static org.springframework.security.config.http.MatcherType.regex;
 
 @Service
 public class ServiceProviderServiceImpl implements ServiceProviderService {
@@ -200,6 +204,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
+            List<String>addresskeys=new ArrayList<>();
+            addresskeys.add("district");
+            addresskeys.add("city");
+            addresskeys.add("pincode");
+            addresskeys.add("state");
+            addresskeys.add("residential_address");
+            int count =0;
+            for(String key : updates.keySet())
+            {
+                if(addresskeys.contains(key))
+                    count++;
+            }
+            if(count>0&&count<addresskeys.size())
+                return ResponseService.generateErrorResponse("Need all address fields to add or update address",HttpStatus.BAD_REQUEST);
 
             if (updates.containsKey("district") && updates.containsKey("state")&&updates.containsKey("city")&& updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 if (validateAddressFields(updates).isEmpty()) {
@@ -615,7 +633,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
-            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating Service Provider : ", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1098,6 +1116,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (serviceProviderAddressToAdd.getAddress_type_id() == serviceProviderAddress.getAddress_type_id())
                     return ResponseService.generateErrorResponse("Cannot add another address of this type", HttpStatus.BAD_REQUEST);
             }
+            if(!isOnlyDigits(serviceProviderAddress.getState())||!isOnlyDigits(serviceProviderAddress.getDistrict()))
+                return ResponseService.generateErrorResponse("Invalid state or district",HttpStatus.BAD_REQUEST);
             serviceProviderAddress.setState(districtService.findStateById(Integer.parseInt(serviceProviderAddress.getState())));
             serviceProviderAddress.setDistrict(districtService.findDistrictById(Integer.parseInt(serviceProviderAddress.getDistrict())));
             addresses.add(serviceProviderAddress);
@@ -1112,6 +1132,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error adding address", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }public static boolean isOnlyDigits(String str) {
+        // Check if the string is not null and matches the regex for only digits
+        return str != null && str.matches("^[0-9]+$");
     }
 
     @Transactional
@@ -1142,6 +1165,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 errorList.add(field.getName() + "cannot be empty");
             }
         }
+        if(!isOnlyDigits(addressToupdate.getState())||!isOnlyDigits(addressToupdate.getDistrict()))
+            errorList.add("Invalid state or district");
+        if(!errorList.isEmpty())
+            return errorList;
         if (addressToupdate != null) {
             if (dto.getState() != null && !dto.getState().isEmpty())
                 addressToupdate.setState(districtService.findStateById(Integer.parseInt(dto.getState())));
@@ -1220,7 +1247,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
                 query.setParameter("test_status_id", test_status_id);
                 List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-                System.out.println("+++++++++++" + serviceProviderTestStatus.size());
                 if (serviceProviderTestStatus.size() == 0) {
 
                     throw new IllegalArgumentException("No Test Status is found with this id");
@@ -1231,8 +1257,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {
                     if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
-                        // Use LIKE with the % wildcard at the end to match names that start with the provided value
-                        generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%'" + " AND ";
+                        String fieldValue = fields[i].toString().toLowerCase(); // Convert input to lower case
+                        // Check if the field value is longer than 2 characters (to avoid unnecessary wildcard matching)
+                        if (fieldValue.length() > 2) {
+                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
+                        } else {
+                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
+                        }
                     } else {
                         generalizedQuery += alias.get(fieldsNames[i]) + "." + fieldsNames[i] + " = :" + fieldsNames[i] + " AND ";
                     }

@@ -305,7 +305,7 @@ public class DocumentStorageService {
     }
 
     @Transactional
-    public void createDocument(MultipartFile file, DocumentType documentTypeObj, CustomCustomer customCustomer, Long customerId, String role) {
+    public Document createDocument(MultipartFile file, DocumentType documentTypeObj, CustomCustomer customCustomer, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         Document newDocument = new Document();
         newDocument.setName(file.getOriginalFilename());
@@ -320,10 +320,11 @@ public class DocumentStorageService {
 
 
         newDocument.setFilePath(newFilePath);
-        em.persist(newDocument);
+         em.persist(newDocument);
+         return newDocument;
     }
     @Transactional
-    public void createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
+    public ServiceProviderDocument createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
         ServiceProviderDocument newDocument = new ServiceProviderDocument();
         newDocument.setName(file.getOriginalFilename());
@@ -339,6 +340,7 @@ public class DocumentStorageService {
 
         newDocument.setFilePath(newFilePath);
         em.persist(newDocument);
+        return newDocument;
     }
     @Transactional
     public void updateOrCreateServiceProvider(ServiceProviderDocument existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
