@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -79,6 +81,31 @@ public class ServiceProviderTicketService {
 
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Scheduled(cron = "0 39 16 * * ?")
+    @Transactional
+    public void callApiAt7_30AM() {
+        try {
+            autoAssigner();
+            logger.info("API called at 7:30 AM: ");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+        }
+    }
+
+    @Scheduled(cron = "0 30 15 * * ?")
+    @Transactional
+    public void callApiAt3_30PM() {
+        try {
+            autoAssigner();
+            logger.info("API called at 3:30 PM: ");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+        }
+    }
 
     public List<Order> autoAssigner() throws Exception {
         try {
@@ -237,7 +264,6 @@ public class ServiceProviderTicketService {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
-
             if (createTicketDto.getTargetCompletionDate() != null) {
                 System.out.println("assigned date :"+createdDate);
                 System.out.println( " tc date :"+createTicketDto.getTargetCompletionDate());
@@ -256,8 +282,10 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
-            customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
-            customServiceProviderTicket.setUserId(creatorId);
+            if(creatorId != null && creatorRoleId != null) {
+                customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
+                customServiceProviderTicket.setUserId(creatorId);
+            }
             customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
             Role role = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
             customServiceProviderTicket.setAssigneeRole(role);

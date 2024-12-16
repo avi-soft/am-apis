@@ -15,6 +15,7 @@ import javax.persistence.*;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -42,7 +43,6 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "pan_number")
     private String panNumber;
-
 
     @Nullable
     @Column(name = "father_name")
@@ -133,16 +133,13 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "belongs_to_minority")
     private Boolean belongsToMinority=false;
 
-
     @Nullable
     @Column(name = "sub_category")
     private String subcategory;
 
-
     @Nullable
     @Column(name = "domicile")
     private Boolean domicile=false;
-
 
     @Nullable
     @Column(name = "secondary_mobile_number")
@@ -206,13 +203,10 @@ public class CustomCustomer extends CustomerImpl {
     @Column(length = 512)
     private String token;
 
-
-
     @Column(name = "disability_handicapped")
     private Boolean disability=false;
 
-
- @Column(name = "disability_type")
+    @Column(name = "disability_type")
     private String disabilityType;
 
     @Column(name="percentage_of_disability")
@@ -233,7 +227,6 @@ public class CustomCustomer extends CustomerImpl {
     @JsonBackReference("referrer-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
-
 
     @JsonBackReference("bankDetails-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)

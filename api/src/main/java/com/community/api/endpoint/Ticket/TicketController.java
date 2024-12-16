@@ -89,7 +89,7 @@ public class TicketController {
     EntityManager entityManager;
 
     @Transactional
-    @PostMapping("/auto-assigner")
+    @GetMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
             List<Order> assignedOrder = serviceProviderTicketService.autoAssigner();

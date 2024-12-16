@@ -2,16 +2,10 @@ package com.community.api.endpoint.Ticket.TicketHistory;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.CustomTicketHistoryWrapper;
-import com.community.api.dto.CustomTicketWrapper;
-import com.community.api.entity.CombinedOrderDTO;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomTicketHistory;
-import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.services.ResponseService;
 import com.community.api.services.TicketHistoryService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import org.broadleafcommerce.profile.core.domain.Customer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
