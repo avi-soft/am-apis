@@ -239,8 +239,9 @@ public class ServiceProviderTicketService {
             Date createdDate = dateFormat.parse(formattedDate);
 
             if (createTicketDto.getTargetCompletionDate() != null) {
-                dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
-                if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                System.out.println("assigned date :"+createdDate);
+                System.out.println( " tc date :"+createTicketDto.getTargetCompletionDate());
+                if (!(createTicketDto.getTargetCompletionDate().after(new Date()))) {
                     ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                 }
             } else {
@@ -251,7 +252,6 @@ public class ServiceProviderTicketService {
 
                 createTicketDto.setTargetCompletionDate(newTargetDate);
             }
-
             customServiceProviderTicket.setTicketAssignDate(createdDate);
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
@@ -291,7 +291,7 @@ public class ServiceProviderTicketService {
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
-            throw new Exception("Some Exception Caught: " + exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 
@@ -404,7 +404,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo,Long status) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -425,7 +425,13 @@ public class ServiceProviderTicketService {
                 }
                 jpql.append("AND c.ticketState IN :states ");
             }
-
+            if(status!=null)
+            {
+                CustomTicketStatus customTicketStatus=ticketStatusService.getTicketStatusByTicketStatusId(status);
+                if(customTicketStatus==null)
+                    throw new IllegalArgumentException("No ticket state found");
+                jpql.append("AND c.ticketStatus = :status ");
+            }
             if (types != null && !types.isEmpty()) {
                 for (Long id : types) {
                     CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(id);
@@ -452,6 +458,11 @@ public class ServiceProviderTicketService {
             if (!customTicketStates.isEmpty()) {
                 query.setParameter("states", customTicketStates);
             }
+            if(status!=null) {
+                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
+                query.setParameter("status", customTicketStatus);
+            }
+
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }

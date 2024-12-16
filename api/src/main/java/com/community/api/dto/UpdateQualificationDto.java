@@ -22,9 +22,7 @@ public class UpdateQualificationDto
 {
     private Long id;
 
-    @Size(max = 255, message = "Institution name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
-    private String institution_name;
+    private Long institution_id;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date date_of_passing;

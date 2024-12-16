@@ -1,9 +1,13 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.utils.Document;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.util.ArrayList;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
@@ -21,8 +25,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -43,11 +49,10 @@ public class QualificationDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
-    @NotBlank(message = "Institution name is required")
-    @Size(max = 255, message = "Institution name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
-    @Column(name = "institution_name", nullable = false)
-    private String institution_name;
+
+    @NotNull(message = "institution id is required")
+    @Column(name = "institution_id", nullable = false)
+    private Long institution_id;
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
@@ -67,9 +72,6 @@ public class QualificationDetails {
 
     @Column(name = "stream_id")
     private Long stream_id;
-
-    @Column(name= "subject_marks_type")
-    private String subject_marks_type;
 
     @NotNull(message = "total marks cannot be null")
     @Column(name = "total_marks", nullable = false)
@@ -109,11 +111,27 @@ public class QualificationDetails {
     private List<Long> subject_ids;
 
     @OneToMany(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("subject-details")
     private List<SubjectDetail> subject_details = new ArrayList<>();
 
-    @JsonBackReference
+    @JsonBackReference("qualificationDetailsList-service-provider")
     @ManyToOne
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity service_provider;
+
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Document document;
+
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ServiceProviderDocument serviceProviderDocument;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @JoinTable(
+            name = "qualification_detail_other_item",
+            joinColumns = @JoinColumn(name = "qualification_detail_id"),
+            inverseJoinColumns = @JoinColumn(name = "other_item_id")
+    )
+    private List<OtherItem> otherItems = new ArrayList<>();
+
 }

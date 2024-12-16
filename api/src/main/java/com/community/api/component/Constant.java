@@ -19,9 +19,10 @@ public class Constant {
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
     public static String ID_QUERY = "SELECT c FROM CustomCustomer c WHERE c.customer_id = :customer_id";
-    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM DocumentType dt WHERE dt.description LIKE :exam";
+    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
     public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q";
+    public static final String FIND_ALL_INSTITUTION_QUERY= "SELECT q FROM Institution q";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
@@ -52,6 +53,7 @@ public class Constant {
     public static final String roleAdmin="ADMIN";
     public static final String roleAdminServiceProvider="ADMIN_SERVICE_PROVIDER";
     public static final String roleServiceProvider = "SERVICE_PROVIDER";
+    public static final String roleServiceProviderAdmin = "ADMIN_SERVICE_PROVIDER";
     public static String GET_SKILLS_COUNT = "SELECT COUNT(*) FROM Skill";
     public static String GET_ALL_SKILLS = "SELECT s FROM Skill s";
     public static String GET_LANGUAGES_COUNT = "SELECT COUNT(*) FROM ServiceProviderLanguage";
@@ -73,6 +75,7 @@ public class Constant {
     public static String GET_STATES_LIST="Select s from StateCode s";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
+    public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
@@ -207,7 +210,7 @@ public class Constant {
     public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
     public static final String BEARER_CONST= "Bearer ";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
-
-
+    public static final Long TICKET_STATE_IN_REVIEW=4L;
+    public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
 }
