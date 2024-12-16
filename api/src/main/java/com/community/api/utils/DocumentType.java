@@ -1,7 +1,6 @@
 package com.community.api.utils;
 
 import com.community.api.entity.FileType;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,6 +30,14 @@ public class DocumentType {
     private String document_type_name;
     @Column(name = "description")
     private String description;
+    @Column(name = "is_qualification_document",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_qualification_document;
+
+    @Column(name = "is_issue_date_required",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_issue_date_required;
+
+    @Column(name = "is_expiration_date_required",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_expiration_date_required;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -45,12 +52,15 @@ public class DocumentType {
     @Column(name = "min_document_size")
     private String min_document_size;
 
-    public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size) {
+    public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size, Boolean is_qualification_document, Boolean is_issue_date_required, Boolean is_expiration_date_required) {
         this.document_type_id = document_type_id;
         this.document_type_name = document_type_name;
         this.description = description;
         this.max_document_size = max_document_size;
         this.min_document_size = min_document_size;
+        this.is_qualification_document=is_qualification_document;
+        this.is_issue_date_required = is_issue_date_required;
+        this.is_expiration_date_required=is_expiration_date_required;
     }
     public DocumentType(String documentTypeName, String description) {
         this.document_type_name = documentTypeName;

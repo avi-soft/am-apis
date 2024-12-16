@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -56,6 +57,7 @@ import java.util.Random;
 
 
                 CustomAdmin existingAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                LocalDateTime otpExpirationTime = LocalDateTime.now().plusMinutes(5);
 
                 if (existingAdmin == null) {
                     System.out.println(existingAdmin + " existingAdmin");
@@ -64,11 +66,13 @@ import java.util.Random;
                     existingAdmin.setCountry_code(countryCode);
                     existingAdmin.setMobileNumber(mobileNumber);
                     existingAdmin.setOtp(otp);
+                    existingAdmin.setOtpExpirationTime(otpExpirationTime);
                     entityManager.persist(existingAdmin);
                 } else {
                     System.out.println(existingAdmin + " existingAdmin");
                     existingAdmin.setOtp(null);
                     existingAdmin.setOtp(otp);
+                    existingAdmin.setOtpExpirationTime(otpExpirationTime);
                     entityManager.merge(existingAdmin);
                 }
                 Map<String,Object> details=new HashMap<>();
