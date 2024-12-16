@@ -109,18 +109,8 @@ public class DocumentEndpoint {
         try {
             List<DocumentType> documentTypes;
 
-            if (exam != null && !exam.isEmpty()) {
-                documentTypes = entityManager.createQuery(
-
-                        "SELECT dt FROM DocumentType dt WHERE dt.description LIKE :exam", DocumentType.class)
-
-                        .setParameter("exam", "%" + "Completed" + "%")
+                documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt ", DocumentType.class)
                         .getResultList();
-            } else {
-                documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt WHERE dt.description NOT LIKE :exam", DocumentType.class)
-                        .setParameter("exam", "%" + "Completed" + "%")
-                        .getResultList();
-            }
 
             if (documentTypes.isEmpty()) {
                 return responseService.generateErrorResponse("No document found", HttpStatus.OK);

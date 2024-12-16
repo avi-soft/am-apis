@@ -238,8 +238,7 @@ public class ServiceProviderEntity  {
     @Column
     private Integer totalSkillTestPoints;
 
-    @JsonIgnore
-    @JsonBackReference
+    @JsonBackReference("service-provider-referrals-back")
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrals = new ArrayList<>();
 
@@ -250,9 +249,9 @@ public class ServiceProviderEntity  {
 
 
     @Nullable
-    @JsonManagedReference
+    @JsonManagedReference("qualificationDetailsList-service-provider")
     @OneToMany(mappedBy = "service_provider", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QualificationDetails> qualificationDetailsList;
+    private List<QualificationDetails> qualificationDetailsList = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)

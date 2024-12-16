@@ -187,7 +187,7 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @JsonManagedReference("qualificationDetailsList-customer")
     @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QualificationDetails> qualificationDetailsList;
+    private List<QualificationDetails> qualificationDetailsList = new ArrayList<>();
 
     @Nullable
     @JsonManagedReference("documents-customer")
@@ -241,4 +241,19 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "order_count")
     private Integer numberOfOrders;
+
+    @Column(name = "registered_by_sp",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean registeredBySp=false;
+
+    @Column(name = "profile_completed",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean profileComplete=false;
+
+    @Column(name = "created_by_role", columnDefinition = "INTEGER DEFAULT 5")
+    private Integer createdByRole;
+    @Column(name = "created_by_id", columnDefinition = "BIGINT DEFAULT 0")
+    private Long createdById;
+    @Column(name = "modified_by_role", columnDefinition = "INTEGER DEFAULT 5")
+    private Integer modifiedByRole;
+    @Column(name = "modified_by_id", columnDefinition = "BIGINT DEFAULT 0")
+    private Long modifiedById;
 }

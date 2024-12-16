@@ -13,6 +13,7 @@ import javax.persistence.Table;
 import javax.persistence.Entity;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -37,6 +38,7 @@ public class CustomAdmin
     private String country_code;
     @Column(columnDefinition = "TEXT")
     private String token;
+    private LocalDateTime otpExpirationTime;
     private int signedUp=0;
     private Date created_at,updated_at;
     private String created_by, modified_by;

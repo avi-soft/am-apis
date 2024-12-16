@@ -86,7 +86,7 @@ public class OtpEndpoint {
     private AdminService adminService;
 
     @PostMapping("/send-otp")
-    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session) throws UnsupportedEncodingException {
+    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session,@RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
         try {
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
                 return responseService.generateErrorResponse(ApiConstants.MOBILE_NUMBER_NULL_OR_EMPTY, HttpStatus.NOT_ACCEPTABLE);
@@ -129,7 +129,7 @@ public class OtpEndpoint {
 
                 }
 
-                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode);
+                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode,authHeader);
                 Map<String, Object> responseBody = otpResponse.getBody();
 
                 if (responseBody.get("otp")!=null) {
