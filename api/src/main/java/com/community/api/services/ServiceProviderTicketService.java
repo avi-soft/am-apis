@@ -85,7 +85,7 @@ public class ServiceProviderTicketService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Scheduled(cron = "0 39 16 * * ?")
+    @Scheduled(cron = "0 30 7 * * ?")
     @Transactional
     public void callApiAt7_30AM() {
         try {

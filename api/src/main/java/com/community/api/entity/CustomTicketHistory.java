@@ -32,6 +32,7 @@ public class CustomTicketHistory {
 
     @ManyToOne
     @JoinColumn(name = "ticket_id")
+    @JsonBackReference
     @JsonProperty("ticket")
     protected CustomServiceProviderTicket ticketId;
 

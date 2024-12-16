@@ -37,13 +37,15 @@ public class TicketHistoryController {
             List<CustomTicketHistory> ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticketId);
             List<CustomTicketHistoryWrapper> result = new ArrayList<>();
 
-            for (int i=0; i<ticketHistory.size(); i++) {
-                CustomTicketHistory customTicketHistory = ticketHistory.get(i);
+            for (CustomTicketHistory customTicketHistory: ticketHistory) {
                 CustomTicketHistoryWrapper wrapper = new CustomTicketHistoryWrapper();
                 wrapper.customWrapDetails(customTicketHistory);
                 result.add(wrapper);
             }
 
+            if(result.isEmpty()) {
+                return ResponseService.generateSuccessResponse("NO Tickets History Found", result, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("Tickets History Found", result, HttpStatus.OK);
 
         } catch (Exception exception) {
