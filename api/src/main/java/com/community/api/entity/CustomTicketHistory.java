@@ -30,9 +30,10 @@ public class CustomTicketHistory {
     @Column(name = "ticket_history_id")
     protected Long ticketHistoryId;
 
-    @Column(name = "ticket_id")
-    @JsonProperty("ticket_id")
-    protected Long ticketId;
+    @ManyToOne
+    @JoinColumn(name = "ticket_id")
+    @JsonProperty("ticket")
+    protected CustomServiceProviderTicket ticketId;
 
     @ManyToOne
     @JoinColumn(name = "ticket_state_id")
