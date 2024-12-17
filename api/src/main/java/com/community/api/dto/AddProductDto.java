@@ -97,7 +97,7 @@ public class AddProductDto {
     Long formComplexity;
 
     @JsonProperty("qualification_id")
-    Long qualification;
+    Integer qualification;
     @JsonProperty("stream_id")
     Long stream;
     @JsonProperty("subject_id")
