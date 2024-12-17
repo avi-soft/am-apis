@@ -215,6 +215,18 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "is_ex_service_man")
     private Boolean exService=false;
 
+    @Column(name = "is_ncc_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_ncc_certificate;
+
+    @Column(name = "is_nss_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_nss_certificate;
+
+    @Column(name = "ncc_certificate")
+    private String ncc_certificate;
+
+    @Column(name = "nss_certificate")
+    private String nss_certificate;
+
     @Column(name = "is_married")
     private Boolean isMarried=false;
 
