@@ -76,6 +76,10 @@ public class CustomTicketHistory {
     @JsonProperty("target_completion_time")
     private Date targetCompletionDate;
 
+    @Column(name = "created_date")
+    @JsonProperty("created_date")
+    private Date createdDate;
+
     @Column(name = "ticket_assign_time")
     @JsonProperty("ticket_assign_time")
     private Date ticketAssignDate;
