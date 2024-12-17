@@ -30,11 +30,7 @@ public class TicketHistoryService {
             query.setParameter("ticketId", ticketId);
             List<CustomTicketHistory> ticketHistory = query.getResultList();
 
-            if (!ticketHistory.isEmpty()) {
-                return ticketHistory;
-            } else {
-                throw new IllegalArgumentException("No TicketHistory Found with this ticketId");
-            }
+            return ticketHistory;
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

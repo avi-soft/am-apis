@@ -70,6 +70,7 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
         this.customTicketType = customTicketHistory.getTicketType();
         this.customTicketStatus = customTicketHistory.getTicketStatus();
         this.assignedDate = customTicketHistory.getTicketAssignDate();
+        this.createdDate = customTicketHistory.getCreatedDate();
     }
 
     @Override

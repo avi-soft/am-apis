@@ -81,7 +81,7 @@ public class CustomTicketHistory {
     @JsonProperty("ticket_assign_time")
     private Date ticketAssignDate;
 
-    @Column(name = "")
+    @Column(name = "created_date")
     @JsonProperty("created_date")
     private Date createdDate;
 
