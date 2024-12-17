@@ -76,6 +76,8 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static com.community.api.component.Constant.request;
+
 @RestController
 @RequestMapping(value = "/customer",
         produces = {
@@ -956,8 +958,40 @@ public class CustomerEndpoint {
                     }
                 }
 
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (Document document : customCustomer.getDocuments()) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                documentDetails.put("documentValidity", document.getDocumentValidity());
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+
                 return ResponseService.generateSuccessResponse(
-                        "Documents updated successfully",
+                        "Documents uploaded successfully",
                         responseData,
                         HttpStatus.OK);
             } else {
@@ -1167,7 +1201,38 @@ public class CustomerEndpoint {
                     }
 
                 }
-                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (ServiceProviderDocument document : serviceProviderEntity.getDocuments()) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                documentDetails.put("documentValidity", document.getDocumentValidity());
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+                return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
 
         }

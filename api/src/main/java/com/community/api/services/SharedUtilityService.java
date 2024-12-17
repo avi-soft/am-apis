@@ -417,26 +417,29 @@ public class SharedUtilityService {
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
         for (ServiceProviderDocument document : serviceProvider.getDocuments()) {
-            if (document.getFilePath() != null && document.getDocumentType() != null) {
-                Map<String, Object> documentDetails = new HashMap<>();
-                documentDetails.put("documentId", document.getDocumentId());
-                documentDetails.put("name", document.getName());
-                documentDetails.put("filePath", document.getFilePath());
-                if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
-                {
-                    documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
-                }
-                if(document.getDocumentValidity()!=null)
-                {
-                    documentDetails.put("documentValidity",document.getDocumentValidity());
-                }
+            if (document.getIsArchived() != null && !document.getIsArchived()) {
+                if (document.getFilePath() != null && document.getDocumentType() != null) {
+                    Map<String, Object> documentDetails = new HashMap<>();
+                    documentDetails.put("documentId", document.getDocumentId());
+                    documentDetails.put("name", document.getName());
+                    documentDetails.put("filePath", document.getFilePath());
+                    if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                    {
+                        documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                    }
+                    if(document.getDocumentValidity()!=null)
+                    {
+                        documentDetails.put("documentValidity",document.getDocumentValidity());
+                    }
 
-                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                documentDetails.put("fileUrl", fileUrl);
+                    String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                    documentDetails.put("fileUrl", fileUrl);
 
-                documentDetails.put("documentType", document.getDocumentType());
-                filteredDocuments.add(documentDetails);
+                    documentDetails.put("documentType", document.getDocumentType());
+                    filteredDocuments.add(documentDetails);
+                }
             }
+
         }
 
         if (!filteredDocuments.isEmpty()) {
