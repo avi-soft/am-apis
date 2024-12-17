@@ -663,7 +663,7 @@ public class ProductController extends CatalogEndpoint {
             List<CustomProduct> products = productService.filterProducts(state, status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
 
             if (products.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
+                return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", products, HttpStatus.OK);
             }
 
             List<CustomProductWrapper> responses = new ArrayList<>();
