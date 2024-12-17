@@ -385,6 +385,103 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
+            if(details.containsKey("ncc_certificate"))
+            {
+                String nccCertificateValue = (String) details.get("ncc_certificate");
+
+                if(!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNcc_certificate(nccCertificateValue);
+                customCustomer.setIs_ncc_certificate(true);
+
+            }
+                if(details.containsKey("is_ncc_certificate"))
+                {
+                Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
+                if(isNccCertificate.equals(true))
+                {
+                    if(!details.containsKey("ncc_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select ncc certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
+                }
+
+                if(isNccCertificate.equals(false))
+                {
+                    customCustomer.setNcc_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(18) || document.getDocumentType().getDocument_type_id().equals(19) ||document.getDocumentType().getDocument_type_id().equals(20))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+
+                }
+                customCustomer.setIs_ncc_certificate(isNccCertificate);
+
+            }
+            if(details.containsKey("nss_certificate"))
+            {
+                String nssCertificateValue = (String) details.get("nss_certificate");
+                if(!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNss_certificate(nssCertificateValue);
+                customCustomer.setIs_nss_certificate(true);
+            }
+            if(details.containsKey("is_nss_certificate"))
+            {
+                Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
+                System.out.println("430");
+                System.out.println(isNssCertificate);
+                if(isNssCertificate.equals(true))
+                {
+                    if(!details.containsKey("nss_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select nss certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNss_certificate((String) details.get("nss_certificate"));
+                }
+                else if(isNssCertificate.equals(false))
+                {
+                    customCustomer.setNss_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(21) || document.getDocumentType().getDocument_type_id().equals(28) ||document.getDocumentType().getDocument_type_id().equals(29))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIs_nss_certificate(isNssCertificate);
+            }
+
+            details.remove("is_ncc_certificate");
+            details.remove("ncc_certificate");
+            details.remove("is_nss_certificate");
+            details.remove("nss_certificate");
+
             if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
 

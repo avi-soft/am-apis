@@ -207,7 +207,6 @@ public class SharedUtilityService {
         customerDetails.put("category", customCustomer.getCategory());
         customerDetails.put("subcategory", customCustomer.getSubcategory());
         customerDetails.put("domicile", customCustomer.getDomicile());
-        customerDetails.put("documents", customCustomer.getDocuments());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
         customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
@@ -236,6 +235,10 @@ public class SharedUtilityService {
         customerDetails.put("is_married", customCustomer.getIsMarried());
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
         customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
+        customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("is_nss_certificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
+        customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
@@ -292,24 +295,27 @@ public class SharedUtilityService {
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
         for (Document document : customCustomer.getDocuments()) {
-            if (document.getFilePath() != null && document.getDocumentType() != null) {
-                Map<String, Object> documentDetails = new HashMap<>();
-                documentDetails.put("documentId", document.getDocumentId());
-                documentDetails.put("name", document.getName());
-                documentDetails.put("filePath", document.getFilePath());
-                if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
-                {
-                    documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
-                }
-                if(document.getDocumentValidity()!=null)
-                {
-                    documentDetails.put("documentValidity",document.getDocumentValidity());
-                }
-                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                documentDetails.put("fileUrl", fileUrl);
+            if(document.getIsArchived().equals(false))
+            {
+                if (document.getFilePath() != null && document.getDocumentType() != null) {
+                    Map<String, Object> documentDetails = new HashMap<>();
+                    documentDetails.put("documentId", document.getDocumentId());
+                    documentDetails.put("name", document.getName());
+                    documentDetails.put("filePath", document.getFilePath());
+                    if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                    {
+                        documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                    }
+                    if(document.getDocumentValidity()!=null)
+                    {
+                        documentDetails.put("documentValidity",document.getDocumentValidity());
+                    }
+                    String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                    documentDetails.put("fileUrl", fileUrl);
 
-                documentDetails.put("documentType", document.getDocumentType());
-                filteredDocuments.add(documentDetails);
+                    documentDetails.put("documentType", document.getDocumentType());
+                    filteredDocuments.add(documentDetails);
+                }
             }
         }
 
