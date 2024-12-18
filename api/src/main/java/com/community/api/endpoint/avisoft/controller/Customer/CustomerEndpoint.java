@@ -239,7 +239,7 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if(roleId==4&&customCustomer.getCreatedByRole()==4&&customCustomer.getCreatedById()!=tokenUserId)
+            if((roleId==4&&customCustomer.getCreatedByRole()==4&&customCustomer.getCreatedById()!=tokenUserId)||(roleId==4&&customCustomer.getRegisteredBySp().equals(false))||(roleId==5&&!tokenUserId.equals(customerId)))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
