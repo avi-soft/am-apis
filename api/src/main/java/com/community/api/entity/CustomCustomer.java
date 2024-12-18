@@ -34,6 +34,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "mobile_number", unique = true)
+    @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be a valid 10-digit number.")
     private String mobileNumber;
 
     @Nullable
@@ -42,7 +43,9 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pan_number")
+    @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be a valid 10-character alphanumeric string.")
     private String panNumber;
+
 
     @Nullable
     @Column(name = "father_name")
@@ -51,20 +54,26 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "nationality")
+    @Pattern(regexp = "^[a-zA-Z ]+$", message = "Nationality must only contain alphabetic characters.")
     private String nationality;
+
 
     @Nullable
     @Column(name = "date_of_birth")
+    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
     private String dob;
+
 
     @Nullable
     @Column(name = "gender")
+    @Pattern(regexp = "^(Male|Female|Other)$", message = "Gender must be Male, Female, or Other.")
     private String gender;
 
     @Nullable
     @Column(name = "adhar_number", unique = true)
-    @Size(min = 12, max = 12)
+    @Pattern(regexp = "^[0-9]{12}$", message = "Aadhar number must be a valid 12-digit numeric value.")
     private String adharNumber;
+
 
     @Nullable
     @Column(name = "category")
@@ -147,11 +156,15 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "whatsapp_number")
+    @Pattern(regexp = "^[0-9]{10}$", message = "WhatsApp number must be a valid 10-digit number.")
     private String whatsappNumber;
+
 
     @Nullable
     @Column(name = "secondary_email")
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
+
 
     @Nullable
     @Column(name = "residential_address")
@@ -171,7 +184,9 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pincode")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit numeric value.")
     private String pincode;
+
 
     @Nullable
     @ManyToMany
