@@ -239,6 +239,11 @@ public class SharedUtilityService {
         customerDetails.put("is_nss_certificate",customCustomer.getIs_ncc_certificate());
         customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
         customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
+        customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
+        customerDetails.put("created_by_id",customCustomer.getCreatedById());
+        customerDetails.put("modified_by_role",customCustomer.getModifiedByRole());
+        customerDetails.put("modified_by_id",customCustomer.getModifiedById());
+        customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();

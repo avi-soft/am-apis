@@ -170,6 +170,7 @@ public class CustomCustomer extends CustomerImpl {
     private String city;
 
     @Nullable
+    @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must exactly contain 6 digits")
     @Column(name = "pincode")
     private String pincode;
 

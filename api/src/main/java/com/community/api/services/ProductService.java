@@ -515,7 +515,7 @@ public class ProductService {
             return query.getResultList();
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
