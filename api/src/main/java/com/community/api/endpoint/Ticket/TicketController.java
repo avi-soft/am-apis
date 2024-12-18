@@ -1,7 +1,9 @@
 package com.community.api.endpoint.Ticket;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -32,6 +34,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -217,6 +221,20 @@ public class TicketController {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/ticket/update/{ticketId}")
+    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin})
+    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization")String authHeader)
+    {
+        try{
+            return ticketStateService.updateTicket(createTicketDto,ticketId,authHeader);
+        }
+        catch (Exception e)
+        {
+            exceptionHandlingService.handleException(e);
+            return ResponseService.generateErrorResponse("Error updating ticket state :"+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
