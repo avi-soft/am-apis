@@ -28,7 +28,7 @@ public class GenderController {
         try {
             List<CustomGender> customGenderList = genderService.getAllGender();
             if (customGenderList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO GENDER IS FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateSuccessResponse("NO GENDER FOUND", new Object(), HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("GENDER FOUND", customGenderList, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -44,7 +44,7 @@ public class GenderController {
         try {
             CustomGender customGender = genderService.getGenderByGenderId(genderId);
             if (customGender == null) {
-                return ResponseService.generateErrorResponse("NO GENDER FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateSuccessResponse("NO GENDER FOUND", new Object(), HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("GENDER FOUND", customGender, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
