@@ -383,6 +383,7 @@ public class CustomerEndpoint {
                     addAddress(customerId, addressMap);
                 }
             }
+
             details.remove("permanentState");
             details.remove("permanentDistrict");
             details.remove("permanentAddress");
@@ -400,6 +401,11 @@ public class CustomerEndpoint {
                 customCustomer.setNcc_certificate(nccCertificateValue);
                 customCustomer.setIs_ncc_certificate(true);
 
+            }
+            if(details.containsKey("dob"))
+            {
+               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                   errorMessages.add("DOB cannot be in future");
             }
                 if(details.containsKey("is_ncc_certificate"))
                 {
@@ -508,7 +514,7 @@ public class CustomerEndpoint {
                     String regex = patternAnnotation.regexp();
                     String message = patternAnnotation.message(); // Get custom message
                     if (!newValue.toString().matches(regex)) {
-                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        errorMessages.add(patternAnnotation.message()); // Use a placeholder
                         continue;
                     }
                 }

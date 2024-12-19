@@ -154,4 +154,8 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "is_review_required")
     protected Boolean isReviewRequired;
 
+    @ManyToOne
+    @JoinColumn(name = "advertisement")
+    protected Advertisement advertisement;
+
 }
