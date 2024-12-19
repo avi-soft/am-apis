@@ -162,4 +162,8 @@ public class CustomProduct extends ProductImpl {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "product_id")
     private List<OtherItem> otherItems = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "advertisement")
+    protected Advertisement advertisement;
 }

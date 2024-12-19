@@ -76,6 +76,8 @@ import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static com.community.api.component.Constant.request;
+
 @RestController
 @RequestMapping(value = "/customer",
         produces = {
@@ -237,6 +239,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if(roleId==4&&customCustomer.getCreatedByRole()==4&&customCustomer.getCreatedById()!=tokenUserId)
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -379,13 +383,116 @@ public class CustomerEndpoint {
                     addAddress(customerId, addressMap);
                 }
             }
+
             details.remove("permanentState");
             details.remove("permanentDistrict");
             details.remove("permanentAddress");
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
-            if(customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
+            if(details.containsKey("ncc_certificate"))
+            {
+                String nccCertificateValue = (String) details.get("ncc_certificate");
+
+                if(!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNcc_certificate(nccCertificateValue);
+                customCustomer.setIs_ncc_certificate(true);
+
+            }
+            if(details.containsKey("dob"))
+            {
+               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                   errorMessages.add("DOB cannot be in future");
+            }
+                if(details.containsKey("is_ncc_certificate"))
+                {
+                Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
+                if(isNccCertificate.equals(true))
+                {
+                    if(!details.containsKey("ncc_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select ncc certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
+                }
+
+                if(isNccCertificate.equals(false))
+                {
+                    customCustomer.setNcc_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(18) || document.getDocumentType().getDocument_type_id().equals(19) ||document.getDocumentType().getDocument_type_id().equals(20))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+
+                }
+                customCustomer.setIs_ncc_certificate(isNccCertificate);
+
+            }
+            if(details.containsKey("nss_certificate"))
+            {
+                String nssCertificateValue = (String) details.get("nss_certificate");
+                if(!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNss_certificate(nssCertificateValue);
+                customCustomer.setIs_nss_certificate(true);
+            }
+            if(details.containsKey("is_nss_certificate"))
+            {
+                Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
+                System.out.println("430");
+                System.out.println(isNssCertificate);
+                if(isNssCertificate.equals(true))
+                {
+                    if(!details.containsKey("nss_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select nss certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNss_certificate((String) details.get("nss_certificate"));
+                }
+                else if(isNssCertificate.equals(false))
+                {
+                    customCustomer.setNss_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(21) || document.getDocumentType().getDocument_type_id().equals(28) ||document.getDocumentType().getDocument_type_id().equals(29))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIs_nss_certificate(isNssCertificate);
+            }
+
+            details.remove("is_ncc_certificate");
+            details.remove("ncc_certificate");
+            details.remove("is_nss_certificate");
+            details.remove("nss_certificate");
+
+            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
 
             for (Map.Entry<String, Object> entry : details.entrySet()) {
@@ -407,7 +514,7 @@ public class CustomerEndpoint {
                     String regex = patternAnnotation.regexp();
                     String message = patternAnnotation.message(); // Get custom message
                     if (!newValue.toString().matches(regex)) {
-                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        errorMessages.add(patternAnnotation.message()); // Use a placeholder
                         continue;
                     }
                 }
@@ -859,6 +966,38 @@ public class CustomerEndpoint {
                     }
                 }
 
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (Document document : customCustomer.getDocuments()) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                documentDetails.put("documentValidity", document.getDocumentValidity());
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+
                 return ResponseService.generateSuccessResponse(
                         "Documents updated successfully",
                         responseData,
@@ -1070,7 +1209,38 @@ public class CustomerEndpoint {
                     }
 
                 }
-                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (ServiceProviderDocument document : serviceProviderEntity.getDocuments()) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                documentDetails.put("documentValidity", document.getDocumentValidity());
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+                return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
 
         }
