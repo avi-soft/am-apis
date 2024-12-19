@@ -314,7 +314,6 @@ public class CustomerEndpoint {
             {
                 errorMessages.add("Last name cannot be null");
             }
-
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
             if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty())
@@ -494,6 +493,8 @@ public class CustomerEndpoint {
 
             if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+            if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
@@ -557,6 +558,7 @@ public class CustomerEndpoint {
         }
         catch(NoSuchFieldException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         catch(Exception e){
