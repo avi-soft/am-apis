@@ -3,11 +3,13 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
+import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.google.gson.Gson;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -84,6 +86,9 @@ public class ProductService {
     private EntityManager entityManager;
     @Autowired
     private ResponseService responseService;
+
+    @Autowired
+    private SharedUtilityService sharedUtilityService;
 
     public void saveCustomProduct(Product product, AddProductDto addProductDto, CustomProductState productState, Role role, Long creatorUserId, Date modifiedDate, Date currentDate) {
 
@@ -1116,9 +1121,9 @@ public class ProductService {
         }
     }
 
-    public boolean validateReserveCategory(AddProductDto addProductDto) throws Exception {
+    public List<OtherItem> validateReserveCategory(AddProductDto addProductDto,Integer roleId,Long userId, String sourceName, List<String> typedTexts,CustomProduct customProduct ) throws Exception {
         try {
-
+            List<OtherItem> otherReserveCategories=new ArrayList<>();
             if (addProductDto.getReservedCategory().isEmpty()) {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
             }
@@ -1132,14 +1137,60 @@ public class ProductService {
             Date minBornAfterDate = calendar.getTime();
             calendar.add(Calendar.YEAR, 100);
             Date maxBornBeforeDate = calendar.getTime();
-
+            CustomReserveCategory reserveCategory=null;
+            String reserveCategoryOther=null;
+            OtherItem reserveCategoryOtherToAdd=null;
+            int typedTextIndex=0;
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
                 }
                 reserveCategoryId.add(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
 
-                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                 reserveCategory  = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                if(reserveCategory.getReserveCategoryName().equalsIgnoreCase("Others"))
+                {
+                    if(typedTexts==null)
+                    {
+                        throw new IllegalArgumentException("You have to enter the text for adding each 'other' reserve category if is not present in dropdown");
+                    }
+                    if(typedTexts.isEmpty() || typedTextIndex>=typedTexts.size() )
+                    {
+                        throw new IllegalArgumentException("You have to enter the text for adding each 'other' reserve category if is not present in dropdown");
+                    }
+                    if(sourceName.equalsIgnoreCase("add_product"))
+                    {
+                        reserveCategoryOtherToAdd=sharedUtilityService.handleOtherCaseForReserveCategory(reserveCategory,typedTexts.get(typedTextIndex),roleId,userId,sourceName);
+                        reserveCategoryOther=reserveCategory.getReserveCategoryName();
+                        typedTextIndex++;
+                    }
+                    else if(sourceName.equalsIgnoreCase("update_product"))
+                    {
+                        if(customProduct.getOtherItems().isEmpty()|| customProduct.getOtherItems()==null)
+                        {
+                            reserveCategoryOtherToAdd=sharedUtilityService.handleOtherCaseForReserveCategory(reserveCategory,typedTexts.get(typedTextIndex),roleId,userId,sourceName);
+                            reserveCategoryOther=reserveCategory.getReserveCategoryName();
+                            typedTextIndex++;
+                        }
+                        else {
+                            reserveCategoryOther=reserveCategory.getReserveCategoryName();
+                            int indexToIterateUpdatedOtherValues=0;
+                            List<OtherItem> currentOtherItems=customProduct.getOtherItems();
+                            for(OtherItem otherItem: currentOtherItems)
+                            {
+                                if (otherItem.getCustomProduct().getId().equals(customProduct.getId()) &&
+                                        (otherItem.getSource_name().equalsIgnoreCase("add_product") ||
+                                                otherItem.getSource_name().equalsIgnoreCase("update_product"))) {
+                                    otherItem.setTyped_text(typedTexts.get(indexToIterateUpdatedOtherValues));
+                                    entityManager.merge(otherItem);
+                                    indexToIterateUpdatedOtherValues++;
+                                }
+                            }
+                        }
+
+                    }
+
+                }
                 if (reserveCategory == null) {
                     throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
                 }
@@ -1173,13 +1224,19 @@ public class ProductService {
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornBefore().after(maxBornBeforeDate)) {
                     throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
                 }
+                if(sourceName.equalsIgnoreCase("add_product") || sourceName.equalsIgnoreCase("update_product"))
+                {
+                    otherReserveCategories.add(reserveCategoryOtherToAdd);
+                }
             }
 
-            if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
-                throw new IllegalArgumentException("Duplicate reserve categories not allowed.");
+            if(reserveCategoryOther==null)
+            {
+                if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
+                    throw new IllegalArgumentException("Duplicate reserve categories not allowed.");
+                }
             }
-
-            return true;
+            return otherReserveCategories;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");

@@ -685,6 +685,32 @@ public class SharedUtilityService {
         }
     }
 
+    public OtherItem handleOtherCaseForReserveCategory(CustomReserveCategory foundedReserveCategoryName,String typedText,Integer roleId,Long userId,String sourceName)
+    {
+        String customReserveCategoryName= foundedReserveCategoryName.getReserveCategoryName();
+        if(customReserveCategoryName.equalsIgnoreCase("Others"))
+        {
+            if(typedText==null || typedText.isEmpty())
+            {
+                throw new IllegalArgumentException("You have to enter a text for other Reserve Category");
+            }
+            if(typedText.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other Reserve Category");
+            }
+
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(typedText);
+            otherItem.setField_name("reserved_category");
+            otherItem.setSource_name(sourceName);
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
+    }
+
 }
 
 

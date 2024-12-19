@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
+import com.community.api.entity.OtherItem;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class ReserveCategoryDtoService {
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
     private ReserveCategoryService reserveCategoryService;
+    private OtherItemService otherItemService;
 
     @PersistenceContext
     public void setEntityManager(EntityManager entityManager) {
@@ -45,6 +47,10 @@ public class ReserveCategoryDtoService {
     public void setReserveCategoryService(ReserveCategoryService reserveCategoryService) {
         this.reserveCategoryService = reserveCategoryService;
     }
+    @Autowired
+    public void setOtherItemService(OtherItemService otherItemService) {
+        this.otherItemService = otherItemService;
+    }
 
     public List<ReserveCategoryDto> getReserveCategoryDto(Long productId) {
         try{
@@ -52,13 +58,42 @@ public class ReserveCategoryDtoService {
             List<CustomProductReserveCategoryFeePostRef> customProductReserveCategoryFeePostRefList = productReserveCategoryFeePostRefService.getProductReserveCategoryFeeAndPostByProductId(productId);
 
             List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();
+            int otherCategoryIndex=0;
+            List<String>otherCategoryNames= new ArrayList<>();
             for(int customProductReserveCategoryBornBeforeAfterRefListIndex = 0; customProductReserveCategoryBornBeforeAfterRefListIndex < customProductReserveCategoryBornBeforeAfterRefList.size(); customProductReserveCategoryBornBeforeAfterRefListIndex++) {
                 for(int customProductReserveCategoryFeePostRefListIndex = 0; customProductReserveCategoryFeePostRefListIndex < customProductReserveCategoryFeePostRefList.size(); customProductReserveCategoryFeePostRefListIndex++) {
                     if(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomReserveCategory().getReserveCategoryId().equals(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getCustomReserveCategory().getReserveCategoryId()) && customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomProduct().getId().equals(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getCustomProduct().getId())) {
                         ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
                         reserveCategoryDto.setProductId(productId);
                         reserveCategoryDto.setReserveCategoryId(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomReserveCategory().getReserveCategoryId());
-                        reserveCategoryDto.setReserveCategory(reserveCategoryService.getReserveCategoryById(reserveCategoryDto.getReserveCategoryId()).getReserveCategoryName());
+                        if(reserveCategoryService.getReserveCategoryById(reserveCategoryDto.getReserveCategoryId()).getReserveCategoryName().equalsIgnoreCase("Others"))
+                        {
+                            if(otherCategoryIndex==0)
+                            {
+                                List<OtherItem>otherItemList= otherItemService.getAllOtherItems();
+                                if(otherItemList.isEmpty()|| otherItemList==null)
+                                {
+                                    throw new IllegalArgumentException("There is no 'other' category saved for this product ");
+                                }
+
+                                for(OtherItem otherItem: otherItemList )
+                                {
+                                    if(otherItem.getCustomProduct().getId().equals(productId))
+                                    {
+                                        otherCategoryNames.add(otherItem.getTyped_text());
+                                    }
+                                }
+                                reserveCategoryDto.setReserveCategory(otherCategoryNames.get(otherCategoryIndex));
+                                otherCategoryIndex++;
+                            }
+                            else if(otherCategoryIndex!=0)
+                            {
+                                reserveCategoryDto.setReserveCategory(otherCategoryNames.get(otherCategoryIndex));
+                            }
+                        }
+                        else {
+                            reserveCategoryDto.setReserveCategory(reserveCategoryService.getReserveCategoryById(reserveCategoryDto.getReserveCategoryId()).getReserveCategoryName());
+                        }
                         reserveCategoryDto.setPost(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getPost());
                         reserveCategoryDto.setFee(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getFee());
                         reserveCategoryDto.setBornBefore(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getBornBefore());

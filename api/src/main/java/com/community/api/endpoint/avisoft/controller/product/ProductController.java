@@ -4,6 +4,7 @@ import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
+import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
@@ -17,12 +18,15 @@ import com.community.api.entity.CustomProductState;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
+import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.DistrictService;
 import com.community.api.services.GenderService;
+import com.community.api.services.OtherItemService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.PostExecutionService;
 import com.community.api.services.ProductGenderPhysicalRequirementService;
 import com.community.api.services.ResponseService;
 import org.broadleafcommerce.common.persistence.Status;
@@ -66,6 +70,7 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.community.api.component.Constant.*;
@@ -111,6 +116,9 @@ public class ProductController extends CatalogEndpoint {
     GenderService genderService;
 
     @Autowired
+    PostExecutionService postExecutionService;
+
+    @Autowired
     public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.entityManager = entityManager;
@@ -134,9 +142,15 @@ public class ProductController extends CatalogEndpoint {
             @RequestBody AddProductDto addProductDto,
             @PathVariable Long categoryId,
             @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(value = "reserveCategoryOthers", required = false) List<String> reserveCategoryOthers,
             @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
         try {
+            String sourceName="add_product";
+            List<OtherItem> reserveCategoryOtherList=new ArrayList<>();
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
             if (!productService.addProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD PRODUCT", HttpStatus.FORBIDDEN);
             }
@@ -204,13 +218,13 @@ public class ProductController extends CatalogEndpoint {
 
                 if(!saveDraft)
                 {
-                    productService.validateReserveCategory(addProductDto);
+                    reserveCategoryOtherList=productService.validateReserveCategory(addProductDto,roleId,userId,sourceName,reserveCategoryOthers,null);
                 }
                 else if(saveDraft)
                 {
                     if(addProductDto.getReservedCategory()!=null)
                     {
-                        productService.validateReserveCategory(addProductDto);
+                        reserveCategoryOtherList=productService.validateReserveCategory(addProductDto,roleId,userId,sourceName,reserveCategoryOthers,null);
                     }
                 }
                 CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
@@ -300,9 +314,13 @@ public class ProductController extends CatalogEndpoint {
                 }else{
                     wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
                 }
-                return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
+                ResponseEntity responseEntity= ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
+                postExecutionService.executePostProcessingLogicInAddProduct(wrapper,reserveCategoryOtherList);
+                return  responseEntity;
             }
-            return ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+            ResponseEntity responseEntity= ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+            postExecutionService.executePostProcessingLogicInAddProduct(wrapper,reserveCategoryOtherList);
+            return  responseEntity;
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -318,10 +336,14 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestParam(value = "reserveCategoryOthers", required = false) List<String> reserveCategoryOthers, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
 
         try {
-
+            String sourceName="update_product";
+            List<OtherItem> reserveCategoryOtherList=new ArrayList<>();
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
             if (!productService.updateProductAccessAuthorisation(authHeader, productId)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO UPDATE PRODUCT", HttpStatus.FORBIDDEN);
             }
@@ -336,10 +358,45 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(Constant.PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
-
+            Boolean isOtherReserveCategories=false;
             // Validations and checks.
             if (addProductDto.getReservedCategory() != null) {
-                productService.validateReserveCategory(addProductDto);
+             reserveCategoryOtherList= productService.validateReserveCategory(addProductDto,roleId,userId,sourceName,reserveCategoryOthers,customProduct);
+
+              for(AddReserveCategoryDto reserveCategoryDto: addProductDto.getReservedCategory())
+              {
+                  if(reserveCategoryService.getReserveCategoryById(reserveCategoryDto.getReserveCategory()).getReserveCategoryName().equalsIgnoreCase("Others"))
+                  {
+                      isOtherReserveCategories=true;
+                  }
+              }
+
+              if(isOtherReserveCategories.equals(false))
+              {
+                  List<OtherItem> currentOtherItems= customProduct.getOtherItems();
+                if (!currentOtherItems.isEmpty()) {
+                    Iterator<OtherItem> iterator = currentOtherItems.iterator();
+                    while (iterator.hasNext()) {
+                        OtherItem otherItem = iterator.next();
+                            otherItem.setCustomProduct(null);
+                            iterator.remove();
+                        }
+                }
+              }
+              else if (isOtherReserveCategories.equals(true))
+              {
+                  if (!reserveCategoryOtherList.isEmpty()) {
+                      List<OtherItem> existingItems = customProduct.getOtherItems();
+                      for (OtherItem otherItem : reserveCategoryOtherList) {
+                          if (otherItem != null) {
+                              otherItem.setCustomProduct(customProduct);
+                              existingItems.add(otherItem);
+                              entityManager.merge(otherItem);
+                          }
+                      }
+                      entityManager.merge(customProduct);
+                  }
+              }
                 productService.deleteOldReserveCategoryMapping(customProduct);
             }
             productService.updateProductValidation(addProductDto, customProduct);

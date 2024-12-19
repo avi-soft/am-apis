@@ -1,9 +1,13 @@
 package com.community.api.services;
 
+import com.community.api.component.Constant;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
+import java.util.List;
 
 @Service
 public class OtherItemService
@@ -23,5 +27,10 @@ public class OtherItemService
         }
         entityManager.persist(otherItem);
         return otherItem;
+    }
+    public List<OtherItem> getAllOtherItems() {
+        TypedQuery<OtherItem> query = entityManager.createQuery(Constant.FIND_ALL_OTHER_ITEMS, OtherItem.class);
+        List<OtherItem> otherItemList = query.getResultList();
+        return otherItemList;
     }
 }

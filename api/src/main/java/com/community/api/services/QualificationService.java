@@ -86,7 +86,7 @@ public class QualificationService {
         }
     }
 
-    public Qualification getQualificationByQualificationId(Long qualificationId) throws Exception {
+    public Qualification getQualificationByQualificationId(Integer qualificationId) throws Exception {
         try {
 
             Query query = entityManager.createQuery(Constant.GET_QUALIFICATION_BY_ID, Qualification.class);

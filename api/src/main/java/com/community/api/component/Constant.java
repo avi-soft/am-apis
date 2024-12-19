@@ -23,6 +23,7 @@ public class Constant {
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
     public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q";
     public static final String FIND_ALL_INSTITUTION_QUERY= "SELECT q FROM Institution q";
+    public static final String FIND_ALL_OTHER_ITEMS= "SELECT q FROM OtherItem q";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";

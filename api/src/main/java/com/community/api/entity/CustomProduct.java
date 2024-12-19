@@ -6,17 +6,22 @@ import lombok.NoArgsConstructor;
 import org.broadleafcommerce.core.catalog.domain.ProductImpl;
 import org.springframework.lang.Nullable;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "custom_product")
@@ -154,4 +159,7 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "is_review_required")
     protected Boolean isReviewRequired;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "product_id")
+    private List<OtherItem> otherItems = new ArrayList<>();
 }
