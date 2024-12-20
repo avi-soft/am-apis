@@ -8,6 +8,7 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 
+import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
@@ -20,6 +21,7 @@ import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
+import com.community.api.services.AdvertisementService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.GenderService;
 import com.community.api.services.PhysicalRequirementDtoService;
@@ -100,6 +102,9 @@ public class ProductController extends CatalogEndpoint {
     private final ReserveCategoryService reserveCategoryService;
     private final ReserveCategoryDtoService reserveCategoryDtoService;
     private final PhysicalRequirementDtoService physicalRequirementDtoService;
+
+    @Autowired
+    AdvertisementService advertisementService;
 
     @Autowired
     DistrictService districtService;
@@ -220,6 +225,7 @@ public class ProductController extends CatalogEndpoint {
                 Qualification  qualification  = productService.validateQualification(addProductDto);
                 CustomStream customStream = productService.validateStream(addProductDto);
                 CustomSubject customSubject = productService.validateSubject(addProductDto);
+                Advertisement advertisement = productService.validateAdvertisement(addProductDto);
 
                 productService.validateAdmitCardDates(addProductDto);
                 productService.validateModificationDates(addProductDto);
@@ -285,7 +291,7 @@ public class ProductController extends CatalogEndpoint {
                     productService.validatePhysicalRequirement(addProductDto, null);
                     productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
                 }
-                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
             }
             else if(saveDraft)
             {
@@ -296,9 +302,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
                 }
                 return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
             }
@@ -520,7 +526,8 @@ public class ProductController extends CatalogEndpoint {
 
     @DeleteMapping("/delete/{productId}")
     @Transactional
-    public ResponseEntity<?> deleteProduct(@PathVariable("productId") String productIdPath) {
+    public ResponseEntity<?> deleteProduct(@PathVariable("productId") String productIdPath,
+                                           @RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             Long productId = Long.parseLong(productIdPath);
@@ -534,6 +541,19 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+
+            Role role = productService.getRoleByToken(authHeader);
+            Long modifierUserId = productService.getUserIdByToken(authHeader);
+
+            customProduct.setModifierUserId(modifierUserId);
+            customProduct.setModifierRole(role);
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = dateFormat.format(new Date());
+            Date modifiedDate = dateFormat.parse(formattedDate);
+            customProduct.setModifiedDate(modifiedDate);
+
+            entityManager.merge(customProduct);
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
                 

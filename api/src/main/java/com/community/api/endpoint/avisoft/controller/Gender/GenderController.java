@@ -28,7 +28,7 @@ public class GenderController {
         try {
             List<CustomGender> customGenderList = genderService.getAllGender();
             if (customGenderList.isEmpty()) {
-                return ResponseService.generateSuccessResponse("NO GENDER FOUND", new Object(), HttpStatus.OK);
+                return ResponseService.generateErrorResponse("NO GENDER FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("GENDER FOUND", customGenderList, HttpStatus.OK);
         } catch (IllegalArgumentException e) {

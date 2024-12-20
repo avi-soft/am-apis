@@ -118,4 +118,7 @@ public class AddProductDto {
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
 
+    @JsonProperty("advertisement_id")
+    Long advertisement;
+
 }

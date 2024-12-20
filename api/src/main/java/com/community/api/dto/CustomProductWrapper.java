@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
+import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
@@ -144,8 +145,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     String postName;
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
+    @JsonProperty("advertisement")
+    AdvertisementWrapper advertisement;
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate) throws Exception {
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -238,6 +241,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customSubject = customSubject;
         this.selectionCriteria = addProductDto.getSelectionCriteria();
         this.state = state;
+        AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
+        advertisementWrapper.wrapDetails(advertisement, null);
+        this.advertisement = advertisementWrapper;
 
         if (product.getDefaultCategory() != null) {
             this.defaultCategoryId = product.getDefaultCategory().getId();
@@ -354,6 +360,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.createdDate = customProduct.getCreatedDate();
         this.postName = customProduct.getPostName();
 
+        AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
+        if(advertisement != null) {
+            advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
+            this.advertisement = advertisementWrapper;
+        } else {
+            this.advertisement = null;
+        }
+
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
         }
@@ -413,6 +427,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customGender = customProduct.getGenderSpecific();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.postName = customProduct.getPostName();
+
+        AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
+        if(advertisement != null) {
+            advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
+            this.advertisement = advertisementWrapper;
+        } else {
+            this.advertisement = null;
+        }
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
