@@ -80,6 +80,8 @@ public class ProductService {
     SubjectService subjectService;
     @Autowired
     ProductGenderPhysicalRequirementService productGenderPhysicalRequirementService;
+    @Autowired
+    AdvertisementService advertisementService;
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
@@ -90,8 +92,8 @@ public class ProductService {
         try {
 
             // Start building the SQL query
-            StringBuilder sql = new StringBuilder("INSERT INTO custom_product (product_id, creator_user_id, creator_role_id, last_modified, product_state_id, created_date");
-            StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate");
+            StringBuilder sql = new StringBuilder("INSERT INTO custom_product (product_id, creator_user_id, creator_role_id, last_modified, product_state_id, created_date, advertisement_id");
+            StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate, :advertisement");
 
             // Dynamically add columns and values based on non-null fields
             if (addProductDto.getPostName() != null) {
@@ -233,7 +235,8 @@ public class ProductService {
                     .setParameter("creatorUserId", creatorUserId)
                     .setParameter("role", role)
                     .setParameter("lastModified", modifiedDate)
-                    .setParameter("currentDate", currentDate);
+                    .setParameter("currentDate", currentDate)
+                    .setParameter("advertisement", addProductDto.getAdvertisement());
 
             // Set parameters conditionally
             if (addProductDto.getPostName() != null) {
@@ -792,6 +795,15 @@ public class ProductService {
                 throw new IllegalArgumentException(TENTATIVEDATEAFTERACTIVEENDDATE);
             } else if (addProductDto.getExamDateTo().before(addProductDto.getExamDateFrom())) {
                 throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
+            }
+
+            if(addProductDto.getAdvertisement() == null || addProductDto.getAdvertisement() <= 0) {
+                throw new IllegalArgumentException("Advertisement cannot be null or <= 0.");
+            }
+
+            Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
+            if (advertisement == null) {
+                throw new NoSuchElementException("Advertisement not found.");
             }
 
             if (addProductDto.getJobGroup() == null || addProductDto.getJobGroup() <= 0) {
