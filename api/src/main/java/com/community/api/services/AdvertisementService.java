@@ -46,7 +46,7 @@ public class AdvertisementService {
             if (category == null || ((Status) category).getArchived() == 'Y') {
                 throw new IllegalArgumentException("Category not found with this Id.");
             }
-            if(category.getParentCategory() == null) {
+            if(category.getDefaultParentCategory() == null) {
                 throw new IllegalArgumentException("Category is not a sub category.");
             }
             return category;
