@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.Parameter;
 
@@ -16,6 +17,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import javax.websocket.OnOpen;
 import java.util.Date;
 
 @Entity
@@ -25,7 +30,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class Advertisement {
 
-/*  NEED TO REVIEW THIS AS WE COULD ALSO USE THE BROADLEAF SEQUENCE FOR PRIMARY KEY.
+    /*  NEED TO REVIEW THIS AS WE COULD ALSO USE THE BROADLEAF SEQUENCE FOR PRIMARY KEY.
 
     @Id
     @GeneratedValue(generator= "Advertisement")
@@ -44,14 +49,17 @@ public class Advertisement {
     @JsonProperty("advertisement_id")
     private Long advertisementId;
 
-    @Column(name = "number")
+    @Column(name = "number", nullable = false, unique = true)
     @JsonProperty("number")
     private Long number;
 
+    @NotNull
+    @NotEmpty
     @Column(name = "title")
     @JsonProperty("title")
     private String title;
 
+    @NotEmpty
     @Column(name = "description")
     @JsonProperty("description")
     private String description;
@@ -90,7 +98,15 @@ public class Advertisement {
     @JsonProperty("active_end_date")
     private Date activeEndDate;
 
-    @Column(name = "url")
+    @NotNull
+    @NotEmpty
+    @Column(name = "url", unique = true)
     @JsonProperty("url")
     private String url;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    @JsonProperty("category_id")
+    private CategoryImpl category;
+
 }
