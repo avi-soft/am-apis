@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
-
+import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -14,8 +12,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import java.util.Date;
 
 @Entity
@@ -25,7 +24,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class Advertisement {
 
-/*  NEED TO REVIEW THIS AS WE COULD ALSO USE THE BROADLEAF SEQUENCE FOR PRIMARY KEY.
+    /*  NEED TO REVIEW THIS AS WE COULD ALSO USE THE BROADLEAF SEQUENCE FOR PRIMARY KEY.
 
     @Id
     @GeneratedValue(generator= "Advertisement")
@@ -38,19 +37,25 @@ public class Advertisement {
             }
     )*/
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "advertisement_seq")
-    @SequenceGenerator(name = "advertisement_seq", sequenceName = "advertisement_seq", initialValue = 10000, allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="advertisement_id")
     @JsonProperty("advertisement_id")
     private Long advertisementId;
 
-    @Column(name = "number")
+    @Column(name = "number", nullable = false, unique = true)
     @JsonProperty("number")
-    private Long number;
+    private String number;
 
+    @NotNull
+    @NotEmpty
     @Column(name = "title")
     @JsonProperty("title")
     private String title;
+
+    @NotNull
+    @Column(name = "archived")
+    @JsonProperty("archived")
+    private Character archived = 'N';
 
     @Column(name = "description")
     @JsonProperty("description")
@@ -90,7 +95,19 @@ public class Advertisement {
     @JsonProperty("active_end_date")
     private Date activeEndDate;
 
-    @Column(name = "url")
+    @NotNull
+    @NotEmpty
+    @Column(name = "url", unique = true)
     @JsonProperty("url")
     private String url;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    @JsonProperty("category_id")
+    private CategoryImpl category;
+
+    @Column(name = "notifying_authority")
+    @JsonProperty("notifying_authority")
+    private String notifyingAuthority;
+
 }
