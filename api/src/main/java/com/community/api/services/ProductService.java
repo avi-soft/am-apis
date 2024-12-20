@@ -2595,4 +2595,23 @@ public class ProductService {
         }
     }
 
+    public Advertisement validateAdvertisement(AddProductDto addProductDto) throws Exception {
+        try {
+            if (addProductDto.getAdvertisement() != null) {
+                Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
+                if (advertisement == null) {
+                    throw new IllegalArgumentException("Advertisement not found with this id.");
+                }
+                return advertisement;
+            }
+            return null;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some exception while validating advertisement: " + exception.getMessage() + "\n");
+        }
+    }
+
 }
