@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -22,7 +23,7 @@ public class AdvertisementService {
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
-    @PersistenceContext
+    @Autowired
     EntityManager entityManager;
 
     public void validateAdvertisement(AddAdvertisementDto addAdvertisementDto) throws Exception {
@@ -73,10 +74,11 @@ public class AdvertisementService {
         }
     }
 
-    public Advertisement saveAdvertisement (AddAdvertisementDto addAdvertisementDto, Long creatorUserId, Role role, CategoryImpl category) {
+    @Transactional
+    public Advertisement saveAdvertisement (AddAdvertisementDto addAdvertisementDto, Long creatorUserId, Role role, CategoryImpl category) throws Exception {
         try {
 
-            /*// Start building the SQL query
+           /* // Start building the SQL query
             StringBuilder sql = new StringBuilder("INSERT INTO advertisement (title, number, creator_user_id, creator_role_id, created_date, active_start_date, active_end_date, url, category_id");
             StringBuilder values = new StringBuilder("VALUES (:title, :number , :creatorUserId, :role, :currentDate, :url, :categoryId");
 
@@ -109,7 +111,6 @@ public class AdvertisementService {
             // Execute the update
             query.executeUpdate();
 */
-
             String formattedDate = dateFormat.format(new Date());
             Date createdDate  = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
@@ -122,11 +123,13 @@ public class AdvertisementService {
             advertisement.setActiveStartDate(addAdvertisementDto.getActiveStartDate());
             advertisement.setActiveEndDate(addAdvertisementDto.getActiveEndDate());
             advertisement.setCategory(category);
+            advertisement.setUserId(creatorUserId);
+            advertisement.setCreatorRole(role);
 
             return entityManager.merge(advertisement);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            throw new RuntimeException("Failed to save Advertisement: " + e.getMessage(), e);
+            throw new Exception("Failed to save Advertisement: " + e.getMessage(), e);
         }
     }
 }
