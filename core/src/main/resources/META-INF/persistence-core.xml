@@ -87,6 +87,8 @@
         <class>com.community.api.entity.OtherItem</class>
         <class>com.community.api.entity.DocumentValidity</class>
         <class>com.community.api.entity.Advertisement</class>
+        <class>com.community.api.entity.Zone</class>
+        <class>com.community.api.entity.ZoneDivisions</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

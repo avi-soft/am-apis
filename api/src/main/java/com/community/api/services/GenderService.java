@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import java.util.List;
@@ -49,4 +50,28 @@ public class GenderService {
             return null;
         }
     }
-}
+    public CustomGender getGenderByName(String genderName)
+    {
+        try {
+            genderName = genderName.toUpperCase();
+            Query query = entityManager.createQuery(Constant.GET_GENDER_BY_GENDER_NAME, CustomGender.class);
+            query.setParameter("genderName", genderName);
+            List<CustomGender> customGender = query.getResultList();
+
+            if (!customGender.isEmpty()) {
+                return customGender.get(0);
+            } else {
+                return null;
+            }
+        }
+            catch (NoResultException exception) {
+                exceptionHandlingService.handleException(exception);
+                return null;
+            }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return null;
+        }
+        }
+    }
+
