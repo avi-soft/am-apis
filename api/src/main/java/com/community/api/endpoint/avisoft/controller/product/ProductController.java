@@ -520,7 +520,8 @@ public class ProductController extends CatalogEndpoint {
 
     @DeleteMapping("/delete/{productId}")
     @Transactional
-    public ResponseEntity<?> deleteProduct(@PathVariable("productId") String productIdPath) {
+    public ResponseEntity<?> deleteProduct(@PathVariable("productId") String productIdPath,
+                                           @RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             Long productId = Long.parseLong(productIdPath);
@@ -534,6 +535,19 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+
+            Role role = productService.getRoleByToken(authHeader);
+            Long modifierUserId = productService.getUserIdByToken(authHeader);
+
+            customProduct.setModifierUserId(modifierUserId);
+            customProduct.setModifierRole(role);
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String formattedDate = dateFormat.format(new Date());
+            Date modifiedDate = dateFormat.parse(formattedDate);
+            customProduct.setModifiedDate(modifiedDate);
+
+            entityManager.merge(customProduct);
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
                 
