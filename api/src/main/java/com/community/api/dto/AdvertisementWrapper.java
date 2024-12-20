@@ -31,13 +31,16 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
     private Long advertisementId;
 
     @JsonProperty("number")
-    private Long number;
+    private String number;
 
     @JsonProperty("title")
     private String title;
 
     @JsonProperty("description")
     private String description;
+
+    @JsonProperty("notifying_authority")
+    private String notifyingAuthority;
 
     @JsonProperty("created_date")
     private Date createdDate;
@@ -80,7 +83,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         this.createdDate = advertisement.getCreatedDate();
         this.activeStartDate = advertisement.getActiveStartDate();
         this.activeEndDate = advertisement.getActiveEndDate();
-        this.modifiedDate = advertisement.getModifiedDate();
+        this.notifyingAuthority = advertisement.getNotifyingAuthority();
         this.userId = advertisement.getUserId();
         this.creatorRole = advertisement.getCreatorRole();
         this.modifierId = advertisement.getModifierId();

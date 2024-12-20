@@ -13,7 +13,7 @@ import java.util.Date;
 public class AddAdvertisementDto {
 
     @JsonProperty("number")
-    private Long number;
+    private String number;
 
     @JsonProperty("title")
     private String title;
@@ -29,5 +29,8 @@ public class AddAdvertisementDto {
 
     @JsonProperty("url")
     private String url;
+
+    @JsonProperty("notifying_authority")
+    private String notifyingAuthority;
 
 }
