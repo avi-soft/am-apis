@@ -45,9 +45,13 @@ public class CommandLineService implements CommandLineRunner {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private ZoneDivisionService zoneDivisionService;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        zoneDivisionService.populateZoneDivision();
         // Check if data already exists to avoid duplication
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomProductState(1L, "NEW", "New State."));
@@ -600,11 +604,24 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
         }
+         //***********ZONES
+        count = entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult();
+        if (count == 0) {
+            // Insert zones into Zone table with matching IDs
+            entityManager.merge(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
+            entityManager.merge(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
+            entityManager.merge(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
+            entityManager.merge(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
+            entityManager.merge(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
+            entityManager.merge(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
+            entityManager.merge(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
+        }
 
 
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
         query.executeUpdate();
+
 
         long institutionCount = entityManager.createQuery("SELECT count(i) FROM Institution i", Long.class).getSingleResult();
         if (institutionCount == 0) {
