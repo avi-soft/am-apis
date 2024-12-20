@@ -43,8 +43,7 @@ public class Advertisement {
             }
     )*/
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "advertisement_seq")
-    @SequenceGenerator(name = "advertisement_seq", sequenceName = "advertisement_seq", initialValue = 10000, allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="advertisement_id")
     @JsonProperty("advertisement_id")
     private Long advertisementId;
@@ -59,7 +58,7 @@ public class Advertisement {
     @JsonProperty("title")
     private String title;
 
-    @NotEmpty
+
     @Column(name = "description")
     @JsonProperty("description")
     private String description;

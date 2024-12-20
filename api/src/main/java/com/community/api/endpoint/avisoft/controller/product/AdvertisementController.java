@@ -55,6 +55,8 @@ public class AdvertisementController {
             Long creatorUserId = productService.getUserIdByToken(authHeader);
 
             Advertisement advertisement = advertisementService.saveAdvertisement(addAdvertisementDto, creatorUserId, role, (CategoryImpl) category);
+
+            System.out.println(advertisement.getActiveStartDate());
             AdvertisementWrapper wrapper = new AdvertisementWrapper();
             wrapper.wrapDetails(advertisement, null);
 
