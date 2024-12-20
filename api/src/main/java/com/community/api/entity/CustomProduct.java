@@ -158,7 +158,7 @@ public class CustomProduct extends ProductImpl {
     protected Boolean isReviewRequired;
 
     @ManyToOne
-    @JoinColumn(name = "advertisement")
+    @JoinColumn(name = "advertisement_id")
     protected Advertisement advertisement;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
