@@ -5,9 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -15,12 +12,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import javax.websocket.OnOpen;
 import java.util.Date;
 
 @Entity
@@ -50,7 +44,7 @@ public class Advertisement {
 
     @Column(name = "number", nullable = false, unique = true)
     @JsonProperty("number")
-    private Long number;
+    private String number;
 
     @NotNull
     @NotEmpty
@@ -111,5 +105,9 @@ public class Advertisement {
     @JoinColumn(name = "category_id")
     @JsonProperty("category_id")
     private CategoryImpl category;
+
+    @Column(name = "notifying_authority")
+    @JsonProperty("notifying_authority")
+    private String notifyingAuthority;
 
 }

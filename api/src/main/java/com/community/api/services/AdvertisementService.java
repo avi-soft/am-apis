@@ -8,6 +8,7 @@ import com.community.api.entity.CustomProductState;
 import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
+import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -38,6 +39,26 @@ public class AdvertisementService {
     @Autowired
     EntityManager entityManager;
 
+    public Category validateSubCategory(Long categoryId) throws Exception {
+        try {
+            if (categoryId <= 0) throw new IllegalArgumentException("Category id cannot be <= 0.");
+            Category category = catalogService.findCategoryById(categoryId);
+            if (category == null || ((Status) category).getArchived() == 'Y') {
+                throw new IllegalArgumentException("Category not found with this Id.");
+            }
+            if(category.getParentCategory() == null) {
+                throw new IllegalArgumentException("Category is not a sub category.");
+            }
+            return category;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught while validating category: " + exception.getMessage() + "\n");
+        }
+    }
+
     public void validateAdvertisement(AddAdvertisementDto addAdvertisementDto) throws Exception {
         try {
             if(addAdvertisementDto.getTitle() == null || addAdvertisementDto.getTitle().trim().isEmpty()) {
@@ -56,6 +77,16 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Advertisement Url cannot be null or empty");
             }
             addAdvertisementDto.setUrl(addAdvertisementDto.getUrl().trim());
+
+            if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Notifying Authority cannot be null or empty");
+            }
+            addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
+
+            if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Number cannot be null or empty");
+            }
+            addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
 
             if(addAdvertisementDto.getActiveStartDate() == null) {
                 throw new IllegalArgumentException("Active Start Date is required");
@@ -132,6 +163,7 @@ public class AdvertisementService {
             advertisement.setDescription(addAdvertisementDto.getDescription());
             advertisement.setNumber(addAdvertisementDto.getNumber());
             advertisement.setCreatedDate(createdDate);
+            advertisement.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority());
             advertisement.setActiveStartDate(addAdvertisementDto.getActiveStartDate());
             advertisement.setActiveEndDate(addAdvertisementDto.getActiveEndDate());
             advertisement.setCategory(category);
