@@ -6,6 +6,8 @@ import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -89,6 +92,45 @@ public class AdvertisementController {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get-advertisement-by-id/{advertisementId}")
+    public ResponseEntity<?> retrieveProductById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
+
+        try {
+            Long advertisementId = Long.parseLong(advertisementIdPath);
+            if (advertisementId <= 0) {
+                return ResponseService.generateErrorResponse("ADVERTISEMENT ID CANNOT BE <= 0", HttpStatus.BAD_REQUEST);
+            }
+
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId);
+
+            if (advertisement == null) {
+                return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
+            }
+
+            if (advertisement.getArchived() != 'Y') {
+
+                AdvertisementWrapper wrapper = new AdvertisementWrapper();
+
+                wrapper.wrapDetails(advertisement, null);
+                return ResponseService.generateSuccessResponse("ADVERTISEMENT FOUND", wrapper, HttpStatus.OK);
+
+            } else {
+                return ResponseService.generateErrorResponse("ADVERTISEMENT IS ARCHIVED", HttpStatus.OK);
+            }
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -172,10 +214,7 @@ public class AdvertisementController {
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
