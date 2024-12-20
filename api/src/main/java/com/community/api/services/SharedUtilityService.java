@@ -698,6 +698,15 @@ public class SharedUtilityService {
             return -1; // Return -1 if there is any error
         }
     }
+    public  boolean isAlphabetic(String input) {
+        // Check if the string contains only alphabetic characters
+        if (input == null || input.isEmpty()) {
+            return false;  // Return false for null or empty strings
+        }
+
+        // Use regular expression to check if the string contains only alphabets
+        return input.matches("[a-zA-Z]+");
+    }
 
 }
 

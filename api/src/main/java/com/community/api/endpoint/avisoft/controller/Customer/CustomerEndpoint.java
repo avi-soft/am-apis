@@ -307,12 +307,17 @@ public class CustomerEndpoint {
             } else if (details.containsKey("firstName")&&details.get("firstName").toString().isEmpty())
             {
                 errorMessages.add("First name cannot be null");
+            } else if (details.containsKey("firstName")&&!sharedUtilityService.isAlphabetic((String)details.get("firstName"))) {
+                errorMessages.add("Invalid First name");
             }
             if (details.containsKey("lastName")&&!details.get("lastName").toString().isEmpty())
                 customCustomer.setLastName((String) details.get("lastName"));
             else if (details.containsKey("lastName")&&details.get("lastName").toString().isEmpty())
             {
                 errorMessages.add("Last name cannot be null");
+            }
+            else if (details.containsKey("lastName")&&!sharedUtilityService.isAlphabetic((String)details.get("lastName"))) {
+                errorMessages.add("Invalid Last name");
             }
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
