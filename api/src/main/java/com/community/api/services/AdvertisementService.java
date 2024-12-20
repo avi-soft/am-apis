@@ -2,26 +2,38 @@ package com.community.api.services;
 
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
+import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class AdvertisementService {
 
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
+
+    @Autowired
+    protected CatalogService catalogService;
 
     @Autowired
     EntityManager entityManager;
@@ -130,6 +142,55 @@ public class AdvertisementService {
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new Exception("Failed to save Advertisement: " + e.getMessage(), e);
+        }
+    }
+
+    public List<Advertisement> filterAdvertisements(String title, List<Long> categories) throws Exception {
+
+        try {
+
+            // Initialize the JPQL query
+            StringBuilder jpql = new StringBuilder("SELECT DISTINCT a FROM Advertisement a ")
+                    .append("WHERE 1=1 "); // Use this to simplify appending conditions
+
+            // List to hold query parameters
+            List<Category> categoryList = new ArrayList<>();
+
+            if (categories != null && !categories.isEmpty()) {
+                for (Long id : categories) {
+                    Category category = catalogService.findCategoryById(id);
+                    if (category == null) {
+                        throw new IllegalArgumentException("NO CATEGORY FOUND WITH THIS ID: " + id);
+                    }
+                    categoryList.add(category);
+                }
+                jpql.append("AND a.category IN :categories ");
+            }
+
+
+            if (title != null && !title.isEmpty()) {
+                jpql.append("AND a.title LIKE :title ");
+            }
+
+            // Create the query with the final JPQL string
+            TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
+
+            if (!categoryList.isEmpty()) {
+                query.setParameter("categories", categoryList);
+            }
+            if (title != null && !title.isEmpty()) {
+                query.setParameter("title", "%" + title + "%");
+            }
+
+            // Execute and return the result
+            return query.getResultList();
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
         }
     }
 }

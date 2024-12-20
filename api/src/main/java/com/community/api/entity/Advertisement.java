@@ -58,6 +58,10 @@ public class Advertisement {
     @JsonProperty("title")
     private String title;
 
+    @NotNull
+    @Column(name = "archived")
+    @JsonProperty("archived")
+    private Character archived = 'N';
 
     @Column(name = "description")
     @JsonProperty("description")
