@@ -1,7 +1,9 @@
 package com.community.api.services;
 
+import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductRejectionStatus;
 import com.community.api.entity.CustomProductState;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.text.ParseException;
@@ -114,6 +117,25 @@ public class AdvertisementService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
+    public Advertisement getAdvertisementById(Long advertisementId) {
+        try {
+
+            Query query = entityManager.createQuery(Constant.GET_ADVERTISEMENT_BY_ID, Advertisement.class);
+            query.setParameter("advertisementId", advertisementId);
+            List<Advertisement> advertisements = query.getResultList();
+
+            if (!advertisements.isEmpty()) {
+                return advertisements.get(0);
+            } else {
+                return null;
+            }
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return null;
         }
     }
 

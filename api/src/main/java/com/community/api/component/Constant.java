@@ -91,6 +91,7 @@ public class Constant {
     public static Integer DEFAULT_QUANTITY = 100000;
     public static Integer DEFAULT_PRIORITY_LEVEL = 3;
     public static String GET_JOB_GROUP_BY_ID = "SELECT c FROM CustomJobGroup c WHERE c.jobGroupId = :jobGroupId";
+    public static String GET_ADVERTISEMENT_BY_ID = "SELECT a FROM Advertisement a WHERE a.advertisementId = :advertisementId";
     public static String GET_ALL_PRODUCT_STATE = "SELECT c FROM CustomProductState c";
     public static String GET_PRODUCT_STATE_BY_ID = "SELECT c FROM CustomProductState c WHERE c.productStateId = :productStateId";
     public static String GET_PRODUCT_STATE_BY_NAME = "SELECT c FROM CustomProductState c WHERE c.productState = :productStateName";
