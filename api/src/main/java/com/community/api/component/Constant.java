@@ -142,6 +142,7 @@ public class Constant {
 
     public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
+    public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";
     public static final Double MAX_HEIGHT = 300d;
     public static final Double MIN_HEIGHT = 50d;
     public static final Double MAX_WEIGHT = 700d;
@@ -216,4 +217,7 @@ public class Constant {
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId";
+    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId";
+    public static final String GET_ALL_ZONES="SELECT z FROM Zone z";
+    public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
 }

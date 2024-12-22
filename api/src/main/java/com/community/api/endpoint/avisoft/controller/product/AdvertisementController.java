@@ -67,7 +67,7 @@ public class AdvertisementController {
     EntityManager entityManager;
 
     @PostMapping("/add/{categoryId}")
-    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     public ResponseEntity<?> addAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,
                                               @PathVariable Long categoryId,
                                               @RequestHeader(value = "Authorization") String authHeader) {
