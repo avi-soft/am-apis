@@ -142,11 +142,14 @@ public class AdvertisementController {
 
     @GetMapping("/get-filter-advertisement")
     public ResponseEntity<?> getFilterAdvertisements(
-            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "title", required = false) String titleString,
             @RequestParam(value = "category", required = false) List<Long> categories) {
 
         try {
-
+            String title = null;
+            if(titleString != null) {
+                title = titleString.trim();
+            }
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories);
 
             if (advertisements.isEmpty()) {
