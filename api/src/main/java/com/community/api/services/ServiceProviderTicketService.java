@@ -3,7 +3,9 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
@@ -12,6 +14,7 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderStateRef;
 import com.community.api.entity.Role;
 import com.community.api.entity.SuccessResponse;
@@ -21,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
+import org.broadleafcommerce.profile.core.domain.Customer;
+import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +90,15 @@ public class ServiceProviderTicketService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private OrderDTOService orderDTOService;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    CustomerAddressFetcher addressFetcher;
+
     @Scheduled(cron = "0 30 7 * * ?")
     @Transactional
     public void callApiAt7_30AM() {
@@ -107,7 +121,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<Order> autoAssigner() throws Exception {
+    public List<CustomTicketWrapper> autoAssigner() throws Exception {
         try {
             logger.info("AUTO-ASSIGNER");
             ResponseEntity<?> responseEntity = serviceProviderService.searchServiceProviderBasedOnGivenFields(null, null, null, null, null, 3L);
@@ -142,12 +156,12 @@ public class ServiceProviderTicketService {
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
-            List<Order> assignedOrders = new ArrayList<>();
+            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
 
-            randomBindingTicketAllocation(customOrders, assignedOrders);
-            verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedOrders);
+            randomBindingTicketAllocation(customOrders, assignedTickets);
+            verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
 
-            return assignedOrders;
+            return assignedTickets;
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
         } catch (Exception exception) {
@@ -156,7 +170,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<Order> assignedOrders) throws Exception {
+    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("Random Binding Ticket Allocation");
             logger.info("Total Orders received by RBTA are: " + customOrders.size());
@@ -199,7 +213,7 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+                            CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
@@ -207,7 +221,15 @@ public class ServiceProviderTicketService {
 
                             assigned = true;
                             iterator.remove();
-                            assignedOrders.add(order);
+                            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(), addressFetcher.fetch(customer),customer.getUsername());
+                            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+                            wrapper.customWrapDetails(ticket, orderDto);
+                            assignedTickets.add(wrapper);
                             break;
                         } else {
                             logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
@@ -234,14 +256,22 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+                            CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
                             serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
 
                             iterator.remove();
-                            assignedOrders.add(order);
+                            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+                            wrapper.customWrapDetails(ticket, orderDto);
+                            assignedTickets.add(wrapper);
                             break;
                         } else {
                             logger.info("Service Provider limit exceeded for the day serviceProvider details: " + serviceProvider);
@@ -249,7 +279,7 @@ public class ServiceProviderTicketService {
                     }
                 }
             }
-            logger.info("Total orders assigned by RBTA method is: " + assignedOrders.size());
+            logger.info("Total orders assigned by RBTA method is: " + assignedTickets.size());
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -366,7 +396,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<Order> assignedOrders) throws Exception {
+    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("Vertical Distribution Ticket Allocation");
             logger.info("Total orders received for VDTA: " + customOrders.size());
@@ -397,14 +427,23 @@ public class ServiceProviderTicketService {
                             createTicketDto.setTicketStatus(1L);
                             createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                             createTicketDto.setAssigneeRole(4);
-                            createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+                            CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
 
                             customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                             entityManager.merge(customOrderState);
                             serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
 
                             iterator.remove();
-                            assignedOrders.add(order);
+                            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                            Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+                            wrapper.customWrapDetails(ticket, orderDto);
+                            assignedTickets.add(wrapper);
                             break;
                         } else {
                             logger.info("sp who are active and approved: else " + serviceProvider.getService_provider_id());
@@ -413,7 +452,7 @@ public class ServiceProviderTicketService {
                     }
                 }
             }
-            logger.info("Total orders assigned by VDTA method is: " + assignedOrders.size());
+            logger.info("Total orders assigned by VDTA method is: " + assignedTickets.size());
 
 
         } catch (Exception exception) {
