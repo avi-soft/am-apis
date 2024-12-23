@@ -87,23 +87,23 @@ public class AdvertisementService {
             }
             addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
 
-            if(addAdvertisementDto.getActiveStartDate() == null) {
+            if(addAdvertisementDto.getNotificationStartDate() == null) {
                 throw new IllegalArgumentException("Active Start Date is required");
             }
-            String formattedDate = dateFormat.format(addAdvertisementDto.getActiveStartDate());
+            String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
-            if(addAdvertisementDto.getActiveStartDate().after(new Date())) {
+            if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
                 throw new IllegalArgumentException("Active Start Date cannot be of future");
             }
-            if(addAdvertisementDto.getActiveEndDate() == null) {
-                addAdvertisementDto.setActiveEndDate(addAdvertisementDto.getActiveStartDate());
+            if(addAdvertisementDto.getNotificationEndDate() == null) {
+                addAdvertisementDto.setNotificationEndDate(addAdvertisementDto.getNotificationStartDate());
             } else {
-                formattedDate = dateFormat.format(addAdvertisementDto.getActiveEndDate());
+                formattedDate = dateFormat.format(addAdvertisementDto.getNotificationEndDate());
                 dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             }
 
-            if (addAdvertisementDto.getActiveEndDate().before(addAdvertisementDto.getActiveStartDate())) {
+            if (addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
                 throw new IllegalArgumentException("Active end date cannot be before of active start date");
             }
 
@@ -185,8 +185,8 @@ public class AdvertisementService {
             advertisement.setNumber(addAdvertisementDto.getNumber());
             advertisement.setCreatedDate(createdDate);
             advertisement.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority());
-            advertisement.setActiveStartDate(addAdvertisementDto.getActiveStartDate());
-            advertisement.setActiveEndDate(addAdvertisementDto.getActiveEndDate());
+            advertisement.setNotificationStartDate(addAdvertisementDto.getNotificationStartDate());
+            advertisement.setNotificationEndDate(addAdvertisementDto.getNotificationEndDate());
             advertisement.setCategory(category);
             advertisement.setUserId(creatorUserId);
             advertisement.setCreatorRole(role);

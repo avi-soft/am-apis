@@ -87,13 +87,13 @@ public class Advertisement {
     @JsonProperty("modifier_role_id")
     private Role modifierRole;
 
-    @Column(name = "active_start_date")
-    @JsonProperty("active_start_date")
-    private Date activeStartDate;
+    @Column(name = "notification_start_date")
+    @JsonProperty("notification_start_date")
+    private Date notificationStartDate;
 
     @Column(name = "active_end_date")
     @JsonProperty("active_end_date")
-    private Date activeEndDate;
+    private Date notificationEndDate;
 
     @NotNull
     @NotEmpty

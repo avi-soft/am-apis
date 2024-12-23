@@ -21,11 +21,11 @@ public class AddAdvertisementDto {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("active_start_date")
-    private Date activeStartDate;
+    @JsonProperty("notification_start_date")
+    private Date notificationStartDate;
 
-    @JsonProperty("active_end_date")
-    private Date activeEndDate;
+    @JsonProperty("notification_end_date")
+    private Date notificationEndDate;
 
     @JsonProperty("url")
     private String url;
