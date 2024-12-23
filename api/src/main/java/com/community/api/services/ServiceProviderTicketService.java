@@ -85,6 +85,9 @@ public class ServiceProviderTicketService {
     EntityManager entityManager;
 
     @Autowired
+    SharedUtilityService sharedUtilityService;
+
+    @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
     @Autowired
@@ -158,7 +161,7 @@ public class ServiceProviderTicketService {
             }
             List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
 
-            randomBindingTicketAllocation(customOrders, assignedTickets);
+            randomBindingTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
             verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
 
             return assignedTickets;
@@ -171,7 +174,7 @@ public class ServiceProviderTicketService {
 
     // ASSIGN IT FIRST TO THE PRIMARY REFERRER THEN TO OTHER REFERRERS.
     @Transactional
-    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<CustomTicketWrapper> assignedTickets) throws Exception {
+    public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("Random Binding Ticket Allocation");
             logger.info("Total Orders received by RBTA are: " + customOrders.size());
@@ -225,6 +228,12 @@ public class ServiceProviderTicketService {
                                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                                 entityManager.merge(customOrderState);
                                 serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+                                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+
+                                if ((serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() >= serviceProvider.getMaximumTicketSize()) || (serviceProvider.getMaximumTicketSize() == null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() >= serviceProvider.getRanking().getMaximumTicketSize())) {
+                                    Map<String, Object> removeServiceProvider = sharedUtilityService.serviceProviderDetailsMap(serviceProviderService.getServiceProviderById(serviceProvider.getService_provider_id()));
+                                    availableServiceProvider.remove(removeServiceProvider);
+                                }
 
                                 assigned = true;
                                 iterator.remove();
