@@ -66,13 +66,13 @@ public class AdvertisementController {
     EntityManager entityManager;
 
     @Transactional
-    @PostMapping("/add/{categoryId}")
+    @PostMapping("/add/{categoryIdString}")
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     public ResponseEntity<?> addAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,
-                                              @PathVariable Long categoryId,
+                                              @PathVariable String categoryIdString,
                                               @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            Long categoryId = Long.parseLong(categoryIdString);
             Category category = advertisementService.validateSubCategory(categoryId);
 
             advertisementService.validateAdvertisement(addAdvertisementDto);
@@ -88,7 +88,7 @@ public class AdvertisementController {
             return ResponseService.generateSuccessResponse("Advertisement Created Successfully", wrapper, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

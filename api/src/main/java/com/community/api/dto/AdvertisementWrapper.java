@@ -60,11 +60,11 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
     @JsonProperty("modifier_role_id")
     private Role modifierRole;
 
-    @JsonProperty("active_start_date")
-    private Date activeStartDate;
+    @JsonProperty("notification_start_date")
+    private Date notificationStartDate;
 
-    @JsonProperty("active_end_date")
-    private Date activeEndDate;
+    @JsonProperty("notification_end_date")
+    private Date notificationEndDate;
 
     @JsonProperty("url")
     private String url;
@@ -81,8 +81,8 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         this.description = advertisement.getDescription();
         this.url = advertisement.getUrl();
         this.createdDate = advertisement.getCreatedDate();
-        this.activeStartDate = advertisement.getActiveStartDate();
-        this.activeEndDate = advertisement.getActiveEndDate();
+        this.notificationStartDate = advertisement.getNotificationStartDate();
+        this.notificationEndDate = advertisement.getNotificationEndDate();
         this.notifyingAuthority = advertisement.getNotifyingAuthority();
         this.userId = advertisement.getUserId();
         this.creatorRole = advertisement.getCreatorRole();
