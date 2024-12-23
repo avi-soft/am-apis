@@ -26,12 +26,15 @@ public class CustomProductReserveCategoryFeePostRef {
     protected CustomProduct customProduct;
 
     @ManyToOne
-    @NotNull
     @JoinColumn(name = "reserve_category_id")
     protected CustomReserveCategory customReserveCategory;
 
     @Column(name = "fee")
     Double fee;
+
+    @ManyToOne
+    @JoinColumn(name = "gender_id")
+    protected CustomGender gender;
 
     @Column(name = "post")
     Integer post;

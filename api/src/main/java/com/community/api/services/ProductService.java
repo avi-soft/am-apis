@@ -3,11 +3,13 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
+import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
+import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -1135,6 +1137,7 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
             }
             Set<Long> reserveCategoryId = new HashSet<>();
+            Set<Integer>genderCategoryComboSet=new HashSet<>();
 
             Date currentDate = new Date(); // Current date for comparison
             Calendar calendar = Calendar.getInstance();
@@ -1148,7 +1151,36 @@ public class ProductService {
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() <= 0) {
+                    throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
                 }
+                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender());
+                if(gender==null)
+                    throw new NotFoundException("Invalid gender id");
+                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                if(category==null)
+                    throw new NotFoundException("Invalid category id");
+                int genderAndCategoryCombo=(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender().intValue());
+                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReservedCategory().size()>1)
+                {
+                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
+                }
+                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
+                {
+                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                }
+                /*if(gender.getGenderName().equals(Constant.NO_GENDER))
+                {
+                    Boolean result=checkForOpenGender(gender,addProductDto);
+                    if(result)
+                        throw new IllegalArgumentException("This product is set to be gender independent, so no additional gender fees can be applied.");
+                }
+                if(category.getReserveCategoryName().equals(Constant.NO_CATEGORY))
+                {
+                    Boolean result=checkForOpenCategory(category,addProductDto);
+                    if(result)
+                        throw new IllegalArgumentException("This product is set to be category independent, so no additional category fees can be applied.");
+                }*/
                 reserveCategoryId.add(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
 
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
@@ -1187,19 +1219,54 @@ public class ProductService {
                 }
             }
 
-            if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
+            /*if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
                 throw new IllegalArgumentException("Duplicate reserve categories not allowed.");
-            }
+            }*/
 
             return true;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (NotFoundException | IllegalArgumentException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            throw new IllegalArgumentException(notFoundException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating reserve category: " + exception.getMessage() + "\n");
+            throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
         }
     }
+    //****************************************
+    //FOR FUTURE USE IF NEEDED
+    /*public Boolean checkForOpenCategory(CustomReserveCategory openCategory,AddProductDto addProductDto)
+    {
+        Boolean flag=false;
+        Boolean contains=false;
+        for(AddReserveCategoryDto reserveCategory:addProductDto.getReservedCategory())
+        {
+            CustomReserveCategory reserveCategoryEntity=reserveCategoryService.getReserveCategoryById(reserveCategory.getReserveCategory());
+            if(reserveCategoryEntity.getReserveCategoryName().equals(openCategory.getReserveCategoryName())&&contains.equals(false)) {
+                contains = true;
+                continue;
+            }
+            if(!reserveCategoryEntity.getReserveCategoryName().equals(openCategory.getReserveCategoryName())&&contains.equals(true))
+                return true;
+        }
+        return flag;
+    }
+    public Boolean checkForOpenGender(CustomGender openGender,AddProductDto addProductDto)
+    {
+        Boolean flag=false;
+        Boolean contains=false;
+        for(AddReserveCategoryDto reserveCategory:addProductDto.getReservedCategory())
+        {
+            CustomGender genderEntity=genderService.getGenderByGenderId(reserveCategory.getGender());
+            if(genderEntity.getGenderName().equals(openGender.getGenderName())&&contains.equals(false)) {
+                contains = true;
+                continue;
+            }
+            if(!genderEntity.getGenderName().equals(openGender.getGenderName())&&contains.equals(true))
+                return true;
+        }
+        return flag;
+    }*/
+    //****************************************
 
     public boolean updateProductAccessAuthorisation(String authHeader, Long productId) throws Exception {
         try {
