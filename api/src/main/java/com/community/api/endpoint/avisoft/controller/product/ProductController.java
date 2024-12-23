@@ -116,7 +116,7 @@ public class ProductController extends CatalogEndpoint {
     GenderService genderService;
 
     @Autowired
-    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService) {
+    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService,GenderService genderService) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.entityManager = entityManager;
         this.jwtTokenUtil = jwtTokenUtil;
@@ -130,6 +130,7 @@ public class ProductController extends CatalogEndpoint {
         this.reserveCategoryService = reserveCategoryService;
         this.reserveCategoryDtoService = reserveCategoryDtoService;
         this.physicalRequirementDtoService = physicalRequirementDtoService;
+        this.genderService=genderService;
     }
 
     @Transactional
@@ -291,7 +292,7 @@ public class ProductController extends CatalogEndpoint {
                     productService.validatePhysicalRequirement(addProductDto, null);
                     productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
                 }
-                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
+                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService);
             }
             else if(saveDraft)
             {
@@ -302,9 +303,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService);
                 }
                 return ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
             }

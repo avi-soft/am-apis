@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddReserveCategoryDto;
+import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomReserveCategory;
@@ -22,15 +23,17 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
     private final ExceptionHandlingService exceptionHandlingService;
     private final ProductService productService;
     private final ReserveCategoryService reserveCategoryService;
+    private final GenderService genderService;
 
     @PersistenceContext
     protected EntityManager entityManager;
 
     @Autowired
-    public ProductReserveCategoryBornBeforeAfterRefService(ExceptionHandlingService exceptionHandlingService, ProductService productService, ReserveCategoryService reserveCategoryService) {
+    public ProductReserveCategoryBornBeforeAfterRefService(ExceptionHandlingService exceptionHandlingService, ProductService productService, ReserveCategoryService reserveCategoryService,GenderService genderService) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.productService = productService;
         this.reserveCategoryService = reserveCategoryService;
+        this.genderService=genderService;
     }
 
     public List<CustomProductReserveCategoryBornBeforeAfterRef> getProductReserveCategoryBornBeforeAfterByProductId(Long productId) {
@@ -56,12 +59,14 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 Date bornAfter = addReserveCategoryDto.getBornAfter();
                 Date bornBefore = addReserveCategoryDto.getBornBefore();
-
+                CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER);
                 query.setParameter("productId", product.getId());
                 query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
                 query.setParameter("bornAfter", bornAfter);
                 query.setParameter("bornBefore", bornBefore);
+                query.setParameter("bornBefore", bornBefore);
+                query.setParameter("genderId",gender.getGenderId());
 
                 int affectedRows = query.executeUpdate();
 

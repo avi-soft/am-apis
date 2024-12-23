@@ -34,4 +34,5 @@ public class CustomReserveCategory {
     @JsonProperty("default_category")
     protected Boolean isReservedCategory;
 
+
 }
