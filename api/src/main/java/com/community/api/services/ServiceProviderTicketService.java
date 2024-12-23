@@ -169,6 +169,7 @@ public class ServiceProviderTicketService {
         }
     }
 
+    // ASSIGN IT FIRST TO THE PRIMARY REFERRER THEN TO OTHER REFERRERS.
     @Transactional
     public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
@@ -198,11 +199,48 @@ public class ServiceProviderTicketService {
                     continue;
                 }
 
+                // PRIMARY BINDED LOGIC OF RBTA
                 for (CustomerReferrer referrer : referrers) {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                     logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
 
-                    if (serviceProvider.getIsActive()) {
+                    System.out.println(referrer.getServiceProvider().getService_provider_id());
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive()) {
+
+                            if( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
+                                // assign him the ticket
+                                // create a entry in serviceProvider tickets tables where the info about which serviceProvider is linked with which ticket is stored.
+                                CreateTicketDto createTicketDto = new CreateTicketDto();
+                                createTicketDto.setTicketState(1L);
+                                createTicketDto.setTicketType(1L);
+                                createTicketDto.setTicketStatus(1L);
+                                createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                                createTicketDto.setAssigneeRole(4);
+                                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+
+                                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                                entityManager.merge(customOrderState);
+                                serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                                assigned = true;
+                                iterator.remove();
+                                CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(), addressFetcher.fetch(customer),customer.getUsername());
+                                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+                                wrapper.customWrapDetails(ticket, orderDto);
+                                assignedTickets.add(wrapper);
+                            }
+                    }
+                }
+                for (CustomerReferrer referrer : referrers) {
+                    ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+                    logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
+
+                    if (serviceProvider.getIsActive() && assigned) {
 
                         if( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
                             // assign him the ticket
@@ -230,7 +268,6 @@ public class ServiceProviderTicketService {
 
                             wrapper.customWrapDetails(ticket, orderDto);
                             assignedTickets.add(wrapper);
-                            break;
                         } else {
                             logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
