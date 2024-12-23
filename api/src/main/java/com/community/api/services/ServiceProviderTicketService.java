@@ -200,12 +200,16 @@ public class ServiceProviderTicketService {
                 }
 
                 // PRIMARY BINDED LOGIC OF RBTA
+                CustomerReferrer primaryReferrer = null;
+
                 for (CustomerReferrer referrer : referrers) {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
-                    logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
 
-                    System.out.println(referrer.getServiceProvider().getService_provider_id());
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive()) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true) {
+                        logger.info("PRIMARY REFERRER ID: " + serviceProvider.getService_provider_id());
+                        referrers.remove(referrer); // this might create a problem in the future.
+
+                        if (serviceProvider.getIsActive()) {
 
                             if( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
                                 // assign him the ticket
@@ -216,7 +220,7 @@ public class ServiceProviderTicketService {
                                 createTicketDto.setTicketStatus(1L);
                                 createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                                 createTicketDto.setAssigneeRole(4);
-                                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+                                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider, null, null);
 
                                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                                 entityManager.merge(customOrderState);
@@ -227,15 +231,18 @@ public class ServiceProviderTicketService {
                                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
                                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-                                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(), addressFetcher.fetch(customer),customer.getUsername());
-                                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+                                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
                                 wrapper.customWrapDetails(ticket, orderDto);
                                 assignedTickets.add(wrapper);
                             }
+                        }
                     }
                 }
+
+                // For the remaining referees
                 for (CustomerReferrer referrer : referrers) {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                     logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
@@ -274,7 +281,7 @@ public class ServiceProviderTicketService {
                     }
                 }
 
-                // If there is no one in referrer list of custom to whom we can assign this ticket
+                // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
                 if (!assigned) {
 
                     logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
