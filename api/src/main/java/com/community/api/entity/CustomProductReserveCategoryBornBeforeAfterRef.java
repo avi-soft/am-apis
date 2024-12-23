@@ -33,7 +33,6 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     protected CustomProduct customProduct;
 
     @ManyToOne
-    @NotNull
     @JoinColumn(name = "reserve_category_id")
     protected CustomReserveCategory customReserveCategory;
 
@@ -42,4 +41,8 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
 
     @Column(name = "born_after")
     Date bornAfter;
+
+    @ManyToOne
+    @JoinColumn(name = "gender_id")
+    protected CustomGender gender;
 }
