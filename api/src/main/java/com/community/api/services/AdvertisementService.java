@@ -3,11 +3,6 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomJobGroup;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductRejectionStatus;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
@@ -19,12 +14,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import javax.validation.ConstraintViolationException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -100,6 +93,9 @@ public class AdvertisementService {
             String formattedDate = dateFormat.format(addAdvertisementDto.getActiveStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
+            if(addAdvertisementDto.getActiveStartDate().after(new Date())) {
+                throw new IllegalArgumentException("Active Start Date cannot be of future");
+            }
             if(addAdvertisementDto.getActiveEndDate() == null) {
                 addAdvertisementDto.setActiveEndDate(addAdvertisementDto.getActiveStartDate());
             } else {
