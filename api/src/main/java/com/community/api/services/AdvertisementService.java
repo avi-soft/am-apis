@@ -3,11 +3,6 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomJobGroup;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductRejectionStatus;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
@@ -19,12 +14,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import javax.validation.ConstraintViolationException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -94,21 +87,24 @@ public class AdvertisementService {
             }
             addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
 
-            if(addAdvertisementDto.getActiveStartDate() == null) {
-                throw new IllegalArgumentException("Active Start Date is required");
+            if(addAdvertisementDto.getNotificationStartDate() == null) {
+                throw new IllegalArgumentException("Notification Start Date is required");
             }
-            String formattedDate = dateFormat.format(addAdvertisementDto.getActiveStartDate());
+            String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
-            if(addAdvertisementDto.getActiveEndDate() == null) {
-                addAdvertisementDto.setActiveEndDate(addAdvertisementDto.getActiveStartDate());
+            if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
+                throw new IllegalArgumentException("Notification Start Date cannot be of future");
+            }
+            if(addAdvertisementDto.getNotificationEndDate() == null) {
+                addAdvertisementDto.setNotificationEndDate(addAdvertisementDto.getNotificationStartDate());
             } else {
-                formattedDate = dateFormat.format(addAdvertisementDto.getActiveEndDate());
+                formattedDate = dateFormat.format(addAdvertisementDto.getNotificationEndDate());
                 dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             }
 
-            if (addAdvertisementDto.getActiveEndDate().before(addAdvertisementDto.getActiveStartDate())) {
-                throw new IllegalArgumentException("Active end date cannot be before of active start date");
+            if (addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
+                throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
             }
 
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -189,8 +185,8 @@ public class AdvertisementService {
             advertisement.setNumber(addAdvertisementDto.getNumber());
             advertisement.setCreatedDate(createdDate);
             advertisement.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority());
-            advertisement.setActiveStartDate(addAdvertisementDto.getActiveStartDate());
-            advertisement.setActiveEndDate(addAdvertisementDto.getActiveEndDate());
+            advertisement.setNotificationStartDate(addAdvertisementDto.getNotificationStartDate());
+            advertisement.setNotificationEndDate(addAdvertisementDto.getNotificationEndDate());
             advertisement.setCategory(category);
             advertisement.setUserId(creatorUserId);
             advertisement.setCreatorRole(role);
