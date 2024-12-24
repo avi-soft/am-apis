@@ -36,10 +36,10 @@ public class ZoneDivisionController {
 
     }
 
-    @GetMapping("/divisions")
+    @GetMapping("/all-zones")
     public ResponseEntity<?> getDivisionByZone() {
         try {
-            return ResponseService.generateSuccessResponse("Divisions:", zoneDivisionService.getAllZones(), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("All Zones:", zoneDivisionService.getAllZones(), HttpStatus.OK);
         } catch (Exception exception) {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
