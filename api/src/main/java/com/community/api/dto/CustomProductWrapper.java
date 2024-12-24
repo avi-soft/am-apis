@@ -6,6 +6,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
+
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
@@ -18,10 +19,25 @@ import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
+
 import com.community.api.entity.Qualification;
+import com.community.api.entity.Post;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.GenderService;
+
+import com.community.api.entity.CustomGender;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSector;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomJobGroup;
+import com.community.api.entity.Advertisement;
+
 import com.community.api.services.ReserveCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -153,7 +169,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     @JsonProperty("advertisement")
     AdvertisementWrapper advertisement;
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService) throws Exception {
+    @JsonProperty("posts")
+    List<Post> postList;
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,List<Post> postList) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -254,6 +272,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         if (product.getDefaultCategory() != null) {
             this.defaultCategoryId = product.getDefaultCategory().getId();
         }
+
+        if(postList!=null && !postList.isEmpty() )
+        {
+            this.postList= postList;
+        }
     }
 
     public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList) {
@@ -305,7 +328,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         }
     }
 
-    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList) {
+    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList, List<Post> postList) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -366,6 +389,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
+
         if(customProduct.getAdvertisement() != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
             this.advertisement = advertisementWrapper;
@@ -375,6 +399,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
+        }
+
+        if(postList!=null && !postList.isEmpty() )
+        {
+            this.postList= postList;
         }
     }
     public void wrapDetails(CustomProduct customProduct) {

@@ -5,30 +5,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import java.util.List;
 
 @Entity
-@Table(name ="zone_divisions")
-@AllArgsConstructor
-@NoArgsConstructor
+@Table(name = "vacancy_distribution_type")
 @Getter
 @Setter
-public class ZoneDivisions {
+@AllArgsConstructor
+@NoArgsConstructor
+public class VacancyDistributionType
+{
     @Id
-    @GeneratedValue
-    Long zoneDivisionId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    Integer vacancyDistributionTypeId;
 
-    @ManyToOne
-    @JoinColumn(name = "zone_id",nullable = false)
-    private Zone zone;
-
-    @ManyToOne
-    @JoinColumn(name = "division_id",nullable = false)
-    private StateCode divisions;
+    @Column(name = "vacancyDistributionTypeName")
+    String vacancyDistributionTypeName;
 }
