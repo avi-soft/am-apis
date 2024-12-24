@@ -3,24 +3,18 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
-import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AdvertisementWrapper;
-import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.ProductService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +59,6 @@ public class AdvertisementController {
     @Autowired
     EntityManager entityManager;
 
-    @Transactional
     @PostMapping("/add/{categoryIdString}")
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     public ResponseEntity<?> addAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,
@@ -92,6 +85,9 @@ public class AdvertisementController {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+            exceptionHandlingService.handleException(dataIntegrityViolationException);
+            return ResponseService.generateErrorResponse(dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
