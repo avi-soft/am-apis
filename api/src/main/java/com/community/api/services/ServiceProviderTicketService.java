@@ -465,6 +465,17 @@ public class ServiceProviderTicketService {
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
+            List<Map<String, Object>> professional1Rank = new ArrayList<>();
+            List<Map<String, Object>> professional2Rank = new ArrayList<>();
+            List<Map<String, Object>> professional3Rank = new ArrayList<>();
+            List<Map<String, Object>> professional4Rank = new ArrayList<>();
+
+            List<Map<String, Object>> individual1Rank = new ArrayList<>();
+            List<Map<String, Object>> individual2Rank = new ArrayList<>();
+            List<Map<String, Object>> individual3Rank = new ArrayList<>();
+            List<Map<String, Object>> individual4Rank = new ArrayList<>();
+//            rankWiseDistributionServiceProvider(availableServiceProvider, professional1Rank, professional2Rank, professional3Rank, professional4Rank, individual1Rank, individual2Rank, individual3Rank, individual4Rank);
+
             while (iterator.hasNext()) {
 
                 CustomOrderState customOrderState = iterator.next();
@@ -522,6 +533,14 @@ public class ServiceProviderTicketService {
         }
     }
 
+//    public void List<Map<String, Object>> rankWiseDistributionServiceProvider(List<Map<String, Object>> professional1Rank, List<Map<String, Object>> professional2Rank, List<Map<String, Object>> professional3Rank, List<Map<String, Object>> professional4Rank, List<Map<String, Object>> individual1Rank, List<Map<String, Object>> individual2Rank, List<Map<String, Object>> individual3Rank, List<Map<String, Object>> individual4Rank) throws Exception {
+//        try {
+//
+//        } catch (Exception exception) {
+//            exceptionHandlingService.handleException(exception);
+//            throw new Exception("Exception caught: " + exception.getMessage());
+//        }
+//    }
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
         try {
             String sql = "SELECT * FROM custom_service_provider_ticket";
