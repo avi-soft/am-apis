@@ -93,12 +93,12 @@ public class TicketController {
     EntityManager entityManager;
 
     @Transactional
-    @GetMapping("/auto-assigner")
+    @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
-            List<Order> assignedOrder = serviceProviderTicketService.autoAssigner();
-            assignedOrder = null;
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedOrder, HttpStatus.OK);
+            List<CustomTicketWrapper> assignedTickets = serviceProviderTicketService.autoAssigner();
+
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);

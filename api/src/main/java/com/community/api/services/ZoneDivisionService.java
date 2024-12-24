@@ -42,6 +42,7 @@ public class ZoneDivisionService {
         }
       return resultList;
     }
+  
     public List<Long> getDivisionsIdsByZoneId(Integer zoneId) throws NotFoundException {
         if (zoneId == null) {
             throw new IllegalArgumentException("Zone ID is compulsory");
@@ -63,7 +64,7 @@ public class ZoneDivisionService {
 
         return divisionIds;
     }
-
+  
     public List<Zone>getAllZones()
     {
         Query query=entityManager.createQuery(Constant.GET_ALL_ZONES, Zone.class);

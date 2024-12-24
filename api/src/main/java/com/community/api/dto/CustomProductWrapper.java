@@ -6,12 +6,27 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
+
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomGender;
+import com.community.api.entity.CustomJobGroup;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
+import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.CustomSector;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
+
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Post;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.GenderService;
+
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.CustomStream;
@@ -22,6 +37,7 @@ import com.community.api.entity.CustomProductRejectionStatus;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.Advertisement;
+
 import com.community.api.services.ReserveCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -156,6 +172,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     @JsonProperty("posts")
     List<Post> postList;
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,List<Post> postList) throws Exception {
+
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
@@ -331,7 +348,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
-        this.postName = customProduct.getPostName();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customJobGroup = customProduct.getJobGroup();
@@ -373,7 +389,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
-        if(advertisement != null) {
+
+        if(customProduct.getAdvertisement() != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
             this.advertisement = advertisementWrapper;
         } else {

@@ -51,7 +51,7 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-
+      
         //***********ZONES
         if (entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult() == 0) {
             // Insert zones into Zone table with matching IDs
@@ -615,6 +615,18 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(18L, "University of Pune", "Pune", "PU", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
+         //***********ZONES
+        count = entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult();
+        if (count == 0) {
+            // Insert zones into Zone table with matching IDs
+            entityManager.merge(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
+            entityManager.merge(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
+            entityManager.merge(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
+            entityManager.merge(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
+            entityManager.merge(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
+            entityManager.merge(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
+            entityManager.merge(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
         }
 
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";

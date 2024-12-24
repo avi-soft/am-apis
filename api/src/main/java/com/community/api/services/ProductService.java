@@ -1230,6 +1230,7 @@ public class ProductService {
                     if(result)
                         throw new IllegalArgumentException("This product is set to be gender independent, so no additional gender fees can be applied.");
                 }
+
                 if(category.getReserveCategoryName().equals(Constant.NO_CATEGORY))
                 {
                     Boolean result=checkForOpenCategory(category,addProductDto);

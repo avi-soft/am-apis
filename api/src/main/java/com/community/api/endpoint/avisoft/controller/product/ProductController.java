@@ -9,6 +9,9 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.Qualification;
+
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
@@ -21,11 +24,18 @@ import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Post;
 
-
 import com.community.api.services.PostService;
 import com.community.api.services.ProductService;
 import com.community.api.services.RoleService;
 import com.community.api.services.ResponseService;
+import com.community.api.entity.CustomSector;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.Role;
+import com.community.api.entity.StateCode;
+import com.community.api.services.AdvertisementService;
+import com.community.api.services.DistrictService;
 import com.community.api.services.GenderService;
 import com.community.api.services.ProductGenderPhysicalRequirementService;
 import com.community.api.services.AdvertisementService;
