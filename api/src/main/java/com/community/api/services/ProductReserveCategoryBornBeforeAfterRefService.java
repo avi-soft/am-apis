@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddReserveCategoryDto;
+import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
@@ -52,9 +53,10 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         }
     }
 
-    public void saveBornBeforeAndBornAfter(List<AddReserveCategoryDto> addReserveCategoryDtoList, Product product) {
+    public void saveBornBeforeAndBornAfter(List<AddProductAgeDTO> addReserveCategoryDtoList, Product product) {
         try {
-            for (AddReserveCategoryDto addReserveCategoryDto : addReserveCategoryDtoList) {
+            System.out.println("hiiiiiiiiiiiiiiiiiiiiiiii");
+            for (AddProductAgeDTO addReserveCategoryDto : addReserveCategoryDtoList) {
 
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 Date bornAfter = addReserveCategoryDto.getBornAfter();
@@ -67,6 +69,9 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 query.setParameter("bornBefore", bornBefore);
                 query.setParameter("bornBefore", bornBefore);
                 query.setParameter("genderId",gender.getGenderId());
+                query.setParameter("bornBeforeAfter",addReserveCategoryDto.getBornBeofreAfter());
+                query.setParameter("maximumAge",addReserveCategoryDto.getMaxAge());
+                query.setParameter("minimumAge",addReserveCategoryDto.getMinAge());
 
                 int affectedRows = query.executeUpdate();
 

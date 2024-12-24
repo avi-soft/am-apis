@@ -2,10 +2,12 @@ package com.community.api.services;
 
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
@@ -27,6 +29,10 @@ public class OrderDTOService {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
     @Transactional
     public CombinedOrderDTO wrapOrder(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
     {
@@ -55,7 +61,8 @@ public class OrderDTOService {
         customProductWrapper = new CustomProductWrapper();
         List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
-        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                    List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
+        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
                 combinedOrderDTO.setOrderDetails(orderDTO);

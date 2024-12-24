@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.entity.AddProductAgeDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -52,8 +53,10 @@ public class AddProductDto {
     @JsonProperty("meta_description")
     String metaDescription;
 
-    @JsonProperty("reserve_category")
+    @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
+    @JsonProperty("reserve_category_age")
+    List<AddProductAgeDTO> reserveCategoryAge;
 
     @JsonProperty("physical_requirement")
     List<AddPhysicalRequirementDto> physicalRequirement;
