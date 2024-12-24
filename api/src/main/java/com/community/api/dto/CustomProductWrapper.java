@@ -325,7 +325,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
-        this.postName = customProduct.getPostName();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customJobGroup = customProduct.getJobGroup();
@@ -367,7 +366,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
-        if(advertisement != null) {
+        if(customProduct.getAdvertisement() != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
             this.advertisement = advertisementWrapper;
         } else {
