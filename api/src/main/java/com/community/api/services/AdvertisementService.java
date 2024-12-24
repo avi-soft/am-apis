@@ -12,7 +12,6 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
@@ -88,13 +87,13 @@ public class AdvertisementService {
             addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
 
             if(addAdvertisementDto.getNotificationStartDate() == null) {
-                throw new IllegalArgumentException("Active Start Date is required");
+                throw new IllegalArgumentException("Notification Start Date is required");
             }
             String formattedDate = dateFormat.format(addAdvertisementDto.getNotificationStartDate());
             dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
             if(addAdvertisementDto.getNotificationStartDate().after(new Date())) {
-                throw new IllegalArgumentException("Active Start Date cannot be of future");
+                throw new IllegalArgumentException("Notification Start Date cannot be of future");
             }
             if(addAdvertisementDto.getNotificationEndDate() == null) {
                 addAdvertisementDto.setNotificationEndDate(addAdvertisementDto.getNotificationStartDate());
@@ -104,7 +103,7 @@ public class AdvertisementService {
             }
 
             if (addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
-                throw new IllegalArgumentException("Active end date cannot be before of active start date");
+                throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
             }
 
         } catch (IllegalArgumentException illegalArgumentException) {
