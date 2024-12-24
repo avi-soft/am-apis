@@ -1,6 +1,8 @@
 package com.community.api.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.Column;
@@ -16,6 +18,8 @@ import javax.persistence.Table;
 @Table(name = "vacancy_distribution_type")
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class VacancyDistributionType
 {
     @Id

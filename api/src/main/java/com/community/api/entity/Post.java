@@ -1,19 +1,21 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Column;
+import javax.persistence.GenerationType;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.JoinColumn;
+import javax.persistence.CascadeType;
+import javax.persistence.ManyToMany;
+import javax.persistence.JoinTable;
 import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +33,8 @@ public class Post {
     @Column(name = "post_name",nullable = false)
     String postName;
 
-    @Column(name = "total_vacancies",nullable = false)
-    String totalVacancies;
+    @Column(name = "post_total_vacancies",nullable = false)
+    Long postTotalVacancies;
 
     @Column(name = "post_code")
     String postCode;
@@ -45,11 +47,19 @@ public class Post {
     )
     private List<VacancyDistributionType> vacancyDistributionTypes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
     private List<StateDistribution> stateDistributions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "post",cascade = CascadeType.ALL)
+    private List<ZoneDistribution> zoneDistributions= new ArrayList<>();
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "gender_wise_distribution_id", referencedColumnName = "id")
+    private GenderWiseDistribution genderWiseDistribution;
+
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id")
     private CustomProduct product;
 
 }

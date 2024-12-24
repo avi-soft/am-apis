@@ -3,12 +3,7 @@ package com.community.api.services;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.entity.CombinedOrderDTO;
-import com.community.api.entity.CustomOrderState;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomServiceProviderTicket;
-import com.community.api.entity.OrderCustomerDetailsDTO;
-import com.community.api.entity.OrderDTO;
+import com.community.api.entity.*;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +50,8 @@ public class OrderDTOService {
         customProductWrapper = new CustomProductWrapper();
         List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
-        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+        List<Post> postList= customProduct.getPosts();
+        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
                 combinedOrderDTO.setOrderDetails(orderDTO);

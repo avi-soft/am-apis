@@ -21,7 +21,7 @@ import java.util.List;
 @Setter
 public class ZoneDivisions {
     @Id
-            @GeneratedValue
+    @GeneratedValue
     Long zoneDivisionId;
 
     @ManyToOne

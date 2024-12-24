@@ -25,7 +25,7 @@ import java.util.List;
 @Table(name = "custom_zones")
 public class Zone {
     @Id
-    @GeneratedValue(strategy =GenerationType.SEQUENCE)
+    @GeneratedValue(strategy =GenerationType.IDENTITY)
     @Column(name = "zone_id")
     private Integer zoneId;
 

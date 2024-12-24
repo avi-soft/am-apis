@@ -51,6 +51,61 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+
+        //***********ZONES
+        if (entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult() == 0) {
+            // Insert zones into Zone table with matching IDs
+            entityManager.merge(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
+            entityManager.merge(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
+            entityManager.merge(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
+            entityManager.merge(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
+            entityManager.merge(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
+            entityManager.merge(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
+            entityManager.merge(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
+        }
+        if (entityManager.createQuery("SELECT COUNT(s) FROM StateCode s", Long.class).getSingleResult()== 0) {
+
+            // Insert data into the StateCode table
+            entityManager.persist(new StateCode(1, "Andhra Pradesh", "AP"));
+            entityManager.persist(new StateCode(2, "Arunachal Pradesh", "AR"));
+            entityManager.persist(new StateCode(3, "Assam", "AS"));
+            entityManager.persist(new StateCode(4, "Bihar", "BR"));
+            entityManager.persist(new StateCode(5, "Chhattisgarh", "CG"));
+            entityManager.persist(new StateCode(6, "Goa", "GA"));
+            entityManager.persist(new StateCode(7, "Gujarat", "GJ"));
+            entityManager.persist(new StateCode(8, "Haryana", "HR"));
+            entityManager.persist(new StateCode(9, "Himachal Pradesh", "HP"));
+            entityManager.persist(new StateCode(10, "Jharkhand", "JH"));
+            entityManager.persist(new StateCode(11, "Karnataka", "KA"));
+            entityManager.persist(new StateCode(12, "Kerala", "KL"));
+            entityManager.persist(new StateCode(13, "Madhya Pradesh", "MP"));
+            entityManager.persist(new StateCode(14, "Maharashtra", "MH"));
+            entityManager.persist(new StateCode(15, "Manipur", "MN"));
+            entityManager.persist(new StateCode(16, "Meghalaya", "ML"));
+            entityManager.persist(new StateCode(17, "Mizoram", "MZ"));
+            entityManager.persist(new StateCode(18, "Nagaland", "NL"));
+            entityManager.persist(new StateCode(19, "Odisha", "OD"));
+            entityManager.persist(new StateCode(20, "Punjab", "PB"));
+            entityManager.persist(new StateCode(21, "Rajasthan", "RJ"));
+            entityManager.persist(new StateCode(22, "Sikkim", "SK"));
+            entityManager.persist(new StateCode(23, "Tamil Nadu", "TN"));
+            entityManager.persist(new StateCode(24, "Telangana", "TS"));
+            entityManager.persist(new StateCode(25, "Tripura", "TR"));
+            entityManager.persist(new StateCode(26, "Uttar Pradesh", "UP"));
+            entityManager.persist(new StateCode(27, "Uttarakhand", "UK"));
+            entityManager.persist(new StateCode(28, "West Bengal", "WB"));
+            entityManager.persist(new StateCode(29, "Jammu and Kashmire", "JK"));
+
+            // Union Territories
+            entityManager.persist(new StateCode(30, "Andaman and Nicobar Islands", "AN"));
+            entityManager.persist(new StateCode(31, "Chandigarh", "CH"));
+            entityManager.persist(new StateCode(32, "Dadra and Nagar Haveli and Daman and Diu", "DN"));
+            entityManager.persist(new StateCode(33, "Lakshadweep", "LD"));
+            entityManager.persist(new StateCode(34, "Delhi", "DL"));
+            entityManager.persist(new StateCode(35, "Puducherry", "PY"));
+            entityManager.persist(new StateCode(36, "Daman and Diu", "DD"));
+        }
+
         zoneDivisionService.populateZoneDivision();
         // Check if data already exists to avoid duplication
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
@@ -317,49 +372,6 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new Districts(70, "Yamunanagar", "HR"));
         }
 
-        count = entityManager.createQuery("SELECT COUNT(s) FROM StateCode s", Long.class).getSingleResult();
-
-        if (count == 0) {
-
-            // Insert data into the StateCode table
-            entityManager.persist(new StateCode(1, "Andhra Pradesh", "AP"));
-            entityManager.persist(new StateCode(2, "Arunachal Pradesh", "AR"));
-            entityManager.persist(new StateCode(3, "Assam", "AS"));
-            entityManager.persist(new StateCode(4, "Bihar", "BR"));
-            entityManager.persist(new StateCode(5, "Chhattisgarh", "CG"));
-            entityManager.persist(new StateCode(6, "Goa", "GA"));
-            entityManager.persist(new StateCode(7, "Gujarat", "GJ"));
-            entityManager.persist(new StateCode(8, "Haryana", "HR"));
-            entityManager.persist(new StateCode(9, "Himachal Pradesh", "HP"));
-            entityManager.persist(new StateCode(10, "Jharkhand", "JH"));
-            entityManager.persist(new StateCode(11, "Karnataka", "KA"));
-            entityManager.persist(new StateCode(12, "Kerala", "KL"));
-            entityManager.persist(new StateCode(13, "Madhya Pradesh", "MP"));
-            entityManager.persist(new StateCode(14, "Maharashtra", "MH"));
-            entityManager.persist(new StateCode(15, "Manipur", "MN"));
-            entityManager.persist(new StateCode(16, "Meghalaya", "ML"));
-            entityManager.persist(new StateCode(17, "Mizoram", "MZ"));
-            entityManager.persist(new StateCode(18, "Nagaland", "NL"));
-            entityManager.persist(new StateCode(19, "Odisha", "OD"));
-            entityManager.persist(new StateCode(20, "Punjab", "PB"));
-            entityManager.persist(new StateCode(21, "Rajasthan", "RJ"));
-            entityManager.persist(new StateCode(22, "Sikkim", "SK"));
-            entityManager.persist(new StateCode(23, "Tamil Nadu", "TN"));
-            entityManager.persist(new StateCode(24, "Telangana", "TS"));
-            entityManager.persist(new StateCode(25, "Tripura", "TR"));
-            entityManager.persist(new StateCode(26, "Uttar Pradesh", "UP"));
-            entityManager.persist(new StateCode(27, "Uttarakhand", "UK"));
-            entityManager.persist(new StateCode(28, "West Bengal", "WB"));
-
-            // Union Territories
-            entityManager.persist(new StateCode(30, "Andaman and Nicobar Islands", "AN"));
-            entityManager.persist(new StateCode(31, "Chandigarh", "CH"));
-            entityManager.persist(new StateCode(32, "Dadra and Nagar Haveli and Daman and Diu", "DN"));
-            entityManager.persist(new StateCode(33, "Lakshadweep", "LD"));
-            entityManager.persist(new StateCode(34, "Delhi", "DL"));
-            entityManager.persist(new StateCode(35, "Puducherry", "PY"));
-            entityManager.persist(new StateCode(36, "Daman and Diu", "DD"));
-        }
         count = entityManager.createQuery("SELECT COUNT(a) FROM ServiceProviderAddressRef a", Long.class).getSingleResult();
 
         if (count == 0) {
@@ -604,19 +616,6 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new BoardUniversity(19L, "University of Rajasthan", "Jaipur", "UR", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new BoardUniversity(20L, "University of Allahabad", "Allahabad", "UA", "UNIVERSITY", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
         }
-         //***********ZONES
-        count = entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult();
-        if (count == 0) {
-            // Insert zones into Zone table with matching IDs
-            entityManager.merge(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
-            entityManager.merge(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
-            entityManager.merge(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
-            entityManager.merge(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
-            entityManager.merge(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
-            entityManager.merge(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
-            entityManager.merge(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
-        }
-
 
         String alterQuery = "ALTER TABLE custom_customer ALTER COLUMN token TYPE VARCHAR(512)";
         javax.persistence.Query query = entityManager.createNativeQuery(alterQuery);
@@ -660,6 +659,13 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new Institution(33L, "University of Calicut", "Calicut", "UOC", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new Institution(34L, "Guru Nanak Dev University", "Amritsar", "GNDU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
             entityManager.merge(new Institution(35L, "Punjab University", "Chandigarh", "PU", now, now, "SUPER_ADMIN", "SUPER_ADMIN"));
+        }
+
+        long vacancyDistributionCount = entityManager.createQuery("SELECT count(i) FROM VacancyDistributionType i", Long.class).getSingleResult();
+        if (vacancyDistributionCount == 0) {
+            entityManager.merge(new VacancyDistributionType(1, "State Wise Distribution"));
+            entityManager.merge(new VacancyDistributionType(2, "Zone Wise Distribution"));
+            entityManager.merge(new VacancyDistributionType(3, "Category Wise Distribution"));
         }
     }
 }

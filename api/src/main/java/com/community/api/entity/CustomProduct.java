@@ -161,6 +161,9 @@ public class CustomProduct extends ProductImpl {
     @JoinColumn(name = "advertisement_id")
     protected Advertisement advertisement;
 
+    @Column(name = "is_multiple_post_same_fee",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    protected Boolean isMultiplePostSameFee;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
