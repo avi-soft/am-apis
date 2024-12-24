@@ -137,11 +137,14 @@ public class CategoryController extends CatalogEndpoint {
             Iterator<Category> iterator = categories.iterator();
             while (iterator.hasNext()) {
                 Category category = iterator.next();
-                if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
 
-                    CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                    wrapper.wrapDetailsCategory(category, null, request);
-                    activeCategories.add(wrapper);
+                if(category.getDefaultParentCategory() == null) {
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                        wrapper.wrapDetailsCategory(category, null, request);
+                        activeCategories.add(wrapper);
+                    }
                 }
             }
 
