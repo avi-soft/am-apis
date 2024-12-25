@@ -121,4 +121,10 @@ public class AddProductDto {
     @JsonProperty("advertisement_id")
     Long advertisement;
 
+    @JsonProperty("is_multiple_post_same_fee")
+    protected Boolean isMultiplePostSameFee;
+
+    @JsonProperty("posts")
+    private List<PostDto> posts;
+
 }

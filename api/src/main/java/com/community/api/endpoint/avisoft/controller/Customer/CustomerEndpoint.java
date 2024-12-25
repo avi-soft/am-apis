@@ -9,11 +9,7 @@ import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.DocumentValidity;
-import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.*;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -1570,7 +1566,7 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,null);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1605,7 +1601,7 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,null);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1631,7 +1627,7 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1660,7 +1656,7 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1689,7 +1685,8 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List<Post>postList= customProduct.getPosts();
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
