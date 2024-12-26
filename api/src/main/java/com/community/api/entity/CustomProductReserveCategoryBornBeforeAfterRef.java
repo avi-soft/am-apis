@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
 
     @ManyToOne
     @NotNull
+    @JsonBackReference
     @JoinColumn(name = "product_id")
     protected CustomProduct customProduct;
 
@@ -45,4 +47,11 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @ManyToOne
     @JoinColumn(name = "gender_id")
     protected CustomGender gender;
+
+    @Column(name = "maximum_age")
+    protected Integer maximumAge;
+    @Column(name = "minimum_age")
+    protected Integer minimumAge;
+    @Column(name = "born_before_after")
+    protected Boolean bornBeforeAfter;
 }
