@@ -18,6 +18,7 @@ import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.*;
 import com.community.api.services.FileDownloadService;
+import com.community.api.services.PostExecutionService;
 import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
 import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
@@ -78,10 +79,14 @@ import javax.validation.constraints.Size;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
+import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -152,6 +157,9 @@ public class CustomerEndpoint {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private PostExecutionService postExecutionService;
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -650,8 +658,8 @@ public class CustomerEndpoint {
             @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "qualificationDetailId",required = false) Long qualificationDetailId,
-            @RequestParam(value = "dateOfIssue", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateOfIssue,
-            @RequestParam(value = "validUpto", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date validUpto,
+            @RequestParam(value = "dateOfIssue", required = false) String dateOfIssue,
+            @RequestParam(value = "validUpto", required = false)  String validUpto,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -901,7 +909,7 @@ public class CustomerEndpoint {
                                 {
                                      documentValidity= new DocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -909,7 +917,7 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -920,7 +928,7 @@ public class CustomerEndpoint {
                                 {
                                     documentValidity= existingDocument.getDocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -929,7 +937,7 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -963,7 +971,7 @@ public class CustomerEndpoint {
                                 {
                                     DocumentValidity documentValidity= new DocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -971,7 +979,7 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(document);
                                     entityManager.persist(documentValidity);
@@ -982,43 +990,13 @@ public class CustomerEndpoint {
                         }
                     }
                 }
+                CustomCustomer updatedCustomer = entityManager.find(CustomCustomer.class,customerId);
+                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnCustomerDocuments(updatedCustomer.getDocuments());
+                List<Map<String, Object>> filteredDocuments = futureDocuments.get(); // Blocks until the result is available
 
-                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
-
-                for (Document document : customCustomer.getDocuments()) {
-                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
-                        if (document.getFilePath() != null && document.getDocumentType() != null) {
-                            Map<String, Object> documentDetails = new HashMap<>();
-                            documentDetails.put("documentId", document.getDocumentId());
-                            documentDetails.put("name", document.getName());
-                            documentDetails.put("filePath", document.getFilePath());
-
-                            // Add qualification details if applicable
-                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
-                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
-                            }
-
-                            // Add document validity details if applicable
-                            if (document.getDocumentValidity() != null) {
-                                documentDetails.put("documentValidity", document.getDocumentValidity());
-                            }
-
-                            // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                            documentDetails.put("fileUrl", fileUrl);
-
-                            documentDetails.put("documentType", document.getDocumentType());
-                            filteredDocuments.add(documentDetails);
-                        }
-                    }
-                }
-
+                // Construct the response with the updated data
                 responseData.put("uploadedDocuments", filteredDocuments);
-
-                return ResponseService.generateSuccessResponse(
-                        "Documents updated successfully",
-                        responseData,
-                        HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
@@ -1149,13 +1127,13 @@ public class CustomerEndpoint {
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
                                     validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1164,13 +1142,13 @@ public class CustomerEndpoint {
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
                                     validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1206,7 +1184,7 @@ public class CustomerEndpoint {
                                 {
                                     DocumentValidity documentValidity= new DocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1214,7 +1192,7 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(serviceProviderDocument);
                                     entityManager.persist(documentValidity);
@@ -1226,35 +1204,9 @@ public class CustomerEndpoint {
                     }
 
                 }
-                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
-
-                for (ServiceProviderDocument document : serviceProviderEntity.getDocuments()) {
-                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
-                        if (document.getFilePath() != null && document.getDocumentType() != null) {
-                            Map<String, Object> documentDetails = new HashMap<>();
-                            documentDetails.put("documentId", document.getDocumentId());
-                            documentDetails.put("name", document.getName());
-                            documentDetails.put("filePath", document.getFilePath());
-
-                            // Add qualification details if applicable
-                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
-                                documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
-                            }
-
-                            // Add document validity details if applicable
-                            if (document.getDocumentValidity() != null) {
-                                documentDetails.put("documentValidity", document.getDocumentValidity());
-                            }
-
-                            // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                            documentDetails.put("fileUrl", fileUrl);
-
-                            documentDetails.put("documentType", document.getDocumentType());
-                            filteredDocuments.add(documentDetails);
-                        }
-                    }
-                }
+                ServiceProviderEntity updatedServiceProviderEntity = entityManager.find(ServiceProviderEntity.class,customerId);
+                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnServiceProvider(updatedServiceProviderEntity.getDocuments());
+                List<Map<String, Object>> filteredDocuments = futureDocuments.get();
 
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
@@ -1820,21 +1772,46 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(Date dateOfIssue,Date validUpto) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+
         try {
-            if(validUpto!=null)
-            {
+            // Validate format
+            if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
+                throw new IllegalArgumentException("Date of Issue must be in yyyy-MM-dd format");
+            }
+
+            Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
+
+            Date validUpto = null;
+            if (validUptoStr != null) {
+                if (!isValidDateFormat(validUptoStr, dateFormat)) {
+                    throw new IllegalArgumentException("Valid Upto Date must be in yyyy-MM-dd format");
+                }
+                validUpto = dateFormat.parse(validUptoStr);
+
+                // Check if validUpto is before dateOfIssue
                 if (validUpto.before(dateOfIssue)) {
-                    throw new IllegalArgumentException("Valid upto Date cannot be before date of issue");
+                    throw new IllegalArgumentException("Valid Upto Date cannot be before Date of Issue");
                 }
             }
             return true;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage());
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
+        } catch (IllegalArgumentException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw ex; // Rethrow with meaningful context
+        } catch (ParseException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw new IllegalArgumentException("Invalid date format", ex);
+        }
+    }
+
+    private boolean isValidDateFormat(String dateStr, SimpleDateFormat dateFormat) {
+        try {
+            dateFormat.parse(dateStr);
+            return true;
+        } catch (ParseException e) {
+            return false;
         }
     }
 
@@ -1847,6 +1824,12 @@ public class CustomerEndpoint {
         entityManager.persist(customCustomer);
         Long id=customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully",customCustomer,HttpStatus.CREATED);
+    }
+
+    public static Date convertStringToDate(String dateStr) throws ParseException {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+        return dateFormat.parse(dateStr);
     }
 
 }
