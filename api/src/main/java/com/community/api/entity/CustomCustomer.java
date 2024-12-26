@@ -230,6 +230,8 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "is_ex_service_man")
     private Boolean exService=false;
 
+
+
     @Column(name = "is_ncc_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_ncc_certificate;
 
