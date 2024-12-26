@@ -36,10 +36,10 @@ public class ZoneDivisionController {
 
     }
 
-    @GetMapping("/divisions")
+    @GetMapping("/all-zones")
     public ResponseEntity<?> getDivisionByZone() {
         try {
-            return ResponseService.generateSuccessResponse("Divisions:", zoneDivisionService.getAllZones(), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("All Zones:", zoneDivisionService.getAllZones(), HttpStatus.OK);
         } catch (Exception exception) {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -48,7 +48,7 @@ public class ZoneDivisionController {
     public ResponseEntity<?> getLInkedZone(@PathVariable Integer divisionId)
     {
         try{
-            return ResponseService.generateSuccessResponse("Linked Division : ",zoneDivisionService.findDivisionsLinkedZone(divisionId),HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Linked Zone : ",zoneDivisionService.findDivisionsLinkedZone(divisionId),HttpStatus.OK);
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NoResultException e) {

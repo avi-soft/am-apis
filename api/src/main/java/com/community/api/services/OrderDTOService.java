@@ -2,7 +2,15 @@ package com.community.api.services;
 
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
+import com.community.api.entity.CombinedOrderDTO;
+import com.community.api.entity.CustomOrderState;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.OrderCustomerDetailsDTO;
+import com.community.api.entity.OrderDTO;
 import com.community.api.entity.*;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
@@ -22,6 +30,10 @@ public class OrderDTOService {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
     @Transactional
     public CombinedOrderDTO wrapOrder(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
     {
@@ -50,8 +62,9 @@ public class OrderDTOService {
         customProductWrapper = new CustomProductWrapper();
         List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
-        List<Post> postList= customProduct.getPosts();
-        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
+                    List<Post> postList= customProduct.getPosts();
+                    List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
+        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,postList);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
                 combinedOrderDTO.setOrderDetails(orderDTO);
