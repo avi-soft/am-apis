@@ -13,14 +13,19 @@ import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
 import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductState;
 import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
+
 import com.community.api.entity.Qualification;
+import com.community.api.entity.Post;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
+import com.community.api.services.GenderService;
 import com.community.api.services.ReserveCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -29,11 +34,16 @@ import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.common.persistence.Status;
+import org.springframework.beans.factory.annotation.Autowired;
 
 
 @Data
 @NoArgsConstructor
 public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Product> {
+
+    @Autowired
+    private GenderService genderService;
+
 
     @JsonProperty("product_id")
     protected Long id;
@@ -71,8 +81,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     @JsonProperty("media")
     protected List<MediaWrapper> media;
 
-    @JsonProperty("reserve_category_dto_list")
+    @JsonProperty("reserve_category_fee")
     protected List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();
+    @JsonProperty("reserve_category_age")
+    protected List<ReserveCategoryAgeDto> reserveCategoryAge = new ArrayList<>();
     @JsonProperty("physical_attribute_list")
     protected List<PhysicalRequirementDto> physicalRequirementDtoList = new ArrayList<>();
 
@@ -93,6 +105,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Long creatorUserId;
     @JsonProperty("creator_role_id")
     protected Role creatorRoleId;
+
+
 
     @JsonProperty("modified_date")
     protected Date modifiedDate;
@@ -148,7 +162,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     @JsonProperty("advertisement")
     AdvertisementWrapper advertisement;
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement) throws Exception {
+    @JsonProperty("posts")
+    List<Post> postList;
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,List<Post> postList) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -185,10 +201,33 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
-                reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
-                reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());
-
+                /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
+                reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
+                reserveCategoryDto.setGenderId(addProductDto.getReservedCategory().get(i).getGender());
+                reserveCategoryDto.setGenderName(genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(i).getGender()).getGenderName());
                 reserveCategoryDtoList.add(reserveCategoryDto);
+            }
+        }
+        if(addProductDto.getReserveCategoryAge()!=null)
+        {
+            for(int i=0; i<addProductDto.getReserveCategoryAge().size(); i++) {
+
+                CustomReserveCategory customReserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(i).reserveCategory);
+
+                ReserveCategoryAgeDto reserveCategoryDto=new ReserveCategoryAgeDto();
+                reserveCategoryDto.setProductId(product.getId());
+                reserveCategoryDto.setReserveCategoryId(addProductDto.getReserveCategoryAge().get(i).getReserveCategory());
+                reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                reserveCategoryDto.setPost(addProductDto.getReserveCategoryAge().get(i).getPost());
+                reserveCategoryDto.setAsOfDate(addProductDto.getReserveCategoryAge().get(i).getAsOfDate());
+                reserveCategoryDto.setMaxAge(addProductDto.getReserveCategoryAge().get(i).getMaxAge());
+                reserveCategoryDto.setMinAge(addProductDto.getReserveCategoryAge().get(i).getMinAge());
+                reserveCategoryDto.setBornBefore(addProductDto.getReserveCategoryAge().get(i).getBornBefore());
+                reserveCategoryDto.setBornAfter(addProductDto.getReserveCategoryAge().get(i).getBornAfter());
+                reserveCategoryDto.setGenderId(addProductDto.getReserveCategoryAge().get(i).getGender());
+                reserveCategoryDto.setBornBeforeAfter(addProductDto.getReserveCategoryAge().get(i).getBornBeofreAfter());
+                reserveCategoryDto.setGenderName(genderService.getGenderByGenderId(addProductDto.getReserveCategoryAge().get(i).getGender()).getGenderName());
+                reserveCategoryAge.add(reserveCategoryDto);
             }
         }
 
@@ -248,9 +287,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         if (product.getDefaultCategory() != null) {
             this.defaultCategoryId = product.getDefaultCategory().getId();
         }
+
+        if(postList!=null && !postList.isEmpty() )
+        {
+            this.postList= postList;
+        }
     }
 
-    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList) {
+    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList,List<ReserveCategoryAgeDto>ageDto) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -276,6 +320,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customJobGroup = customProduct.getJobGroup();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
+        this.reserveCategoryAge=ageDto;
 
         this.modifiedDate = customProduct.getModifiedDate();
 
@@ -299,7 +344,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         }
     }
 
-    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList) {
+
+    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList,List<ReserveCategoryAgeDto>ageDto,List<Post> postList) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -316,10 +362,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
-
+        this.reserveCategoryAge=ageDto;
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
-        this.postName = customProduct.getPostName();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customJobGroup = customProduct.getJobGroup();
@@ -361,7 +406,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
-        if(advertisement != null) {
+
+        if(customProduct.getAdvertisement() != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
             this.advertisement = advertisementWrapper;
         } else {
@@ -370,6 +416,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
+        }
+
+        if(postList!=null && !postList.isEmpty() )
+        {
+            this.postList= postList;
         }
     }
     public void wrapDetails(CustomProduct customProduct) {
