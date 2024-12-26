@@ -15,6 +15,8 @@ import javax.persistence.*;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +35,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "mobile_number", unique = true)
+    @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be a valid 10-digit number.")
     private String mobileNumber;
 
     @Nullable
@@ -41,6 +44,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pan_number")
+    @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be a valid 10-character alphanumeric string.")
     private String panNumber;
 
 
@@ -51,20 +55,26 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "nationality")
+    @Pattern(regexp = "^[a-zA-Z ]+$", message = "Nationality must only contain alphabetic characters.")
     private String nationality;
+
 
     @Nullable
     @Column(name = "date_of_birth")
+    @Pattern(regexp = "^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
     private String dob;
+
 
     @Nullable
     @Column(name = "gender")
+    @Pattern(regexp = "^(Male|Female|Other)$", message = "Gender must be Male, Female, or Other.")
     private String gender;
 
     @Nullable
     @Column(name = "adhar_number", unique = true)
-    @Size(min = 12, max = 12)
+    @Pattern(regexp = "^[0-9]{12}$", message = "Aadhar number must be a valid 12-digit numeric value.")
     private String adharNumber;
+
 
     @Nullable
     @Column(name = "category")
@@ -133,16 +143,13 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "belongs_to_minority")
     private Boolean belongsToMinority=false;
 
-
     @Nullable
     @Column(name = "sub_category")
     private String subcategory;
 
-
     @Nullable
     @Column(name = "domicile")
     private Boolean domicile=false;
-
 
     @Nullable
     @Column(name = "secondary_mobile_number")
@@ -150,11 +157,15 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "whatsapp_number")
+    @Pattern(regexp = "^[0-9]{10}$", message = "WhatsApp number must be a valid 10-digit number.")
     private String whatsappNumber;
+
 
     @Nullable
     @Column(name = "secondary_email")
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
+
 
     @Nullable
     @Column(name = "residential_address")
@@ -174,7 +185,9 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pincode")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit numeric value.")
     private String pincode;
+
 
     @Nullable
     @ManyToMany
@@ -206,13 +219,10 @@ public class CustomCustomer extends CustomerImpl {
     @Column(length = 512)
     private String token;
 
-
-
     @Column(name = "disability_handicapped")
     private Boolean disability=false;
 
-
- @Column(name = "disability_type")
+    @Column(name = "disability_type")
     private String disabilityType;
 
     @Column(name="percentage_of_disability")
@@ -246,7 +256,6 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
-
     @JsonBackReference("bankDetails-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BankDetails> bankDetails = new ArrayList<>();
@@ -268,4 +277,31 @@ public class CustomCustomer extends CustomerImpl {
     private Integer modifiedByRole;
     @Column(name = "modified_by_id", columnDefinition = "BIGINT DEFAULT 0")
     private Long modifiedById;
+
+    public List<CustomerReferrer> getMyReferrer() {
+        // Get the list of referrers
+        List<CustomerReferrer> referrers = this.myReferrer;
+
+        // Sort the referrers based on their bandwidth
+        referrers.sort((r1, r2) -> {
+            // Get the max ticket size from rank if max_ticket_size is not available
+            Integer maxTicketSize1 = r1.getServiceProvider().getMaximumTicketSize() != null ? r1.getServiceProvider().getMaximumTicketSize() : r1.getServiceProvider().getRanking().getMaximumTicketSize();
+            Integer maxTicketSize2 = r2.getServiceProvider().getMaximumTicketSize() != null ? r2.getServiceProvider().getMaximumTicketSize() : r2.getServiceProvider().getRanking().getMaximumTicketSize();
+
+            // Avoid division by zero by ensuring maxTicketSize is not 0
+            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
+            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
+
+            // Calculate bandwidth for both referrers
+            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending() ) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending() ) / maxTicketSize2 * 100;
+
+            // Sort by bandwidth (descending order)
+            return Double.compare(bandwidth2, bandwidth1); // for descending order
+        });
+
+        // Return the sorted list
+        Collections.reverse(referrers);
+        return referrers;
+    }
 }

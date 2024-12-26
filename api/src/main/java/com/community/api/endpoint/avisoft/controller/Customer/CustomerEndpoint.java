@@ -5,16 +5,21 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.*;
 import com.community.api.services.FileDownloadService;
+import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
+import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.CustomCustomerService;
@@ -103,11 +108,16 @@ public class CustomerEndpoint {
     private static SharedUtilityService sharedUtilityServiceApi;
 
     @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
+
+    @Autowired
     private ExceptionHandlingService exceptionHandlingService;
     @Autowired
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private  ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
 
 
@@ -239,6 +249,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if((roleId==4&&customCustomer.getCreatedByRole()==4&&customCustomer.getCreatedById()!=tokenUserId)||(roleId==4&&customCustomer.getRegisteredBySp().equals(false))||(roleId==5&&!tokenUserId.equals(customerId)))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -305,6 +317,8 @@ public class CustomerEndpoint {
             } else if (details.containsKey("firstName")&&details.get("firstName").toString().isEmpty())
             {
                 errorMessages.add("First name cannot be null");
+            } else if (details.containsKey("firstName")&&!sharedUtilityService.isAlphabetic((String)details.get("firstName"))) {
+                errorMessages.add("Invalid First name");
             }
             if (details.containsKey("lastName")&&!details.get("lastName").toString().isEmpty())
                 customCustomer.setLastName((String) details.get("lastName"));
@@ -312,7 +326,9 @@ public class CustomerEndpoint {
             {
                 errorMessages.add("Last name cannot be null");
             }
-
+            else if (details.containsKey("lastName")&&!sharedUtilityService.isAlphabetic((String)details.get("lastName"))) {
+                errorMessages.add("Invalid Last name");
+            }
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
             if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty())
@@ -381,6 +397,7 @@ public class CustomerEndpoint {
                     addAddress(customerId, addressMap);
                 }
             }
+
             details.remove("permanentState");
             details.remove("permanentDistrict");
             details.remove("permanentAddress");
@@ -398,6 +415,11 @@ public class CustomerEndpoint {
                 customCustomer.setNcc_certificate(nccCertificateValue);
                 customCustomer.setIs_ncc_certificate(true);
 
+            }
+            if(details.containsKey("dob"))
+            {
+               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                   errorMessages.add("DOB cannot be in future");
             }
                 if(details.containsKey("is_ncc_certificate"))
                 {
@@ -486,6 +508,8 @@ public class CustomerEndpoint {
 
             if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+            if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
@@ -506,7 +530,7 @@ public class CustomerEndpoint {
                     String regex = patternAnnotation.regexp();
                     String message = patternAnnotation.message(); // Get custom message
                     if (!newValue.toString().matches(regex)) {
-                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        errorMessages.add(patternAnnotation.message()); // Use a placeholder
                         continue;
                     }
                 }
@@ -549,6 +573,7 @@ public class CustomerEndpoint {
         }
         catch(NoSuchFieldException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         catch(Exception e){
@@ -991,7 +1016,7 @@ public class CustomerEndpoint {
                 responseData.put("uploadedDocuments", filteredDocuments);
 
                 return ResponseService.generateSuccessResponse(
-                        "Documents uploaded successfully",
+                        "Documents updated successfully",
                         responseData,
                         HttpStatus.OK);
             } else {
@@ -1555,7 +1580,8 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1590,7 +1616,8 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1616,7 +1643,8 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1645,7 +1673,8 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1674,7 +1703,9 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List<Post>postList= customProduct.getPosts();
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,postList);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);

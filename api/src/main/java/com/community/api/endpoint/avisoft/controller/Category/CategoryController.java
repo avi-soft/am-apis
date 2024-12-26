@@ -137,11 +137,44 @@ public class CategoryController extends CatalogEndpoint {
             Iterator<Category> iterator = categories.iterator();
             while (iterator.hasNext()) {
                 Category category = iterator.next();
-                if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
 
-                    CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                    wrapper.wrapDetailsCategory(category, null, request);
-                    activeCategories.add(wrapper);
+                if(category.getDefaultParentCategory() == null) {
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                        wrapper.wrapDetailsCategory(category, null, request);
+                        activeCategories.add(wrapper);
+                    }
+                }
+            }
+
+            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY", activeCategories, HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping(value = "/get-sub-categories")
+    public ResponseEntity<?> getSubCategories(HttpServletRequest request, @RequestParam(value = "limit", defaultValue = "20") int limit) {
+        try {
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Category> categories = this.catalogService.findAllCategories();
+            List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
+
+            Iterator<Category> iterator = categories.iterator();
+            while (iterator.hasNext()) {
+                Category category = iterator.next();
+                if(category.getDefaultParentCategory() != null) {
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                        wrapper.wrapDetailsCategory(category, null, request);
+                        activeCategories.add(wrapper);
+                    }
                 }
             }
 

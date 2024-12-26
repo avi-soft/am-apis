@@ -91,6 +91,7 @@ public class Constant {
     public static Integer DEFAULT_QUANTITY = 100000;
     public static Integer DEFAULT_PRIORITY_LEVEL = 3;
     public static String GET_JOB_GROUP_BY_ID = "SELECT c FROM CustomJobGroup c WHERE c.jobGroupId = :jobGroupId";
+    public static String GET_ADVERTISEMENT_BY_ID = "SELECT a FROM Advertisement a WHERE a.advertisementId = :advertisementId";
     public static String GET_ALL_PRODUCT_STATE = "SELECT c FROM CustomProductState c";
     public static String GET_PRODUCT_STATE_BY_ID = "SELECT c FROM CustomProductState c WHERE c.productStateId = :productStateId";
     public static String GET_PRODUCT_STATE_BY_NAME = "SELECT c FROM CustomProductState c WHERE c.productState = :productStateName";
@@ -110,8 +111,8 @@ public class Constant {
     public static String PRIVILEGE_TICKET = "PRIVILEGE_TICKET";
     public static String GET_PRODUCT_RESERVECATEGORY_BORNBEFORE_BORNAFTER = "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct";
     public static String GET_PRODUCT_RESERVECATEGORY_FEE_POST = "SELECT c FROM CustomProductReserveCategoryFeePostRef c WHERE c.customProduct = :customProduct";
-    public static String ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER = "INSERT INTO custom_product_reserve_category_born_before_after_reference (product_id, reserve_category_id, born_before, born_after) VALUES (:productId, :reserveCategoryId, :bornBefore, :bornAfter)";
-    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post) VALUES (:productId, :reserveCategoryId, :fee, :post)";
+    public static String ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER = "INSERT INTO custom_product_reserve_category_born_before_after_reference (product_id, reserve_category_id, born_before, born_after,gender_id,born_before_after,maximum_age,minimum_age) VALUES (:productId, :reserveCategoryId, :bornBefore, :bornAfter, :genderId,:bornBeforeAfter,:maximumAge,:minimumAge)";
+    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post ,gender_id) VALUES (:productId, :reserveCategoryId, :fee, :post ,:genderId)";
     public static String GET_RESERVED_CATEGORY_BY_ID = "SELECT c FROM CustomReserveCategory c WHERE c.reserveCategoryId = :reserveCategoryId";
     public static String APPLICATION_SCOPE_STATE = "STATE";
     public static String PRIVILEGE_UPDATE_PRODUCT = "UPDATE_PRODUCT";
@@ -141,6 +142,7 @@ public class Constant {
 
     public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
+    public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";
     public static final Double MAX_HEIGHT = 300d;
     public static final Double MIN_HEIGHT = 50d;
     public static final Double MAX_WEIGHT = 700d;
@@ -212,5 +214,12 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
+
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
+    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId";
+    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId";
+    public static final String GET_ALL_ZONES="SELECT z FROM Zone z";
+    public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
+    public static final String NO_CATEGORY="N/A";
+    public static final String NO_GENDER="N/A";
 }

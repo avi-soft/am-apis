@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.entity.CustomGender;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,8 +18,10 @@ public class AddReserveCategoryDto {
     Integer post;
     @JsonProperty("reserve_category_id")
     Long reserveCategory;
-    @JsonProperty("born_before")
+  /*  @JsonProperty("born_before")
     Date bornBefore;
     @JsonProperty("born_after")
-    Date bornAfter;
+    Date bornAfter;*/
+    @JsonProperty("gender_id")
+    Long gender;
 }

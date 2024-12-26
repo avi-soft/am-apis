@@ -21,8 +21,8 @@ public class ReserveCategoryDto {
     Integer post;
     @JsonProperty("reserve_category")
     String reserveCategory;
-    @JsonProperty("born_before")
-    Date bornBefore;
-    @JsonProperty("born_after")
-    Date bornAfter;
+    @JsonProperty("gender_id")
+    Long genderId;
+    @JsonProperty("gender_name")
+    String genderName;
 }
