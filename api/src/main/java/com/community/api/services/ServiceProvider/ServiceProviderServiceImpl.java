@@ -1318,4 +1318,26 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
         }
     }
+
+    public List<ServiceProviderEntity> getActiveAndApprovedServiceProviders() throws Exception {
+        try{
+            Query query2 = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
+            query2.setParameter("test_status_id", 3L);
+            List<ServiceProviderTestStatus> serviceProviderTestStatus = query2.getResultList();
+            if (serviceProviderTestStatus.size() == 0) {
+                throw new IllegalArgumentException("No Test Status is found with this id");
+            }
+
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive", ServiceProviderEntity.class);
+            query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
+            query.setParameter("isActive", true);
+
+            List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
+            return serviceProviderEntityList;
+
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
+        }
+    }
 }

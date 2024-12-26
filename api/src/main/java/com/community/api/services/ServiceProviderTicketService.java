@@ -42,9 +42,7 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -149,7 +147,10 @@ public class ServiceProviderTicketService {
                 throw new IllegalArgumentException("No Service Provider is in required State.");
             }
 
-            logger.info("Available service Provider according to condition(in autoAssigner()) method: " + availableServiceProvider.size());
+            List<ServiceProviderEntity> availableServiceProvider2 = new ArrayList<>();
+            availableServiceProvider2 = serviceProviderService.getActiveAndApprovedServiceProviders();
+
+            logger.info("Available service Provider that are active and approved and have addresses stroed in db: " + availableServiceProvider2.size());
 
             OrderStateRef orderStateRef = orderStateRefService.getOrderStateByOrderStateId(1);
             // auto assigner will run only on those order which are in NEW STATE.
@@ -164,8 +165,8 @@ public class ServiceProviderTicketService {
             }
             List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
 
-//            randomBindingTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
-            verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
+            randomBindingTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
+            verticalDistributionTicketAllocation(customOrders, availableServiceProvider2, assignedTickets);
 
             return assignedTickets;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -455,56 +456,135 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
         } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
             throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
     }
 
-    public Map<String, PriorityQueue<Map<String, Object>>> bifurcateAvailableServiceProviders(List<Map<String, Object>> availableServiceProviders) {
-        // Map to store priority queues for each rank
-        Map<String, PriorityQueue<Map<String, Object>>> rankPriorityQueueMap = new HashMap<>();
+    public static class ServiceProviderComparator implements java.util.Comparator<ServiceProviderEntity> {
+        @Override
+        public int compare(ServiceProviderEntity sp1, ServiceProviderEntity sp2) {
+            // Get the max ticket size from rank if max_ticket_size is not available
+            Integer maxTicketSize1 = sp1.getMaximumTicketSize() != null
+                    ? sp1.getMaximumTicketSize()
+                    : sp1.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
+            Integer maxTicketSize2 = sp2.getMaximumTicketSize() != null
+                    ? sp2.getMaximumTicketSize()
+                    : sp2.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
 
-        // Define a comparator for priority queues (sort by bandwidth descending)
-        Comparator<Map<String, Object>> serviceProviderComparator = (sp1, sp2) -> {
-            // Extract the necessary details from the maps
-            Integer maxTicketSize1 = sp1.get("maximumTicketSize") != null
-                    ? (Integer) sp1.get("maximumTicketSize")
-                    : (Integer) ((Map<String, Object>) sp1.get("ranking")).get("maximumTicketSize");
-            Integer maxTicketSize2 = sp2.get("maximumTicketSize") != null
-                    ? (Integer) sp2.get("maximumTicketSize")
-                    : (Integer) ((Map<String, Object>) sp2.get("ranking")).get("maximumTicketSize");
-
-            // Avoid division by zero
+            // Avoid division by zero by ensuring maxTicketSize is not 0
             if (maxTicketSize1 == 0) maxTicketSize1 = 1;
             if (maxTicketSize2 == 0) maxTicketSize2 = 1;
 
             // Calculate bandwidth for both service providers
-            int ticketAssigned1 = (Integer) sp1.get("ticketAssigned");
-            int ticketPending1 = (Integer) sp1.get("ticketPending");
-            int ticketAssigned2 = (Integer) sp2.get("ticketAssigned");
-            int ticketPending2 = (Integer) sp2.get("ticketPending");
+            double bandwidth1 = (double) (sp1.getTicketAssigned() + sp1.getTicketPending()) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (sp2.getTicketAssigned() + sp2.getTicketPending()) / maxTicketSize2 * 100;
 
-            double bandwidth1 = (double) (ticketAssigned1 + ticketPending1) / maxTicketSize1 * 100;
-            double bandwidth2 = (double) (ticketAssigned2 + ticketPending2) / maxTicketSize2 * 100;
-
-            // Sort by bandwidth (descending order)
-            return Double.compare(bandwidth2, bandwidth1);
-        };
-
-        // Iterate over the service providers
-        for (Map<String, Object> serviceProvider : availableServiceProviders) {
-            // Extract the rank of the service provider
-            String rank = (String) serviceProvider.get("rank");
-
-            // Add the service provider to the corresponding priority queue
-            rankPriorityQueueMap.computeIfAbsent(rank, k -> new PriorityQueue<>(serviceProviderComparator))
-                    .offer(serviceProvider);
+            // Sort by bandwidth (ascending order)
+            return Double.compare(bandwidth1, bandwidth2); // for ascending order
         }
+    }
 
-        return rankPriorityQueueMap;
+    public void bifurcateAvailableServiceProviders(List<ServiceProviderEntity> availableServiceProviders,
+                                                   PriorityQueue<ServiceProviderEntity> rank1a,
+                                                   PriorityQueue<ServiceProviderEntity> rank1b,
+                                                   PriorityQueue<ServiceProviderEntity> rank1c,
+                                                   PriorityQueue<ServiceProviderEntity> rank1d,
+                                                   PriorityQueue<ServiceProviderEntity> rank2a,
+                                                   PriorityQueue<ServiceProviderEntity> rank2b,
+                                                   PriorityQueue<ServiceProviderEntity> rank2c,
+                                                   PriorityQueue<ServiceProviderEntity> rank2d) {
+        // Loop through the list of available service providers
+        for (ServiceProviderEntity serviceProvider : availableServiceProviders) {
+            // Determine the rank of the service provider (this logic needs to be based on your use case)
+            String rank = serviceProvider.getRanking().getRank_name(); // Assuming 'getRank' returns a rank name like "rank1a", "rank1b", etc.
+
+            // Add the service provider to the corresponding priority queue based on the rank
+            switch (rank) {
+                case "1a":
+                    rank1a.offer(serviceProvider);
+                    break;
+                case "1b":
+                    rank1b.offer(serviceProvider);
+                    break;
+                case "1c":
+                    rank1c.offer(serviceProvider);
+                    break;
+                case "1d":
+                    rank1d.offer(serviceProvider);
+                    break;
+                case "2a":
+                    rank2a.offer(serviceProvider);
+                    break;
+                case "2b":
+                    rank2b.offer(serviceProvider);
+                    break;
+                case "2c":
+                    rank2c.offer(serviceProvider);
+                    break;
+                case "2d":
+                    rank2d.offer(serviceProvider);
+                    break;
+                default:
+                    // Handle cases where rank is unrecognized
+                    break;
+            }
+        }
+    }
+
+
+    public boolean processRank (PriorityQueue<ServiceProviderEntity> rankedServiceProvider, Order order, List<CustomTicketWrapper> assignedTickets, CustomOrderState customOrderState) throws Exception {
+        try {
+            while (!rankedServiceProvider.isEmpty()) {
+                ServiceProviderEntity serviceProvider = rankedServiceProvider.poll();
+
+                double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
+
+                if(bandwidth >= 100.0) {
+                    logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider.getService_provider_id());
+                    continue;
+                }
+
+                CreateTicketDto createTicketDto = new CreateTicketDto();
+                createTicketDto.setTicketState(1L);
+                createTicketDto.setTicketType(1L);
+                createTicketDto.setTicketStatus(1L);
+                createTicketDto.setAssignee(serviceProvider.getService_provider_id());
+                createTicketDto.setAssigneeRole(4);
+                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                entityManager.merge(customOrderState);
+
+                // updated service provider ticket assigned data in db
+                serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                // updated service provider ticket assigned data in the PriorityQueue.
+                rankedServiceProvider.offer(serviceProvider);
+
+                CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+
+                wrapper.customWrapDetails(ticket, orderDto);
+                assignedTickets.add(wrapper);
+
+                logger.info("Order with id: " + order.getId() + " is assigned to Service Provider with id: " + serviceProvider.getService_provider_id() + " with ticket id: " + ticket.getTicketId());
+                return true;
+            }
+            return false;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
+        }
     }
 
     @Transactional
-    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
+    public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<ServiceProviderEntity> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("Vertical Distribution Ticket Allocation");
             logger.info("Total orders received for VDTA: " + customOrders.size());
@@ -512,8 +592,39 @@ public class ServiceProviderTicketService {
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
-            Map<String, PriorityQueue<Map<String, Object>>> rankWiseServiceProviders = bifurcateAvailableServiceProviders(availableServiceProvider);
-            System.out.println("**********************" + rankWiseServiceProviders.size());
+            PriorityQueue<ServiceProviderEntity> rank1a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1d = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2d = new PriorityQueue<>(new ServiceProviderComparator());
+            bifurcateAvailableServiceProviders(availableServiceProvider, rank1a, rank1b, rank1c, rank1d, rank2a, rank2b, rank2c, rank2d);
+
+            logger.info("Service Provider in rank1a: " + rank1a.size());
+            logger.info("Service Provider in rank1b: " + rank1b.size());
+            logger.info("Service Provider in rank1c: " + rank1c.size());
+            logger.info("Service Provider in rank1d: " + rank1d.size());
+
+            logger.info("Service Provider in rank2a: " + rank2a.size());
+            logger.info("Service Provider in rank2b: " + rank2b.size());
+            logger.info("Service Provider in rank2c: " + rank2c.size());
+            logger.info("Service Provider in rank2d: " + rank2d.size());
+
+            /*
+
+            // For debugging purposes
+            Iterator<ServiceProviderEntity> iterator2 = rank1d.iterator();
+            while (!rank1d.isEmpty()) {
+                ServiceProviderEntity serviceProvider = rank1d.poll();
+                System.out.println("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
+                double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
+                System.out.println("BANDWDTH : " + bandwidth );
+                System.out.println(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
+            }
+
+            */
 
             while (iterator.hasNext()) {
 
@@ -525,42 +636,49 @@ public class ServiceProviderTicketService {
 
                 Order order = orderService.findOrderById(customOrderState.getOrderId());
 
-                for (Map<String, Object> serviceProviderMap : availableServiceProvider) {
-                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(Long.valueOf(serviceProviderMap.get("service_provider_id").toString()));
-
-                    if (serviceProvider.getIsActive()) {
-                        logger.info("sp id:" + serviceProvider.getService_provider_id());
-                        if ( (serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize()) ) {
-                            logger.info("sp who are active and approved: " + serviceProvider.getService_provider_id());
-                            CreateTicketDto createTicketDto = new CreateTicketDto();
-                            createTicketDto.setTicketState(1L);
-                            createTicketDto.setTicketType(1L);
-                            createTicketDto.setTicketStatus(1L);
-                            createTicketDto.setAssignee(serviceProvider.getService_provider_id());
-                            createTicketDto.setAssigneeRole(4);
-                            CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
-
-                            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
-                            entityManager.merge(customOrderState);
-                            serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
-
+                switch (1) {
+                    case 1:
+                        if(!rank1a.isEmpty() && processRank(rank1a, order, assignedTickets, customOrderState)) {
                             iterator.remove();
-                            CustomTicketWrapper wrapper = new CustomTicketWrapper();
-
-                            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                            Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-                            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
-
-                            wrapper.customWrapDetails(ticket, orderDto);
-                            assignedTickets.add(wrapper);
                             break;
-                        } else {
-                            logger.info("sp who are active and approved: else " + serviceProvider.getService_provider_id());
-                            logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
                         }
-                    }
+                    case 2:
+                        if(!rank1b.isEmpty() && processRank(rank1b, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 3:
+                        if(!rank1c.isEmpty() && processRank(rank1c, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 4:
+                        if(!rank1d.isEmpty() && processRank(rank1d, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 5:
+                        if(!rank2a.isEmpty() && processRank(rank2a, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 6:
+                        if(!rank2b.isEmpty() && processRank(rank2b, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 7:
+                        if(!rank2c.isEmpty() && processRank(rank2c, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 8:
+                        if(!rank2d.isEmpty() && processRank(rank2d, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    default:
+                        break;
                 }
             }
             logger.info("Total orders assigned by VDTA method is: " + assignedTickets.size());
@@ -572,14 +690,6 @@ public class ServiceProviderTicketService {
         }
     }
 
-//    public void List<Map<String, Object>> rankWiseDistributionServiceProvider(List<Map<String, Object>> professional1Rank, List<Map<String, Object>> professional2Rank, List<Map<String, Object>> professional3Rank, List<Map<String, Object>> professional4Rank, List<Map<String, Object>> individual1Rank, List<Map<String, Object>> individual2Rank, List<Map<String, Object>> individual3Rank, List<Map<String, Object>> individual4Rank) throws Exception {
-//        try {
-//
-//        } catch (Exception exception) {
-//            exceptionHandlingService.handleException(exception);
-//            throw new Exception("Exception caught: " + exception.getMessage());
-//        }
-//    }
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
         try {
             String sql = "SELECT * FROM custom_service_provider_ticket";
