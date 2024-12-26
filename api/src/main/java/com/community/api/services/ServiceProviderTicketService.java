@@ -175,17 +175,17 @@ public class ServiceProviderTicketService {
             /*
              VDTA logic- (FOR THOSE ORDERS WHICH ARE NOT ALLOCATED BY RBTA AND UNBINDED ORDERS).
              This will Fetch all the service Provider which are in active state and are approved.
-             We are bifurcating these serviceProvider in different ranks as according to the document we are allocating the document from Professional to Individual (Vertical Distribution) and From Rank inside the Professional again from 1a-1d and 2a-2d.
-             For the bifurcating we are using priority Queues as its more optimised way as for each rank we have to do horizontal allocating depending on the bandwidth of the service Provider.
-             So one by one we traverse the orders that are new state and starts from the vertical distribution and run the allocation algo for service providers in each rank.
-             From the Service Providers in the same rank we try to allocate the particular ticket the Service Provider who have the maximum capacity. and update the priority queue
-             If service Provider limit is reached then we remove the Service Provider from the Priority List.
+             - We are bifurcating these serviceProvider in different ranks as according to the document we are allocating the document from Professional to Individual (Vertical Distribution) and From Rank inside the Professional again from 1a-1d and 2a-2d.
+             - For the bifurcating we are using priority Queues as its more optimised way as for each rank we have to do horizontal allocating depending on the bandwidth of the service Provider.
+             - So one by one we traverse the orders that are new state and starts from the vertical distribution and run the allocation algo for service providers in each rank.
+             - From the Service Providers in the same rank we try to allocate the particular ticket the Service Provider who have the maximum capacity. and update the priority queue
+             - If service Provider limit is reached then we remove the Service Provider from the Priority List.
             */
             verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
 
             return assignedTickets;
         } catch (IllegalArgumentException illegalArgumentException) {
-            throw new IllegalArgumentException("Illegal Argument exception caught: " + illegalArgumentException.getMessage());
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             throw new Exception("Exception caught: " + exception.getMessage());
         }
