@@ -84,18 +84,14 @@ public class ServiceProviderTicketService {
 
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private OrderDTOService orderDTOService;
-
-    @Autowired
-    private CustomerService customerService;
-
     @Autowired
     CustomerAddressFetcher addressFetcher;
+    @Autowired
+    private RestTemplate restTemplate;
+    @Autowired
+    private OrderDTOService orderDTOService;
+    @Autowired
+    private CustomerService customerService;
 
     // auto-assigner scheduled to execute at 7:30 AM
     @Scheduled(cron = "0 30 7 * * ?")
@@ -230,7 +226,7 @@ public class ServiceProviderTicketService {
                 logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
             }
             return false;
-        }catch (Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
@@ -263,7 +259,7 @@ public class ServiceProviderTicketService {
                 List<CustomerReferrer> referrers = customer.getMyReferrer();
                 logger.info("Customer whose id is: " + customer.getId() + " have a referrer list of size: " + referrers.size());
 
-                if(referrers.isEmpty()) {
+                if (referrers.isEmpty()) {
                     continue;
                 }
 
@@ -279,7 +275,7 @@ public class ServiceProviderTicketService {
                 }
 
                 // For the Remaining Referees
-                if(!assigned) {
+                if (!assigned) {
                     for (CustomerReferrer referrer : referrers) {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                         logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
@@ -308,7 +304,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo,Integer creatorRoleId,Long creatorId) throws Exception {
+    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo, Integer creatorRoleId, Long creatorId) throws Exception {
         try {
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
@@ -328,7 +324,7 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
-            if(creatorId != null && creatorRoleId != null) {
+            if (creatorId != null && creatorRoleId != null) {
                 customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
                 customServiceProviderTicket.setUserId(creatorId);
             }
@@ -413,31 +409,6 @@ public class ServiceProviderTicketService {
         }
     }
 
-    // Comparator defined for the sorting of Service Provider in each rank depending on their capacity.
-    public static class ServiceProviderComparator implements java.util.Comparator<ServiceProviderEntity> {
-        @Override
-        public int compare(ServiceProviderEntity sp1, ServiceProviderEntity sp2) {
-            // Get the max ticket size from rank if max_ticket_size is not available
-            Integer maxTicketSize1 = sp1.getMaximumTicketSize() != null
-                    ? sp1.getMaximumTicketSize()
-                    : sp1.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
-            Integer maxTicketSize2 = sp2.getMaximumTicketSize() != null
-                    ? sp2.getMaximumTicketSize()
-                    : sp2.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
-
-            // Avoid division by zero by ensuring maxTicketSize is not 0
-            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
-            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
-
-            // Calculate bandwidth for both service providers
-            double bandwidth1 = (double) (sp1.getTicketAssigned() + sp1.getTicketPending()) / maxTicketSize1 * 100;
-            double bandwidth2 = (double) (sp2.getTicketAssigned() + sp2.getTicketPending()) / maxTicketSize2 * 100;
-
-            // Sort by bandwidth (ascending order)
-            return Double.compare(bandwidth1, bandwidth2); // for ascending order
-        }
-    }
-
     public void bifurcateAvailableServiceProviders(List<ServiceProviderEntity> availableServiceProviders, PriorityQueue<ServiceProviderEntity> rank1a, PriorityQueue<ServiceProviderEntity> rank1b,
                                                    PriorityQueue<ServiceProviderEntity> rank1c,
                                                    PriorityQueue<ServiceProviderEntity> rank1d,
@@ -490,7 +461,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public boolean processRank (PriorityQueue<ServiceProviderEntity> rankedServiceProvider, Order order, List<CustomTicketWrapper> assignedTickets, CustomOrderState customOrderState) throws Exception {
+    public boolean processRank(PriorityQueue<ServiceProviderEntity> rankedServiceProvider, Order order, List<CustomTicketWrapper> assignedTickets, CustomOrderState customOrderState) throws Exception {
         try {
 
             // while the rankedService Provider is not empty.
@@ -500,7 +471,7 @@ public class ServiceProviderTicketService {
                 double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
 
                 // if the capacity is reached then continue to next service provider.
-                if(bandwidth >= 100.0) {
+                if (bandwidth >= 100.0) {
                     logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider.getService_provider_id());
                     continue;
                 }
@@ -513,7 +484,7 @@ public class ServiceProviderTicketService {
                 createTicketDto.setTicketStatus(1L);
                 createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                 createTicketDto.setAssigneeRole(4);
-                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider,null,null);
+                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider, null, null);
 
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                 entityManager.merge(customOrderState);
@@ -528,9 +499,9 @@ public class ServiceProviderTicketService {
 
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
                 wrapper.customWrapDetails(ticket, orderDto);
                 assignedTickets.add(wrapper);
@@ -603,42 +574,42 @@ public class ServiceProviderTicketService {
                 // created a switch statement which will execute in vertical order.
                 switch (1) {
                     case 1:
-                        if(!rank1a.isEmpty() && processRank(rank1a, order, assignedTickets, customOrderState)) {
+                        if (!rank1a.isEmpty() && processRank(rank1a, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 2:
-                        if(!rank1b.isEmpty() && processRank(rank1b, order, assignedTickets, customOrderState)) {
+                        if (!rank1b.isEmpty() && processRank(rank1b, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 3:
-                        if(!rank1c.isEmpty() && processRank(rank1c, order, assignedTickets, customOrderState)) {
+                        if (!rank1c.isEmpty() && processRank(rank1c, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 4:
-                        if(!rank1d.isEmpty() && processRank(rank1d, order, assignedTickets, customOrderState)) {
+                        if (!rank1d.isEmpty() && processRank(rank1d, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 5:
-                        if(!rank2a.isEmpty() && processRank(rank2a, order, assignedTickets, customOrderState)) {
+                        if (!rank2a.isEmpty() && processRank(rank2a, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 6:
-                        if(!rank2b.isEmpty() && processRank(rank2b, order, assignedTickets, customOrderState)) {
+                        if (!rank2b.isEmpty() && processRank(rank2b, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 7:
-                        if(!rank2c.isEmpty() && processRank(rank2c, order, assignedTickets, customOrderState)) {
+                        if (!rank2c.isEmpty() && processRank(rank2c, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 8:
-                        if(!rank2d.isEmpty() && processRank(rank2d, order, assignedTickets, customOrderState)) {
+                        if (!rank2d.isEmpty() && processRank(rank2d, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
@@ -665,7 +636,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo,Long status) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, Long status) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -686,10 +657,9 @@ public class ServiceProviderTicketService {
                 }
                 jpql.append("AND c.ticketState IN :states ");
             }
-            if(status!=null)
-            {
-                CustomTicketStatus customTicketStatus=ticketStatusService.getTicketStatusByTicketStatusId(status);
-                if(customTicketStatus==null)
+            if (status != null) {
+                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
+                if (customTicketStatus == null)
                     throw new IllegalArgumentException("No ticket state found");
                 jpql.append("AND c.ticketStatus = :status ");
             }
@@ -719,7 +689,7 @@ public class ServiceProviderTicketService {
             if (!customTicketStates.isEmpty()) {
                 query.setParameter("states", customTicketStates);
             }
-            if(status!=null) {
+            if (status != null) {
                 CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
                 query.setParameter("status", customTicketStatus);
             }
@@ -763,6 +733,31 @@ public class ServiceProviderTicketService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    // Comparator defined for the sorting of Service Provider in each rank depending on their capacity.
+    public static class ServiceProviderComparator implements java.util.Comparator<ServiceProviderEntity> {
+        @Override
+        public int compare(ServiceProviderEntity sp1, ServiceProviderEntity sp2) {
+            // Get the max ticket size from rank if max_ticket_size is not available
+            Integer maxTicketSize1 = sp1.getMaximumTicketSize() != null
+                    ? sp1.getMaximumTicketSize()
+                    : sp1.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
+            Integer maxTicketSize2 = sp2.getMaximumTicketSize() != null
+                    ? sp2.getMaximumTicketSize()
+                    : sp2.getRanking().getMaximumTicketSize(); // Assuming getRanking() returns an object with max ticket size
+
+            // Avoid division by zero by ensuring maxTicketSize is not 0
+            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
+            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
+
+            // Calculate bandwidth for both service providers
+            double bandwidth1 = (double) (sp1.getTicketAssigned() + sp1.getTicketPending()) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (sp2.getTicketAssigned() + sp2.getTicketPending()) / maxTicketSize2 * 100;
+
+            // Sort by bandwidth (ascending order)
+            return Double.compare(bandwidth1, bandwidth2); // for ascending order
         }
     }
 }
