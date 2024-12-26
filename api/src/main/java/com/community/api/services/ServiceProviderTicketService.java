@@ -42,10 +42,13 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 
 @Service
 public class ServiceProviderTicketService {
@@ -161,7 +164,7 @@ public class ServiceProviderTicketService {
             }
             List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
 
-            randomBindingTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
+//            randomBindingTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
             verticalDistributionTicketAllocation(customOrders, availableServiceProvider, assignedTickets);
 
             return assignedTickets;
@@ -456,6 +459,50 @@ public class ServiceProviderTicketService {
         }
     }
 
+    public Map<String, PriorityQueue<Map<String, Object>>> bifurcateAvailableServiceProviders(List<Map<String, Object>> availableServiceProviders) {
+        // Map to store priority queues for each rank
+        Map<String, PriorityQueue<Map<String, Object>>> rankPriorityQueueMap = new HashMap<>();
+
+        // Define a comparator for priority queues (sort by bandwidth descending)
+        Comparator<Map<String, Object>> serviceProviderComparator = (sp1, sp2) -> {
+            // Extract the necessary details from the maps
+            Integer maxTicketSize1 = sp1.get("maximumTicketSize") != null
+                    ? (Integer) sp1.get("maximumTicketSize")
+                    : (Integer) ((Map<String, Object>) sp1.get("ranking")).get("maximumTicketSize");
+            Integer maxTicketSize2 = sp2.get("maximumTicketSize") != null
+                    ? (Integer) sp2.get("maximumTicketSize")
+                    : (Integer) ((Map<String, Object>) sp2.get("ranking")).get("maximumTicketSize");
+
+            // Avoid division by zero
+            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
+            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
+
+            // Calculate bandwidth for both service providers
+            int ticketAssigned1 = (Integer) sp1.get("ticketAssigned");
+            int ticketPending1 = (Integer) sp1.get("ticketPending");
+            int ticketAssigned2 = (Integer) sp2.get("ticketAssigned");
+            int ticketPending2 = (Integer) sp2.get("ticketPending");
+
+            double bandwidth1 = (double) (ticketAssigned1 + ticketPending1) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (ticketAssigned2 + ticketPending2) / maxTicketSize2 * 100;
+
+            // Sort by bandwidth (descending order)
+            return Double.compare(bandwidth2, bandwidth1);
+        };
+
+        // Iterate over the service providers
+        for (Map<String, Object> serviceProvider : availableServiceProviders) {
+            // Extract the rank of the service provider
+            String rank = (String) serviceProvider.get("rank");
+
+            // Add the service provider to the corresponding priority queue
+            rankPriorityQueueMap.computeIfAbsent(rank, k -> new PriorityQueue<>(serviceProviderComparator))
+                    .offer(serviceProvider);
+        }
+
+        return rankPriorityQueueMap;
+    }
+
     @Transactional
     public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<Map<String, Object>> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
@@ -465,16 +512,8 @@ public class ServiceProviderTicketService {
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
-            List<Map<String, Object>> professional1Rank = new ArrayList<>();
-            List<Map<String, Object>> professional2Rank = new ArrayList<>();
-            List<Map<String, Object>> professional3Rank = new ArrayList<>();
-            List<Map<String, Object>> professional4Rank = new ArrayList<>();
-
-            List<Map<String, Object>> individual1Rank = new ArrayList<>();
-            List<Map<String, Object>> individual2Rank = new ArrayList<>();
-            List<Map<String, Object>> individual3Rank = new ArrayList<>();
-            List<Map<String, Object>> individual4Rank = new ArrayList<>();
-//            rankWiseDistributionServiceProvider(availableServiceProvider, professional1Rank, professional2Rank, professional3Rank, professional4Rank, individual1Rank, individual2Rank, individual3Rank, individual4Rank);
+            Map<String, PriorityQueue<Map<String, Object>>> rankWiseServiceProviders = bifurcateAvailableServiceProviders(availableServiceProvider);
+            System.out.println("**********************" + rankWiseServiceProviders.size());
 
             while (iterator.hasNext()) {
 
