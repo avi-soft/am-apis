@@ -48,7 +48,7 @@ public class ZoneDivisionController {
     public ResponseEntity<?> getLInkedZone(@PathVariable Integer divisionId)
     {
         try{
-            return ResponseService.generateSuccessResponse("Linked Division : ",zoneDivisionService.findDivisionsLinkedZone(divisionId),HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Linked Zone : ",zoneDivisionService.findDivisionsLinkedZone(divisionId),HttpStatus.OK);
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NoResultException e) {

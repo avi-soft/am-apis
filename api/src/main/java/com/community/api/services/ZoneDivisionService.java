@@ -1,6 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Zone;
 import com.community.api.entity.ZoneDivisions;
@@ -22,7 +23,7 @@ public class ZoneDivisionService {
     @Autowired
     private DistrictService districtService;
 
-    public List<StateCode> getDivisionsByZoneId(Integer zoneId) throws NotFoundException {
+    public List<DivisionProjectionDTO> getDivisionsByZoneId(Integer zoneId) throws NotFoundException {
         if(zoneId==null)
             throw new IllegalArgumentException("Zone id is compulsory");
         Zone zone=entityManager.find(Zone.class,zoneId);
@@ -33,12 +34,17 @@ public class ZoneDivisionService {
         List<Integer>divisionIds=query.getResultList();
         if(divisionIds.isEmpty())
             throw new NoResultException("No result found");
-        List<StateCode>resultList=new ArrayList<>();
+        List<DivisionProjectionDTO>resultList=new ArrayList<>();
         for(Integer a:divisionIds)
         {
             StateCode stateCode=entityManager.find(StateCode.class,a);
-            if(stateCode!=null)
-                resultList.add(stateCode);
+            if(stateCode!=null) {
+                DivisionProjectionDTO divisionProjectionDTO=new DivisionProjectionDTO();
+                divisionProjectionDTO.setDivisionId(stateCode.getState_id());
+                divisionProjectionDTO.setDivisionName(stateCode.getState_name());
+                divisionProjectionDTO.setDivisionCode(stateCode.getState_code());
+                resultList.add(divisionProjectionDTO);
+            }
         }
       return resultList;
     }
