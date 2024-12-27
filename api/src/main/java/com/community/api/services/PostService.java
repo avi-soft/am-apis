@@ -212,9 +212,59 @@ public class PostService {
                 post.setZoneDistributions(zoneDistributions);
             }
         }
-
         entityManager.persist(post);
         entityManager.flush(); // Ensure Post is saved and has an ID
+        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
+        if (qualificationEligibilityDto!=null) {
+                QualificationEligibility qualificationRequirement = new QualificationEligibility();
+                //set qualifications
+                List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                List<Qualification> qualificationsToAdd= new ArrayList<>();
+                for(Integer qualificationId: qualificationIds)
+                {
+                    Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                    qualificationsToAdd.add(qualification);
+                }
+                qualificationRequirement.setQualifications(qualificationsToAdd);
+
+                //set subjects
+                List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
+                if(subjectIds!=null)
+                {
+                    if(!subjectIds.isEmpty())
+                    {
+                        List<CustomSubject> subjectsToAdd= new ArrayList<>();
+                        for(Long subjectId: subjectIds)
+                        {
+                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
+                            subjectsToAdd.add(customSubject);
+                        }
+                        qualificationRequirement.setCustomSubjects(subjectsToAdd);
+                    }
+                }
+
+                //set streams
+                List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
+                List<CustomStream> streamsToAdd= new ArrayList<>();
+                for(Long streamId: streamIds)
+                {
+                    CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                    streamsToAdd.add(customStream);
+                }
+                qualificationRequirement.setCustomStreams(streamsToAdd);
+
+                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
+                {
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
+                    qualificationRequirement.setCustomReserveCategory(customReserveCategory);
+                }
+                qualificationRequirement.setPercentage(qualificationEligibilityDto.getPercentage());
+                qualificationRequirement.setPost(post);
+
+                entityManager.persist(qualificationRequirement);
+            }
+            entityManager.flush();
+
         List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
         if (!physicalRequirementDtos.isEmpty()) {
             for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
@@ -237,7 +287,6 @@ public class PostService {
             entityManager.flush();
         }
 
-        // Ensure physical requirements are fetched
         entityManager.refresh(post);
 
         return post;

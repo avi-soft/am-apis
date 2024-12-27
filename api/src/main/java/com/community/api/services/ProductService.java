@@ -6,6 +6,7 @@ import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.AddProductDto;
@@ -1314,7 +1315,104 @@ public class ProductService {
 
         return dateMap;
     }
+    public boolean validateAge(AddProductDto addProductDto) throws Exception {
+        try {
 
+            if (addProductDto.getReserveCategoryAge().isEmpty()) {
+                throw new IllegalArgumentException("Reserve category cannot be empty.");
+            }
+            Set<Long> reserveCategoryId = new HashSet<>();
+            Set<Integer>genderCategoryComboSet=new HashSet<>();
+
+            Date currentDate = new Date(); // Current date for comparison
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(currentDate);
+
+            calendar.add(Calendar.YEAR, -105);
+            Date minBornAfterDate = calendar.getTime();
+            calendar.add(Calendar.YEAR, 100);
+            Date maxBornBeforeDate = calendar.getTime();
+
+            for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReserveCategoryAge().size(); reserveCategoryIndex++) {
+                AddProductAgeDTO addProductAgeDTO=addProductDto.getReserveCategoryAge().get(reserveCategoryIndex);
+                if(addProductAgeDTO.getBornBeofreAfter()==null)
+                {
+                    throw new IllegalArgumentException("born_before_after cannot be null");
+                }
+                if(!addProductAgeDTO.getBornBeofreAfter())
+                {
+                    if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
+                        throw new IllegalArgumentException("Both minimum and maximum age re required");
+                    Map<String,Date>dates=calculateDateRange(addProductAgeDTO.getAsOfDate(),addProductAgeDTO.getMinAge(),addProductAgeDTO.getMaxAge());
+                    addProductAgeDTO.setBornBefore(dates.get("bornBeforeDate"));
+                    addProductAgeDTO.setBornAfter(dates.get("bornAfterDate"));
+                }
+                else
+                {
+                    addProductAgeDTO.setAsOfDate(null);
+                    addProductAgeDTO.setMaxAge(0);
+                    addProductAgeDTO.setMinAge(0);
+                }
+                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory() <= 0) {
+                    throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender() <= 0) {
+                    throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
+                }
+                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender());
+                if(gender==null)
+                    throw new NotFoundException("Invalid gender id");
+                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
+                if(category==null)
+                    throw new NotFoundException("Invalid category id");
+                int genderAndCategoryCombo=(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender().intValue());
+                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReserveCategoryAge().size()>1)
+                {
+                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender age can be applied.");
+                }
+                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
+                {
+                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                }
+                reserveCategoryId.add(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
+
+                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
+                if (reserveCategory == null) {
+                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
+                }/*
+                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() == null) {
+                    addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).setPost(Constant.DEFAULT_QUANTITY);
+                } else if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() <= 0) {
+                    throw new IllegalArgumentException(POSTLESSTHANORZERO);
+                }*/
+
+                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter() == null) {
+                    throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
+                }
+                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter()));
+                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore()));
+
+                if (!addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore().before(new Date()) || !addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(new Date())) {
+                    throw new IllegalArgumentException("Born before date and born after date must be of past.");
+                } else if (!addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore())) {
+                    throw new IllegalArgumentException("Born after date must be past of born before date.");
+                }
+
+                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(minBornAfterDate)) {
+                    throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
+                }
+                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore().after(maxBornBeforeDate)) {
+                    throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
+                }
+            }
+            return true;
+        } catch (NotFoundException | IllegalArgumentException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            throw new IllegalArgumentException(notFoundException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
+        }
+    }
     //****************************************
     //FOR FUTURE USE IF NEEDED
     /*public Boolean checkForOpenCategory(CustomReserveCategory openCategory,AddProductDto addProductDto)
@@ -2621,43 +2719,157 @@ public class ProductService {
         }
     }
 
-    public void validateDistrictStateRelationship(StateDistributionDto stateDistribution) {
-    if (!Boolean.TRUE.equals(stateDistribution.getIsDistrictDistribution())) {
-        return;
-    }
-
-    // Get state code using EntityManager
-    StateCode stateCode = entityManager.find(StateCode.class, stateDistribution.getStateCodeId());
-    if (stateCode == null) {
-        throw new IllegalArgumentException("Invalid state code: " + stateDistribution.getStateCodeId());
-    }
-
-    List<DistrictDistributionDto> districtDistributions = stateDistribution.getDistrictDistributions();
-    if (districtDistributions == null || districtDistributions.isEmpty()) {
-        throw new IllegalArgumentException("District distributions are required when isDistrictDistribution is true");
-    }
-
-    // Get all districts for this state
-    List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code());
-    Set<Integer> validDistrictIds = stateDistricts.stream()
-            .map(Districts::getDistrict_id)
-            .collect(Collectors.toSet());
-
-    // Validate each district in the distribution
-    for (DistrictDistributionDto districtDto : districtDistributions) {
-        if (!validDistrictIds.contains(districtDto.getDistrictId().intValue())) {
-            // Find the actual state code for this district if it exists
-            Districts district = entityManager.find(Districts.class, districtDto.getDistrictId().intValue());
-            if (district == null) {
-                throw new IllegalArgumentException("District not found with id: " + districtDto.getDistrictId());
+    public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
+        try {
+            if (postDto.getQualificationEligibilityDto() == null) {
+                return true;
             }
+            else {
+                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibilityDto();
 
-            throw new IllegalArgumentException(
-                    String.format("District with ID %d belongs to state %s, not state %s",
-                            districtDto.getDistrictId(), district.getState_code(), stateCode.getState_code()));
+                //Validate Qualification ids
+                if(qualificationEligibilityDto.getQualificationIds()==null)
+                {
+                    throw new IllegalArgumentException("Qualification cannot be null");
+                }
+                else if(qualificationEligibilityDto.getQualificationIds().isEmpty())
+                {
+                    throw new IllegalArgumentException("Qualification cannot be empty");
+                }
+                else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
+                    if(qualificationEligibilityDto.getQualificationIds().size()>1)
+                    {
+                        throw new IllegalArgumentException("Enter only one qualification (Highest)");
+                    }
+                    Set<Integer> qualificationIdSet = new HashSet<>();
+                    List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                    for(Integer qualificationId: qualificationIds)
+                    {
+                        Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                        if(qualification==null)
+                        {
+                            throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                        }
+                        qualificationIdSet.add(qualificationId);
+                    }
+                    if (qualificationIdSet.size() != qualificationIds.size()) {
+                        throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                    }
+                }
+
+                //Validate Subjects
+                if(qualificationEligibilityDto.getCustomSubjectIds()!=null)
+                {
+                    if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()){
+                        Set<Long> subjectIdsSet = new HashSet<>();
+                        List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
+                        for(Long subjectId: subjectIds)
+                        {
+                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
+                            if(customSubject==null)
+                            {
+                                throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
+                            }
+                            subjectIdsSet.add(subjectId);
+                        }
+                        if (subjectIdsSet.size() != subjectIds.size()) {
+                            throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
+                        }
+                    }
+                }
+
+                //Validate Streams
+                if(qualificationEligibilityDto.getCustomStreamIds()==null)
+                {
+                    throw new IllegalArgumentException("You have to fill atleast one Stream");
+                }
+                else if(qualificationEligibilityDto.getCustomStreamIds().isEmpty())
+                {
+                    throw new IllegalArgumentException("Stream cannot be empty");
+                }
+                else if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
+                    Set<Long> streamIdSet = new HashSet<>();
+                    List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
+                    for(Long streamId: streamIds)
+                    {
+                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                        if(customStream==null)
+                        {
+                            throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
+                        }
+                        streamIdSet.add(streamId);
+                    }
+                    if (streamIdSet.size() != streamIds.size()) {
+                        throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
+                    }
+                }
+                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
+                {
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
+                    if(customReserveCategory==null)
+                    {
+                        throw new IllegalArgumentException("Reserve Category does not exists with id "+ qualificationEligibilityDto.getCustomReserveCategoryId());
+                    }
+                }
+
+                if(qualificationEligibilityDto.getPercentage()!=null)
+                {
+                    if(qualificationEligibilityDto.getPercentage()>100 || qualificationEligibilityDto.getPercentage()<0)
+                    {
+                        throw new IllegalArgumentException("Percentage cannot be less than 0 and greater than 100");
+                    }
+                }
+            }
+            return true;
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage() + "\n");
         }
     }
-}
+
+    public void validateDistrictStateRelationship(StateDistributionDto stateDistribution) {
+        if (!Boolean.TRUE.equals(stateDistribution.getIsDistrictDistribution())) {
+            return;
+        }
+
+        // Get state code using EntityManager
+        StateCode stateCode = entityManager.find(StateCode.class, stateDistribution.getStateCodeId());
+        if (stateCode == null) {
+            throw new IllegalArgumentException("Invalid state code: " + stateDistribution.getStateCodeId());
+        }
+
+        List<DistrictDistributionDto> districtDistributions = stateDistribution.getDistrictDistributions();
+        if (districtDistributions == null || districtDistributions.isEmpty()) {
+            throw new IllegalArgumentException("District distributions are required when isDistrictDistribution is true");
+        }
+
+        // Get all districts for this state
+        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code());
+        Set<Integer> validDistrictIds = stateDistricts.stream()
+                .map(Districts::getDistrict_id)
+                .collect(Collectors.toSet());
+
+        // Validate each district in the distribution
+        for (DistrictDistributionDto districtDto : districtDistributions) {
+            if (!validDistrictIds.contains(districtDto.getDistrictId().intValue())) {
+                // Find the actual state code for this district if it exists
+                Districts district = entityManager.find(Districts.class, districtDto.getDistrictId().intValue());
+                if (district == null) {
+                    throw new IllegalArgumentException("District not found with id: " + districtDto.getDistrictId());
+                }
+
+                throw new IllegalArgumentException(
+                        String.format("District with ID %d belongs to state %s, not state %s",
+                                districtDto.getDistrictId(), district.getState_code(), stateCode.getState_code()));
+            }
+        }
+    }
 
     public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
@@ -2688,6 +2900,10 @@ public class ProductService {
             if(postDto.getPhysicalRequirements()!=null)
             {
                 validatePhysicalRequirement(postDto, null);
+            }
+            if(postDto.getQualificationEligibilityDto()!=null)
+            {
+                validateQualificationRequirement(postDto);
             }
         }
 
