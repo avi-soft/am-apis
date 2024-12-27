@@ -203,7 +203,7 @@ public class SharedUtilityService {
         customerDetails.put("subcategory", customCustomer.getSubcategory());
         customerDetails.put("domicile", customCustomer.getDomicile());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-        customerDetails.put("date_of_birth", customCustomer.getDob());
+//        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
         customerDetails.put("height_cms", customCustomer.getHeightCms());
         customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
@@ -225,6 +225,7 @@ public class SharedUtilityService {
         customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
+        customerDetails.put("interested_in_defence",customCustomer.getInterestedInDefence());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
@@ -683,6 +684,85 @@ public class SharedUtilityService {
         }
     }
 
+    public boolean validateCategoryIssueAndValidUptoDates(String categoryIssueDate, String categoryUptoDate, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date issueDate = sdf.parse(categoryIssueDate);
+            Date uptoDate = sdf.parse(categoryUptoDate);
+
+            if(issueDate.after(uptoDate)) {
+                cond = false;
+                errorMessages.add("category Issue date cannot be future of category valid upto date.");
+            }
+
+            if(issueDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("category Issue date cannot be future of current date");
+            }
+            return cond;
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
+    public boolean validateCategoryIssueDate(String categoryIssueDate, CustomCustomer customer, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date issueDate = sdf.parse(categoryIssueDate);
+
+            if(issueDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("Category issue date has to past or current date");
+            }
+            if(customer.getCategoryValidUpto() != null) {
+                Date uptoDate = sdf.parse(customer.getCategoryValidUpto());
+                if(issueDate.after(uptoDate)) {
+                    cond = false;
+                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                }
+            }
+
+            return cond;
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
+    public boolean validateCategoryUptoDate(String categoryUptoDate, CustomCustomer customer, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date uptoDate = sdf.parse(categoryUptoDate);
+
+            if(!uptoDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("Category upto date has to future date");
+            }
+            if(customer.getCategoryIssueDate() == null) {
+                cond = false;
+                errorMessages.add("There is no entry of categoryIssueDate cannot");
+            }else {
+                Date issueDate = sdf.parse(customer.getCategoryIssueDate());
+                if(issueDate.after(uptoDate)) {
+                    cond = false;
+                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                }
+            }
+
+            return cond;
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
     public Map<String, Object> adminDetailsMap(CustomAdmin customAdmin) {
         Map<String, Object> customAdminDetails = new HashMap<>();
         if (customAdmin.getRole() == 2) {
@@ -746,6 +826,18 @@ public class SharedUtilityService {
 
         // Use regular expression to check if the string contains only alphabets
         return input.matches("[a-zA-Z]+");
+    }public long parseToLong(Object value) {
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value); // Parse string to long
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid number format");
+            }
+        } else if (value instanceof Number) {
+            return ((Number) value).longValue(); // Cast directly to long if it's already a number
+        } else {
+            throw new IllegalArgumentException("Value is neither a valid String nor a Number");
+        }
     }
 
 }

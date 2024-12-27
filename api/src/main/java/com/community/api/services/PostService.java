@@ -1,38 +1,61 @@
 
 package com.community.api.services;
-
 import javax.persistence.EntityManager;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
-
+import java.util.Map;
+import java.util.Set;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import com.community.api.component.Constant;
 import com.community.api.dto.*;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
 import io.swagger.models.auth.In;
+import javassist.NotFoundException;
+import org.broadleafcommerce.core.catalog.domain.Product;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.community.api.endpoint.avisoft.controller.product.ProductController.POSTLESSTHANORZERO;
+import static com.community.api.services.ProductService.calculateDateRange;
+
 @Service
 public class PostService {
+
     private final EntityManager entityManager;
     private final ExceptionHandlingService exceptionHandlingService;
-    private  GenderService genderService;
+    private final ReserveCategoryService reserveCategoryService;
+    private final GenderService genderService;
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService reserveCategoryBornBeforeAfterRefService;
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
-    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,GenderService genderService) {
+    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService) {
         this.entityManager = entityManager;
         this.exceptionHandlingService = exceptionHandlingService;
+        this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
     }
 
-    public List<Post> savePosts(List<PostDto> postDtos) throws Exception {
+
+    public List<Post> savePosts(List<PostDto>postDtos,Product product) throws Exception {
         try {
             List<Post> savedPosts = new ArrayList<>();
 
             for (PostDto postDto : postDtos) {
-                Post post = savePost(postDto);
+                Post post = savePost(postDto,product);
                 savedPosts.add(post);
             }
-
             return savedPosts;
         }
         catch (IllegalArgumentException e)
@@ -45,8 +68,102 @@ public class PostService {
             throw new Exception("Failed to save Posts: " + e.getMessage(), e);
         }
     }
+    public boolean validateAge(PostDto addProductDto) throws Exception {
+        try {
+            if (addProductDto.getReserveCategoryAge()==null) {
+                throw new IllegalArgumentException("Reserve category cannot be empty.");
+            }
+            Set<Long> reserveCategoryId = new HashSet<>();
+            Set<Integer>genderCategoryComboSet=new HashSet<>();
 
-    private Post savePost(PostDto postDto) throws Exception {
+            Date currentDate = new Date(); // Current date for comparison
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(currentDate);
+
+            calendar.add(Calendar.YEAR, -105);
+            Date minBornAfterDate = calendar.getTime();
+            calendar.add(Calendar.YEAR, 100);
+            Date maxBornBeforeDate = calendar.getTime();
+
+                AddProductAgeDTO addProductAgeDTO=addProductDto.getReserveCategoryAge();
+                if(addProductAgeDTO.getBornBeofreAfter()==null)
+                {
+                    throw new IllegalArgumentException("born_before_after cannot be null");
+                }
+                if(!addProductAgeDTO.getBornBeofreAfter())
+                {
+                    if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
+                        throw new IllegalArgumentException("Both minimum and maximum age re required");
+                    Map<String,Date> dates=calculateDateRange(addProductAgeDTO.getAsOfDate(),addProductAgeDTO.getMinAge(),addProductAgeDTO.getMaxAge());
+                    addProductAgeDTO.setBornBefore(dates.get("bornBeforeDate"));
+                    addProductAgeDTO.setBornAfter(dates.get("bornAfterDate"));
+                }
+                else
+                {
+                    addProductAgeDTO.setAsOfDate(null);
+                    addProductAgeDTO.setMaxAge(0);
+                    addProductAgeDTO.setMinAge(0);
+                }
+                if (addProductDto.getReserveCategoryAge().getReserveCategory() == null || addProductDto.getReserveCategoryAge().getReserveCategory() <= 0) {
+                    throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }if (addProductDto.getReserveCategoryAge().getGender() == null || addProductDto.getReserveCategoryAge().getGender() <= 0) {
+                    throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
+                }
+                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReserveCategoryAge().getGender());
+                if(gender==null)
+                    throw new NotFoundException("Invalid gender id");
+                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().getReserveCategory());
+                if(category==null)
+                    throw new NotFoundException("Invalid category id");
+                int genderAndCategoryCombo=(addProductDto.getReserveCategoryAge().getReserveCategory().intValue())*10+(addProductDto.getReserveCategoryAge().getGender().intValue());
+              /*  if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReserveCategoryAge().size()>1)
+                {
+                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender age can be applied.");
+                }*/
+                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
+                {
+                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                }
+                reserveCategoryId.add(addProductDto.getReserveCategoryAge().getReserveCategory());
+
+                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().getReserveCategory());
+                if (reserveCategory == null) {
+                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReserveCategoryAge().getReserveCategory());
+                }
+               /* if (addProductDto.getReserveCategoryAge().getPost() == null) {
+                    addProductDto.getReserveCategoryAge().setPost(Constant.DEFAULT_QUANTITY);
+                } else if (addProductDto.getReserveCategoryAge().getPost() <= 0) {
+                    throw new IllegalArgumentException(POSTLESSTHANORZERO);
+                }*/
+
+                if (addProductDto.getReserveCategoryAge().getBornBefore() == null || addProductDto.getReserveCategoryAge().getBornAfter() == null) {
+                    throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
+                }
+                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().getBornAfter()));
+                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().getBornBefore()));
+
+                if (!addProductDto.getReserveCategoryAge().getBornBefore().before(new Date()) || !addProductDto.getReserveCategoryAge().getBornAfter().before(new Date())) {
+                    throw new IllegalArgumentException("Born before date and born after date must be of past.");
+                } else if (!addProductDto.getReserveCategoryAge().getBornAfter().before(addProductDto.getReserveCategoryAge().getBornBefore())) {
+                    throw new IllegalArgumentException("Born after date must be past of born before date.");
+                }
+
+                if (addProductDto.getReserveCategoryAge().getBornAfter().before(minBornAfterDate)) {
+                    throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
+                }
+                if (addProductDto.getReserveCategoryAge().getBornBefore().after(maxBornBeforeDate)) {
+                    throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
+                }
+            return true;
+        } catch (NotFoundException | IllegalArgumentException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            throw new IllegalArgumentException(notFoundException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
+        }
+    }
+    private Post savePost(PostDto postDto,Product product) throws Exception {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
@@ -56,7 +173,7 @@ public class PostService {
 
         // list is created but haven't set it yet if there are no types
         List<VacancyDistributionType> vacancyTypes = new ArrayList<>();
-
+        validateAge(postDto);
         // Only set vacancy types and handle distributions if there are vacancy distribution type IDs
         if (postDto.getVacancyDistributionTypeIds() != null && !postDto.getVacancyDistributionTypeIds().isEmpty()) {
             for (Integer typeId : postDto.getVacancyDistributionTypeIds()) {
@@ -68,7 +185,6 @@ public class PostService {
             }
             post.setVacancyDistributionTypes(vacancyTypes);
         }
-
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
@@ -96,9 +212,59 @@ public class PostService {
                 post.setZoneDistributions(zoneDistributions);
             }
         }
-
         entityManager.persist(post);
         entityManager.flush(); // Ensure Post is saved and has an ID
+        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
+        if (qualificationEligibilityDto!=null) {
+                QualificationEligibility qualificationRequirement = new QualificationEligibility();
+                //set qualifications
+                List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                List<Qualification> qualificationsToAdd= new ArrayList<>();
+                for(Integer qualificationId: qualificationIds)
+                {
+                    Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                    qualificationsToAdd.add(qualification);
+                }
+                qualificationRequirement.setQualifications(qualificationsToAdd);
+
+                //set subjects
+                List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
+                if(subjectIds!=null)
+                {
+                    if(!subjectIds.isEmpty())
+                    {
+                        List<CustomSubject> subjectsToAdd= new ArrayList<>();
+                        for(Long subjectId: subjectIds)
+                        {
+                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
+                            subjectsToAdd.add(customSubject);
+                        }
+                        qualificationRequirement.setCustomSubjects(subjectsToAdd);
+                    }
+                }
+
+                //set streams
+                List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
+                List<CustomStream> streamsToAdd= new ArrayList<>();
+                for(Long streamId: streamIds)
+                {
+                    CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                    streamsToAdd.add(customStream);
+                }
+                qualificationRequirement.setCustomStreams(streamsToAdd);
+
+                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
+                {
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
+                    qualificationRequirement.setCustomReserveCategory(customReserveCategory);
+                }
+                qualificationRequirement.setPercentage(qualificationEligibilityDto.getPercentage());
+                qualificationRequirement.setPost(post);
+
+                entityManager.persist(qualificationRequirement);
+            }
+            entityManager.flush();
+
         List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
         if (!physicalRequirementDtos.isEmpty()) {
             for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
@@ -121,12 +287,10 @@ public class PostService {
             entityManager.flush();
         }
 
-        // Ensure physical requirements are fetched
         entityManager.refresh(post);
 
         return post;
     }
-
 
     private List<StateDistribution> saveStateDistributions(List<StateDistributionDto> stateDtos, Post post) throws Exception {
         List<StateDistribution> stateDistributions = new ArrayList<>();
@@ -176,6 +340,14 @@ public class PostService {
                     }
                 })
                 .sum();
+    }
+    @Transactional
+    public void updatePostAgeRequirements(List<PostDto> postDtos,CustomProduct product,List<Post>postList) {
+        int i=0;
+        for (Post post : postList) {
+            reserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(postDtos.get(i).getReserveCategoryAge(),product,post);
+            i++;
+        }
     }
 
     private void saveDistrictDistributions(StateDistributionDto stateDto, StateDistribution stateDistribution) throws Exception {
