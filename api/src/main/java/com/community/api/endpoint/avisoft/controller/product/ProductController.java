@@ -247,17 +247,6 @@ public class ProductController extends CatalogEndpoint {
                         productService.validateReserveCategory(addProductDto);
                     }
                 }
-            if(!saveDraft)
-            {
-                productService.validateAge(addProductDto);
-            }
-            else if(saveDraft)
-            {
-                if(addProductDto.getReservedCategory()!=null)
-                {
-                    productService.validateAge(addProductDto);
-                }
-            }
                 CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
                 CustomSector customSector = productService.validateSector(addProductDto);
 
@@ -303,7 +292,6 @@ public class ProductController extends CatalogEndpoint {
             if(!saveDraft)
             {
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(), product);
             }
             else if(saveDraft)
 
@@ -311,7 +299,6 @@ public class ProductController extends CatalogEndpoint {
                 if(addProductDto.getReservedCategory()!=null)
                 {
                     productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-                    productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(), product);
                 }
             }
 
@@ -326,11 +313,11 @@ public class ProductController extends CatalogEndpoint {
             if (!saveDraft) {
                 if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
                     productService.validatePostRequirement(addProductDto, null);
-                   postList= postService.savePosts(addProductDto.getPosts());
+                   postList= postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
                 productService.validatePostRequirement(addProductDto, null);
-                postList=postService.savePosts(addProductDto.getPosts());
+                postList=postService.savePosts(addProductDto.getPosts(), product);
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
@@ -338,6 +325,9 @@ public class ProductController extends CatalogEndpoint {
                 if(addProductDto.getPosts()!=null)
                 {
                     productService.validatePostRequirement(addProductDto,null);
+                }
+                if (postList != null && !postList.isEmpty()) {
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
                 }
                 wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,postList);
             }
@@ -347,6 +337,9 @@ public class ProductController extends CatalogEndpoint {
                 {
                     productService.validatePostRequirement(addProductDto,null);
                 }
+                if (postList != null && !postList.isEmpty()) {
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
+                }
                 if(reserveCategoryService!=null)
                 {
                     wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,postList);
@@ -354,14 +347,11 @@ public class ProductController extends CatalogEndpoint {
                     wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,postList);
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
-                if (postList != null && !postList.isEmpty()) {
-                    postExecutionService.savePostsToCustomProduct(product, postList);
-                }
                  return response;
             }
             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
-                postExecutionService.savePostsToCustomProduct(product, postList);
+                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
             return response;
 
@@ -403,10 +393,6 @@ public class ProductController extends CatalogEndpoint {
                 productService.validateReserveCategory(addProductDto);
                 productService.deleteOldReserveCategoryMapping(customProduct);
             }
-            if(addProductDto.getReserveCategoryAge()!=null)
-            {
-                productService.validateAge(addProductDto);
-            }
             productService.updateProductValidation(addProductDto, customProduct);
 
             // Validation of getActiveEndDate and getGoLiveDate.
@@ -437,10 +423,10 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getReservedCategory() != null) {
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
             }
-            if(addProductDto.getReserveCategoryAge()!=null)
+           /* if(addProductDto.getReserveCategoryAge()!=null)
             {
-                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(), product);
-            }
+                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
+            }*/
             if(addProductDto.getGenderSpecific()!=null){
                 if(addProductDto.getGenderSpecific() == 0) {
                     customProduct.setGenderSpecific(null);
@@ -456,12 +442,12 @@ public class ProductController extends CatalogEndpoint {
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
-                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
             }
             else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
-                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
             }
             else if(!saveAsDraft)
@@ -471,7 +457,7 @@ public class ProductController extends CatalogEndpoint {
                    return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,physicalRequirementDtoList,wrapper);
                 }
             }
-            wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+            wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -513,7 +499,7 @@ public class ProductController extends CatalogEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
                 List<Post> postList= customProduct.getPosts();
-                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,postList);
+                wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
 
             } else {
@@ -654,7 +640,7 @@ public class ProductController extends CatalogEndpoint {
                         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(customProduct.getId());
                         List<Post> postList= customProduct.getPosts();
                         CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,postList);
+                        wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
 
                         responses.add(wrapper);
                     }

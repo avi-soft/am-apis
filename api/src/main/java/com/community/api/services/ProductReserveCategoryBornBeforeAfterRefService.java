@@ -7,7 +7,9 @@ import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.Post;
 import com.community.api.services.exception.ExceptionHandlingService;
+import io.swagger.models.auth.In;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
 
@@ -52,36 +55,29 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
             return null;
         }
     }
-
-    public void saveBornBeforeAndBornAfter(List<AddProductAgeDTO> addReserveCategoryDtoList, Product product) {
+    public void saveBornBeforeAndBornAfter(AddProductAgeDTO addReserveCategoryDto, CustomProduct product, Post post) {
         try {
-            for (AddProductAgeDTO addReserveCategoryDto : addReserveCategoryDtoList) {
-
-                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
-                Date bornAfter = addReserveCategoryDto.getBornAfter();
-                Date bornBefore = addReserveCategoryDto.getBornBefore();
-                CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
-                Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER);
-                query.setParameter("productId", product.getId());
-                query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
-                query.setParameter("bornAfter", bornAfter);
-                query.setParameter("bornBefore", bornBefore);
-                query.setParameter("bornBefore", bornBefore);
-                query.setParameter("genderId",gender.getGenderId());
-                query.setParameter("bornBeforeAfter",addReserveCategoryDto.getBornBeofreAfter());
-                query.setParameter("maximumAge",addReserveCategoryDto.getMaxAge());
-                query.setParameter("minimumAge",addReserveCategoryDto.getMinAge());
-
-                int affectedRows = query.executeUpdate();
-
-                if (affectedRows == 0) {
-                    throw new RuntimeException("Error inserting values in mapping table of CustomProductReserveCategoryBornBeforeAfterRef");
-                }
+            CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
+            Date bornAfter = addReserveCategoryDto.getBornAfter();
+            Date bornBefore = addReserveCategoryDto.getBornBefore();
+            CustomGender gender = genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
+                CustomProductReserveCategoryBornBeforeAfterRef ref = new CustomProductReserveCategoryBornBeforeAfterRef();
+                ref.setBornBefore(bornBefore);
+                ref.setBornAfter(bornAfter);
+                ref.setCustomReserveCategory(reserveCategory);
+                ref.setCustomProduct(product);
+                ref.setGender(gender);
+                ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
+                ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
+                ref.setMinimumAge(addReserveCategoryDto.getMinAge());
+                ref.setProductReservedCategoryId(addReserveCategoryDto.getReserveCategory());
+                // Use merge instead of persist
+                CustomProductReserveCategoryBornBeforeAfterRef mergedRef = entityManager.merge(ref);
+                post.setAgeRequirement(mergedRef);
+                entityManager.merge(post);
+        } catch(Exception exception){
+                exceptionHandlingService.handleException(exception);
             }
-
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-        }
     }
 
     public CustomProductReserveCategoryBornBeforeAfterRef getCustomProductReserveCategoryBornBeforeAfterRefByProductIdAndReserveCategoryId(Long productId, Long reserveCategoryId) {
@@ -93,6 +89,19 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
             List<CustomProductReserveCategoryBornBeforeAfterRef> customProductReserveCategoryBornBeforeAfterRefList = entityManager.createQuery("SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct AND c.customReserveCategory = :customReserveCategory", CustomProductReserveCategoryBornBeforeAfterRef.class)
                     .setParameter("customProduct", customProduct)
                     .setParameter("customReserveCategory", customReserveCategory)
+                    .getResultList();
+
+            return customProductReserveCategoryBornBeforeAfterRefList.get(0);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return null;
+        }
+
+    }
+    public CustomProductReserveCategoryBornBeforeAfterRef getCustomProductReserveCategoryBornBeforeAfterRefByUId(Long uid){
+        try {
+            List<CustomProductReserveCategoryBornBeforeAfterRef> customProductReserveCategoryBornBeforeAfterRefList = entityManager.createQuery("SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE productReservedCategoryId = :uid", CustomProductReserveCategoryBornBeforeAfterRef.class)
+                    .setParameter("uid", uid)
                     .getResultList();
 
             return customProductReserveCategoryBornBeforeAfterRefList.get(0);
