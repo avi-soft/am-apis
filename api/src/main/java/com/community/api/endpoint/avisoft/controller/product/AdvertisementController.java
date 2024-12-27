@@ -201,10 +201,13 @@ public class AdvertisementController {
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
 
-            if (advertisement == null || (advertisement.getArchived() == 'Y')) {
+            if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
             }
 
+            if(advertisement.getArchived() == 'Y') {
+                return ResponseService.generateErrorResponse("Advertisement is Already Archived", HttpStatus.NOT_FOUND);
+            }
             advertisement.setArchived('Y');
 
             String formattedDate = dateFormat.format(new Date());
