@@ -334,4 +334,8 @@ public class CustomCustomer extends CustomerImpl {
         Collections.reverse(referrers);
         return referrers;
     }
+    @ManyToOne
+    @JoinColumn(name = "scope_id")
+    protected CustomApplicationScope customApplicationScope;
+
 }
