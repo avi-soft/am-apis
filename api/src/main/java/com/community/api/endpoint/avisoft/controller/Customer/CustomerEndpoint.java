@@ -630,7 +630,8 @@ public class CustomerEndpoint {
             }
 
             if(details.containsKey("interestedInDefence")) {
-                Boolean value = (Boolean) details.get("interrestedInDefence");
+                Boolean value = (Boolean) details.get("interestedInDefence");
+                System.out.println("hello"+ value);
                 customCustomer.setInterestedInDefence(value);
             }
 
