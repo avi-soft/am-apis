@@ -17,7 +17,6 @@ import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
-import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -33,11 +32,9 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -45,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -556,6 +551,28 @@ public class SharedUtilityService {
                     qualificationInfo.put("subjects", subjects);
                     qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
 
+                    Map<String, Object> filteredDocument = null;
+                    Document document= qualificationDetail.getQualificationDocument();
+                    if(document==null)
+                    {
+                        qualificationInfo.put("qualification_document",null);
+                    }
+                    else {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if (document.getFilePath() != null && document.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", document.getDocumentId());
+                                documentDetails.put("name", document.getName());
+                                documentDetails.put("filePath", document.getFilePath());
+                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+                                filteredDocument=documentDetails;
+                            }
+                        }
+                        qualificationInfo.put("qualification_document", filteredDocument);
+                    }
+
                     return qualificationInfo;
                 }).collect(Collectors.toList());
     }
@@ -606,6 +623,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
+                    qualificationInfo.put("qualification_document",qualificationDetail.getQualificationDocument());
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {
@@ -625,6 +643,28 @@ public class SharedUtilityService {
                         qualificationInfo.put("stream_name", customStream.getStreamName());
                     }else {
                         qualificationInfo.put("stream_name", "Unknown Stream");
+                    }
+
+                    Map<String, Object> filteredDocument = null;
+                    ServiceProviderDocument serviceProviderDocument= qualificationDetail.getServiceProviderDocument();
+                    if(serviceProviderDocument==null)
+                    {
+                        qualificationInfo.put("qualification_document",null);
+                    }
+                    else {
+                        if(serviceProviderDocument.getIsArchived().equals(false))
+                        {
+                            if (serviceProviderDocument.getFilePath() != null && serviceProviderDocument.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", serviceProviderDocument.getDocumentId());
+                                documentDetails.put("name", serviceProviderDocument.getName());
+                                documentDetails.put("filePath", serviceProviderDocument.getFilePath());
+                                String fileUrl = fileService.getFileUrl(serviceProviderDocument.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+                                filteredDocument=documentDetails;
+                            }
+                        }
+                        qualificationInfo.put("qualification_document", filteredDocument);
                     }
                     return qualificationInfo;
                 }).collect(Collectors.toList());
