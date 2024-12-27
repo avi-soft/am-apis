@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Column;
@@ -70,6 +71,7 @@ public class Post {
     private CustomProductReserveCategoryBornBeforeAfterRef ageRequirement;
     @JsonIgnore
     private Long refId;
-
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
 
 }

@@ -2,24 +2,38 @@ package com.community.api.services.ServiceProvider;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.entity.*;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
-import com.community.api.services.*;
+import com.community.api.entity.ScoringCriteria;
+import com.community.api.entity.ServiceProviderAddress;
+import com.community.api.entity.ServiceProviderAddressRef;
+import com.community.api.entity.ServiceProviderInfra;
+import com.community.api.entity.ServiceProviderLanguage;
+import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.ServiceProviderTestStatus;
+import com.community.api.entity.Skill;
+import com.community.api.entity.StateCode;
+import com.community.api.services.ApiConstants;
+import com.community.api.services.CustomCustomerService;
+import com.community.api.services.DistrictService;
+import com.community.api.services.RateLimiterService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.ServiceProviderInfraService;
+import com.community.api.services.ServiceProviderLanguageService;
+import com.community.api.services.ServiceProviderTestService;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.SkillService;
+import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.community.api.utils.DocumentType;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
-import org.apache.zookeeper.server.SessionTracker;
-import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,22 +42,16 @@ import org.springframework.web.client.HttpClientErrorException;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
-import javax.persistence.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
-import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.Email;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -51,15 +59,10 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.regex.Matcher;
 import javax.validation.constraints.Pattern;
-
-import static elemental2.core.JsRegExp.input;
-import static org.springframework.security.config.http.MatcherType.regex;
 
 @Service
 public class ServiceProviderServiceImpl implements ServiceProviderService {
@@ -137,6 +140,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return Collections.emptyList();
     }
 
+    public static boolean isOnlyDigits(String str) {
+        // Check if the string is not null and matches the regex for only digits
+        return str != null && str.matches("^[0-9]+$");
+    }
+
+    public static boolean isNumeric(String str) {
+        return str != null && str.matches("\\d{10}");
+    }
+
+    public static boolean isAlphabetOnly(String str) {
+        return str != null && str.matches("^[A-Za-z]+( [A-Za-z]+)*$");
+    }
+
     @Override
     @Transactional
     public ServiceProviderEntity saveServiceProvider(ServiceProviderEntity serviceProviderEntity) {
@@ -204,22 +220,21 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
-            List<String>addresskeys=new ArrayList<>();
+            List<String> addresskeys = new ArrayList<>();
             addresskeys.add("district");
             addresskeys.add("city");
             addresskeys.add("pincode");
             addresskeys.add("state");
             addresskeys.add("residential_address");
-            int count =0;
-            for(String key : updates.keySet())
-            {
-                if(addresskeys.contains(key))
+            int count = 0;
+            for (String key : updates.keySet()) {
+                if (addresskeys.contains(key))
                     count++;
             }
-            if(count>0&&count<addresskeys.size())
-                return ResponseService.generateErrorResponse("Need all address fields to add or update address",HttpStatus.BAD_REQUEST);
+            if (count > 0 && count < addresskeys.size())
+                return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
 
-            if (updates.containsKey("district") && updates.containsKey("state")&&updates.containsKey("city")&& updates.containsKey("pincode") && updates.containsKey("residential_address")) {
+            if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 if (validateAddressFields(updates).isEmpty()) {
                     if (existingServiceProvider.getSpAddresses().isEmpty()) {
                         ServiceProviderAddress serviceProviderAddress = new ServiceProviderAddress();
@@ -672,8 +687,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pincode = (String) updates.get("pincode");
         String city = (String) updates.get("city");
         String residentialAddress = (String) updates.get("residential_address");
-        String[] fieldNames = {"state", "district", "pincode", "residential_address","city"};
-        String[] fieldValues = {state, district, pincode, residentialAddress,city};
+        String[] fieldNames = {"state", "district", "pincode", "residential_address", "city"};
+        String[] fieldValues = {state, district, pincode, residentialAddress, city};
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
                 errorMessages.add(fieldNames[i] + " cannot be empty");
@@ -682,8 +697,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pattern = Constant.PINCODE_REGEXP;
         if (!java.util.regex.Pattern.matches(pattern, pincode))
             errorMessages.add("Pincode should contain only numbers and should be of length 6");
-       pattern = Constant.CITY_REGEXP;
-        if(!java.util.regex.Pattern.matches(pattern, city))
+        pattern = Constant.CITY_REGEXP;
+        if (!java.util.regex.Pattern.matches(pattern, city))
             errorMessages.add("Field city should only contain letters");
         return errorMessages;
     }
@@ -698,14 +713,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         if (mobileNumber == null || mobileNumber.isEmpty()) {
             throw new IllegalArgumentException("Mobile number cannot be null or empty");
-
         }
 
         try {
             Twilio.init(accountSid, authToken);
             String completeMobileNumber = Constant.COUNTRY_CODE + mobileNumber;
             String otp = generateOTP();
-
 
 /*            Message message = Message.creator(
 
@@ -716,7 +729,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     .create();
 */
-
 
             ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
             if (existingServiceProvider == null) {
@@ -1116,8 +1128,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (serviceProviderAddressToAdd.getAddress_type_id() == serviceProviderAddress.getAddress_type_id())
                     return ResponseService.generateErrorResponse("Cannot add another address of this type", HttpStatus.BAD_REQUEST);
             }
-            if(!isOnlyDigits(serviceProviderAddress.getState())||!isOnlyDigits(serviceProviderAddress.getDistrict()))
-                return ResponseService.generateErrorResponse("Invalid state or district",HttpStatus.BAD_REQUEST);
+            if (!isOnlyDigits(serviceProviderAddress.getState()) || !isOnlyDigits(serviceProviderAddress.getDistrict()))
+                return ResponseService.generateErrorResponse("Invalid state or district", HttpStatus.BAD_REQUEST);
             serviceProviderAddress.setState(districtService.findStateById(Integer.parseInt(serviceProviderAddress.getState())));
             serviceProviderAddress.setDistrict(districtService.findDistrictById(Integer.parseInt(serviceProviderAddress.getDistrict())));
             addresses.add(serviceProviderAddress);
@@ -1132,9 +1144,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error adding address", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }public static boolean isOnlyDigits(String str) {
-        // Check if the string is not null and matches the regex for only digits
-        return str != null && str.matches("^[0-9]+$");
     }
 
     @Transactional
@@ -1165,9 +1174,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 errorList.add(field.getName() + "cannot be empty");
             }
         }
-        if(!isOnlyDigits(addressToupdate.getState())||!isOnlyDigits(addressToupdate.getDistrict()))
+        if (!isOnlyDigits(addressToupdate.getState()) || !isOnlyDigits(addressToupdate.getDistrict()))
             errorList.add("Invalid state or district");
-        if(!errorList.isEmpty())
+        if (!errorList.isEmpty())
             return errorList;
         if (addressToupdate != null) {
             if (dto.getState() != null && !dto.getState().isEmpty())
@@ -1176,21 +1185,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 addressToupdate.setDistrict(districtService.findDistrictById(Integer.parseInt(dto.getDistrict())));
             if (dto.getAddress_line() != null && !dto.getAddress_line().isEmpty())
                 addressToupdate.setAddress_line(dto.getAddress_line());
-                if(dto.getCity()!=null && !dto.getCity().isEmpty())
-                    addressToupdate.setCity(dto.getCity());
+            if (dto.getCity() != null && !dto.getCity().isEmpty())
+                addressToupdate.setCity(dto.getCity());
             if (dto.getPincode() != null && !dto.getPincode().isEmpty())
                 addressToupdate.setPincode(dto.getPincode());
             existingServiceProvider.setSpAddresses(addresses);
             serviceProviderAddress.setServiceProviderEntity(existingServiceProvider);
         }
         return errorList;
-    }
-
-    public static boolean isNumeric(String str) {
-        return str != null && str.matches("\\d{10}");
-    }
-    public static boolean isAlphabetOnly(String str) {
-        return str != null && str.matches("^[A-Za-z]+( [A-Za-z]+)*$");
     }
 
     @Transactional
@@ -1203,7 +1205,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
                     response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
                 }
-                return ResponseService.generateSuccessResponse("Service Providers",response,HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
             }
 
             if (mobileNumber != null && !isNumeric(mobileNumber)) {
@@ -1239,7 +1241,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .findFirst()
                         .orElse(null);
                 if (serviceProviderEntity != null)
-                    return ResponseService.generateSuccessResponse("Service Providers",sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity),HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
                 else
                     throw new PersistenceException("No results found for your input");
             }
@@ -1283,18 +1285,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             for (ServiceProviderEntity serviceProvider : listOfSp) {
                 response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
-            return ResponseService.generateSuccessResponse("Service Providers",response,HttpStatus.OK);
-        }catch (PersistenceException e)
-        {
-            return ResponseService.generateErrorResponse("Error finding SP : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        catch (IllegalArgumentException e)
-        {
-            return ResponseService.generateErrorResponse("Error finding SP : "+e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e)
-        {
-            return ResponseService.generateErrorResponse("Error finding SP : "+e.getMessage(),HttpStatus.EXPECTATION_FAILED);
+            return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+        } catch (PersistenceException e) {
+            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.EXPECTATION_FAILED);
         }
     }
 
@@ -1311,8 +1308,30 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
     public void serviceProviderTicketAssignedIncrement(ServiceProviderEntity serviceProvider) throws Exception {
         try {
-            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
             entityManager.merge(serviceProvider);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
+        }
+    }
+
+    public List<ServiceProviderEntity> getActiveAndApprovedServiceProviders() throws Exception {
+        try {
+            Query query2 = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
+            query2.setParameter("test_status_id", 3L);
+            List<ServiceProviderTestStatus> serviceProviderTestStatus = query2.getResultList();
+            if (serviceProviderTestStatus.size() == 0) {
+                throw new IllegalArgumentException("No Test Status is found with this id");
+            }
+
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive", ServiceProviderEntity.class);
+            query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
+            query.setParameter("isActive", true);
+
+            List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
+            return serviceProviderEntityList;
+
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());

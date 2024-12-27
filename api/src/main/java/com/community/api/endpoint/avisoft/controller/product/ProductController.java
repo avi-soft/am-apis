@@ -322,11 +322,6 @@ public class ProductController extends CatalogEndpoint {
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
             {
-                if(addProductDto.getPhysicalRequirement()!=null)
-                {
-                    productService.validatePhysicalRequirement(addProductDto, null);
-                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-                }
                 if(addProductDto.getPosts()!=null)
                 {
                     productService.validatePostRequirement(addProductDto,null);
@@ -338,11 +333,6 @@ public class ProductController extends CatalogEndpoint {
             }
             else if(saveDraft)
             {
-                if(addProductDto.getPhysicalRequirement()!=null)
-                {
-                    productService.validatePhysicalRequirement(addProductDto, null);
-                    productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-                }
                 if(addProductDto.getPosts()!=null)
                 {
                     productService.validatePostRequirement(addProductDto,null);
@@ -404,10 +394,6 @@ public class ProductController extends CatalogEndpoint {
                 productService.deleteOldReserveCategoryMapping(customProduct);
             }
             productService.updateProductValidation(addProductDto, customProduct);
-            if(addProductDto.getPhysicalRequirement() != null) {
-                productService.validatePhysicalRequirement(addProductDto, customProduct);
-                productService.deleteOldPhysicalRequirement(customProduct);
-            }
 
             // Validation of getActiveEndDate and getGoLiveDate.
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
@@ -437,9 +423,10 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getReservedCategory() != null) {
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
             }
-            if(addProductDto.getPhysicalRequirement() != null) {
-                productGenderPhysicalRequirementService.savePhysicalRequirement(addProductDto.getPhysicalRequirement(), product);
-            }
+           /* if(addProductDto.getReserveCategoryAge()!=null)
+            {
+                productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
+            }*/
             if(addProductDto.getGenderSpecific()!=null){
                 if(addProductDto.getGenderSpecific() == 0) {
                     customProduct.setGenderSpecific(null);

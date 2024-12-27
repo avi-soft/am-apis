@@ -2570,54 +2570,46 @@ public class ProductService {
         }
     }
 
-    public boolean validatePhysicalRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
+    public boolean validatePhysicalRequirement(PostDto postDto, CustomProduct customProduct) throws Exception {
         try {
-            CustomGender gender = null;
-            if (addProductDto.getGenderSpecific() != null) {
-                gender = genderService.getGenderByGenderId(addProductDto.getGenderSpecific());
-            }
-            if (addProductDto.getPhysicalRequirement() == null) {
+            if (postDto.getPhysicalRequirements() == null) {
                 return true;
             }
-            if (!addProductDto.getPhysicalRequirement().isEmpty()) {
+            if (!postDto.getPhysicalRequirements().isEmpty()) {
                 Set<Long> genderId = new HashSet<>();
 
-                for (int physicalAttributeIndex = 0; physicalAttributeIndex < addProductDto.getPhysicalRequirement().size(); physicalAttributeIndex++) {
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId() <= 0) {
+                for (int physicalAttributeIndex = 0; physicalAttributeIndex < postDto.getPhysicalRequirements().size(); physicalAttributeIndex++) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() <= 0) {
                         throw new IllegalArgumentException("GENDER ID CANNOT BE NULL OR <= 0");
                     }
-                    genderId.add(addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
+                    genderId.add(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
 
-                    CustomGender customGender = genderService.getGenderByGenderId(addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
+                    CustomGender customGender = genderService.getGenderByGenderId(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
                     if (customGender == null) {
-                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
-                    }
-                    if (addProductDto.getGenderSpecific() != null && customGender != gender) {
-                        throw new IllegalArgumentException("Gender id is not matched with the specific gender.");
-                    } else if (customProduct != null && customProduct.getGenderSpecific() != null && addProductDto.getGenderSpecific() == null && customGender != customProduct.getGenderSpecific()) {
-                        throw new IllegalArgumentException("Gender id is not matched with the specific gender.");
+                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
                     }
 
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() > Constant.MAX_HEIGHT || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() < Constant.MIN_HEIGHT) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
                         throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
                         throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
                     }
 
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
                         throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
                         throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
+
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
                         throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
                     }
 
                 }
 
-                if (genderId.size() != addProductDto.getPhysicalRequirement().size()) {
+                if (genderId.size() != postDto.getPhysicalRequirements().size()) {
                     throw new IllegalArgumentException("DUPLICATE GENDER NOT ALLOWED");
                 }
             }
@@ -2667,7 +2659,7 @@ public class ProductService {
     }
 }
 
-    public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) {
+    public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
@@ -2691,6 +2683,11 @@ public class ProductService {
             } else {
                 // If no distribution type, only validate basic gender distribution
                 validateBasicGenderDistribution(postDto, postDto.getGenderWiseDistribution());
+            }
+
+            if(postDto.getPhysicalRequirements()!=null)
+            {
+                validatePhysicalRequirement(postDto, null);
             }
         }
 

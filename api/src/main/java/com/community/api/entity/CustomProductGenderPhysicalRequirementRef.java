@@ -1,11 +1,13 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -22,14 +24,9 @@ import javax.validation.constraints.NotNull;
 public class CustomProductGenderPhysicalRequirementRef {
 
     @Id
-    @Column(name = "product_gender_id")
+    @Column(name = "physical_requirement_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long productGenderId;
-
-    @ManyToOne
-    @NotNull
-    @JoinColumn(name = "product_id")
-    protected CustomProduct customProduct;
+    Long physicalRequirementId;
 
     @ManyToOne
     @NotNull
@@ -52,5 +49,11 @@ public class CustomProductGenderPhysicalRequirementRef {
 
     @Column(name = "chest_size")
     Double chestSize;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @NotNull
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
 }

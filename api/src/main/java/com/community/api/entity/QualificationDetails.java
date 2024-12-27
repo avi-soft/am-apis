@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import java.util.ArrayList;
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.Data;
@@ -36,7 +35,6 @@ import javax.validation.constraints.Size;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Max;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -120,7 +118,7 @@ public class QualificationDetails {
     private ServiceProviderEntity service_provider;
 
     @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Document document;
+    private Document qualificationDocument;
 
     @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     private ServiceProviderDocument serviceProviderDocument;

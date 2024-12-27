@@ -1,9 +1,7 @@
 package com.community.api.entity;
 
-import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
@@ -11,16 +9,26 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
+
 import javax.persistence.*;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "CUSTOM_CUSTOMER")
@@ -83,7 +91,7 @@ public class CustomCustomer extends CustomerImpl {
     private String category; //@TODO -make it int for using in cart
 
     @Column(name = "hide_phone_number")
-    private Boolean hidePhoneNumber=false;
+    private Boolean hidePhoneNumber = false;
 
     @Nullable
     @Column(name = "category_issue_date", insertable = false, updatable = false)
@@ -151,16 +159,16 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "category_issue_date")
     private String categoryValidUpto;
- 
+
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
     @Column(name = "mother_name")
     private String mothersName;
 
-    @Column(name="religion")
+    @Column(name = "religion")
     private String religion;
 
     @Column(name = "belongs_to_minority")
-    private Boolean belongsToMinority=false;
+    private Boolean belongsToMinority = false;
 
     @Nullable
     @Column(name = "sub_category")
@@ -168,7 +176,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "domicile")
-    private Boolean domicile=false;
+    private Boolean domicile = false;
 
     @Nullable
     @Column(name = "secondary_mobile_number")
@@ -214,7 +222,7 @@ public class CustomCustomer extends CustomerImpl {
             name = "customer_saved_forms",
             joinColumns = @JoinColumn(name = "customer_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id"))
-    private List<CustomProduct>savedForms;
+    private List<CustomProduct> savedForms;
 
     @Nullable
     @JsonManagedReference("qualificationDetailsList-customer")
@@ -223,7 +231,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @JsonManagedReference("documents-customer")
-    @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Document> documents;
 
     @Nullable
@@ -239,23 +247,23 @@ public class CustomCustomer extends CustomerImpl {
     private String token;
 
     @Column(name = "disability_handicapped")
-    private Boolean disability=false;
+    private Boolean disability = false;
 
     @Column(name = "disability_type")
     private String disabilityType;
 
-    @Column(name="percentage_of_disability")
-    private Double disabilityPercentage=0.0;
+    @Column(name = "percentage_of_disability")
+    private Double disabilityPercentage = 0.0;
 
     @Column(name = "is_ex_service_man")
-    private Boolean exService=false;
+    private Boolean exService = false;
 
 
 
     @Column(name = "is_ncc_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_ncc_certificate;
 
-    @Column(name = "is_nss_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(name = "is_nss_certificate", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_nss_certificate;
 
     @Column(name = "ncc_certificate")
@@ -265,7 +273,7 @@ public class CustomCustomer extends CustomerImpl {
     private String nss_certificate;
 
     @Column(name = "is_married")
-    private Boolean isMarried=false;
+    private Boolean isMarried = false;
 
     @Column(name = "visible_identification_mark_1")
     private String identificationMark1;
@@ -284,11 +292,11 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "order_count")
     private Integer numberOfOrders;
 
-    @Column(name = "registered_by_sp",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
-    private Boolean registeredBySp=false;
+    @Column(name = "registered_by_sp", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean registeredBySp = false;
 
-    @Column(name = "profile_completed",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
-    private Boolean profileComplete=false;
+    @Column(name = "profile_completed", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean profileComplete = false;
 
     @Column(name = "created_by_role", columnDefinition = "INTEGER DEFAULT 5")
     private Integer createdByRole;
@@ -314,8 +322,8 @@ public class CustomCustomer extends CustomerImpl {
             if (maxTicketSize2 == 0) maxTicketSize2 = 1;
 
             // Calculate bandwidth for both referrers
-            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending() ) / maxTicketSize1 * 100;
-            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending() ) / maxTicketSize2 * 100;
+            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending()) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending()) / maxTicketSize2 * 100;
 
             // Sort by bandwidth (descending order)
             return Double.compare(bandwidth2, bandwidth1); // for descending order

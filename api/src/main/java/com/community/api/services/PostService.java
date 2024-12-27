@@ -1,6 +1,5 @@
 
 package com.community.api.services;
-
 import javax.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,6 +29,7 @@ import static com.community.api.services.ProductService.calculateDateRange;
 
 @Service
 public class PostService {
+
     private final EntityManager entityManager;
     private final ExceptionHandlingService exceptionHandlingService;
     private final ReserveCategoryService reserveCategoryService;
@@ -37,18 +37,18 @@ public class PostService {
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService reserveCategoryBornBeforeAfterRefService;
-
-
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
+
     public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService) {
         this.entityManager = entityManager;
         this.exceptionHandlingService = exceptionHandlingService;
-        this.reserveCategoryService=reserveCategoryService;
+        this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
     }
 
-    public List<Post> savePosts(List<PostDto> postDtos,Product product) throws Exception {
+
+    public List<Post> savePosts(List<PostDto>postDtos,Product product) throws Exception {
         try {
             List<Post> savedPosts = new ArrayList<>();
 
@@ -212,6 +212,33 @@ public class PostService {
                 post.setZoneDistributions(zoneDistributions);
             }
         }
+
+        entityManager.persist(post);
+        entityManager.flush(); // Ensure Post is saved and has an ID
+        List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
+        if (!physicalRequirementDtos.isEmpty()) {
+            for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
+                CustomGender customGender = genderService.getGenderByGenderId(dto.getGenderId());
+                if (customGender == null) {
+                    throw new IllegalArgumentException("Gender not found for ID: " + dto.getGenderId());
+                }
+
+                CustomProductGenderPhysicalRequirementRef requirement = new CustomProductGenderPhysicalRequirementRef();
+                requirement.setCustomGender(customGender);
+                requirement.setHeight(dto.getHeight());
+                requirement.setWeight(dto.getWeight());
+                requirement.setShoeSize(dto.getShoeSize());
+                requirement.setWaistSize(dto.getWaistSize());
+                requirement.setChestSize(dto.getChestSize());
+                requirement.setPost(post);
+
+                entityManager.persist(requirement);
+            }
+            entityManager.flush();
+        }
+
+        // Ensure physical requirements are fetched
+        entityManager.refresh(post);
 
         return post;
     }

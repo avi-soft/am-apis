@@ -213,21 +213,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             }
         }
 
-        if(addProductDto.getPhysicalRequirement() != null) {
-            for(int i=0; i<addProductDto.getPhysicalRequirement().size(); i++){
-                PhysicalRequirementDto physicalRequirementDto = new PhysicalRequirementDto();
-                physicalRequirementDto.setProductId(product.getId());
-                physicalRequirementDto.setGenderId(addProductDto.getPhysicalRequirement().get(i).getGenderId());
-                physicalRequirementDto.setHeight(addProductDto.getPhysicalRequirement().get(i).getHeight());
-                physicalRequirementDto.setWeight(addProductDto.getPhysicalRequirement().get(i).getWeight());
-                physicalRequirementDto.setWaistSize(addProductDto.getPhysicalRequirement().get(i).getWaistSize());
-                physicalRequirementDto.setShoeSize(addProductDto.getPhysicalRequirement().get(i).getShoeSize());
-                physicalRequirementDto.setChestSize(addProductDto.getPhysicalRequirement().get(i).getChestSize());
-
-                physicalRequirementDtoList.add(physicalRequirementDto);
-            }
-        }
-
         this.platformFee = addProductDto.getPlatformFee();
         this.notifyingAuthority = addProductDto.getNotifyingAuthority();
 

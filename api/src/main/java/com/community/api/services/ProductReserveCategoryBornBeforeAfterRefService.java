@@ -55,36 +55,30 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
             return null;
         }
     }
-
     public void saveBornBeforeAndBornAfter(AddProductAgeDTO addReserveCategoryDto, CustomProduct product, Post post) {
         try {
             CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
             Date bornAfter = addReserveCategoryDto.getBornAfter();
             Date bornBefore = addReserveCategoryDto.getBornBefore();
             CustomGender gender = genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
-
-            CustomProductReserveCategoryBornBeforeAfterRef ref = new CustomProductReserveCategoryBornBeforeAfterRef();
-            ref.setBornBefore(bornBefore);
-            ref.setBornAfter(bornAfter);
-            ref.setCustomReserveCategory(reserveCategory);
-            ref.setCustomProduct(product);
-            ref.setGender(gender);
-            ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
-            ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
-            ref.setMinimumAge(addReserveCategoryDto.getMinAge());
-            ref.setProductReservedCategoryId(addReserveCategoryDto.getReserveCategory());
-
-            // Use merge instead of persist
-            CustomProductReserveCategoryBornBeforeAfterRef mergedRef = entityManager.merge(ref);
-
-            post.setAgeRequirement(mergedRef);
-            entityManager.merge(post);
-
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-        }
+                CustomProductReserveCategoryBornBeforeAfterRef ref = new CustomProductReserveCategoryBornBeforeAfterRef();
+                ref.setBornBefore(bornBefore);
+                ref.setBornAfter(bornAfter);
+                ref.setCustomReserveCategory(reserveCategory);
+                ref.setCustomProduct(product);
+                ref.setGender(gender);
+                ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
+                ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
+                ref.setMinimumAge(addReserveCategoryDto.getMinAge());
+                ref.setProductReservedCategoryId(addReserveCategoryDto.getReserveCategory());
+                // Use merge instead of persist
+                CustomProductReserveCategoryBornBeforeAfterRef mergedRef = entityManager.merge(ref);
+                post.setAgeRequirement(mergedRef);
+                entityManager.merge(post);
+        } catch(Exception exception){
+                exceptionHandlingService.handleException(exception);
+            }
     }
-
 
     public CustomProductReserveCategoryBornBeforeAfterRef getCustomProductReserveCategoryBornBeforeAfterRefByProductIdAndReserveCategoryId(Long productId, Long reserveCategoryId) {
 
