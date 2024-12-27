@@ -51,6 +51,8 @@ public class AddProductDto {
     String metaDescription;
     @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
+    @JsonProperty("physical_requirement")
+    List<AddPhysicalRequirementDto> physicalRequirement;
     @JsonProperty("reserve_category_age")
     List<AddProductAgeDTO> reserveCategoryAge;
     @JsonProperty("state_id")

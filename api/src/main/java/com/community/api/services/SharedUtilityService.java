@@ -225,6 +225,7 @@ public class SharedUtilityService {
         customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
+        customerDetails.put("interested_in_defence",customCustomer.getInterestedInDefence());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
@@ -825,6 +826,18 @@ public class SharedUtilityService {
 
         // Use regular expression to check if the string contains only alphabets
         return input.matches("[a-zA-Z]+");
+    }public long parseToLong(Object value) {
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value); // Parse string to long
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid number format");
+            }
+        } else if (value instanceof Number) {
+            return ((Number) value).longValue(); // Cast directly to long if it's already a number
+        } else {
+            throw new IllegalArgumentException("Value is neither a valid String nor a Number");
+        }
     }
 
 }
