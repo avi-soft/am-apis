@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
@@ -88,19 +90,33 @@ public class CustomCustomer extends CustomerImpl {
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
-    private String heightCms;
+    @Min(value = 1, message = "Height must be greater than or equal to 1 cm.")
+    @Max(value = 300, message = "Height must be less than or equal to 300 cm.")
+    private Integer heightCms; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "weight_kgs")
-    private String weightKgs;
+    @Min(value = 1, message = "Weight must be greater than or equal to 1 kg.")
+    @Max(value = 300, message = "Weight must be less than or equal to 300 kg.")
+    private Integer weightKgs; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "chest_size_cms")
-    private String chestSizeCms;
+    @Min(value = 1, message = "Chest size must be greater than or equal to 1 cm.")
+    @Max(value = 200, message = "Chest size must be less than or equal to 200 cm.")
+    private Integer chestSizeCms; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "shoe_size_inches")
-    private String shoeSizeInches;
+    @Min(value = 1, message = "Shoe size must be greater than or equal to 1 inch.")
+    @Max(value = 20, message = "Shoe size must be less than or equal to 20 inches.")
+    private Integer shoeSizeInches; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "waist_size_cms")
-    private String waistSizeCms;
+    @Min(value = 1, message = "Waist size must be greater than or equal to 1 cm.")
+    @Max(value = 200, message = "Waist size must be less than or equal to 200 cm.")
+    private Integer waistSizeCms; // Integer type for numeric validation
     @Nullable
     @Column(name = "can_swim")
     private Boolean canSwim; // Yes/No
@@ -125,6 +141,9 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "number_of_attempts")
     private Integer numberOfAttempts;
+
+    @Column(name = "interested_in_defence",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean interestedInDefence;
 
     @Nullable
     @Column(name = "work_experience")

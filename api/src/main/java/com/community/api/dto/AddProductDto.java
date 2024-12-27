@@ -55,8 +55,7 @@ public class AddProductDto {
 
     @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
-    @JsonProperty("reserve_category_age")
-    List<AddProductAgeDTO> reserveCategoryAge;
+
 
     @JsonProperty("physical_requirement")
     List<AddPhysicalRequirementDto> physicalRequirement;
