@@ -201,8 +201,8 @@ public class QualificationDetailsService {
         if(roleName.equalsIgnoreCase("CUSTOMER"))
         {
             customCustomer.getQualificationDetailsList().forEach(detail -> {
-                if (detail.getDocument() != null) {
-                    Document customerDocument=detail.getDocument();
+                if (detail.getQualificationDocument() != null) {
+                    Document customerDocument=detail.getQualificationDocument();
                     customerDocument.setQualificationDetails(null);
                     customerDocument.setIsArchived(true);
                     entityManager.merge(customerDocument);

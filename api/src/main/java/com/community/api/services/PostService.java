@@ -16,10 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostService {
     private final EntityManager entityManager;
     private final ExceptionHandlingService exceptionHandlingService;
+    private  GenderService genderService;
 
-    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService) {
+    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,GenderService genderService) {
         this.entityManager = entityManager;
         this.exceptionHandlingService = exceptionHandlingService;
+        this.genderService=genderService;
     }
 
     public List<Post> savePosts(List<PostDto> postDtos) throws Exception {
@@ -94,7 +96,8 @@ public class PostService {
                 post.setZoneDistributions(zoneDistributions);
             }
         }
-
+        entityManager.persist(post);
+        entityManager.flush(); // Ensure Post is saved and has an ID
         QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
         if (qualificationEligibilityDto!=null) {
                 QualificationEligibility qualificationRequirement = new QualificationEligibility();
@@ -145,6 +148,28 @@ public class PostService {
                 entityManager.persist(qualificationRequirement);
             }
             entityManager.flush();
+
+        List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
+        if (!physicalRequirementDtos.isEmpty()) {
+            for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
+                CustomGender customGender = genderService.getGenderByGenderId(dto.getGenderId());
+                if (customGender == null) {
+                    throw new IllegalArgumentException("Gender not found for ID: " + dto.getGenderId());
+                }
+
+                CustomProductGenderPhysicalRequirementRef requirement = new CustomProductGenderPhysicalRequirementRef();
+                requirement.setCustomGender(customGender);
+                requirement.setHeight(dto.getHeight());
+                requirement.setWeight(dto.getWeight());
+                requirement.setShoeSize(dto.getShoeSize());
+                requirement.setWaistSize(dto.getWaistSize());
+                requirement.setChestSize(dto.getChestSize());
+                requirement.setPost(post);
+
+                entityManager.persist(requirement);
+            }
+            entityManager.flush();
+        }
 
         entityManager.refresh(post);
 
