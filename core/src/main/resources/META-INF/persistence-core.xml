@@ -99,6 +99,7 @@
         <class>com.community.api.entity.DivisionDistribution</class>
         <class>com.community.api.entity.DivisionCategoryDistribution</class>
         <class>com.community.api.entity.GenderWiseDistribution</class>
+        <class>com.community.api.entity.QualificationEligibility</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

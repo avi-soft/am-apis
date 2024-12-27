@@ -6,6 +6,7 @@ import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.AddProductDto;
@@ -2727,6 +2728,120 @@ public class ProductService {
         }
     }
 
+    public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
+        try {
+            if (postDto.getQualificationEligibilityDto() == null) {
+                return true;
+            }
+            else {
+                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibilityDto();
+
+                //Validate Qualification ids
+                if(qualificationEligibilityDto.getQualificationIds()==null)
+                {
+                    throw new IllegalArgumentException("Qualification cannot be null");
+                }
+                else if(qualificationEligibilityDto.getQualificationIds().isEmpty())
+                {
+                    throw new IllegalArgumentException("Qualification cannot be empty");
+                }
+                else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
+                    if(qualificationEligibilityDto.getQualificationIds().size()>1)
+                    {
+                        throw new IllegalArgumentException("Enter only one qualification (Highest)");
+                    }
+                    Set<Integer> qualificationIdSet = new HashSet<>();
+                    List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                    for(Integer qualificationId: qualificationIds)
+                    {
+                        Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                        if(qualification==null)
+                        {
+                            throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                        }
+                        qualificationIdSet.add(qualificationId);
+                    }
+                    if (qualificationIdSet.size() != qualificationIds.size()) {
+                        throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                    }
+                }
+
+                //Validate Subjects
+                if(qualificationEligibilityDto.getCustomSubjectIds()!=null)
+                {
+                    if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()){
+                        Set<Long> subjectIdsSet = new HashSet<>();
+                        List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
+                        for(Long subjectId: subjectIds)
+                        {
+                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
+                            if(customSubject==null)
+                            {
+                                throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
+                            }
+                            subjectIdsSet.add(subjectId);
+                        }
+                        if (subjectIdsSet.size() != subjectIds.size()) {
+                            throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
+                        }
+                    }
+                }
+
+                //Validate Streams
+                if(qualificationEligibilityDto.getCustomStreamIds()==null)
+                {
+                    throw new IllegalArgumentException("You have to fill atleast one Stream");
+                }
+                else if(qualificationEligibilityDto.getCustomStreamIds().isEmpty())
+                {
+                    throw new IllegalArgumentException("Stream cannot be empty");
+                }
+                else if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
+                    Set<Long> streamIdSet = new HashSet<>();
+                    List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
+                    for(Long streamId: streamIds)
+                    {
+                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                        if(customStream==null)
+                        {
+                            throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
+                        }
+                        streamIdSet.add(streamId);
+                    }
+                    if (streamIdSet.size() != streamIds.size()) {
+                        throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
+                    }
+                }
+                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
+                {
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
+                    if(customReserveCategory==null)
+                    {
+                        throw new IllegalArgumentException("Reserve Category does not exists with id "+ qualificationEligibilityDto.getCustomReserveCategoryId());
+                    }
+                }
+
+                if(qualificationEligibilityDto.getPercentage()!=null)
+                {
+                    if(qualificationEligibilityDto.getPercentage()>100 || qualificationEligibilityDto.getPercentage()<0)
+                    {
+                        throw new IllegalArgumentException("Percentage cannot be less than 0 and greater than 100");
+                    }
+                }
+            }
+            return true;
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
     public void validateDistrictStateRelationship(StateDistributionDto stateDistribution) {
     if (!Boolean.TRUE.equals(stateDistribution.getIsDistrictDistribution())) {
         return;
@@ -2765,7 +2880,7 @@ public class ProductService {
     }
 }
 
-    public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) {
+    public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
@@ -2789,6 +2904,11 @@ public class ProductService {
             } else {
                 // If no distribution type, only validate basic gender distribution
                 validateBasicGenderDistribution(postDto, postDto.getGenderWiseDistribution());
+            }
+
+            if(postDto.getQualificationEligibilityDto()!=null)
+            {
+                validateQualificationRequirement(postDto);
             }
         }
 
