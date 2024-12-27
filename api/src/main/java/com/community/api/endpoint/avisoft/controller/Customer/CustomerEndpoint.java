@@ -554,7 +554,24 @@ public class CustomerEndpoint {
             }
 
             // Update address if needed
+            if(details.containsKey("categoryIssueDate") && details.containsKey("categoryUptoDate")) {
 
+                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryUptoDate"), errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryUptoDate"));
+                }
+
+            } else if(details.containsKey("categoryIssueDate")) {
+
+                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                }
+            } else if(details.containsKey("categoryUptoDate")) {
+
+                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryUptoDate"),  customCustomer, errorMessages)) {
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryUptoDate"));
+                }
+            }
 
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
