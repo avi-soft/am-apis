@@ -554,22 +554,22 @@ public class CustomerEndpoint {
             }
 
             // Update address if needed
-            if(details.containsKey("category_issue_date") && details.containsKey("category_upto_date")) {
+            if(details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {
 
-                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("category_issue_date"), (String) details.get("category_upto_date"), errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
-                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryValidUpto"), errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
 
-            } else if(details.containsKey("category_issue_date")) {
+            } else if(details.containsKey("categoryIssueDate")) {
 
-                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("category_issue_date"), customCustomer, errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
+                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                 }
-            } else if(details.containsKey("category_upto_date")) {
+            } else if(details.containsKey("categoryValidUpto")) {
 
-                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("category_upto_date"),  customCustomer, errorMessages)) {
-                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"),  customCustomer, errorMessages)) {
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
             }
 
