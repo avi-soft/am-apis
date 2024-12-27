@@ -506,8 +506,17 @@ public class CustomerEndpoint {
             details.remove("is_nss_certificate");
             details.remove("nss_certificate");
 
-            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
-                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
+                    || (customCustomer.getGender() == null && details.containsKey("gender")
+                    && ((String)details.get("gender")).toLowerCase().equals("female"))
+                    || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male")
+                    && details.containsKey("gender") && ((String)details.get("gender")).toLowerCase().equals("female")))
+                    && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
+            }
+
+
+
             if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
