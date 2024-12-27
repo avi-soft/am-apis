@@ -619,6 +619,7 @@ public class CustomerEndpoint {
             } else if(details.containsKey("categoryIssueDate")) {
 
                 if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
+                    System.out.println("HERER");
                     customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                 }
             } else if(details.containsKey("categoryValidUpto")) {
@@ -628,13 +629,13 @@ public class CustomerEndpoint {
                 }
             }
 
-            if(details.containsKey("interested_in_defence")) {
-                Boolean value = (Boolean) details.get("interrested_in_defence");
+            if(details.containsKey("interestedInDefence")) {
+                Boolean value = (Boolean) details.get("interrestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
 
-            if(details.containsKey("scope_id")) {
-                Long scopeId = (Long) details.get("scope_id");
+            if(details.containsKey("scopeId")) {
+                Long scopeId = (Long) details.get("scopeId");
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");

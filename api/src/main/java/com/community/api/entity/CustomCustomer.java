@@ -94,7 +94,7 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean hidePhoneNumber = false;
 
     @Nullable
-    @Column(name = "category_issue_date", insertable = false, updatable = false)
+    @Column(name = "category_issue_date")
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
@@ -158,7 +158,7 @@ public class CustomCustomer extends CustomerImpl {
     private String workExperience; // work experience in months.
 
     @Nullable
-    @Column(name = "category_issue_date")
+    @Column(name = "category_valid_upto_date")
     private String categoryValidUpto;
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
@@ -334,6 +334,7 @@ public class CustomCustomer extends CustomerImpl {
         Collections.reverse(referrers);
         return referrers;
     }
+
     @ManyToOne
     @JoinColumn(name = "scope_id")
     protected CustomApplicationScope customApplicationScope;
