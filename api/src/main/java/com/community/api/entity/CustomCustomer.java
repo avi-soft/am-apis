@@ -155,7 +155,8 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "work_experience")
-    private String workExperience; // State level/Centre level, Govt./Private
+    private String workExperience; // work experience in months.
+
     @Nullable
     @Column(name = "category_issue_date")
     private String categoryValidUpto;
@@ -333,4 +334,8 @@ public class CustomCustomer extends CustomerImpl {
         Collections.reverse(referrers);
         return referrers;
     }
+    @ManyToOne
+    @JoinColumn(name = "scope_id")
+    protected CustomApplicationScope customApplicationScope;
+
 }

@@ -17,6 +17,7 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.*;
+import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
 import com.community.api.services.ReserveCategoryAgeService;
@@ -148,6 +149,9 @@ public class CustomerEndpoint {
     private  ReserveCategoryService reserveCategoryService;
 
     @Autowired
+    private ApplicationScopeService applicationScopeService;
+
+    @Autowired
     private  SanitizerService sanitizerService;
 
     @Autowired
@@ -275,8 +279,6 @@ public class CustomerEndpoint {
                     errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
                 }
             }
-
-
 
             if(details.containsKey("hidePhoneNumber"))
             {
@@ -600,7 +602,6 @@ public class CustomerEndpoint {
                     }
                 }
 
-
             // Set value if type is compatible
                 if (newValue != null && field.getType().isAssignableFrom(newValue.getClass())) {
                     field.set(customCustomer, newValue);
@@ -608,23 +609,37 @@ public class CustomerEndpoint {
             }
 
             // Update address if needed
-            if(details.containsKey("category_issue_date") && details.containsKey("category_upto_date")) {
+            if(details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {
 
-                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("category_issue_date"), (String) details.get("category_upto_date"), errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
-                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryValidUpto"), errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
 
-            } else if(details.containsKey("category_issue_date")) {
+            } else if(details.containsKey("categoryIssueDate")) {
 
-                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("category_issue_date"), customCustomer, errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
+                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                 }
-            } else if(details.containsKey("category_upto_date")) {
+            } else if(details.containsKey("categoryValidUpto")) {
 
-                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("category_upto_date"),  customCustomer, errorMessages)) {
-                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"),  customCustomer, errorMessages)) {
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
+            }
+
+            if(details.containsKey("interested_in_defence")) {
+                Boolean value = (Boolean) details.get("interrested_in_defence");
+                customCustomer.setInterestedInDefence(value);
+            }
+
+            if(details.containsKey("scope_id")) {
+                Long scopeId = (Long) details.get("scope_id");
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
+                if(customApplicationScope == null) {
+                    errorMessages.add("No Application scope found with this id");
+                }
+                customCustomer.setCustomApplicationScope(customApplicationScope);
             }
 
             if (!errorMessages.isEmpty()) {
