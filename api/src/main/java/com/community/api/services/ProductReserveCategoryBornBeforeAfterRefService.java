@@ -55,7 +55,6 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
 
     public void saveBornBeforeAndBornAfter(List<AddProductAgeDTO> addReserveCategoryDtoList, Product product) {
         try {
-            System.out.println("hiiiiiiiiiiiiiiiiiiiiiiii");
             for (AddProductAgeDTO addReserveCategoryDto : addReserveCategoryDtoList) {
 
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
