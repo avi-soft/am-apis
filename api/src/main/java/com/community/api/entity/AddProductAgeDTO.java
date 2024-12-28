@@ -17,8 +17,6 @@ import java.util.Date;
 @Getter
 @Setter
 public class AddProductAgeDTO {
-    @JsonProperty("post")
-    Integer post;
     @JsonProperty("born_before_after")
     Boolean bornBeofreAfter;
     @JsonProperty("reserve_category_id")

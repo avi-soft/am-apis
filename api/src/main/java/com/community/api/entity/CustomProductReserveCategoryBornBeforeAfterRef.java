@@ -1,6 +1,8 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +14,10 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.print.attribute.standard.MediaSize;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 
@@ -31,6 +36,7 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @ManyToOne
     @NotNull
     @JsonBackReference
+    @JsonIgnore
     @JoinColumn(name = "product_id")
     protected CustomProduct customProduct;
 
@@ -54,4 +60,5 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     protected Integer minimumAge;
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
+
 }

@@ -1,10 +1,13 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Column;
@@ -57,9 +60,21 @@ public class Post {
     @JoinColumn(name = "gender_wise_distribution_id", referencedColumnName = "id")
     private GenderWiseDistribution genderWiseDistribution;
 
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private QualificationEligibility qualificationEligibility;
+
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "product_id")
     private CustomProduct product;
+
+    @OneToOne
+    @JsonProperty("reserve_category_age")
+    @JoinColumn(name = "product_reserve_category_id")
+    private CustomProductReserveCategoryBornBeforeAfterRef ageRequirement;
+    @JsonIgnore
+    private Long refId;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
 
 }

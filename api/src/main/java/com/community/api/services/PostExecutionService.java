@@ -1,6 +1,8 @@
 package com.community.api.services;
 
 import com.community.api.dto.AddProductDto;
+import com.community.api.dto.PostDto;
+import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Post;
 import com.community.api.utils.Document;
@@ -27,25 +29,35 @@ public class PostExecutionService {
 
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService refService;
+    @Autowired
+    private PostService postService;
 
     @Autowired
     private FileService fileService;
 
     @Transactional
     @Async
-    public void savePostsToCustomProduct(Product product, List<Post> postList) {
+    public void savePostsToCustomProduct(List<PostDto>postDto, Product product, List<Post> postList) {
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (customProduct == null) {
             throw new IllegalArgumentException("Custom product with id " + product.getId() + " does not exist");
         }
+        // Save custom product first
+        System.out.println(customProduct.getId());
+        savePostsWithoutAgeRequirement(customProduct, postList);
+        postService.updatePostAgeRequirements(postDto,customProduct,postList);
+    }
 
-        // Link posts to the custom product
+    @Transactional
+    public void savePostsWithoutAgeRequirement(CustomProduct customProduct, List<Post> postList) {
         for (Post post : postList) {
             post.setProduct(customProduct);
             customProduct.getPosts().add(post);
-            entityManager.merge(post);
+            entityManager.merge(customProduct);
+            entityManager.merge(post); // Persist the post before updating the age requirement
         }
-        entityManager.merge(customProduct);
     }
 
     @Async

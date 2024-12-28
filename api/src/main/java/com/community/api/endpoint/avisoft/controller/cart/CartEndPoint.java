@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.cart;
 
 import com.broadleafcommerce.rest.api.endpoint.BaseEndpoint;
 import com.community.api.component.Constant;
+import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -80,6 +81,8 @@ public class CartEndPoint extends BaseEndpoint {
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
+    @Autowired
+    private CustomerEndpoint customerEndpoint;
     @Autowired
     public void setOrderDTOService(OrderDTOService orderDTOService) {
         this.orderDTOService = orderDTOService;
@@ -525,6 +528,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderState.setOrderStatusId(orderStatusId);
                     orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
+                    customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
                     individualOrders.add(individualOrder);
             
                 }

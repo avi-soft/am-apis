@@ -52,6 +52,7 @@ import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -80,6 +81,8 @@ import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.io.File;
@@ -88,6 +91,7 @@ import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -278,6 +282,21 @@ public class CustomerEndpoint {
             if (secondaryMobileNumber != null && mobileNumber==null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
+            if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
+                // List of required fields
+                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "chestSizeCms", "shoeSizeInches", "waistSizeCms");
+
+                // Check if all required fields are present and not empty
+                Map<String, Object> finalDetails = details;
+                boolean conditionExists = requiredFields.stream()
+                        .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
+
+                if (!conditionExists) {
+                    errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                }
+            }
+
+
 
             if(details.containsKey("hidePhoneNumber"))
             {
@@ -525,8 +544,17 @@ public class CustomerEndpoint {
             details.remove("is_nss_certificate");
             details.remove("nss_certificate");
 
-            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
-                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
+                    || (customCustomer.getGender() == null && details.containsKey("gender")
+                    && ((String)details.get("gender")).toLowerCase().equals("female"))
+                    || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male")
+                    && details.containsKey("gender") && ((String)details.get("gender")).toLowerCase().equals("female")))
+                    && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
+            }
+
+
+
             if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
@@ -565,15 +593,59 @@ public class CustomerEndpoint {
                         continue;
                     }
                 }
+                if (field.isAnnotationPresent(Min.class)) {
+                    Min minAnnotation = field.getAnnotation(Min.class);
+                    long minValue = minAnnotation.value();
 
-                // Set value if type is compatible
+                    // Check if newValue can be parsed to a number
+                    if (newValue != null) {
+                        long parsedValue = sharedUtilityService.parseToLong(newValue);
+                        if (parsedValue < minValue) {
+                            errorMessages.add(minAnnotation.message());
+                        }
+                    }
+                }
+
+                // Check for @Max annotation
+                if (field.isAnnotationPresent(Max.class)) {
+                    Max maxAnnotation = field.getAnnotation(Max.class);
+                    long maxValue = maxAnnotation.value();
+
+                    // Check if newValue can be parsed to a number
+                    if (newValue != null) {
+                        long parsedValue = sharedUtilityService.parseToLong(newValue);
+                        if (parsedValue > maxValue) {
+                            errorMessages.add(maxAnnotation.message());
+                        }
+                    }
+                }
+
+
+            // Set value if type is compatible
                 if (newValue != null && field.getType().isAssignableFrom(newValue.getClass())) {
                     field.set(customCustomer, newValue);
                 }
             }
 
             // Update address if needed
+            if(details.containsKey("category_issue_date") && details.containsKey("category_upto_date")) {
 
+                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("category_issue_date"), (String) details.get("category_upto_date"), errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
+                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                }
+
+            } else if(details.containsKey("category_issue_date")) {
+
+                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("category_issue_date"), customCustomer, errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("category_issue_date"));
+                }
+            } else if(details.containsKey("category_upto_date")) {
+
+                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("category_upto_date"),  customCustomer, errorMessages)) {
+                    customCustomer.setCategoryValidUpto((String) details.get("category_upto_date"));
+                }
+            }
 
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
@@ -1561,7 +1633,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,null);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1597,7 +1669,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList,null);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1624,7 +1696,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1654,7 +1726,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,null);
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1685,7 +1757,7 @@ public class CustomerEndpoint {
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List<Post>postList= customProduct.getPosts();
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,ageRequirement,postList);
+                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
