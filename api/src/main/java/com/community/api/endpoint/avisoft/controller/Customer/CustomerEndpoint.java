@@ -842,16 +842,32 @@ public class CustomerEndpoint {
 
                         // Validate document
                         documentStorageService.validateDocument(file, documentTypeObj);
+                        Document existingDocument =null;
 
-                        Document existingDocument = em.createQuery(
+                        if( qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                        {
+                             existingDocument = em.createQuery(
                                         "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                                                "AND d.documentType = :documentType " +
+                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
+                                                "AND d.name IS NOT NULL", Document.class)
                                 .setParameter("customCustomer", customCustomer)
                                 .setParameter("documentType", documentTypeObj)
+                                .setParameter("qualificationDetailId", qualificationDetailId)
                                 .getResultStream()
                                 .findFirst()
                                 .orElse(null);
-
+                        }
+                        else {
+                            existingDocument = em.createQuery(
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                                    .setParameter("customCustomer", customCustomer)
+                                    .setParameter("documentType", documentTypeObj)
+                                    .getResultStream()
+                                    .findFirst()
+                                    .orElse(null);
+                        }
 
                         fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
 
@@ -905,68 +921,69 @@ public class CustomerEndpoint {
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
-                            String filePath = existingDocument.getFilePath();
-                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
-                            {
-                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
-                                existingDocument.setIs_qualification_document(true);
-                                existingDocument.setQualificationDetails(qualificationDetails);
-                            }
-
-                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
-                            {
-                                DocumentValidity documentValidity=null;
-                                if(existingDocument.getDocumentValidity()==null)
+                                String filePath = existingDocument.getFilePath();
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
-                                     documentValidity= new DocumentValidity();
-                                    validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                    if(validUpto==null)
-                                    {
-                                        documentValidity.setIs_valid_upto_na(true);
-                                        documentValidity.setValid_upto(null);
-                                    }
-                                    else {
-                                        documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
-                                    }
-                                    documentValidity.setDocument(existingDocument);
-                                    existingDocument.setDocumentValidity(documentValidity);
-                                    entityManager.persist(documentValidity);
-
+                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                    existingDocument.setIs_qualification_document(true);
+                                    existingDocument.setQualificationDetails(qualificationDetails);
                                 }
-                                else if(existingDocument.getDocumentValidity()!=null)
+
+                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
-                                    documentValidity= existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                    if(validUpto==null)
+                                    DocumentValidity documentValidity=null;
+                                    if(existingDocument.getDocumentValidity()==null)
                                     {
-                                        documentValidity.setIs_valid_upto_na(true);
-                                        documentValidity.setValid_upto(null);
+                                        documentValidity= new DocumentValidity();
+                                        validateDate(dateOfIssue,validUpto);
+                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                        if(validUpto==null)
+                                        {
+                                            documentValidity.setIs_valid_upto_na(true);
+                                            documentValidity.setValid_upto(null);
+                                        }
+                                        else {
+                                            documentValidity.setIs_valid_upto_na(false);
+                                            documentValidity.setValid_upto( convertStringToDate(validUpto));
+                                        }
+                                        documentValidity.setDocument(existingDocument);
+                                        existingDocument.setDocumentValidity(documentValidity);
+                                        entityManager.persist(documentValidity);
 
                                     }
-                                    else {
-                                        documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
-                                    }
-                                    documentValidity.setDocument(existingDocument);
-                                    existingDocument.setDocumentValidity(documentValidity);
-                                    entityManager.merge(documentValidity);
-                                }
+                                    else if(existingDocument.getDocumentValidity()!=null)
+                                    {
+                                        documentValidity= existingDocument.getDocumentValidity();
+                                        validateDate(dateOfIssue,validUpto);
+                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                        if(validUpto==null)
+                                        {
+                                            documentValidity.setIs_valid_upto_na(true);
+                                            documentValidity.setValid_upto(null);
 
-                            }
-                            if (filePath != null) {
-                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                File oldFile = new File(absolutePath);
-                                String oldFileName = oldFile.getName();
-                                String newFileName = file.getOriginalFilename();
-                                existingDocument.setIsArchived(false);
-                                if (!newFileName.equals(oldFileName)) {
-                                    fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
-                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                        }
+                                        else {
+                                            documentValidity.setIs_valid_upto_na(false);
+                                            documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        }
+                                        documentValidity.setDocument(existingDocument);
+                                        existingDocument.setDocumentValidity(documentValidity);
+                                        entityManager.merge(documentValidity);
+                                    }
+
                                 }
-                            }
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    String newFileName = file.getOriginalFilename();
+                                    existingDocument.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
+                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
+                                }
+                            entityManager.merge(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
