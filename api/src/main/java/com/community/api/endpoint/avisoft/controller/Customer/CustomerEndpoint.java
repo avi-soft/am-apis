@@ -313,7 +313,7 @@ public class CustomerEndpoint {
             }
 
             if(details.containsKey("domicile")) {
-                Boolean domicile = (Boolean) details.containsKey("domicile");
+                Boolean domicile = (Boolean) details.get("domicile");
                 if(domicile) {
                     StateCode state = districtService.getStateByStateId(Integer.parseInt((String) details.get("domicileState")));
                     customCustomer.setDomicile(true);
