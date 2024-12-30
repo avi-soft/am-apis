@@ -787,11 +787,12 @@ public class ProductService {
                 addProductDto.setDisplayTemplate(addProductDto.getDisplayTemplate().trim());
             }
 
-            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
+/*            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Description cannot be null or empty.");
             } else {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
+             */
 
             if (addProductDto.getPostName() == null || addProductDto.getPostName().trim().isEmpty()) {
                 throw new IllegalArgumentException("Post Name cannot be null or empty.");
@@ -975,11 +976,12 @@ public class ProductService {
                 addProductDto.setDisplayTemplate(addProductDto.getDisplayTemplate().trim());
             }
 
-            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
+           /* if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Description cannot be null or empty.");
             } else {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
+            */
 
             if(addProductDto.getPostName()!=null)
             {
