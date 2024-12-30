@@ -188,12 +188,10 @@ public class CustomCustomer extends CustomerImpl {
     @Pattern(regexp = "^[0-9]{10}$", message = "WhatsApp number must be a valid 10-digit number.")
     private String whatsappNumber;
 
-
     @Nullable
     @Column(name = "secondary_email")
     @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
-
 
     @Nullable
     @Column(name = "residential_address")
@@ -215,7 +213,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "pincode")
     @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit numeric value.")
     private String pincode;
-
 
     @Nullable
     @ManyToMany
@@ -258,8 +255,6 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "is_ex_service_man")
     private Boolean exService = false;
-
-
 
     @Column(name = "is_ncc_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_ncc_certificate;
