@@ -311,8 +311,8 @@ public class CustomerEndpoint {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
-                     String workExperience = (String) details.get("workExperience");
-                     customCustomer.setWorkExperience(workExperience);
+                     Integer workExperience = (Integer) details.get("workExperience");
+                     customCustomer.setWorkExperience(workExperience.toString());
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
