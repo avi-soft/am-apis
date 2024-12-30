@@ -165,15 +165,25 @@ public class AdvertisementController {
             List<AdvertisementWrapper> responses = new ArrayList<>();
             for (Advertisement advertisement : advertisements) {
 
-                if (advertisement != null) {
+                if (advertisement == null) {
+                    return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
+                }
 
-                    if (advertisement.getArchived() != 'Y') {
+                if (advertisement.getArchived() != 'Y') {
+                    List<CustomProductWrapper> products = new ArrayList<>();
 
-                        AdvertisementWrapper wrapper = new AdvertisementWrapper();
-                        wrapper.wrapDetails(advertisement, null);
+                    List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                    for (CustomProduct customProduct : customProducts) {
 
-                        responses.add(wrapper);
+                        if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                            CustomProductWrapper wrapper = new CustomProductWrapper();
+                            wrapper.wrapDetails(customProduct);
+                            products.add(wrapper);
+                        }
                     }
+                    AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                    wrapper.wrapDetails(advertisement, products, null);
+                    responses.add(wrapper);
                 }
             }
 
@@ -191,7 +201,7 @@ public class AdvertisementController {
         }
     }
 
-    @DeleteMapping("/delete/{advertisementId}")
+        @DeleteMapping("/delete/{advertisementId}")
     @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable("advertisementId") String advertisementIdPath,
                                            @RequestHeader(value = "Authorization") String authHeader) {

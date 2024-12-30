@@ -18,6 +18,7 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
+import com.community.api.entity.StateCode;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.PostExecutionService;
@@ -311,6 +312,21 @@ public class CustomerEndpoint {
                 errorMessages.add("Give scope of work before adding work experience");
             }
 
+            if(details.containsKey("domicile")) {
+                Boolean domicile = (Boolean) details.containsKey("domicile");
+                if(details.containsKey("domicileState")) {
+                    StateCode state = districtService.getStateByStateId(Integer.parseInt((String) details.get("domicileState")));
+                    customCustomer.setDomicile(true);
+                    customCustomer.setDomicileState(state);
+                } else {
+                    errorMessages.add("domicile state is required if opt for domicile.");
+                }
+            } else if(details.containsKey("domicileState")) {
+                errorMessages.add("cannot give domicile state w/o opting for the domicile.");
+            }else {
+                customCustomer.setDomicile(false);
+            }
+
             if(details.containsKey("hidePhoneNumber"))
             {
                 customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
@@ -361,7 +377,6 @@ public class CustomerEndpoint {
             customCustomer.setMobileNumber(customCustomer.getMobileNumber());
             customCustomer.setQualificationDetailsList(customCustomer.getQualificationDetailsList());
             customCustomer.setCountryCode(customCustomer.getCountryCode());
-
 
             if (details.containsKey("firstName")&&!details.get("firstName").toString().isEmpty()) {
                 customCustomer.setFirstName((String) details.get("firstName"));
