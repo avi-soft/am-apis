@@ -1153,7 +1153,7 @@ public class ProductService {
             customProduct.setProductState(customProductState);
             List<Post>postList= customProduct.getPosts();
             List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
-            wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList,null);
+            wrapper.wrapDetails(customProduct,postList,null);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
         catch (IllegalArgumentException illegalArgumentException) {
@@ -3319,6 +3319,9 @@ public class ProductService {
         if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
         }
+        if (postDto.getGenderWiseDistribution() != null ) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
+        }
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
             validateDistrictStateRelationship(stateDistribution);
         }
@@ -3331,6 +3334,9 @@ public class ProductService {
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
         }
+        if (postDto.getGenderWiseDistribution() != null ) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
+        }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
             validateZoneDistributionRelationship(zoneDistribution);
         }
@@ -3338,7 +3344,12 @@ public class ProductService {
 
     private void validateGenderDistribution(PostDto postDto, GenderDistributionDto genderDto) {
         // First validate basic gender distribution
-
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
         // Additional validation for category distributions when type is 3
         List<CategoryDistributionDto> categoryDtos = genderDto.getCategoryDistributionDtos();
         if (categoryDtos == null || categoryDtos.isEmpty()) {
@@ -3358,8 +3369,12 @@ public class ProductService {
     private void validateBasicGenderDistribution(PostDto postDto, GenderDistributionDto genderDto) {
         if (genderDto == null) {
             throw new IllegalArgumentException("Gender distribution data must be provided");
+        } if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
         }
-
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
         Long postTotalVacancies = postDto.getPostTotalVacancies();
         boolean isGenderWise = Boolean.TRUE.equals(genderDto.getIsGenderWise());
 

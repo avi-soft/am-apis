@@ -229,6 +229,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
                 postProjectionDTO.setStateDistributions(post.getStateDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
+                postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
 
                 Query query =entityManager.createNativeQuery("SELECT age_requirement_id from post_age_requirement where post_id = :postId");
                 query.setParameter("postId",post.getPostId());
@@ -341,7 +342,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     }
 
 
-    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList,List<Post> postList,List<PostProjectionDTO>postProjectionDTOS) {
+    public void wrapDetails(CustomProduct customProduct,List<Post> postList,List<PostProjectionDTO>postProjectionDTOS) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
