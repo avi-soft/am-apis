@@ -298,6 +298,12 @@ public class CustomerEndpoint {
 
                 if (!conditionExists) {
                     errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                }else{
+                    customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
+                    customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
+                    customCustomer.setChestSizeCms(Integer.parseInt((String) finalDetails.get("chestSizeCms")));
+                    customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
+                    customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
                 }
             }
 
@@ -319,6 +325,9 @@ public class CustomerEndpoint {
                     customCustomer.setDomicile(true);
                     customCustomer.setDomicileState(state);
                 } else {
+                    if((details.containsKey("domicileState"))) {
+                        errorMessages.add("cannot give domicile state w/o opting for the domicile.");
+                    }
                     customCustomer.setDomicile(false);
                 }
             } else if(details.containsKey("domicileState")) {
