@@ -52,7 +52,6 @@ import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -278,6 +277,17 @@ public class CustomerEndpoint {
                 if (!conditionExists) {
                     errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
                 }
+            }
+
+            if(details.containsKey("scopeId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("scopeId")));
+                customCustomer.setScopeId(customApplicationScope);
+                if(details.containsKey("workExperience")) {
+                     String workExperience = (String) details.get("workExperience");
+                     customCustomer.setWorkExperience(workExperience);
+                }
+            } else if(details.containsKey("workExperience")) {
+                errorMessages.add("Give scope of work before adding work experience");
             }
 
             if(details.containsKey("hidePhoneNumber"))
@@ -619,7 +629,6 @@ public class CustomerEndpoint {
             } else if(details.containsKey("categoryIssueDate")) {
 
                 if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
-                    System.out.println("HERER");
                     customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                 }
             } else if(details.containsKey("categoryValidUpto")) {
@@ -631,17 +640,16 @@ public class CustomerEndpoint {
 
             if(details.containsKey("interestedInDefence")) {
                 Boolean value = (Boolean) details.get("interestedInDefence");
-                System.out.println("hello"+ value);
                 customCustomer.setInterestedInDefence(value);
             }
 
             if(details.containsKey("scopeId")) {
-                Long scopeId = (Long) details.get("scopeId");
+                Long scopeId = Long.parseLong(( String) details.get("scopeId"));
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");
                 }
-                customCustomer.setCustomApplicationScope(customApplicationScope);
+                customCustomer.setScopeId(customApplicationScope);
             }
 
             if (!errorMessages.isEmpty()) {
