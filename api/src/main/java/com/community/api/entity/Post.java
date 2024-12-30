@@ -68,13 +68,17 @@ public class Post {
     @JoinColumn(name = "product_id")
     private CustomProduct product;
 
-    @OneToOne
     @JsonProperty("reserve_category_age")
-    @JoinColumn(name = "product_reserve_category_id")
-    private CustomProductReserveCategoryBornBeforeAfterRef ageRequirement;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "post_age_requirement",  // The name of the mapping table
+            joinColumns = @JoinColumn(name = "post_id"),  // Foreign key to the Product entity
+            inverseJoinColumns = @JoinColumn(name = "age_requirement_id")  // Foreign key to CustomProductReserveCategoryBornBeforeAfterRef
+    )
+    private List<CustomProductReserveCategoryBornBeforeAfterRef> ageRequirement;
     @JsonIgnore
     private Long refId;
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL/*,fetch = FetchType.EAGER*/)
     private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
 
 }

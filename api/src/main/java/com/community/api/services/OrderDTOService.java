@@ -64,7 +64,7 @@ public class OrderDTOService {
         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
                     List<Post> postList= customProduct.getPosts();
                     List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
-        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList);
+        customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList,postList,null);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
                 combinedOrderDTO.setOrderDetails(orderDTO);

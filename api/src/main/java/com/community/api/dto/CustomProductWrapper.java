@@ -1,8 +1,11 @@
 package com.community.api.dto;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
@@ -11,7 +14,6 @@ import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
 import com.community.api.entity.CustomProductRejectionStatus;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductState;
@@ -22,7 +24,6 @@ import com.community.api.entity.CustomSubject;
 
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Post;
-import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.GenderService;
@@ -45,6 +46,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
     @Autowired
     private GenderService genderService;
+    @Autowired
+    private ProductReserveCategoryBornBeforeAfterRefService refService;
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private PostService postService;
@@ -165,9 +170,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
 
     @JsonProperty("posts")
-    List<Post> postList;
+    List<PostProjectionDTO> postDTOList=new ArrayList<>();
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,List<Post> postList) throws Exception {
+
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -180,7 +186,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.archived = 'N';
         this.createdDate = currentDate;
-        this.postList=postList;
         this.promoMessage = product.getPromoMessage();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
@@ -212,7 +217,37 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDtoList.add(reserveCategoryDto);
             }
         }
+        if(!postList.isEmpty())
+        {
+            for(Post post:postList)
+            {
+                PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
+                postProjectionDTO.setPostCode(post.getPostCode());
+                postProjectionDTO.setPostName(post.getPostName());
+                postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
+                postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
+                postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+                postProjectionDTO.setStateDistributions(post.getStateDistributions());
+                postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
 
+                Query query =entityManager.createNativeQuery("SELECT age_requirement_id from post_age_requirement where post_id = :postId");
+                query.setParameter("postId",post.getPostId());
+                List<BigInteger>resultList=query.getResultList();
+                List<ReserveCategoryAgeDto>listD=new ArrayList<>();
+                for(BigInteger bigInteger:resultList)
+                {
+                    System.out.println(resultList.size());
+                    System.out.println("PID"+bigInteger);
+                    CustomProductReserveCategoryBornBeforeAfterRef refDetails=refService.getCustomProductReserveCategoryBornBeforeAfterRefByUId(bigInteger.longValue());
+                    ReserveCategoryAgeDto reserveCategoryAgeDto=new ReserveCategoryAgeDto();
+                    reserveCategoryAgeDto.setProductId(refDetails.getCustomProduct().getId());
+                    reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
+                    listD.add(reserveCategoryAgeDto);
+                }
+                postProjectionDTO.setReserveCategoryAge(listD);
+                postDTOList.add(postProjectionDTO);
+            }
+        }
         this.platformFee = addProductDto.getPlatformFee();
         this.notifyingAuthority = addProductDto.getNotifyingAuthority();
 
@@ -306,7 +341,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     }
 
 
-    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList,List<Post> postList) {
+    public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList,List<Post> postList,List<PostProjectionDTO>postProjectionDTOS) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -378,9 +413,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
         }
 
-        if(postList!=null && !postList.isEmpty() )
+        if(postProjectionDTOS!=null )
         {
-            this.postList= postList;
+            if(!postProjectionDTOS.isEmpty())
+            {
+                this.postDTOList=postProjectionDTOS;
+            }
         }
     }
     public void wrapDetails(CustomProduct customProduct) {
