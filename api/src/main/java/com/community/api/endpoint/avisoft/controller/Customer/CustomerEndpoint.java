@@ -314,12 +314,12 @@ public class CustomerEndpoint {
 
             if(details.containsKey("domicile")) {
                 Boolean domicile = (Boolean) details.containsKey("domicile");
-                if(details.containsKey("domicileState")) {
+                if(domicile) {
                     StateCode state = districtService.getStateByStateId(Integer.parseInt((String) details.get("domicileState")));
                     customCustomer.setDomicile(true);
                     customCustomer.setDomicileState(state);
                 } else {
-                    errorMessages.add("domicile state is required if opt for domicile.");
+                    customCustomer.setDomicile(false);
                 }
             } else if(details.containsKey("domicileState")) {
                 errorMessages.add("cannot give domicile state w/o opting for the domicile.");
