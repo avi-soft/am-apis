@@ -101,7 +101,7 @@ public class AdvertisementController {
     }
 
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
-    public ResponseEntity<?> retrieveProductById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
+    public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
 
         try {
             Long advertisementId = Long.parseLong(advertisementIdPath);
