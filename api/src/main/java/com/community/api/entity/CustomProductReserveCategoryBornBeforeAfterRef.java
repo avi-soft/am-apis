@@ -61,4 +61,9 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
 
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Post post;
+
 }

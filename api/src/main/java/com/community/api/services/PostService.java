@@ -70,6 +70,8 @@ public class PostService {
     }
     public boolean validateAge(PostDto addProductDto) throws Exception {
         try {
+            for(AddProductAgeDTO addProductAgeDTO:addProductDto.getReserveCategoryAge())
+            {
             if (addProductDto.getReserveCategoryAge()==null) {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
             }
@@ -85,7 +87,6 @@ public class PostService {
             calendar.add(Calendar.YEAR, 100);
             Date maxBornBeforeDate = calendar.getTime();
 
-                AddProductAgeDTO addProductAgeDTO=addProductDto.getReserveCategoryAge();
                 if(addProductAgeDTO.getBornBeofreAfter()==null)
                 {
                     throw new IllegalArgumentException("born_before_after cannot be null");
@@ -104,18 +105,18 @@ public class PostService {
                     addProductAgeDTO.setMaxAge(0);
                     addProductAgeDTO.setMinAge(0);
                 }
-                if (addProductDto.getReserveCategoryAge().getReserveCategory() == null || addProductDto.getReserveCategoryAge().getReserveCategory() <= 0) {
+                if (addProductAgeDTO.getReserveCategory() == null || addProductAgeDTO.getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
-                }if (addProductDto.getReserveCategoryAge().getGender() == null || addProductDto.getReserveCategoryAge().getGender() <= 0) {
+                }if (addProductAgeDTO.getGender() == null || addProductAgeDTO.getGender() <= 0) {
                     throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
                 }
-                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReserveCategoryAge().getGender());
+                CustomGender gender=genderService.getGenderByGenderId(addProductAgeDTO.getGender());
                 if(gender==null)
                     throw new NotFoundException("Invalid gender id");
-                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().getReserveCategory());
+                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductAgeDTO.getReserveCategory());
                 if(category==null)
                     throw new NotFoundException("Invalid category id");
-                int genderAndCategoryCombo=(addProductDto.getReserveCategoryAge().getReserveCategory().intValue())*10+(addProductDto.getReserveCategoryAge().getGender().intValue());
+                int genderAndCategoryCombo=(addProductAgeDTO.getReserveCategory().intValue())*10+(addProductAgeDTO.getGender().intValue());
               /*  if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReserveCategoryAge().size()>1)
                 {
                     throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender age can be applied.");
@@ -124,11 +125,11 @@ public class PostService {
                 {
                     throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
                 }
-                reserveCategoryId.add(addProductDto.getReserveCategoryAge().getReserveCategory());
+                reserveCategoryId.add(addProductAgeDTO.getReserveCategory());
 
-                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().getReserveCategory());
+                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductAgeDTO.getReserveCategory());
                 if (reserveCategory == null) {
-                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReserveCategoryAge().getReserveCategory());
+                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductAgeDTO.getReserveCategory());
                 }
                /* if (addProductDto.getReserveCategoryAge().getPost() == null) {
                     addProductDto.getReserveCategoryAge().setPost(Constant.DEFAULT_QUANTITY);
@@ -136,24 +137,25 @@ public class PostService {
                     throw new IllegalArgumentException(POSTLESSTHANORZERO);
                 }*/
 
-                if (addProductDto.getReserveCategoryAge().getBornBefore() == null || addProductDto.getReserveCategoryAge().getBornAfter() == null) {
+                if (addProductAgeDTO.getBornBefore() == null || addProductAgeDTO.getBornAfter() == null) {
                     throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
                 }
-                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().getBornAfter()));
-                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().getBornBefore()));
+                dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornAfter()));
+                dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornBefore()));
 
-                if (!addProductDto.getReserveCategoryAge().getBornBefore().before(new Date()) || !addProductDto.getReserveCategoryAge().getBornAfter().before(new Date())) {
+                if (!addProductAgeDTO.getBornBefore().before(new Date()) || !addProductAgeDTO.getBornAfter().before(new Date())) {
                     throw new IllegalArgumentException("Born before date and born after date must be of past.");
-                } else if (!addProductDto.getReserveCategoryAge().getBornAfter().before(addProductDto.getReserveCategoryAge().getBornBefore())) {
+                } else if (!addProductAgeDTO.getBornAfter().before(addProductAgeDTO.getBornBefore())) {
                     throw new IllegalArgumentException("Born after date must be past of born before date.");
                 }
 
-                if (addProductDto.getReserveCategoryAge().getBornAfter().before(minBornAfterDate)) {
+                if (addProductAgeDTO.getBornAfter().before(minBornAfterDate)) {
                     throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
                 }
-                if (addProductDto.getReserveCategoryAge().getBornBefore().after(maxBornBeforeDate)) {
+                if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
                     throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
                 }
+            }
             return true;
         } catch (NotFoundException | IllegalArgumentException notFoundException) {
             exceptionHandlingService.handleException(notFoundException);
@@ -342,10 +344,11 @@ public class PostService {
                 .sum();
     }
     @Transactional
-    public void updatePostAgeRequirements(List<PostDto> postDtos,CustomProduct product,List<Post>postList) {
+    public void updatePostAgeRequirements(List<PostDto> postDtos, CustomProduct product, List<Post>postList) {
         int i=0;
+        List<List<CustomProductReserveCategoryBornBeforeAfterRef>>resultList=new ArrayList<>();
         for (Post post : postList) {
-            reserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(postDtos.get(i).getReserveCategoryAge(),product,post);
+           reserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(postDtos.get(i).getReserveCategoryAge(),product,post);
             i++;
         }
     }
