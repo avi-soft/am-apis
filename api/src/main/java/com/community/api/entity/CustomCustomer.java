@@ -339,4 +339,7 @@ public class CustomCustomer extends CustomerImpl {
     @JoinColumn(name = "work_experience_scope_id")
     protected CustomApplicationScope workExperienceScopeId;
 
+    @ManyToOne
+    @JoinColumn(name = "domicile_state")
+    protected StateCode domicileState;
 }

@@ -3,14 +3,11 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
-import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.dto.AddProductDto;
-import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
@@ -19,7 +16,6 @@ import com.community.api.dto.ZoneDistributionDto;
 import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
-import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.DivisionCategoryDistributionDto;
 import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.Advertisement;
@@ -62,9 +58,17 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
@@ -3520,6 +3524,16 @@ public class ProductService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception while validating advertisement: " + exception.getMessage() + "\n");
+        }
+    }
+
+    public List<CustomProduct> getAllProductsByAdvertisementId (Advertisement advertisement) throws Exception {
+        try {
+            String sql = "SELECT c FROM CustomProduct c WHERE c.advertisement = :advertisementId";
+            return entityManager.createQuery(sql, CustomProduct.class).setParameter("advertisementId", advertisement).getResultList();// Use this to simplify appending conditions
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.broadleafcommerce.rest.api.wrapper.ProductWrapper;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.Role;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,20 +9,10 @@ import lombok.NoArgsConstructor;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Category;
-import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
-import org.broadleafcommerce.core.catalog.domain.Product;
 
-import javax.persistence.Column;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import java.util.Date;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -72,6 +63,8 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
     @JsonProperty("category")
     private CustomCategoryWrapper category;
 
+    @JsonProperty("products")
+    private List<CustomProductWrapper> productWrapperList = null;
 
     @Override
     public void wrapDetails(Advertisement advertisement, HttpServletRequest httpServletRequest) {
@@ -92,6 +85,27 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
+    }
+
+    public void wrapDetails(Advertisement advertisement, List<CustomProductWrapper> wrapper, HttpServletRequest httpServletRequest) {
+        this.advertisementId = advertisement.getAdvertisementId();
+        this.title = advertisement.getTitle();
+        this.number = advertisement.getNumber();
+        this.description = advertisement.getDescription();
+        this.url = advertisement.getUrl();
+        this.createdDate = advertisement.getCreatedDate();
+        this.notificationStartDate = advertisement.getNotificationStartDate();
+        this.notificationEndDate = advertisement.getNotificationEndDate();
+        this.notifyingAuthority = advertisement.getNotifyingAuthority();
+        this.userId = advertisement.getUserId();
+        this.creatorRole = advertisement.getCreatorRole();
+        this.modifierId = advertisement.getModifierId();
+        this.modifierRole = advertisement.getModifierRole();
+        this.modifiedDate = advertisement.getModifiedDate();
+        CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
+        categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
+        this.category = categoryWrapper;
+        this.productWrapperList = wrapper;
     }
 
     @Override

@@ -3,15 +3,10 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
-import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomProduct;
-import com.community.api.dto.AdvertisementWrapper;
-import com.community.api.entity.Advertisement;
 import com.community.api.entity.Role;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.ProductService;
@@ -24,7 +19,6 @@ import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -126,10 +120,20 @@ public class AdvertisementController {
             }
 
             if (advertisement.getArchived() != 'Y') {
+                List<CustomProductWrapper> products = new ArrayList<>();
 
+                List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                for (CustomProduct customProduct : customProducts) {
+
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct);
+                        products.add(wrapper);
+                    }
+                }
                 AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                wrapper.wrapDetails(advertisement, products, null);
 
-                wrapper.wrapDetails(advertisement, null);
                 return ResponseService.generateSuccessResponse("ADVERTISEMENT FOUND", wrapper, HttpStatus.OK);
 
             } else {
