@@ -156,7 +156,7 @@ public class CategoryController extends CatalogEndpoint {
     }
 
     @GetMapping(value = "/get-sub-categories")
-    public ResponseEntity<?> getSubCategories(HttpServletRequest request, @RequestParam(value = "limit", defaultValue = "20") int limit) {
+    public ResponseEntity<?> getSubCategories(HttpServletRequest request, @RequestParam(value = "limit", defaultValue = "20") int limit, @RequestParam(value = "category", required = false) List<Long> parentCategories) {
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -169,11 +169,24 @@ public class CategoryController extends CatalogEndpoint {
             while (iterator.hasNext()) {
                 Category category = iterator.next();
                 if(category.getDefaultParentCategory() != null) {
-                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+                    if(parentCategories == null || parentCategories.isEmpty()) {
+                        if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
 
-                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                        wrapper.wrapDetailsCategory(category, null, request);
-                        activeCategories.add(wrapper);
+                            CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                            wrapper.wrapDetailsCategory(category, null, request);
+                            activeCategories.add(wrapper);
+                        }
+                    } else {
+                        for(Long parentCategoryId: parentCategories) {
+                            if(parentCategoryId.equals(category.getDefaultParentCategory().getId())) {
+                                if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                                    CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                                    wrapper.wrapDetailsCategory(category, null, request);
+                                    activeCategories.add(wrapper);
+                                }
+                            }
+                        }
                     }
                 }
             }
