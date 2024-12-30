@@ -126,10 +126,20 @@ public class AdvertisementController {
             }
 
             if (advertisement.getArchived() != 'Y') {
+                List<CustomProductWrapper> products = new ArrayList<>();
 
+                List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                for (CustomProduct customProduct : customProducts) {
+
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct);
+                        products.add(wrapper);
+                    }
+                }
                 AdvertisementWrapper wrapper = new AdvertisementWrapper();
+                wrapper.wrapDetails(advertisement, products, null);
 
-                wrapper.wrapDetails(advertisement, null);
                 return ResponseService.generateSuccessResponse("ADVERTISEMENT FOUND", wrapper, HttpStatus.OK);
 
             } else {

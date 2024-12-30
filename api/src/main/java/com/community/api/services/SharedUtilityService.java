@@ -202,6 +202,7 @@ public class SharedUtilityService {
         customerDetails.put("category", customCustomer.getCategory());
         customerDetails.put("subcategory", customCustomer.getSubcategory());
         customerDetails.put("domicile", customCustomer.getDomicile());
+        customerDetails.put("domicileState", customCustomer.getDomicileState());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
 //        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
@@ -239,7 +240,7 @@ public class SharedUtilityService {
         customerDetails.put("modified_by_id",customCustomer.getModifiedById());
         customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
         customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
-        customerDetails.put("scope", customCustomer.getWorkExperienceScopeId());
+        customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
 
         Map<String, String> currentAddress = new HashMap<>();

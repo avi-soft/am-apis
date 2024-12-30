@@ -3520,4 +3520,14 @@ public class ProductService {
             throw new Exception("Some exception while validating advertisement: " + exception.getMessage() + "\n");
         }
     }
+
+    public List<CustomProduct> getAllProductsByAdvertisementId (Advertisement advertisement) throws Exception {
+        try {
+            String sql = "SELECT c FROM CustomProduct c WHERE c.advertisement = :advertisementId";
+            return entityManager.createQuery(sql, CustomProduct.class).setParameter("advertisementId", advertisement).getResultList();// Use this to simplify appending conditions
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
+        }
+    }
 }
