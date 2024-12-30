@@ -218,14 +218,12 @@ public class SharedUtilityService {
         customerDetails.put("mphil_passed", customCustomer.getMphilPassed());
         customerDetails.put("phd_passed", customCustomer.getPhdPassed());
         customerDetails.put("number_of_attempts", customCustomer.getNumberOfAttempts());
-        customerDetails.put("work_experience", customCustomer.getWorkExperience());
         customerDetails.put("category_valid_upto", customCustomer.getCategoryValidUpto());
         customerDetails.put("religion", customCustomer.getReligion());
         customerDetails.put("belongs_to_minority", customCustomer.getBelongsToMinority());
         customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
-        customerDetails.put("interested_in_defence",customCustomer.getInterestedInDefence());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
@@ -241,7 +239,8 @@ public class SharedUtilityService {
         customerDetails.put("modified_by_id",customCustomer.getModifiedById());
         customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
         customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
-        customerDetails.put("scope", customCustomer.getCustomApplicationScope());
+        customerDetails.put("scope", customCustomer.getScopeId());
+        customerDetails.put("work_experience", customCustomer.getWorkExperience());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
@@ -674,7 +673,7 @@ public class SharedUtilityService {
     }
 
     public boolean isFutureDate(String dateStr) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         sdf.setLenient(false);
         try {
             Date inputDate = sdf.parse(dateStr);

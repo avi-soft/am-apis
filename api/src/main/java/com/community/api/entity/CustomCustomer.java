@@ -71,7 +71,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "date_of_birth")
-    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
+//    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
     private String dob;
 
 
@@ -337,6 +337,6 @@ public class CustomCustomer extends CustomerImpl {
 
     @ManyToOne
     @JoinColumn(name = "scope_id")
-    protected CustomApplicationScope customApplicationScope;
+    protected CustomApplicationScope scopeId;
 
 }
