@@ -300,9 +300,9 @@ public class CustomerEndpoint {
                 }
             }
 
-            if(details.containsKey("scopeId")) {
-                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("scopeId")));
-                customCustomer.setScopeId(customApplicationScope);
+            if(details.containsKey("workExperienceScopeId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
+                customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
                      String workExperience = (String) details.get("workExperience");
                      customCustomer.setWorkExperience(workExperience);
@@ -664,13 +664,13 @@ public class CustomerEndpoint {
                 customCustomer.setInterestedInDefence(value);
             }
 
-            if(details.containsKey("scopeId")) {
-                Long scopeId = Long.parseLong(( String) details.get("scopeId"));
+            if(details.containsKey("workExperienceScopeId")) {
+                Long scopeId = Long.parseLong(( String) details.get("workExperienceScopeId"));
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");
                 }
-                customCustomer.setScopeId(customApplicationScope);
+                customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
 
             if (!errorMessages.isEmpty()) {

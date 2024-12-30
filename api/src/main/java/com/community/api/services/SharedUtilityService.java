@@ -239,7 +239,7 @@ public class SharedUtilityService {
         customerDetails.put("modified_by_id",customCustomer.getModifiedById());
         customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
         customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
-        customerDetails.put("scope", customCustomer.getScopeId());
+        customerDetails.put("scope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
 
         Map<String, String> currentAddress = new HashMap<>();

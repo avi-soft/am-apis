@@ -336,7 +336,7 @@ public class CustomCustomer extends CustomerImpl {
     }
 
     @ManyToOne
-    @JoinColumn(name = "scope_id")
-    protected CustomApplicationScope scopeId;
+    @JoinColumn(name = "work_experience_scope_id")
+    protected CustomApplicationScope workExperienceScopeId;
 
 }
