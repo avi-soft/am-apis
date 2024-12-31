@@ -329,6 +329,7 @@ public class CustomerEndpoint {
                         errorMessages.add("cannot give domicile state w/o opting for the domicile.");
                     }
                     customCustomer.setDomicile(false);
+                    customCustomer.setDomicileState(null);
                 }
             } else if(details.containsKey("domicileState")) {
                 errorMessages.add("cannot give domicile state w/o opting for the domicile.");
@@ -1629,7 +1630,7 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) throws Exception {
         OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
