@@ -38,7 +38,7 @@ public class PostExecutionService {
     private FileService fileService;
 
     @Transactional
-    @Async
+    @Async("customAsyncExecutor")
     public void savePostsToCustomProduct(List<PostDto>postDto, Product product, List<Post> postList) {
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (customProduct == null) {
@@ -48,6 +48,7 @@ public class PostExecutionService {
         System.out.println(customProduct.getId());
         savePostsWithoutAgeRequirement(customProduct, postList);
         postService.updatePostAgeRequirements(postDto,customProduct,postList);
+        System.out.println("Async completed!!!!!!!!!");
     }
 
     @Transactional
@@ -60,7 +61,7 @@ public class PostExecutionService {
         }
     }
 
-    @Async
+    @Async("customAsyncExecutor")
     public CompletableFuture<List<Map<String, Object>>> returnCustomerDocuments(List<Document> customerDocuments) {
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
@@ -101,7 +102,7 @@ public class PostExecutionService {
         return CompletableFuture.completedFuture(filteredDocuments);
     }
 
-    @Async
+    @Async("customAsyncExecutor")
     public CompletableFuture<List<Map<String, Object>>> returnServiceProvider(List<ServiceProviderDocument> serviceProviderDocuments) {
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
         if (serviceProviderDocuments == null || serviceProviderDocuments.isEmpty()) {
