@@ -37,19 +37,34 @@ public class PostExecutionService {
     @Autowired
     private FileService fileService;
 
+
+
     @Transactional
-    @Async("customAsyncExecutor")
-    public void savePostsToCustomProduct(List<PostDto>postDto, Product product, List<Post> postList) {
+    @Async("customAsyncExecutor")  // Use custom async executor defined in AsyncConfig
+    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList) {
+        try {
+            // Introduce a 1-second delay before execution
+            Thread.sleep(1000);  // 1000 milliseconds = 1 second
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // Handle interruption
+        }
+
+        // Now the business logic will execute after the 1-second delay
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (customProduct == null) {
             throw new IllegalArgumentException("Custom product with id " + product.getId() + " does not exist");
         }
-        // Save custom product first
+
+        // Your business logic for saving posts and updating age requirements
         System.out.println(customProduct.getId());
         savePostsWithoutAgeRequirement(customProduct, postList);
-        postService.updatePostAgeRequirements(postDto,customProduct,postList);
-        System.out.println("Async completed!!!!!!!!!");
+        postService.updatePostAgeRequirements(postDto, customProduct, postList);
+        System.out.println("Async operation completed!");
     }
+
+
+
+
 
     @Transactional
     public void savePostsWithoutAgeRequirement(CustomProduct customProduct, List<Post> postList) {

@@ -14,13 +14,13 @@ public class AsyncConfig {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         // Core pool size - minimum number of threads to keep alive
-        executor.setCorePoolSize(5);  // Adjusted for higher concurrency
+        executor.setCorePoolSize(1);  // Adjusted for higher concurrency
 
         // Max pool size - maximum number of threads to allow
-        executor.setMaxPoolSize(20);  // Adjusted to allow more concurrent tasks
+        executor.setMaxPoolSize(100);  // Adjusted to allow more concurrent tasks
 
         // Queue capacity - limit for the task queue
-        executor.setQueueCapacity(200);  // Adjusted to prevent overload
+        executor.setQueueCapacity(500);  // Adjusted to prevent overload
 
         // Custom thread name prefix for easier debugging and identification
         executor.setThreadNamePrefix("CustomAsyncExecutor-");
