@@ -694,8 +694,17 @@ public class CustomerEndpoint {
                         String disabilityType = (String) details.get("disabilityType");
                         customCustomer.setDisabilityType(disabilityType);
                         if(details.containsKey("disabilityPercentage")) {
-                            Double disabilityPercentage = (Double) details.get("disabilityPercentage");
-                            if(disabilityPercentage<0.0 || disabilityPercentage > 100.0) {
+                            Object disabilityPercentageObj = details.get("disabilityPercentage");
+
+                            Double disabilityPercentage = null;
+
+                            // Check if the value is already a Double or Integer and handle accordingly
+                            if (disabilityPercentageObj instanceof Double) {
+                                disabilityPercentage = (Double) disabilityPercentageObj;
+                            } else {
+                                disabilityPercentage = ((Integer) disabilityPercentageObj).doubleValue();
+                            }
+                            if(disabilityPercentage < 0.0 || disabilityPercentage > 100.0) {
                                 errorMessages.add("disability percentage must be in range 1-100");
                             }
                             customCustomer.setDisabilityPercentage(disabilityPercentage);
