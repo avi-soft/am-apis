@@ -686,6 +686,32 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+            if(details.containsKey("disability")) {
+                Boolean cond = (Boolean) details.get("disability");
+                customCustomer.setDisability(cond);
+                if(cond) {
+                    if(details.containsKey("disabilityType")) {
+                        String disabilityType = (String) details.get("disabilityType");
+                        customCustomer.setDisabilityType(disabilityType);
+                        if(details.containsKey("disabilityPercentage")) {
+                            Double disabilityPercentage = (Double) details.get("disabilityPercentage");
+                            if(disabilityPercentage<0.0 || disabilityPercentage > 100.0) {
+                                errorMessages.add("disability percentage must be in range 1-100");
+                            }
+                            customCustomer.setDisabilityPercentage(disabilityPercentage);
+                        }
+                    }else {
+                        errorMessages.add("disability type is mandatory when disability is given");
+                    }
+                } else {
+                    customCustomer.setDisabilityType(null);
+                    customCustomer.setDisabilityPercentage(0.0);
+                }
+            } else if(details.containsKey("disabilityType")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            } else if(details.containsKey("disabilityPercentage")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            }
 
             if(details.containsKey("workExperienceScopeId")) {
                 Long scopeId = Long.parseLong(( String) details.get("workExperienceScopeId"));

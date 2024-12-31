@@ -149,11 +149,10 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @Transactional
-    @PostMapping("/add/{categoryId}")
+    @PostMapping("/add")
     public ResponseEntity<?> addProduct(
             HttpServletRequest request,
             @RequestBody AddProductDto addProductDto,
-            @PathVariable Long categoryId,
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
@@ -166,6 +165,9 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
+            Advertisement advertisement = productService.validateAdvertisement(addProductDto);
+
+            Long categoryId = advertisement.getCategory().getDefaultParentCategory().getId();
             Category category = productService.validateCategory(categoryId);
 
             if (!saveDraft) {
@@ -241,7 +243,6 @@ public class ProductController extends CatalogEndpoint {
                 Qualification  qualification  = productService.validateQualification(addProductDto);
                 CustomStream customStream = productService.validateStream(addProductDto);
                 CustomSubject customSubject = productService.validateSubject(addProductDto);
-                Advertisement advertisement = productService.validateAdvertisement(addProductDto);
 
                 productService.validateAdmitCardDates(addProductDto);
                 productService.validateModificationDates(addProductDto);
