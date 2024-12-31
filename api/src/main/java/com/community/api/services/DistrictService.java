@@ -65,4 +65,48 @@ public class DistrictService {
             throw new Exception("Some Exception Occurred: " + exception.getMessage());
         }
     }
+
+    public StateCode getStateByStateName(String state) throws Exception {
+        try{
+            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
+            query.setParameter("state", state);
+
+            List<StateCode> stateCode = query.getResultList();
+            if(stateCode.size() ==0 || stateCode == null){
+                throw new IllegalArgumentException("STATE NOT FOUND");
+            }
+            return stateCode.get(0);
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandling.handleException(numberFormatException);
+            throw new NumberFormatException("Number format exception: " + numberFormatException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception("Some Exception Occurred: " + exception.getMessage());
+        }
+    }
+
+    public Districts findDistrictByName(String district) throws Exception {
+        try{
+            Query query = entityManager.createQuery(Constant.FIND_DISTRICT_BY_NAME, Districts.class);
+            query.setParameter("district", district);
+
+            List<Districts> districts = query.getResultList();
+            if(districts.size() ==0 || districts == null){
+                throw new IllegalArgumentException("DISTRICTS NOT FOUND");
+            }
+            return districts.get(0);
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandling.handleException(numberFormatException);
+            throw new NumberFormatException("Number format exception: " + numberFormatException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception("Some Exception Occurred: " + exception.getMessage());
+        }
+    }
 }

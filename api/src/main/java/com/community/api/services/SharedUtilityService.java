@@ -11,10 +11,11 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.CustomerAddressDTO;
+import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
-import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
@@ -57,6 +58,8 @@ public class SharedUtilityService {
     JwtUtil jwtTokenUtil;
     @Autowired
     RoleService roleService;
+    @Autowired
+    DistrictService districtService;
     @Autowired
     HttpServletRequest request;
     private EntityManager entityManager;
@@ -118,7 +121,7 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -226,6 +229,8 @@ public class SharedUtilityService {
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
+        customerDetails.put("disability_type", customCustomer.getDisabilityType());
+        customerDetails.put("disability_percentage", customCustomer.getDisabilityPercentage());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
@@ -252,6 +257,8 @@ public class SharedUtilityService {
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
                 currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
