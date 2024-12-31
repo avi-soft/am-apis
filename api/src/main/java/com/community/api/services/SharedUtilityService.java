@@ -90,7 +90,7 @@ public class SharedUtilityService {
         return query.getSingleResult();
     }
 
-    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer) {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer,Long genderId) {
         Map<String, Object> productDetails = new HashMap<>();
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
@@ -106,9 +106,9 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
-        Double fee = productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId()).getFee();
+        Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
-            fee = 10.0; //@TODO - make it constant free
+            fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
         }
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
