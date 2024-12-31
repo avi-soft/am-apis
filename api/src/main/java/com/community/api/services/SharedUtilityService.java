@@ -58,6 +58,8 @@ public class SharedUtilityService {
     @Autowired
     RoleService roleService;
     @Autowired
+    DistrictService districtService;
+    @Autowired
     HttpServletRequest request;
     private EntityManager entityManager;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
@@ -118,7 +120,7 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -252,6 +254,8 @@ public class SharedUtilityService {
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
                 currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
