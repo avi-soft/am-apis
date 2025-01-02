@@ -71,7 +71,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 ref.setCustomReserveCategory(reserveCategory);
                 ref.setCustomProduct(product);
                 ref.setGender(gender);
-                ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
+                //ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
                 ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
                 ref.setMinimumAge(addReserveCategoryDto.getMinAge());
                 ref.setProductReservedCategoryId(addReserveCategoryDto.getReserveCategory());

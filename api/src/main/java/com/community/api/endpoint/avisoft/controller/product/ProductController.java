@@ -117,6 +117,9 @@ public class ProductController extends CatalogEndpoint {
     DistrictService districtService;
 
     @Autowired
+    ProductReserveCategoryFeePostRefService feeService;
+
+    @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
 
     @Autowired
@@ -429,12 +432,12 @@ public class ProductController extends CatalogEndpoint {
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
-                wrapper.wrapDetails(customProduct,null,null);
+                wrapper.wrapDetails(customProduct,null,null,feeService);
                 return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
             }
             else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
             {
-                wrapper.wrapDetails(customProduct,null,null);
+                wrapper.wrapDetails(customProduct,null,null,feeService);
                 return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
             }
             else if(!saveAsDraft)
@@ -444,7 +447,7 @@ public class ProductController extends CatalogEndpoint {
                    return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,physicalRequirementDtoList,wrapper);
                 }
             }
-            wrapper.wrapDetails(customProduct,null,null);
+            wrapper.wrapDetails(customProduct,null,null,feeService);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -515,7 +518,7 @@ public class ProductController extends CatalogEndpoint {
                     postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
                     postProjectionDTOS.add(postProjectionDTO);
                 }
-                wrapper.wrapDetails(customProduct, postList,postProjectionDTOS);
+                wrapper.wrapDetails(customProduct, postList,postProjectionDTOS,feeService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
 
             } else {
@@ -656,7 +659,7 @@ public class ProductController extends CatalogEndpoint {
                         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(customProduct.getId());
                         List<Post> postList= customProduct.getPosts();
                         CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct,postList,null);
+                        wrapper.wrapDetails(customProduct,postList,null,feeService);
 
                         responses.add(wrapper);
                     }

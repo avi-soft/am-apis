@@ -125,6 +125,9 @@ public class CustomerEndpoint {
     private DocumentStorageService fileUploadService;
 
     @Autowired
+    private ProductReserveCategoryFeePostRefService feePostRefService;
+
+    @Autowired
     private static SharedUtilityService sharedUtilityServiceApi;
 
     @Autowired
@@ -1682,7 +1685,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, null,null);
+            customProductWrapper.wrapDetails(product, null,null,feePostRefService);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1718,7 +1721,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, null,null);
+            customProductWrapper.wrapDetails(product, null,null,feePostRefService);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1745,7 +1748,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,null,null);
+                customProductWrapper.wrapDetails(customProduct,null,null,feePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1775,7 +1778,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,null,null);
+                customProductWrapper.wrapDetails(customProduct,null,null,feePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1806,7 +1809,7 @@ public class CustomerEndpoint {
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List<Post>postList= customProduct.getPosts();
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,postList,null);
+                customProductWrapper.wrapDetails(customProduct,postList,null,feePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);

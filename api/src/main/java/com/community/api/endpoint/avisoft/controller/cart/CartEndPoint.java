@@ -364,7 +364,7 @@ public class CartEndPoint extends BaseEndpoint {
                         }
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                         products.add(productDetails);
-                        individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
                         if(individualFee==null)
                             //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                             individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
@@ -544,6 +544,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderState.setOrderStatusId(orderStatusId);
                     orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
+
                     customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
                     individualOrders.add(individualOrder);
             

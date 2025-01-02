@@ -1153,7 +1153,7 @@ public class ProductService {
             customProduct.setProductState(customProductState);
             List<Post>postList= customProduct.getPosts();
             List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
-            wrapper.wrapDetails(customProduct,postList,null);
+            wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
         catch (IllegalArgumentException illegalArgumentException) {
@@ -1321,7 +1321,7 @@ public class ProductService {
 
         return dateMap;
     }
-    public boolean validateAge(AddProductDto addProductDto) throws Exception {
+    /*public boolean validateAge(AddProductDto addProductDto) throws Exception {
         try {
 
             if (addProductDto.getReserveCategoryAge().isEmpty()) {
@@ -1384,12 +1384,12 @@ public class ProductService {
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
                 if (reserveCategory == null) {
                     throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
-                }/*
+                }*//*
                 if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() == null) {
                     addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).setPost(Constant.DEFAULT_QUANTITY);
                 } else if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() <= 0) {
                     throw new IllegalArgumentException(POSTLESSTHANORZERO);
-                }*/
+                }*//*
 
                 if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter() == null) {
                     throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
@@ -1418,7 +1418,7 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
         }
-    }
+    }*/
     //****************************************
     //FOR FUTURE USE IF NEEDED
     /*public Boolean checkForOpenCategory(CustomReserveCategory openCategory,AddProductDto addProductDto)

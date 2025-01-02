@@ -70,6 +70,7 @@ public class PostService {
     }
     public boolean validateAge(PostDto addProductDto) throws Exception {
         try {
+            Boolean bornBeforeAfter=addProductDto.getBornBeforeAfter();
             for(AddProductAgeDTO addProductAgeDTO:addProductDto.getReserveCategoryAge())
             {
             if (addProductDto.getReserveCategoryAge()==null) {
@@ -87,11 +88,11 @@ public class PostService {
             calendar.add(Calendar.YEAR, 100);
             Date maxBornBeforeDate = calendar.getTime();
 
-                if(addProductAgeDTO.getBornBeofreAfter()==null)
+                if(bornBeforeAfter==null)
                 {
                     throw new IllegalArgumentException("born_before_after cannot be null");
                 }
-                if(!addProductAgeDTO.getBornBeofreAfter())
+                if(!bornBeforeAfter)
                 {
                     if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
                         throw new IllegalArgumentException("Both minimum and maximum age re required");

@@ -15,12 +15,8 @@ import java.util.Date;
 @Getter
 @Setter
 public class ReserveCategoryAgeDto {
-    @JsonProperty("product_id")
-    Long productId;
     @JsonProperty("reserve_category_id")
     Long reserveCategoryId;
-    @JsonProperty("post")
-    Integer post;
     @JsonProperty("reserve_category")
     String reserveCategory;
     @JsonProperty("born_before_after")

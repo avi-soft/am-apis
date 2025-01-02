@@ -56,10 +56,13 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
 
     @Column(name = "maximum_age")
     protected Integer maximumAge;
+    @Column(name = "as_of_date")
+    protected Date asOfDate;
     @Column(name = "minimum_age")
     protected Integer minimumAge;
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
+
 
     @JsonIgnore
     @ManyToOne
