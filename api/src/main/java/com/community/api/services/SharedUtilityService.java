@@ -209,11 +209,11 @@ public class SharedUtilityService {
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
 //        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
-        customerDetails.put("height_cms", customCustomer.getHeightCms());
-        customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
-        customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
-        customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
-        customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+        customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
+        customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
+        customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+        customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+        customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
         customerDetails.put("can_swim", customCustomer.getCanSwim());
         customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
         customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
