@@ -12,7 +12,6 @@ import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
@@ -56,7 +55,6 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -298,6 +296,12 @@ public class CustomerEndpoint {
 
                 if (!conditionExists) {
                     errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                }else{
+                    customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
+                    customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
+                    customCustomer.setChestSizeCms(Integer.parseInt((String) finalDetails.get("chestSizeCms")));
+                    customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
+                    customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
                 }
             }
 
@@ -305,8 +309,8 @@ public class CustomerEndpoint {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
-                     String workExperience = (String) details.get("workExperience");
-                     customCustomer.setWorkExperience(workExperience);
+                     Integer workExperience = (Integer) details.get("workExperience");
+                     customCustomer.setWorkExperience(workExperience.toString());
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
@@ -319,7 +323,11 @@ public class CustomerEndpoint {
                     customCustomer.setDomicile(true);
                     customCustomer.setDomicileState(state);
                 } else {
+                    if((details.containsKey("domicileState"))) {
+                        errorMessages.add("cannot give domicile state w/o opting for the domicile.");
+                    }
                     customCustomer.setDomicile(false);
+                    customCustomer.setDomicileState(null);
                 }
             } else if(details.containsKey("domicileState")) {
                 errorMessages.add("cannot give domicile state w/o opting for the domicile.");
@@ -677,6 +685,41 @@ public class CustomerEndpoint {
             if(details.containsKey("interestedInDefence")) {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
+            }
+            if(details.containsKey("disability")) {
+                Boolean cond = (Boolean) details.get("disability");
+                customCustomer.setDisability(cond);
+                if(cond) {
+                    if(details.containsKey("disabilityType")) {
+                        String disabilityType = (String) details.get("disabilityType");
+                        customCustomer.setDisabilityType(disabilityType);
+                        if(details.containsKey("disabilityPercentage")) {
+                            Object disabilityPercentageObj = details.get("disabilityPercentage");
+
+                            Double disabilityPercentage = null;
+
+                            // Check if the value is already a Double or Integer and handle accordingly
+                            if (disabilityPercentageObj instanceof Double) {
+                                disabilityPercentage = (Double) disabilityPercentageObj;
+                            } else {
+                                disabilityPercentage = ((Integer) disabilityPercentageObj).doubleValue();
+                            }
+                            if(disabilityPercentage < 0.0 || disabilityPercentage > 100.0) {
+                                errorMessages.add("disability percentage must be in range 1-100");
+                            }
+                            customCustomer.setDisabilityPercentage(disabilityPercentage);
+                        }
+                    }else {
+                        errorMessages.add("disability type is mandatory when disability is given");
+                    }
+                } else {
+                    customCustomer.setDisabilityType(null);
+                    customCustomer.setDisabilityPercentage(0.0);
+                }
+            } else if(details.containsKey("disabilityType")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            } else if(details.containsKey("disabilityPercentage")) {
+                errorMessages.add("disability must be given in order to give disability Type");
             }
 
             if(details.containsKey("workExperienceScopeId")) {
@@ -1620,7 +1663,7 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) throws Exception {
         OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
