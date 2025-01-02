@@ -593,7 +593,6 @@ public class CustomerEndpoint {
 
             if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
-
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -604,10 +603,12 @@ public class CustomerEndpoint {
                 // Check if the field has the @Nullable annotation
                 boolean isNullable = field.isAnnotationPresent(Nullable.class);
                 field.setAccessible(true);
+                if(newValue!=null)
+                {
                 if (newValue.toString().isEmpty() && !isNullable) {
                     errorMessages.add(fieldName + " cannot be null");
                     continue;
-                }
+                }}
                 if (field.isAnnotationPresent(Pattern.class)) {
                     Pattern patternAnnotation = field.getAnnotation(Pattern.class);
                     String regex = patternAnnotation.regexp();
