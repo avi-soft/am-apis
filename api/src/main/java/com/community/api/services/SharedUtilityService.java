@@ -209,11 +209,37 @@ public class SharedUtilityService {
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
 //        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
-        customerDetails.put("height_cms", customCustomer.getHeightCms());
-        customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
-        customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
-        customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
-        customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+
+        if(customCustomer.getHeightCms() != null) {
+            customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
+        }else {
+            customerDetails.put("height_cms", customCustomer.getHeightCms());
+        }
+
+        if(customCustomer.getWeightKgs() != null) {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
+        }else {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
+        }
+
+        if(customCustomer.getChestSizeCms() != null) {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+        }else {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
+        }
+
+        if(customCustomer.getShoeSizeInches() != null) {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+        }else {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
+        }
+
+        if(customCustomer.getWaistSizeCms() != null) {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
+        }else {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+        }
+
         customerDetails.put("can_swim", customCustomer.getCanSwim());
         customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
         customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
