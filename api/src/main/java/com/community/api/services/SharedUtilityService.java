@@ -11,10 +11,11 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.CustomerAddressDTO;
+import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
-import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
@@ -58,6 +59,8 @@ public class SharedUtilityService {
     @Autowired
     RoleService roleService;
     @Autowired
+    DistrictService districtService;
+    @Autowired
     HttpServletRequest request;
     private EntityManager entityManager;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
@@ -90,7 +93,7 @@ public class SharedUtilityService {
         return query.getSingleResult();
     }
 
-    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer) {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer,Long genderId) {
         Map<String, Object> productDetails = new HashMap<>();
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
@@ -106,9 +109,9 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
-        Double fee = productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId()).getFee();
+        Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
-            fee = 10.0; //@TODO - make it constant free
+            fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
         }
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
@@ -118,7 +121,7 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -206,11 +209,37 @@ public class SharedUtilityService {
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
 //        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
-        customerDetails.put("height_cms", customCustomer.getHeightCms());
-        customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
-        customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
-        customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
-        customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+
+        if(customCustomer.getHeightCms() != null) {
+            customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
+        }else {
+            customerDetails.put("height_cms", customCustomer.getHeightCms());
+        }
+
+        if(customCustomer.getWeightKgs() != null) {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
+        }else {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
+        }
+
+        if(customCustomer.getChestSizeCms() != null) {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+        }else {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
+        }
+
+        if(customCustomer.getShoeSizeInches() != null) {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+        }else {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
+        }
+
+        if(customCustomer.getWaistSizeCms() != null) {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
+        }else {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+        }
+
         customerDetails.put("can_swim", customCustomer.getCanSwim());
         customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
         customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
@@ -226,6 +255,8 @@ public class SharedUtilityService {
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
+        customerDetails.put("disability_type", customCustomer.getDisabilityType());
+        customerDetails.put("disability_percentage", customCustomer.getDisabilityPercentage());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
@@ -252,6 +283,8 @@ public class SharedUtilityService {
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
                 currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());

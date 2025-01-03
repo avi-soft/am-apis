@@ -12,7 +12,6 @@ import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
@@ -56,7 +55,6 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -94,13 +92,16 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.request;
 import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
@@ -329,6 +330,7 @@ public class CustomerEndpoint {
                         errorMessages.add("cannot give domicile state w/o opting for the domicile.");
                     }
                     customCustomer.setDomicile(false);
+                    customCustomer.setDomicileState(null);
                 }
             } else if(details.containsKey("domicileState")) {
                 errorMessages.add("cannot give domicile state w/o opting for the domicile.");
@@ -590,11 +592,12 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
             }
 
-
-
-            if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
+            if(customCustomer.getGender()==null && details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
+            if(customCustomer.getGender().equals("Female") && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+            }
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -686,6 +689,41 @@ public class CustomerEndpoint {
             if(details.containsKey("interestedInDefence")) {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
+            }
+            if(details.containsKey("disability")) {
+                Boolean cond = (Boolean) details.get("disability");
+                customCustomer.setDisability(cond);
+                if(cond) {
+                    if(details.containsKey("disabilityType")) {
+                        String disabilityType = (String) details.get("disabilityType");
+                        customCustomer.setDisabilityType(disabilityType);
+                        if(details.containsKey("disabilityPercentage")) {
+                            Object disabilityPercentageObj = details.get("disabilityPercentage");
+
+                            Double disabilityPercentage = null;
+
+                            // Check if the value is already a Double or Integer and handle accordingly
+                            if (disabilityPercentageObj instanceof Double) {
+                                disabilityPercentage = (Double) disabilityPercentageObj;
+                            } else {
+                                disabilityPercentage = ((Integer) disabilityPercentageObj).doubleValue();
+                            }
+                            if(disabilityPercentage < 0.0 || disabilityPercentage > 100.0) {
+                                errorMessages.add("disability percentage must be in range 1-100");
+                            }
+                            customCustomer.setDisabilityPercentage(disabilityPercentage);
+                        }
+                    }else {
+                        errorMessages.add("disability type is mandatory when disability is given");
+                    }
+                } else {
+                    customCustomer.setDisabilityType(null);
+                    customCustomer.setDisabilityPercentage(0.0);
+                }
+            } else if(details.containsKey("disabilityType")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            } else if(details.containsKey("disabilityPercentage")) {
+                errorMessages.add("disability must be given in order to give disability Type");
             }
 
             if(details.containsKey("workExperienceScopeId")) {
@@ -913,6 +951,7 @@ public class CustomerEndpoint {
             }
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
+                HashSet<Document> documentsToSave= new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -1007,6 +1046,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setName(null);
                                     em.persist(existingDocument);
+                                    documentsToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                                 }
@@ -1037,7 +1077,8 @@ public class CustomerEndpoint {
                                 existingDocument13.setFilePath(null);
                                 existingDocument13.setName(null);
                                 existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument);
+                                em.merge(existingDocument13);
+                                documentsToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
@@ -1106,6 +1147,7 @@ public class CustomerEndpoint {
                                     }
                                 }
                             entityManager.merge(existingDocument);
+                            documentsToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1116,6 +1158,7 @@ public class CustomerEndpoint {
                                     document.setIs_qualification_document(true);
                                     document.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1135,19 +1178,50 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                             }
                         }
                     }
                 }
-                CustomCustomer updatedCustomer = entityManager.find(CustomCustomer.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnCustomerDocuments(updatedCustomer.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get(); // Blocks until the result is available
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+                    for (Document document : documentsToSave) {
+                        if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                            if (document.getFilePath() != null && document.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", document.getDocumentId());
+                                documentDetails.put("name", document.getName());
+                                documentDetails.put("filePath", document.getFilePath());
 
-                // Construct the response with the updated data
+                                // Add qualification details if applicable
+                                if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                    documentDetails.put("qualification_detail_id",qualificationDetailId);
+                                }
+
+                                // Add document validity details if applicable
+                                if (document.getDocumentValidity() != null) {
+
+                                    Map<String, String> validityDetails = new HashMap<>();
+                                    validityDetails.put("dateOfIssue", dateOfIssue);
+                                    validityDetails.put("validUpto", validUpto);
+
+                                    documentDetails.put("documentValidity", validityDetails); // Include as nested map
+                                }
+
+                                // Generate a file URL for the document
+                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+
+                                documentDetails.put("documentType", document.getDocumentType());
+                                filteredDocuments.add(documentDetails);
+                            }
+                        }
+                    }
+
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
+              Set<ServiceProviderDocument> serviceProviderDocumentToSave= new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -1223,6 +1297,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setServiceProviderEntity(null);
                                     em.persist(existingDocument);
+                                    serviceProviderDocumentToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                                 }
@@ -1257,6 +1332,7 @@ public class CustomerEndpoint {
                                 existingDocument13.setServiceProviderEntity(null);
 
                                 em.merge(existingDocument13);
+                                serviceProviderDocumentToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
 
@@ -1319,6 +1395,8 @@ public class CustomerEndpoint {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                 }
                             }
+                            entityManager.merge(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1329,6 +1407,7 @@ public class CustomerEndpoint {
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1348,15 +1427,46 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     serviceProviderDocument.setDocumentValidity(documentValidity);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                             }
                         }
                     }
 
                 }
-                ServiceProviderEntity updatedServiceProviderEntity = entityManager.find(ServiceProviderEntity.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnServiceProvider(updatedServiceProviderEntity.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get();
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails);
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
 
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
@@ -1629,7 +1739,7 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) throws Exception {
         OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }

@@ -46,6 +46,7 @@ public class Constant {
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
     public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
+    public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
     public static String FETCH_ROLE = "SELECT r.role_name FROM Role r WHERE r.role_id = :role_id";
     public static final String roleUser = "CUSTOMER";
@@ -139,6 +140,7 @@ public class Constant {
     public static final String GET_ALL_REJECTION_STATUS = "SELECT c FROM CustomProductRejectionStatus c";
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
     public static final String GET_STATE_BY_STATE_ID = "SELECT c FROM StateCode c WHERE c.state_id = :stateId";
+    public static final String GET_STATE_BY_STATE_NAME = "SELECT c FROM StateCode c WHERE c.state_name = :state";
 
     public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
@@ -155,7 +157,7 @@ public class Constant {
     public static final Double MIN_CHEST_SIZE = 20d;
     public static final String GET_RESERVE_CATEGORY_BY_ID= "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name";
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
-    public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId";
+    public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId AND p.gender_id = :genderId";
     public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y'";
     public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y'";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";

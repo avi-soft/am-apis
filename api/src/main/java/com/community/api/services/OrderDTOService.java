@@ -60,10 +60,10 @@ public class OrderDTOService {
     CustomProductWrapper customProductWrapper=null;
                 if(customProduct!=null) {
         customProductWrapper = new CustomProductWrapper();
-        List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-        List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
+        /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
+        List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);*/
                     List<Post> postList= customProduct.getPosts();
-                    List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
+                    //List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
         customProductWrapper.wrapDetails(customProduct, postList,null);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
