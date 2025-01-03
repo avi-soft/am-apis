@@ -356,7 +356,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             for (CustomProductReserveCategoryFeePostRef fee : feeList) {
                 ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
                 reserveCategoryDto.setProductId(customProduct.getId());
-                reserveCategoryDto.setReserveCategoryId(fee.getProductReservedCategoryId());
+                reserveCategoryDto.setReserveCategoryId(fee.getCustomReserveCategory().getReserveCategoryId());
                 reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
