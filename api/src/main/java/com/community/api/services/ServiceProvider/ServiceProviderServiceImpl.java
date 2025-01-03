@@ -633,6 +633,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);

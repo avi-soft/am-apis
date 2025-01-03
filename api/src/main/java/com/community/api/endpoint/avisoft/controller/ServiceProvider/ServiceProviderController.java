@@ -124,6 +124,7 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
