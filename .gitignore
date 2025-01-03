@@ -15,3 +15,6 @@ bin/
 data
 api/avisoftdocument
 test/avisoftdocument
+.DS_Store
+
+

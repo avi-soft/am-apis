@@ -5,16 +5,24 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.Post;
+import com.community.api.entity.StateCode;
+import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
+import com.community.api.services.PostExecutionService;
+import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
+import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.CustomCustomerService;
@@ -47,7 +55,6 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -64,17 +71,40 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.persistence.*;
+import javax.persistence.Query;
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.PersistenceException;
+import javax.persistence.Column;
+import javax.persistence.TypedQuery;
+import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Iterator;
+import java.util.HashMap;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import static com.community.api.component.Constant.request;
+import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -101,11 +131,16 @@ public class CustomerEndpoint {
     private static SharedUtilityService sharedUtilityServiceApi;
 
     @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
+
+    @Autowired
     private ExceptionHandlingService exceptionHandlingService;
     @Autowired
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private  ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
 
 
@@ -133,6 +168,9 @@ public class CustomerEndpoint {
     private  ReserveCategoryService reserveCategoryService;
 
     @Autowired
+    private ApplicationScopeService applicationScopeService;
+
+    @Autowired
     private  SanitizerService sanitizerService;
 
     @Autowired
@@ -140,6 +178,9 @@ public class CustomerEndpoint {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private PostExecutionService postExecutionService;
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -237,6 +278,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if((roleId==4&&customCustomer.getCreatedByRole()==4&&customCustomer.getCreatedById()!=tokenUserId)||(roleId==4&&customCustomer.getRegisteredBySp().equals(false))||(roleId==5&&!tokenUserId.equals(customerId)))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -244,6 +287,55 @@ public class CustomerEndpoint {
             String mobileNumber = (String) details.get("mobileNumber");
             if (secondaryMobileNumber != null && mobileNumber==null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
+            }
+            if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
+                // List of required fields
+                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "chestSizeCms", "shoeSizeInches", "waistSizeCms");
+
+                // Check if all required fields are present and not empty
+                Map<String, Object> finalDetails = details;
+                boolean conditionExists = requiredFields.stream()
+                        .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
+
+                if (!conditionExists) {
+                    errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                }else{
+                    customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
+                    customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
+                    customCustomer.setChestSizeCms(Integer.parseInt((String) finalDetails.get("chestSizeCms")));
+                    customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
+                    customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
+                }
+            }
+
+            if(details.containsKey("workExperienceScopeId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
+                customCustomer.setWorkExperienceScopeId(customApplicationScope);
+                if(details.containsKey("workExperience")) {
+                     Integer workExperience = (Integer) details.get("workExperience");
+                     customCustomer.setWorkExperience(workExperience.toString());
+                }
+            } else if(details.containsKey("workExperience")) {
+                errorMessages.add("Give scope of work before adding work experience");
+            }
+
+            if(details.containsKey("domicile")) {
+                Boolean domicile = (Boolean) details.get("domicile");
+                if(domicile) {
+                    StateCode state = districtService.getStateByStateId(Integer.parseInt((String) details.get("domicileState")));
+                    customCustomer.setDomicile(true);
+                    customCustomer.setDomicileState(state);
+                } else {
+                    if((details.containsKey("domicileState"))) {
+                        errorMessages.add("cannot give domicile state w/o opting for the domicile.");
+                    }
+                    customCustomer.setDomicile(false);
+                    customCustomer.setDomicileState(null);
+                }
+            } else if(details.containsKey("domicileState")) {
+                errorMessages.add("cannot give domicile state w/o opting for the domicile.");
+            }else {
+                customCustomer.setDomicile(false);
             }
 
             if(details.containsKey("hidePhoneNumber"))
@@ -297,12 +389,13 @@ public class CustomerEndpoint {
             customCustomer.setQualificationDetailsList(customCustomer.getQualificationDetailsList());
             customCustomer.setCountryCode(customCustomer.getCountryCode());
 
-
             if (details.containsKey("firstName")&&!details.get("firstName").toString().isEmpty()) {
                 customCustomer.setFirstName((String) details.get("firstName"));
             } else if (details.containsKey("firstName")&&details.get("firstName").toString().isEmpty())
             {
                 errorMessages.add("First name cannot be null");
+            } else if (details.containsKey("firstName")&&!sharedUtilityService.isAlphabetic((String)details.get("firstName"))) {
+                errorMessages.add("Invalid First name");
             }
             if (details.containsKey("lastName")&&!details.get("lastName").toString().isEmpty())
                 customCustomer.setLastName((String) details.get("lastName"));
@@ -310,7 +403,9 @@ public class CustomerEndpoint {
             {
                 errorMessages.add("Last name cannot be null");
             }
-
+            else if (details.containsKey("lastName")&&!sharedUtilityService.isAlphabetic((String)details.get("lastName"))) {
+                errorMessages.add("Invalid Last name");
+            }
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
             if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty())
@@ -379,15 +474,130 @@ public class CustomerEndpoint {
                     addAddress(customerId, addressMap);
                 }
             }
+
             details.remove("permanentState");
             details.remove("permanentDistrict");
             details.remove("permanentAddress");
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
-            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female")&&details.containsKey("chestSizeCms"))
-                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female",HttpStatus.BAD_REQUEST);
+            if(details.containsKey("ncc_certificate"))
+            {
+                String nccCertificateValue = (String) details.get("ncc_certificate");
 
+                if(!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNcc_certificate(nccCertificateValue);
+                customCustomer.setIs_ncc_certificate(true);
+
+            }
+            if(details.containsKey("dob"))
+            {
+               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                   errorMessages.add("DOB cannot be in future");
+            }
+                if(details.containsKey("is_ncc_certificate"))
+                {
+                Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
+                if(isNccCertificate.equals(true))
+                {
+                    if(!details.containsKey("ncc_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select ncc certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
+                }
+
+                if(isNccCertificate.equals(false))
+                {
+                    customCustomer.setNcc_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(18) || document.getDocumentType().getDocument_type_id().equals(19) ||document.getDocumentType().getDocument_type_id().equals(20))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+
+                }
+                customCustomer.setIs_ncc_certificate(isNccCertificate);
+
+            }
+            if(details.containsKey("nss_certificate"))
+            {
+                String nssCertificateValue = (String) details.get("nss_certificate");
+                if(!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C"))
+                {
+                    return ResponseService.generateErrorResponse("You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C",HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setNss_certificate(nssCertificateValue);
+                customCustomer.setIs_nss_certificate(true);
+            }
+            if(details.containsKey("is_nss_certificate"))
+            {
+                Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
+                System.out.println("430");
+                System.out.println(isNssCertificate);
+                if(isNssCertificate.equals(true))
+                {
+                    if(!details.containsKey("nss_certificate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to select nss certificate type",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setNss_certificate((String) details.get("nss_certificate"));
+                }
+                else if(isNssCertificate.equals(false))
+                {
+                    customCustomer.setNss_certificate(null);
+                    List<Document> customerDocuments=customCustomer.getDocuments();
+                    for(Document document: customerDocuments)
+                    {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if(document.getCustom_customer().getId().equals(customerId) )
+                            {
+                                if(document.getDocumentType().getDocument_type_id().equals(21) || document.getDocumentType().getDocument_type_id().equals(28) ||document.getDocumentType().getDocument_type_id().equals(29))
+                                {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIs_nss_certificate(isNssCertificate);
+            }
+
+            details.remove("is_ncc_certificate");
+            details.remove("ncc_certificate");
+            details.remove("is_nss_certificate");
+            details.remove("nss_certificate");
+
+            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
+                    || (customCustomer.getGender() == null && details.containsKey("gender")
+                    && ((String)details.get("gender")).toLowerCase().equals("female"))
+                    || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male")
+                    && details.containsKey("gender") && ((String)details.get("gender")).toLowerCase().equals("female")))
+                    && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
+            }
+
+            if(customCustomer.getGender()==null && details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
+
+            if(customCustomer.getGender().equals("Female") && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+            }
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -407,7 +617,7 @@ public class CustomerEndpoint {
                     String regex = patternAnnotation.regexp();
                     String message = patternAnnotation.message(); // Get custom message
                     if (!newValue.toString().matches(regex)) {
-                        errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                        errorMessages.add(patternAnnotation.message()); // Use a placeholder
                         continue;
                     }
                 }
@@ -423,15 +633,107 @@ public class CustomerEndpoint {
                         continue;
                     }
                 }
+                if (field.isAnnotationPresent(Min.class)) {
+                    Min minAnnotation = field.getAnnotation(Min.class);
+                    long minValue = minAnnotation.value();
 
-                // Set value if type is compatible
+                    // Check if newValue can be parsed to a number
+                    if (newValue != null) {
+                        long parsedValue = sharedUtilityService.parseToLong(newValue);
+                        if (parsedValue < minValue) {
+                            errorMessages.add(minAnnotation.message());
+                        }
+                    }
+                }
+
+                // Check for @Max annotation
+                if (field.isAnnotationPresent(Max.class)) {
+                    Max maxAnnotation = field.getAnnotation(Max.class);
+                    long maxValue = maxAnnotation.value();
+
+                    // Check if newValue can be parsed to a number
+                    if (newValue != null) {
+                        long parsedValue = sharedUtilityService.parseToLong(newValue);
+                        if (parsedValue > maxValue) {
+                            errorMessages.add(maxAnnotation.message());
+                        }
+                    }
+                }
+
+            // Set value if type is compatible
                 if (newValue != null && field.getType().isAssignableFrom(newValue.getClass())) {
                     field.set(customCustomer, newValue);
                 }
             }
 
             // Update address if needed
+            if(details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {
 
+                if(sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryValidUpto"), errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                }
+
+            } else if(details.containsKey("categoryIssueDate")) {
+
+                if(sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
+                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                }
+            } else if(details.containsKey("categoryValidUpto")) {
+
+                if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"),  customCustomer, errorMessages)) {
+                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                }
+            }
+
+            if(details.containsKey("interestedInDefence")) {
+                Boolean value = (Boolean) details.get("interestedInDefence");
+                customCustomer.setInterestedInDefence(value);
+            }
+            if(details.containsKey("disability")) {
+                Boolean cond = (Boolean) details.get("disability");
+                customCustomer.setDisability(cond);
+                if(cond) {
+                    if(details.containsKey("disabilityType")) {
+                        String disabilityType = (String) details.get("disabilityType");
+                        customCustomer.setDisabilityType(disabilityType);
+                        if(details.containsKey("disabilityPercentage")) {
+                            Object disabilityPercentageObj = details.get("disabilityPercentage");
+
+                            Double disabilityPercentage = null;
+
+                            // Check if the value is already a Double or Integer and handle accordingly
+                            if (disabilityPercentageObj instanceof Double) {
+                                disabilityPercentage = (Double) disabilityPercentageObj;
+                            } else {
+                                disabilityPercentage = ((Integer) disabilityPercentageObj).doubleValue();
+                            }
+                            if(disabilityPercentage < 0.0 || disabilityPercentage > 100.0) {
+                                errorMessages.add("disability percentage must be in range 1-100");
+                            }
+                            customCustomer.setDisabilityPercentage(disabilityPercentage);
+                        }
+                    }else {
+                        errorMessages.add("disability type is mandatory when disability is given");
+                    }
+                } else {
+                    customCustomer.setDisabilityType(null);
+                    customCustomer.setDisabilityPercentage(0.0);
+                }
+            } else if(details.containsKey("disabilityType")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            } else if(details.containsKey("disabilityPercentage")) {
+                errorMessages.add("disability must be given in order to give disability Type");
+            }
+
+            if(details.containsKey("workExperienceScopeId")) {
+                Long scopeId = Long.parseLong(( String) details.get("workExperienceScopeId"));
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
+                if(customApplicationScope == null) {
+                    errorMessages.add("No Application scope found with this id");
+                }
+                customCustomer.setWorkExperienceScopeId(customApplicationScope);
+            }
 
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
@@ -450,6 +752,7 @@ public class CustomerEndpoint {
         }
         catch(NoSuchFieldException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         catch(Exception e){
@@ -526,8 +829,8 @@ public class CustomerEndpoint {
             @RequestParam(value = "files",required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "qualificationDetailId",required = false) Long qualificationDetailId,
-            @RequestParam(value = "dateOfIssue", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateOfIssue,
-            @RequestParam(value = "validUpto", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date validUpto,
+            @RequestParam(value = "dateOfIssue", required = false) String dateOfIssue,
+            @RequestParam(value = "validUpto", required = false)  String validUpto,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -648,6 +951,7 @@ public class CustomerEndpoint {
             }
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
+                HashSet<Document> documentsToSave= new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -699,16 +1003,32 @@ public class CustomerEndpoint {
 
                         // Validate document
                         documentStorageService.validateDocument(file, documentTypeObj);
+                        Document existingDocument =null;
 
-                        Document existingDocument = em.createQuery(
+                        if( qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                        {
+                             existingDocument = em.createQuery(
                                         "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                                                "AND d.documentType = :documentType " +
+                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
+                                                "AND d.name IS NOT NULL", Document.class)
                                 .setParameter("customCustomer", customCustomer)
                                 .setParameter("documentType", documentTypeObj)
+                                .setParameter("qualificationDetailId", qualificationDetailId)
                                 .getResultStream()
                                 .findFirst()
                                 .orElse(null);
-
+                        }
+                        else {
+                            existingDocument = em.createQuery(
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                                    .setParameter("customCustomer", customCustomer)
+                                    .setParameter("documentType", documentTypeObj)
+                                    .getResultStream()
+                                    .findFirst()
+                                    .orElse(null);
+                        }
 
                         fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
 
@@ -726,6 +1046,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setName(null);
                                     em.persist(existingDocument);
+                                    documentsToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                                 }
@@ -756,74 +1077,77 @@ public class CustomerEndpoint {
                                 existingDocument13.setFilePath(null);
                                 existingDocument13.setName(null);
                                 existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument);
+                                em.merge(existingDocument13);
+                                documentsToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
-                            String filePath = existingDocument.getFilePath();
-                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
-                            {
-                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
-                                existingDocument.setIs_qualification_document(true);
-                                existingDocument.setQualificationDetails(qualificationDetails);
-                            }
-
-                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
-                            {
-                                DocumentValidity documentValidity=null;
-                                if(existingDocument.getDocumentValidity()==null)
+                                String filePath = existingDocument.getFilePath();
+                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
-                                     documentValidity= new DocumentValidity();
-                                    validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
-                                    if(validUpto==null)
-                                    {
-                                        documentValidity.setIs_valid_upto_na(true);
-                                        documentValidity.setValid_upto(null);
-                                    }
-                                    else {
-                                        documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
-                                    }
-                                    documentValidity.setDocument(existingDocument);
-                                    existingDocument.setDocumentValidity(documentValidity);
-                                    entityManager.persist(documentValidity);
-
+                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                    existingDocument.setIs_qualification_document(true);
+                                    existingDocument.setQualificationDetails(qualificationDetails);
                                 }
-                                else if(existingDocument.getDocumentValidity()!=null)
+
+                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
-                                    documentValidity= existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
-                                    if(validUpto==null)
+                                    DocumentValidity documentValidity=null;
+                                    if(existingDocument.getDocumentValidity()==null)
                                     {
-                                        documentValidity.setIs_valid_upto_na(true);
-                                        documentValidity.setValid_upto(null);
+                                        documentValidity= new DocumentValidity();
+                                        validateDate(dateOfIssue,validUpto);
+                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                        if(validUpto==null)
+                                        {
+                                            documentValidity.setIs_valid_upto_na(true);
+                                            documentValidity.setValid_upto(null);
+                                        }
+                                        else {
+                                            documentValidity.setIs_valid_upto_na(false);
+                                            documentValidity.setValid_upto( convertStringToDate(validUpto));
+                                        }
+                                        documentValidity.setDocument(existingDocument);
+                                        existingDocument.setDocumentValidity(documentValidity);
+                                        entityManager.persist(documentValidity);
 
                                     }
-                                    else {
-                                        documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
-                                    }
-                                    documentValidity.setDocument(existingDocument);
-                                    existingDocument.setDocumentValidity(documentValidity);
-                                    entityManager.merge(documentValidity);
-                                }
+                                    else if(existingDocument.getDocumentValidity()!=null)
+                                    {
+                                        documentValidity= existingDocument.getDocumentValidity();
+                                        validateDate(dateOfIssue,validUpto);
+                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                        if(validUpto==null)
+                                        {
+                                            documentValidity.setIs_valid_upto_na(true);
+                                            documentValidity.setValid_upto(null);
 
-                            }
-                            if (filePath != null) {
-                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                File oldFile = new File(absolutePath);
-                                String oldFileName = oldFile.getName();
-                                String newFileName = file.getOriginalFilename();
-                                existingDocument.setIsArchived(false);
-                                if (!newFileName.equals(oldFileName)) {
-                                    fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
-                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                        }
+                                        else {
+                                            documentValidity.setIs_valid_upto_na(false);
+                                            documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        }
+                                        documentValidity.setDocument(existingDocument);
+                                        existingDocument.setDocumentValidity(documentValidity);
+                                        entityManager.merge(documentValidity);
+                                    }
+
                                 }
-                            }
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    String newFileName = file.getOriginalFilename();
+                                    existingDocument.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
+                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
+                                }
+                            entityManager.merge(existingDocument);
+                            documentsToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -834,12 +1158,13 @@ public class CustomerEndpoint {
                                     document.setIs_qualification_document(true);
                                     document.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
                                     DocumentValidity documentValidity= new DocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -847,23 +1172,56 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(document);
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                             }
                         }
                     }
                 }
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+                    for (Document document : documentsToSave) {
+                        if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                            if (document.getFilePath() != null && document.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", document.getDocumentId());
+                                documentDetails.put("name", document.getName());
+                                documentDetails.put("filePath", document.getFilePath());
 
-                return ResponseService.generateSuccessResponse(
-                        "Documents updated successfully",
-                        responseData,
-                        HttpStatus.OK);
+                                // Add qualification details if applicable
+                                if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                    documentDetails.put("qualification_detail_id",qualificationDetailId);
+                                }
+
+                                // Add document validity details if applicable
+                                if (document.getDocumentValidity() != null) {
+
+                                    Map<String, String> validityDetails = new HashMap<>();
+                                    validityDetails.put("dateOfIssue", dateOfIssue);
+                                    validityDetails.put("validUpto", validUpto);
+
+                                    documentDetails.put("documentValidity", validityDetails); // Include as nested map
+                                }
+
+                                // Generate a file URL for the document
+                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+
+                                documentDetails.put("documentType", document.getDocumentType());
+                                filteredDocuments.add(documentDetails);
+                            }
+                        }
+                    }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
+              Set<ServiceProviderDocument> serviceProviderDocumentToSave= new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -939,6 +1297,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setServiceProviderEntity(null);
                                     em.persist(existingDocument);
+                                    serviceProviderDocumentToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                                 }
@@ -973,6 +1332,7 @@ public class CustomerEndpoint {
                                 existingDocument13.setServiceProviderEntity(null);
 
                                 em.merge(existingDocument13);
+                                serviceProviderDocumentToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
 
@@ -993,13 +1353,13 @@ public class CustomerEndpoint {
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
                                     validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1008,13 +1368,13 @@ public class CustomerEndpoint {
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
                                     validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1035,6 +1395,8 @@ public class CustomerEndpoint {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                 }
                             }
+                            entityManager.merge(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1045,12 +1407,13 @@ public class CustomerEndpoint {
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
                                     DocumentValidity documentValidity= new DocumentValidity();
                                     validateDate(dateOfIssue,validUpto);
-                                    documentValidity.setDate_of_issue(dateOfIssue);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
                                     if(validUpto==null)
                                     {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1058,19 +1421,55 @@ public class CustomerEndpoint {
                                     }
                                     else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(validUpto);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(serviceProviderDocument);
                                     entityManager.persist(documentValidity);
                                     serviceProviderDocument.setDocumentValidity(documentValidity);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                             }
                         }
                     }
 
                 }
-                return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+                for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails);
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
+
+                responseData.put("uploadedDocuments", filteredDocuments);
+                return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
 
         }
@@ -1340,7 +1739,7 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) {
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer,String authHeader) throws Exception {
         OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
@@ -1393,7 +1792,8 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            customProductWrapper.wrapDetails(product, null,null);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1428,7 +1828,8 @@ public class CustomerEndpoint {
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            customProductWrapper.wrapDetails(product, reserveCategoryDtoList, physicalRequirementDtoList);
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            customProductWrapper.wrapDetails(product, null,null);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1454,7 +1855,8 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct,null,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1483,7 +1885,8 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct,null,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1512,7 +1915,9 @@ public class CustomerEndpoint {
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+                List<Post>postList= customProduct.getPosts();
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                customProductWrapper.wrapDetails(customProduct,postList,null);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1627,21 +2032,46 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(Date dateOfIssue,Date validUpto) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+
         try {
-            if(validUpto!=null)
-            {
+            // Validate format
+            if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
+                throw new IllegalArgumentException("Date of Issue must be in yyyy-MM-dd format");
+            }
+
+            Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
+
+            Date validUpto = null;
+            if (validUptoStr != null) {
+                if (!isValidDateFormat(validUptoStr, dateFormat)) {
+                    throw new IllegalArgumentException("Valid Upto Date must be in yyyy-MM-dd format");
+                }
+                validUpto = dateFormat.parse(validUptoStr);
+
+                // Check if validUpto is before dateOfIssue
                 if (validUpto.before(dateOfIssue)) {
-                    throw new IllegalArgumentException("Valid upto Date cannot be before date of issue");
+                    throw new IllegalArgumentException("Valid Upto Date cannot be before Date of Issue");
                 }
             }
             return true;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage());
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
+        } catch (IllegalArgumentException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw ex; // Rethrow with meaningful context
+        } catch (ParseException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw new IllegalArgumentException("Invalid date format", ex);
+        }
+    }
+
+    private boolean isValidDateFormat(String dateStr, SimpleDateFormat dateFormat) {
+        try {
+            dateFormat.parse(dateStr);
+            return true;
+        } catch (ParseException e) {
+            return false;
         }
     }
 
@@ -1654,6 +2084,12 @@ public class CustomerEndpoint {
         entityManager.persist(customCustomer);
         Long id=customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully",customCustomer,HttpStatus.CREATED);
+    }
+
+    public static Date convertStringToDate(String dateStr) throws ParseException {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+        return dateFormat.parse(dateStr);
     }
 
 }

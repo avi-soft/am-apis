@@ -61,10 +61,11 @@ public class ReserveCategoryService {
             return null;
         }
     }
-    public Double getReserveCategoryFee(Long pid, Long reserveCategoryId) {
+    public Double getReserveCategoryFee(Long pid, Long reserveCategoryId,Long genderId) {
         Query query = entityManager.createNativeQuery(Constant.GET_RESERVE_CATEGORY_FEE);
         query.setParameter("pid", pid);
         query.setParameter("reserveCategoryId", reserveCategoryId);
+        query.setParameter("genderId",genderId);
 
         try {
             return (Double) query.getSingleResult();

@@ -86,6 +86,20 @@
         <class>com.community.api.entity.Institution</class>
         <class>com.community.api.entity.OtherItem</class>
         <class>com.community.api.entity.DocumentValidity</class>
+        <class>com.community.api.entity.Advertisement</class>
+        <class>com.community.api.entity.Zone</class>
+        <class>com.community.api.entity.ZoneDivisions</class>
+        <class>com.community.api.entity.CategoryDistribution</class>
+        <class>com.community.api.entity.Post</class>
+        <class>com.community.api.entity.StateDistribution</class>
+        <class>com.community.api.entity.VacancyDistributionType</class>
+        <class>com.community.api.entity.DistrictCategoryDistribution</class>
+        <class>com.community.api.entity.DistrictDistribution</class>
+        <class>com.community.api.entity.ZoneDistribution</class>
+        <class>com.community.api.entity.DivisionDistribution</class>
+        <class>com.community.api.entity.DivisionCategoryDistribution</class>
+        <class>com.community.api.entity.GenderWiseDistribution</class>
+        <class>com.community.api.entity.QualificationEligibility</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
