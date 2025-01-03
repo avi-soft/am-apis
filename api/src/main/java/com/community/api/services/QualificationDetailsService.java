@@ -19,14 +19,19 @@ import com.community.api.services.exception.CustomerDoesNotExistsException;
 import com.community.api.services.exception.EntityAlreadyExistsException;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExaminationDoesNotExistsException;
+import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,8 +49,9 @@ public class QualificationDetailsService {
     InstitutionService institutionService;
     StreamService streamService ;
     SubjectService subjectService;
+    ExceptionHandlingService exceptionHandlingService;
 
-    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService,SubjectService subjectService,InstitutionService institutionService) {
+    public QualificationDetailsService(EntityManager entityManager, QualificationController qualificationController, QualificationService qualificationService, SharedUtilityService sharedUtilityService, ServiceProviderServiceImpl serviceProviderService,BoardUniversityService boardUniversityService,StreamService streamService,SubjectService subjectService,InstitutionService institutionService,ExceptionHandlingService exceptionHandlingService) {
         this.entityManager = entityManager;
         this.qualificationController = qualificationController;
         this.qualificationService = qualificationService;
@@ -55,14 +61,17 @@ public class QualificationDetailsService {
         this.streamService=streamService;
         this.subjectService=subjectService;
         this.institutionService=institutionService;
+        this.exceptionHandlingService= exceptionHandlingService;
     }
 
     @Transactional
     public QualificationDetails addQualificationDetails(Long userId, QualificationDetails qualificationDetails,String boardUniversityOthers,Integer roleId, String roleName )
-            throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
-
+            throws Exception {
+        String sourceName= "add_qualification";
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
+            String dateOfPassing = qualificationDetails.getDate_of_passing().toString();
+            validateDate(dateOfPassing);
             List<Qualification> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
@@ -71,7 +80,7 @@ public class QualificationDetailsService {
             qualificationDetails.setInstitution_id(institutionToAdd);
             List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
-            OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
+            OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId,sourceName);
             qualificationDetails.setBoard_university_id(boardUniversityToAdd);
     /*      List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
             qualificationDetails.setSubject_ids(subjects);*/
@@ -125,7 +134,7 @@ public class QualificationDetailsService {
         qualificationDetails.setInstitution_id(institutionToAdd);
         List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
         Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
-        OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
+        OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId,sourceName);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
         Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
         Boolean subjectValidationCheck= null;
@@ -231,6 +240,7 @@ public class QualificationDetailsService {
 
     @Transactional
     public QualificationDetails updateQualificationDetail(Long userId, Long qualificationId, UpdateQualificationDto qualification, String boardUniversityOthers,Integer roleId, String roleName) throws EntityDoesNotExistsException, EntityAlreadyExistsException, CustomerDoesNotExistsException, ExaminationDoesNotExistsException {
+        String sourceName= "update_qualification";
         String marksType=null;
         String marksObtained=null;
         String totalMarks=null;
@@ -306,30 +316,87 @@ public class QualificationDetailsService {
             qualificationIdToUpdate=qualificationDetailsToUpdate.getQualification_id();
         }
 
-        if(Objects.nonNull(qualification.getBoard_university_id()))
-        {
+        if(Objects.nonNull(qualification.getBoard_university_id())) {
+            Boolean isOtherBoardUniversity = false;
             List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd = findBoardUniversityById(qualification.getBoard_university_id(), boardUniversities);
-            OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId);
+            OtherItem boardUniversityOtherItemToAdd = null;
             qualificationDetailsToUpdate.setBoard_university_id(boardUniversityToAdd);
 
-            if(boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))
-            {
-                List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
-                OtherItem otherItemToClear = null;
-                for(OtherItem otherItem: currentOtherItems)
-                {
-                    if(otherItem.getField_name().equalsIgnoreCase("board_or_university"))
-                    {
-                        otherItemToClear=otherItem;
-                        break;
-                    }
-                }
-                currentOtherItems.remove(otherItemToClear);
-                currentOtherItems.add(boardUniversityOtherItemToAdd);
-                entityManager.merge(boardUniversityOtherItemToAdd);
+            if (boardUniversityToAdd.equals(1L)) {
+                isOtherBoardUniversity = true;
             }
+
+            Boolean userExists= false;
+                if (isOtherBoardUniversity.equals(false)) {
+                    List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
+                    if (!currentOtherItems.isEmpty()) {
+                        Iterator<OtherItem> iterator = currentOtherItems.iterator();
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if(roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER))
+                            {
+                                if(qualificationDetailsToUpdate.getService_provider().getService_provider_id().equals(otherItem.getUser_id()))
+                                {
+                                    userExists=true;
+                                }
+                            }
+                            else if(roleName.equalsIgnoreCase(Constant.roleUser))
+                            {
+                                if(qualificationDetailsToUpdate.getCustom_customer().getId().equals(otherItem.getUser_id()))
+                                {
+                                    userExists=true;
+                                }
+                            }
+                            if (otherItem.getSource_name().equalsIgnoreCase("add_qualification") ||
+                                    otherItem.getSource_name().equalsIgnoreCase("update_qualification") &&
+                                            otherItem.getField_name().equalsIgnoreCase("board_or_university") && userExists.equals(true)) {
+                                iterator.remove();
+                            }
+                        }
+                        qualificationDetailsToUpdate.setOtherItems(currentOtherItems);
+                    }
+                } else if (isOtherBoardUniversity.equals(true)) {
+                    List<OtherItem> existingItems = qualificationDetailsToUpdate.getOtherItems();
+                    if (existingItems != null && !existingItems.isEmpty()) {
+                        boolean itemUpdated = false;
+                        Iterator<OtherItem> iterator = existingItems.iterator();
+
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if (otherItem.getSource_name().equalsIgnoreCase("add_qualification") ||
+                                    (otherItem.getSource_name().equalsIgnoreCase("update_qualification") &&
+                                            otherItem.getField_name().equalsIgnoreCase("board_or_university"))) {
+                                if(boardUniversityOthers==null)
+                                {
+                                    throw new IllegalArgumentException("You have to enter text for other board or university");
+                                }
+                                otherItem.setTyped_text(boardUniversityOthers);
+                                otherItem.setSource_name(sourceName);
+                                entityManager.merge(otherItem);
+                                itemUpdated = true;
+                            }
+                        }
+
+                        if (!itemUpdated) {
+                            boardUniversityOtherItemToAdd = handleOtherCaseForBoardUniversity(
+                                    boardUniversityToAdd, boardUniversityOthers, roleId, userId, sourceName);
+                            existingItems.add(boardUniversityOtherItemToAdd);
+                        }
+                    } else {
+                        if (existingItems == null) {
+                            existingItems = new ArrayList<>();
+                        }
+                        boardUniversityOtherItemToAdd = handleOtherCaseForBoardUniversity(
+                                boardUniversityToAdd, boardUniversityOthers, roleId, userId, sourceName);
+                        existingItems.add(boardUniversityOtherItemToAdd);
+                    }
+
+                    qualificationDetailsToUpdate.setOtherItems(existingItems);
+                    entityManager.merge(qualificationDetailsToUpdate);
+                }
         }
+
         if(Objects.nonNull(qualification.getInstitution_id()))
         {
             List<Institution> institutions = institutionService.getAllInstitutions();
@@ -1051,7 +1118,7 @@ public class QualificationDetailsService {
         }
     }
 
-    public OtherItem handleOtherCaseForBoardUniversity(Long foundedBoardUniversityId,String boardUniversityOthers,Integer roleId,Long userId)
+    public OtherItem handleOtherCaseForBoardUniversity(Long foundedBoardUniversityId,String boardUniversityOthers,Integer roleId,Long userId,String sourceName)
     {
         if(foundedBoardUniversityId.equals(1L))
         {
@@ -1065,13 +1132,42 @@ public class QualificationDetailsService {
             OtherItem otherItem =new OtherItem();
             otherItem.setTyped_text(boardUniversityOthers);
             otherItem.setField_name("board_or_university");
-            otherItem.setSource_name("qualification_details");
+            otherItem.setSource_name(sourceName);
             otherItem.setRole_id(roleId);
             otherItem.setUser_id(userId);
             entityManager.persist(otherItem);
             return otherItem;
         }
         return null;
+    }
+    public Boolean validateDate(String dateOfPassing) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setLenient(false);
+
+        try {
+            // Validate format
+            if (!isValidDateFormat(dateOfPassing, dateFormat)) {
+                throw new IllegalArgumentException("Date of Passing must be in yyyy-MM-dd format");
+            }
+
+            Date dateOfIssue = dateFormat.parse(dateOfPassing);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw ex; // Rethrow with meaningful context
+        } catch (ParseException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw new IllegalArgumentException("Invalid date format", ex);
+        }
+    }
+
+    private boolean isValidDateFormat(String dateStr, SimpleDateFormat dateFormat) {
+        try {
+            dateFormat.parse(dateStr);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 
 }
