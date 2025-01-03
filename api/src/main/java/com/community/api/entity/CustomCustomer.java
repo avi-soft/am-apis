@@ -1,9 +1,7 @@
 package com.community.api.entity;
 
-import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
@@ -11,12 +9,26 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
+
 import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "CUSTOM_CUSTOMER")
@@ -33,6 +45,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "mobile_number", unique = true)
+    @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be a valid 10-digit number.")
     private String mobileNumber;
 
     @Nullable
@@ -41,6 +54,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pan_number")
+    @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be a valid 10-character alphanumeric string.")
     private String panNumber;
 
 
@@ -51,46 +65,66 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "nationality")
+    @Pattern(regexp = "^[a-zA-Z ]+$", message = "Nationality must only contain alphabetic characters.")
     private String nationality;
+
 
     @Nullable
     @Column(name = "date_of_birth")
+//    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
     private String dob;
+
 
     @Nullable
     @Column(name = "gender")
+    @Pattern(regexp = "^(Male|Female|Other)$", message = "Gender must be Male, Female, or Other.")
     private String gender;
 
     @Nullable
     @Column(name = "adhar_number", unique = true)
-    @Size(min = 12, max = 12)
+    @Pattern(regexp = "^[0-9]{12}$", message = "Aadhar number must be a valid 12-digit numeric value.")
     private String adharNumber;
+
 
     @Nullable
     @Column(name = "category")
     private String category; //@TODO -make it int for using in cart
 
     @Column(name = "hide_phone_number")
-    private Boolean hidePhoneNumber=false;
+    private Boolean hidePhoneNumber = false;
 
     @Nullable
-    @Column(name = "category_issue_date", insertable = false, updatable = false)
+    @Column(name = "category_issue_date")
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
-    private String heightCms;
+    @Min(value = 1, message = "Height must be greater than or equal to 1 cm.")
+    @Max(value = 300, message = "Height must be less than or equal to 300 cm.")
+    private Integer heightCms; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "weight_kgs")
-    private String weightKgs;
+    @Min(value = 1, message = "Weight must be greater than or equal to 1 kg.")
+    @Max(value = 300, message = "Weight must be less than or equal to 300 kg.")
+    private Integer weightKgs; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "chest_size_cms")
-    private String chestSizeCms;
+    @Min(value = 1, message = "Chest size must be greater than or equal to 1 cm.")
+    @Max(value = 200, message = "Chest size must be less than or equal to 200 cm.")
+    private Integer chestSizeCms; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "shoe_size_inches")
-    private String shoeSizeInches;
+    @Min(value = 1, message = "Shoe size must be greater than or equal to 1 inch.")
+    @Max(value = 20, message = "Shoe size must be less than or equal to 20 inches.")
+    private Integer shoeSizeInches; // Integer type for numeric validation
+
     @Nullable
     @Column(name = "waist_size_cms")
-    private String waistSizeCms;
+    @Min(value = 1, message = "Waist size must be greater than or equal to 1 cm.")
+    @Max(value = 200, message = "Waist size must be less than or equal to 200 cm.")
+    private Integer waistSizeCms; // Integer type for numeric validation
     @Nullable
     @Column(name = "can_swim")
     private Boolean canSwim; // Yes/No
@@ -116,33 +150,34 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "number_of_attempts")
     private Integer numberOfAttempts;
 
+    @Column(name = "interested_in_defence",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean interestedInDefence;
+
     @Nullable
     @Column(name = "work_experience")
-    private String workExperience; // State level/Centre level, Govt./Private
+    private String workExperience; // work experience in months.
+
     @Nullable
-    @Column(name = "category_issue_date")
+    @Column(name = "category_valid_upto_date")
     private String categoryValidUpto;
- 
+
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
     @Column(name = "mother_name")
     private String mothersName;
 
-    @Column(name="religion")
+    @Column(name = "religion")
     private String religion;
 
     @Column(name = "belongs_to_minority")
-    private Boolean belongsToMinority=false;
-
+    private Boolean belongsToMinority = false;
 
     @Nullable
     @Column(name = "sub_category")
     private String subcategory;
 
-
     @Nullable
     @Column(name = "domicile")
-    private Boolean domicile=false;
-
+    private Boolean domicile = false;
 
     @Nullable
     @Column(name = "secondary_mobile_number")
@@ -150,10 +185,12 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "whatsapp_number")
+    @Pattern(regexp = "^[0-9]{10}$", message = "WhatsApp number must be a valid 10-digit number.")
     private String whatsappNumber;
 
     @Nullable
     @Column(name = "secondary_email")
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
 
     @Nullable
@@ -174,6 +211,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "pincode")
+    @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit numeric value.")
     private String pincode;
 
     @Nullable
@@ -182,7 +220,7 @@ public class CustomCustomer extends CustomerImpl {
             name = "customer_saved_forms",
             joinColumns = @JoinColumn(name = "customer_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id"))
-    private List<CustomProduct>savedForms;
+    private List<CustomProduct> savedForms;
 
     @Nullable
     @JsonManagedReference("qualificationDetailsList-customer")
@@ -191,7 +229,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @JsonManagedReference("documents-customer")
-    @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "custom_customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Document> documents;
 
     @Nullable
@@ -206,23 +244,32 @@ public class CustomCustomer extends CustomerImpl {
     @Column(length = 512)
     private String token;
 
-
-
     @Column(name = "disability_handicapped")
-    private Boolean disability=false;
+    private Boolean disability = false;
 
-
- @Column(name = "disability_type")
+    @Column(name = "disability_type")
     private String disabilityType;
 
-    @Column(name="percentage_of_disability")
-    private Double disabilityPercentage=0.0;
+    @Column(name = "percentage_of_disability")
+    private Double disabilityPercentage = 0.0;
 
     @Column(name = "is_ex_service_man")
-    private Boolean exService=false;
+    private Boolean exService = false;
+
+    @Column(name = "is_ncc_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_ncc_certificate;
+
+    @Column(name = "is_nss_certificate", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_nss_certificate;
+
+    @Column(name = "ncc_certificate")
+    private String ncc_certificate;
+
+    @Column(name = "nss_certificate")
+    private String nss_certificate;
 
     @Column(name = "is_married")
-    private Boolean isMarried=false;
+    private Boolean isMarried = false;
 
     @Column(name = "visible_identification_mark_1")
     private String identificationMark1;
@@ -234,7 +281,6 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
-
     @JsonBackReference("bankDetails-customer")
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BankDetails> bankDetails = new ArrayList<>();
@@ -242,11 +288,11 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "order_count")
     private Integer numberOfOrders;
 
-    @Column(name = "registered_by_sp",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
-    private Boolean registeredBySp=false;
+    @Column(name = "registered_by_sp", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean registeredBySp = false;
 
-    @Column(name = "profile_completed",nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
-    private Boolean profileComplete=false;
+    @Column(name = "profile_completed", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean profileComplete = false;
 
     @Column(name = "created_by_role", columnDefinition = "INTEGER DEFAULT 5")
     private Integer createdByRole;
@@ -256,4 +302,39 @@ public class CustomCustomer extends CustomerImpl {
     private Integer modifiedByRole;
     @Column(name = "modified_by_id", columnDefinition = "BIGINT DEFAULT 0")
     private Long modifiedById;
+
+    public List<CustomerReferrer> getMyReferrer() {
+        // Get the list of referrers
+        List<CustomerReferrer> referrers = this.myReferrer;
+
+        // Sort the referrers based on their bandwidth
+        referrers.sort((r1, r2) -> {
+            // Get the max ticket size from rank if max_ticket_size is not available
+            Integer maxTicketSize1 = r1.getServiceProvider().getMaximumTicketSize() != null ? r1.getServiceProvider().getMaximumTicketSize() : r1.getServiceProvider().getRanking().getMaximumTicketSize();
+            Integer maxTicketSize2 = r2.getServiceProvider().getMaximumTicketSize() != null ? r2.getServiceProvider().getMaximumTicketSize() : r2.getServiceProvider().getRanking().getMaximumTicketSize();
+
+            // Avoid division by zero by ensuring maxTicketSize is not 0
+            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
+            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
+
+            // Calculate bandwidth for both referrers
+            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending()) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending()) / maxTicketSize2 * 100;
+
+            // Sort by bandwidth (descending order)
+            return Double.compare(bandwidth2, bandwidth1); // for descending order
+        });
+
+        // Return the sorted list
+        Collections.reverse(referrers);
+        return referrers;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "work_experience_scope_id")
+    protected CustomApplicationScope workExperienceScopeId;
+
+    @ManyToOne
+    @JoinColumn(name = "domicile_state")
+    protected StateCode domicileState;
 }

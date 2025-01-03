@@ -4,6 +4,7 @@ import lombok.Setter;
 import org.apache.http.ContentTooLongException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -108,7 +109,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = { RuntimeException.class })
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-
 
         return generateErrorResponse("Runtime exception" , HttpStatus.BAD_REQUEST,ex.getMessage());
 

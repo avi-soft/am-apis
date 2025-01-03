@@ -260,7 +260,7 @@ public class ServiceProviderEntity  {
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceProviderAcceptedOrders> acceptedOrders;
-    @Column(name="is_active")
+    @Column(name="is_active",columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isActive;
 
     @Column(name="maximum_ticket_size")

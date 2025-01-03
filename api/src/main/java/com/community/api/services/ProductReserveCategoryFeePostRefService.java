@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddReserveCategoryDto;
+import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
 import com.community.api.entity.CustomReserveCategory;
@@ -24,6 +25,9 @@ public class ProductReserveCategoryFeePostRefService {
 
     @PersistenceContext
     protected EntityManager entityManager;
+
+    @Autowired
+    private GenderService genderService;
 
     @Autowired
     public void setExceptionHandlingService(ExceptionHandlingService exceptionHandlingService) {
@@ -61,12 +65,14 @@ public class ProductReserveCategoryFeePostRefService {
 
             for (AddReserveCategoryDto addReserveCategoryDto : addReserveCategoryDtoList) {
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
-
+                CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_FEE_POST);
                 query.setParameter("productId", product.getId());
                 query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
+                query.setParameter("genderId",gender.getGenderId());
+
                 int affectedRows = query.executeUpdate();
 
                 if (affectedRows == 0) {
