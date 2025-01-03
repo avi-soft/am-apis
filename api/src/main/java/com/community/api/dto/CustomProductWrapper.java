@@ -9,27 +9,9 @@ import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
-import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.CustomJobGroup;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductRejectionStatus;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
-import com.community.api.entity.CustomSector;
-import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSubject;
+import com.community.api.entity.*;
 
-import com.community.api.entity.Qualification;
-import com.community.api.entity.Post;
-import com.community.api.entity.Role;
-import com.community.api.entity.StateCode;
-import com.community.api.services.GenderService;
-import com.community.api.services.PostService;
-import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
-import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -50,6 +32,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     private ProductReserveCategoryBornBeforeAfterRefService refService;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private ProductReserveCategoryFeePostRefService feeService;
 
     @Autowired
     private PostService postService;
@@ -342,9 +326,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     }
 
 
-    public void wrapDetails(CustomProduct customProduct,List<Post> postList,List<PostProjectionDTO>postProjectionDTOS) {
+    public void wrapDetails(CustomProduct customProduct, List<Post> postList, List<PostProjectionDTO>postProjectionDTOS, ProductReserveCategoryFeePostRefService feeService) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
+        this.feeService=feeService;
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
@@ -365,7 +350,24 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customJobGroup = customProduct.getJobGroup();
         this.customProductState = customProduct.getProductState();
-        this.reserveCategoryDtoList = reserveCategoryDtoList;
+        List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
+        List<ReserveCategoryDto>feeDto=new ArrayList<>();
+        if(feeList!=null) {
+            for (CustomProductReserveCategoryFeePostRef fee : feeList) {
+                ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
+                reserveCategoryDto.setProductId(customProduct.getId());
+                reserveCategoryDto.setReserveCategoryId(fee.getProductReservedCategoryId());
+                reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
+                reserveCategoryDto.setFee(fee.getFee());
+                reserveCategoryDto.setPost(fee.getPost());
+            /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
+            reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
+                reserveCategoryDto.setGenderId(fee.getGender().getGenderId());
+                reserveCategoryDto.setGenderName(fee.getGender().getGenderName());
+                feeDto.add(reserveCategoryDto);
+            }
+        }
+        this.reserveCategoryDtoList = feeDto;
         this.physicalRequirementDtoList = physicalRequirementDtoList;
 
         this.modifiedDate = customProduct.getModifiedDate();
