@@ -589,11 +589,12 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
             }
 
-
-
-            if(customCustomer.getGender()==null&&details.containsKey("chestSizeCms"))
+            if(customCustomer.getGender()==null && details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
+            if(customCustomer.getGender().equals("Female") && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+            }
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
