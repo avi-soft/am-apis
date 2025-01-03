@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.entity.AddProductAgeDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,21 +17,19 @@ import java.util.List;
 @NoArgsConstructor
 public class AddProductDto {
 
+    @JsonProperty("is_multiple_post_same_fee")
+    protected Boolean isMultiplePostSameFee;
     @JsonProperty("meta_title")
     @NotNull
     String metaTitle;
-
     @JsonProperty("platform_fee")
     @NotNull
     Double platformFee;
-
     @JsonProperty("application_scope_id")
     @NotNull
     Long applicationScope;
-
     @JsonProperty("job_group_id")
     Long jobGroup;
-
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("active_start_date")
     Date activeStartDate;
@@ -46,18 +45,16 @@ public class AddProductDto {
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("exam_date_to")
     Date examDateTo;
-
     @JsonProperty("priority_level")
     Integer priorityLevel;
     @JsonProperty("meta_description")
     String metaDescription;
-
-    @JsonProperty("reserve_category")
+    @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
-
     @JsonProperty("physical_requirement")
     List<AddPhysicalRequirementDto> physicalRequirement;
-
+    @JsonProperty("reserve_category_age")
+    List<AddProductAgeDTO> reserveCategoryAge;
     @JsonProperty("state_id")
     Integer state;
     @JsonProperty("quantity")
@@ -70,10 +67,8 @@ public class AddProductDto {
     Long productState;
     @JsonProperty("display_template")
     String displayTemplate;
-
     @JsonProperty("rejection_status_id")
     Long rejectionStatus;
-
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("last_date_to_pay_fee")
     Date lastDateToPayFee;
@@ -95,9 +90,8 @@ public class AddProductDto {
     String downloadSyllabusLink;
     @JsonProperty("form_complexity")
     Long formComplexity;
-
     @JsonProperty("qualification_id")
-    Long qualification;
+    Integer qualification;
     @JsonProperty("stream_id")
     Long stream;
     @JsonProperty("subject_id")
@@ -108,14 +102,15 @@ public class AddProductDto {
     String selectionCriteria;
     @JsonProperty("sector_id")
     Long sector;
-
     @JsonProperty("notifying_authority")
     String notifyingAuthority;
-
     @JsonProperty("post_name")
     String postName;
-
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
+    @JsonProperty("advertisement_id")
+    Long advertisement;
+    @JsonProperty("posts")
+    private List<PostDto> posts;
 
 }

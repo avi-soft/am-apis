@@ -15,7 +15,7 @@ import javax.persistence.*;
 @Setter
 public class StateCode {
     @Id
-    private int state_id;
+    private Integer state_id;
     private String state_name;
     private String state_code;
 }
