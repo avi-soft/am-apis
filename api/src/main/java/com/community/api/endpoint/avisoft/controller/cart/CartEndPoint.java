@@ -385,7 +385,7 @@ public class CartEndPoint extends BaseEndpoint {
                 archievedItems.clear();
                 return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
             } else
-                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -415,7 +415,7 @@ public class CartEndPoint extends BaseEndpoint {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null || cart.getOrderItems() == null) {
-                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.OK);
             }
             OrderItem orderItemToRemove=null;
             for(OrderItem orderItem:cart.getOrderItems())

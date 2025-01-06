@@ -190,7 +190,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "secondary_email")
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
+    @Pattern(regexp = "^(|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
 
     @Nullable
