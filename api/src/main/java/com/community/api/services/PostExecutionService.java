@@ -30,7 +30,7 @@ public class PostExecutionService {
             if (!reserveCategoryOtherList.isEmpty()) {
                 List<OtherItem> existingItems = customProduct.getOtherItems();
 
-                existingItems.clear();
+//                existingItems.clear();
                 for (OtherItem otherItem : reserveCategoryOtherList) {
                     if(otherItem!=null)
                     {
