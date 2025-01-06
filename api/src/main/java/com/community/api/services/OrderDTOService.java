@@ -34,6 +34,8 @@ public class OrderDTOService {
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
+    @Autowired
+    private ProductReserveCategoryFeePostRefService feePostRefService;
     @Transactional
     public CombinedOrderDTO wrapOrder(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
     {
@@ -64,7 +66,7 @@ public class OrderDTOService {
         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);*/
                     List<Post> postList= customProduct.getPosts();
                     //List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
-        customProductWrapper.wrapDetails(customProduct, postList,null);
+        customProductWrapper.wrapDetails(customProduct, postList,null,feePostRefService);
     }
     CombinedOrderDTO combinedOrderDTO=new CombinedOrderDTO();
                 combinedOrderDTO.setOrderDetails(orderDTO);
