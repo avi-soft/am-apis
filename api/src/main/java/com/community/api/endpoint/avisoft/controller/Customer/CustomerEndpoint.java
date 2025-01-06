@@ -287,7 +287,7 @@ public class CustomerEndpoint {
             }
             if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
                 // List of required fields
-                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "chestSizeCms", "shoeSizeInches", "waistSizeCms");
+                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
 
                 // Check if all required fields are present and not empty
                 Map<String, Object> finalDetails = details;
@@ -295,11 +295,10 @@ public class CustomerEndpoint {
                         .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
 
                 if (!conditionExists) {
-                    errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                    errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
                 }else{
                     customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
                     customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
-                    customCustomer.setChestSizeCms(Integer.parseInt((String) finalDetails.get("chestSizeCms")));
                     customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
                     customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
                 }
@@ -592,8 +591,12 @@ public class CustomerEndpoint {
             if(customCustomer.getGender()==null && details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
-            if(customCustomer.getGender().equals("Female") && details.containsKey("chestSizeCms")) {
-                return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+            if(details.containsKey("chestSizeCms")) {
+                if(customCustomer.getGender().equals("Female")) {
+                    return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+                } else {
+                    customCustomer.setChestSizeCms(Integer.parseInt((String) details.get("chestSizeCms")));
+                }
             }
 
             for (Map.Entry<String, Object> entry : details.entrySet()) {
