@@ -180,6 +180,7 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean domicile = false;
 
     @Nullable
+    @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
     @Column(name = "secondary_mobile_number")
     private String secondaryMobileNumber;
 
@@ -190,7 +191,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "secondary_email")
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Secondary email must be in a valid email format.")
+    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$|^$", message = "Secondary email must be in a valid email format.")
     private String secondaryEmail;
 
     @Nullable

@@ -51,17 +51,18 @@ public class CommandLineService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        try{
       
         //***********ZONES
         if (entityManager.createQuery("SELECT count(z) FROM Zone z", Long.class).getSingleResult() == 0) {
             // Insert zones into Zone table with matching IDs
-            entityManager.merge(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
-            entityManager.merge(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
-            entityManager.merge(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
-            entityManager.merge(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
-            entityManager.merge(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
-            entityManager.merge(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
-            entityManager.merge(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
+            entityManager.persist(new Zone(1, "NORTH ZONE")); // Matches Northern Zone ID
+            entityManager.persist(new Zone(2, "SOUTH ZONE")); // Matches Southern Zone ID
+            entityManager.persist(new Zone(3, "EAST ZONE"));  // Matches Eastern Zone ID
+            entityManager.persist(new Zone(4, "WEST ZONE"));  // Matches Western Zone ID
+            entityManager.persist(new Zone(5, "CENTRAL ZONE")); // Matches Central Zone ID
+            entityManager.persist(new Zone(6, "NORTH-EAST ZONE")); // Matches North-Eastern Zone ID
+            entityManager.persist(new Zone(7, "SPECIAL UNION TERRITORIES ZONE")); // Matches Special UTs Zone ID
         }
         if (entityManager.createQuery("SELECT COUNT(s) FROM StateCode s", Long.class).getSingleResult()== 0) {
 
@@ -105,8 +106,9 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.persist(new StateCode(35, "Puducherry", "PY"));
             entityManager.persist(new StateCode(36, "Daman and Diu", "DD"));
         }
-
+        System.out.println("111");
         zoneDivisionService.populateZoneDivision();
+        System.out.println("211");
         // Check if data already exists to avoid duplication
         if (entityManager.createQuery("SELECT COUNT(c) FROM CustomProductState c", Long.class).getSingleResult() == 0) {
             entityManager.persist(new CustomProductState(1L, "NEW", "New State."));
@@ -679,5 +681,8 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new VacancyDistributionType(2, "Zone Wise Distribution"));
             entityManager.merge(new VacancyDistributionType(3, "Category Wise Distribution"));
         }
-    }
-}
+    }catch (Exception exception)
+        {
+            System.out.println(exception.getMessage());
+        }
+}}
