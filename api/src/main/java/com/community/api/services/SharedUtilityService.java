@@ -157,9 +157,9 @@ public class SharedUtilityService {
         CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
         Order cart = orderService.findCartForCustomer(customer);
         if (cart != null)
-            customerDetails.put("orderId", cart.getId());
+            customerDetails.put("cartId", cart.getId());
         else
-            customerDetails.put("orderId", null);
+            customerDetails.put("cartId", null);
         if(role.equals(Constant.roleServiceProvider)) {
             if (customCustomer.getHidePhoneNumber().equals(false)) {
                 customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
