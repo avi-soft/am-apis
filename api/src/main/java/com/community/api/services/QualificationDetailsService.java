@@ -20,6 +20,7 @@ import com.community.api.services.exception.EntityAlreadyExistsException;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExaminationDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.CustomDateDeserializer;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToDate;
 
 @Service
 public class QualificationDetailsService {
@@ -70,8 +73,10 @@ public class QualificationDetailsService {
         String sourceName= "add_qualification";
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
-            String dateOfPassing = qualificationDetails.getDate_of_passing().toString();
-            validateDate(dateOfPassing);
+            if(!CustomDateDeserializer.isValidDate)
+            {
+                throw new IllegalArgumentException("Date must be in yyyy-MM-dd format");
+            }
             List<Qualification> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
@@ -125,6 +130,10 @@ public class QualificationDetailsService {
 
         }
         CustomCustomer customCustomer = findCustomCustomerById(userId);
+        if(!CustomDateDeserializer.isValidDate)
+        {
+            throw new IllegalArgumentException("Date must be in yyyy-MM-dd format");
+        }
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
         List<Qualification> qualifications = qualificationService.getAllQualifications();
         Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
@@ -239,7 +248,7 @@ public class QualificationDetailsService {
     }
 
     @Transactional
-    public QualificationDetails updateQualificationDetail(Long userId, Long qualificationId, UpdateQualificationDto qualification, String boardUniversityOthers,Integer roleId, String roleName) throws EntityDoesNotExistsException, EntityAlreadyExistsException, CustomerDoesNotExistsException, ExaminationDoesNotExistsException {
+    public QualificationDetails updateQualificationDetail(Long userId, Long qualificationId, UpdateQualificationDto qualification, String boardUniversityOthers,Integer roleId, String roleName) throws Exception {
         String sourceName= "update_qualification";
         String marksType=null;
         String marksObtained=null;
@@ -533,7 +542,8 @@ public class QualificationDetailsService {
         }
 
         if (Objects.nonNull(qualification.getDate_of_passing())) {
-            qualificationDetailsToUpdate.setDate_of_passing(qualification.getDate_of_passing());
+            validateDate(qualification.getDate_of_passing());
+            qualificationDetailsToUpdate.setDate_of_passing(convertStringToDate(qualification.getDate_of_passing()));
         }
         if("CUSTOMER".equalsIgnoreCase(roleName))
         {
