@@ -1153,7 +1153,7 @@ public class ProductService {
             customProduct.setProductState(customProductState);
             List<Post>postList= customProduct.getPosts();
             List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
-            wrapper.wrapDetails(customProduct,postList,null);
+            wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
         catch (IllegalArgumentException illegalArgumentException) {

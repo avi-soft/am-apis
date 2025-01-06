@@ -92,16 +92,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.request;
 import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
@@ -290,7 +287,7 @@ public class CustomerEndpoint {
             }
             if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
                 // List of required fields
-                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "chestSizeCms", "shoeSizeInches", "waistSizeCms");
+                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
 
                 // Check if all required fields are present and not empty
                 Map<String, Object> finalDetails = details;
@@ -298,11 +295,10 @@ public class CustomerEndpoint {
                         .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
 
                 if (!conditionExists) {
-                    errorMessages.add("All relevant fields : height, weight, chest size, shoe size, waist size must be present ");
+                    errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
                 }else{
                     customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
                     customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
-                    customCustomer.setChestSizeCms(Integer.parseInt((String) finalDetails.get("chestSizeCms")));
                     customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
                     customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
                 }
@@ -595,9 +591,14 @@ public class CustomerEndpoint {
             if(customCustomer.getGender()==null && details.containsKey("chestSizeCms"))
                 return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender",HttpStatus.BAD_REQUEST);
 
-            if(customCustomer.getGender()!=null&&customCustomer.getGender().equals("Female") && details.containsKey("chestSizeCms")) {
-                return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+            if(details.containsKey("chestSizeCms")) {
+                if(customCustomer.getGender().equals("Female")) {
+                    return ResponseService.generateErrorResponse("Cannot add chest size with female",HttpStatus.BAD_REQUEST);
+                } else {
+                    customCustomer.setChestSizeCms(Integer.parseInt((String) details.get("chestSizeCms")));
+                }
             }
+
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -608,10 +609,12 @@ public class CustomerEndpoint {
                 // Check if the field has the @Nullable annotation
                 boolean isNullable = field.isAnnotationPresent(Nullable.class);
                 field.setAccessible(true);
+                if(newValue!=null)
+                {
                 if (newValue.toString().isEmpty() && !isNullable) {
                     errorMessages.add(fieldName + " cannot be null");
                     continue;
-                }
+                }}
                 if (field.isAnnotationPresent(Pattern.class)) {
                     Pattern patternAnnotation = field.getAnnotation(Pattern.class);
                     String regex = patternAnnotation.regexp();
@@ -727,7 +730,7 @@ public class CustomerEndpoint {
             }
 
             if(details.containsKey("workExperienceScopeId")) {
-                Long scopeId = Long.parseLong((String) details.get("workExperienceScopeId"));
+                Long scopeId = Long.parseLong(( String) details.get("workExperienceScopeId"));
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");
@@ -951,7 +954,6 @@ public class CustomerEndpoint {
             }
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
-                HashSet<Document> documentsToSave= new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -1046,7 +1048,6 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setName(null);
                                     em.persist(existingDocument);
-                                    documentsToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                                 }
@@ -1077,8 +1078,7 @@ public class CustomerEndpoint {
                                 existingDocument13.setFilePath(null);
                                 existingDocument13.setName(null);
                                 existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument13);
-                                documentsToSave.add(existingDocument13);
+                                em.merge(existingDocument);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
@@ -1147,7 +1147,6 @@ public class CustomerEndpoint {
                                     }
                                 }
                             entityManager.merge(existingDocument);
-                            documentsToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1158,7 +1157,6 @@ public class CustomerEndpoint {
                                     document.setIs_qualification_document(true);
                                     document.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(document);
-                                    documentsToSave.add(document);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1178,50 +1176,16 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
-                                    documentsToSave.add(document);
                                 }
                             }
                         }
                     }
                 }
-                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
-                    for (Document document : documentsToSave) {
-                        if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
-                            if (document.getFilePath() != null && document.getDocumentType() != null) {
-                                Map<String, Object> documentDetails = new HashMap<>();
-                                documentDetails.put("documentId", document.getDocumentId());
-                                documentDetails.put("name", document.getName());
-                                documentDetails.put("filePath", document.getFilePath());
+                CustomCustomer updatedCustomer = entityManager.find(CustomCustomer.class,customerId);
+                // Construct the response with the updated data
 
-                                // Add qualification details if applicable
-                                if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
-                                    documentDetails.put("qualification_detail_id",qualificationDetailId);
-                                }
-
-                                // Add document validity details if applicable
-                                if (document.getDocumentValidity() != null) {
-
-                                    Map<String, String> validityDetails = new HashMap<>();
-                                    validityDetails.put("dateOfIssue", dateOfIssue);
-                                    validityDetails.put("validUpto", validUpto);
-
-                                    documentDetails.put("documentValidity", validityDetails); // Include as nested map
-                                }
-
-                                // Generate a file URL for the document
-                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                                documentDetails.put("fileUrl", fileUrl);
-
-                                documentDetails.put("documentType", document.getDocumentType());
-                                filteredDocuments.add(documentDetails);
-                            }
-                        }
-                    }
-
-                responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
-              Set<ServiceProviderDocument> serviceProviderDocumentToSave= new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -1229,7 +1193,7 @@ public class CustomerEndpoint {
                 }
 
                 Map<String, Object> responseData = new HashMap<>();
-                List<String> deletedDocumentMessages = new ArrayList<>();
+                List<String> deletedDocumentMessages =  new ArrayList<>();
 
                 // Handle file uploads and deletions
 
@@ -1297,7 +1261,6 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setServiceProviderEntity(null);
                                     em.persist(existingDocument);
-                                    serviceProviderDocumentToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                                 }
@@ -1332,7 +1295,6 @@ public class CustomerEndpoint {
                                 existingDocument13.setServiceProviderEntity(null);
 
                                 em.merge(existingDocument13);
-                                serviceProviderDocumentToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
 
@@ -1395,8 +1357,6 @@ public class CustomerEndpoint {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                 }
                             }
-                            entityManager.merge(existingDocument);
-                            serviceProviderDocumentToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1407,7 +1367,6 @@ public class CustomerEndpoint {
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
-                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1427,48 +1386,13 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     serviceProviderDocument.setDocumentValidity(documentValidity);
                                     entityManager.merge(serviceProviderDocument);
-                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                             }
                         }
                     }
 
                 }
-                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
-
-                for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
-                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
-                        if (document.getFilePath() != null && document.getDocumentType() != null) {
-                            Map<String, Object> documentDetails = new HashMap<>();
-                            documentDetails.put("documentId", document.getDocumentId());
-                            documentDetails.put("name", document.getName());
-                            documentDetails.put("filePath", document.getFilePath());
-
-                            // Add qualification details if applicable
-                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
-                                documentDetails.put("qualification_detail_id", qualificationDetailId);
-                            }
-
-                            // Add document validity details if applicable
-                            if (document.getDocumentValidity() != null) {
-                                Map<String, String> validityDetails = new HashMap<>();
-                                validityDetails.put("dateOfIssue", dateOfIssue);
-                                validityDetails.put("validUpto", validUpto);
-
-                                documentDetails.put("documentValidity", validityDetails);
-                            }
-
-                            // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                            documentDetails.put("fileUrl", fileUrl);
-
-                            documentDetails.put("documentType", document.getDocumentType());
-                            filteredDocuments.add(documentDetails);
-                        }
-                    }
-                }
-
-                responseData.put("uploadedDocuments", filteredDocuments);
+                ServiceProviderEntity updatedServiceProviderEntity = entityManager.find(ServiceProviderEntity.class,customerId);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
 
@@ -1793,7 +1717,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, null,null);
+            customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
         catch (NumberFormatException e) {
@@ -1829,7 +1753,7 @@ public class CustomerEndpoint {
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
             List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-            customProductWrapper.wrapDetails(product, null,null);
+            customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -1856,7 +1780,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,null,null);
+                customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1886,7 +1810,7 @@ public class CustomerEndpoint {
                 List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,null,null);
+                customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
@@ -1917,7 +1841,7 @@ public class CustomerEndpoint {
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List<Post>postList= customProduct.getPosts();
                 List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
-                customProductWrapper.wrapDetails(customProduct,postList,null);
+                customProductWrapper.wrapDetails(customProduct,postList,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
             return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
