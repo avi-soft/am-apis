@@ -141,10 +141,6 @@ public class ProductService {
             StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate, :advertisement");
 
             // Dynamically add columns and values based on non-null fields
-            if (addProductDto.getPostName() != null) {
-                sql.append(", post_name");
-                values.append(", :postName");
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 sql.append(", application_scope_id");
@@ -250,9 +246,6 @@ public class ProductService {
                     .setParameter("advertisement", addProductDto.getAdvertisement());
 
             // Set parameters conditionally
-            if (addProductDto.getPostName() != null) {
-                query.setParameter("postName", addProductDto.getPostName());
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 query.setParameter("applicationScope", addProductDto.getApplicationScope());
@@ -715,7 +708,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -731,12 +723,6 @@ public class ProductService {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
              */
-
-            if (addProductDto.getPostName() == null || addProductDto.getPostName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Post Name cannot be null or empty.");
-            } else {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
 
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
@@ -887,7 +873,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -902,11 +887,6 @@ public class ProductService {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
             */
-
-            if(addProductDto.getPostName()!=null)
-            {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
@@ -2628,7 +2608,10 @@ public class ProductService {
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
         {
-            throw new IllegalArgumentException("No any post can be saved");
+            if(postDtos.size()>1)
+            {
+                throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+            }
         }
 
         for (PostDto postDto : postDtos) {

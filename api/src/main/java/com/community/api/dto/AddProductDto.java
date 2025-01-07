@@ -86,8 +86,6 @@ public class AddProductDto {
     String selectionCriteria;
     @JsonProperty("sector_id")
     Long sector;
-    @JsonProperty("post_name")
-    String postName;
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
     @JsonProperty("advertisement_id")
