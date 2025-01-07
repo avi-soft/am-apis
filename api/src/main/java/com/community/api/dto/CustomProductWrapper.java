@@ -45,8 +45,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected String displayTemplate;
     @JsonProperty("meta_description")
     protected String metaDescription;
-    @JsonProperty("long_description")
-    protected String longDescription;
     @JsonProperty("category_name")
     protected String categoryName;
     @JsonProperty("priority_level")
@@ -61,17 +59,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Long defaultCategoryId;
     @JsonProperty("archived")
     protected Character archived;
-
-    @JsonProperty("url")
-    protected String url;
     @JsonProperty("active")
     protected Boolean active;
-    @JsonProperty("promo_message")
-    protected String promoMessage;
-    @JsonProperty("quantity")
-    protected Integer quantity;
-    @JsonProperty("media")
-    protected List<MediaWrapper> media;
 
     @JsonProperty("reserve_category_fee")
     protected List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();
@@ -129,8 +118,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     String selectionCriteria;
     @JsonProperty("created_date")
     Date createdDate;
-    @JsonProperty("post_name")
-    String postName;
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
     @JsonProperty("advertisement")
@@ -144,23 +131,18 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
-        this.longDescription = product.getLongDescription();
         this.active = product.isActive();
-        this.quantity = product.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.categoryName = product.getDefaultCategory().getName();
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.archived = 'N';
         this.createdDate = currentDate;
-        this.promoMessage = product.getPromoMessage();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
-        this.url = product.getUrl();
         this.metaDescription = product.getMetaDescription();
 
         this.displayTemplate = product.getDisplayTemplate();
-        this.postName = addProductDto.getPostName();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
 
 
@@ -256,18 +238,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
 
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -289,7 +267,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.examDateTo = customProduct.getExamDateTo();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
-        this.postName = customProduct.getPostName();
         this.isReviewRequired=customProduct.getIsReviewRequired();
 
         if (customProduct.getDefaultCategory() != null) {
@@ -303,18 +280,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.feeService=feeService;
         this.displayTemplate = customProduct.getDisplayTemplate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
@@ -364,7 +337,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.state = customProduct.getState();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
-        this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
 
@@ -392,20 +364,15 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.createdDate = customProduct.getCreatedDate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
-        this.postName = customProduct.getPostName();
 
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
@@ -434,7 +401,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifiedDate = customProduct.getModifiedDate();
         this.customSector = customProduct.getSector();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
-        this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         if(advertisement != null) {
@@ -454,15 +420,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
         this.metaDescription = product.getMetaDescription();
-        this.longDescription = product.getLongDescription();
-        this.url = product.getUrl();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
-        this.promoMessage = product.getPromoMessage();
         this.archived = ((Status) product).getArchived();
         this.categoryName = product.getDefaultCategory().getName();
         this.active = product.isActive();
-        this.quantity = product.getDefaultSku().getQuantityAvailable();
 
         if (product.getDefaultCategory() != null) {
             this.defaultCategoryId = product.getDefaultCategory().getId();
@@ -474,8 +436,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = model.getId();
         this.metaTitle = model.getName();
         this.metaDescription = model.getDescription();
-        this.longDescription = model.getLongDescription();
-        this.url = model.getUrl();
         this.active = model.isActive();
     }
 }
