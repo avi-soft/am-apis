@@ -273,6 +273,7 @@ public class SharedUtilityService {
         customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
         customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
+        customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();

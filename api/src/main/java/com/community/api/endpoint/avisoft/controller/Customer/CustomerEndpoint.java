@@ -300,30 +300,149 @@ public class CustomerEndpoint {
                     Map<String, Object> finalDetails = details;
                     boolean conditionExists = requiredFields.stream()
                             .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-
-                    if (!conditionExists) {
-                        errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
-                    }else{
-                        customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
-                        customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
-                        customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
-                        customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
+                if (!conditionExists) {
+                    errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
+                }else{
+                    int minHeight = 50, maxHeight = 250; // in cms
+                    int minWeight = 10, maxWeight = 300; // in kgs
+                    int minShoeSize = 4, maxShoeSize = 15; // in inches
+                    int minWaistSize = 20, maxWaistSize = 150;
+                    try {
+                        String heightStr = (String) finalDetails.get("heightCms");
+                        if (heightStr != null && !heightStr.isEmpty()) {
+                            int heightValue = Integer.parseInt(heightStr);
+                            if (heightValue < minHeight || heightValue > maxHeight) {
+                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                            } else {
+                                customCustomer.setHeightCms(heightValue);
+                            }
+                        } else {
+                            errorMessages.add("Height is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
                     }
-                }else if(!customCustomer.getInterestedInDefence())
-                {
-                    String height=(String)details.get("heightCms");
-                    String weightKgs=(String)details.get("weightKgs");
-                    String shoeSizeInches=(String)details.get("shoeSizeInches");
-                    String waistSizeCms=(String)details.get("waistSizeCms");
-                    if(height!=null||!height.isEmpty())
-                        customCustomer.setHeightCms(Integer.parseInt(height));
-                    if(weightKgs!=null||!weightKgs.isEmpty())
-                        customCustomer.setWeightKgs(Integer.parseInt(weightKgs));
-                    if(shoeSizeInches!=null||!shoeSizeInches.isEmpty())
-                        customCustomer.setShoeSizeInches(Integer.parseInt(shoeSizeInches));
-                    if(waistSizeCms!=null||!waistSizeCms.isEmpty())
-                        customCustomer.setWaistSizeCms(Integer.parseInt(waistSizeCms));
+
+// Validate and set weight
+                    try {
+                        String weightStr = (String) finalDetails.get("weightKgs");
+                        if (weightStr != null && !weightStr.isEmpty()) {
+                            int weightValue = Integer.parseInt(weightStr);
+                            if (weightValue < minWeight || weightValue > maxWeight) {
+                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                            } else {
+                                customCustomer.setWeightKgs(weightValue);
+                            }
+                        } else {
+                            errorMessages.add("Weight is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+
+// Validate and set shoe size
+                    try {
+                        String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
+                        if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
+                            int shoeSizeValue = Integer.parseInt(shoeSizeStr);
+                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                            } else {
+                                customCustomer.setShoeSizeInches(shoeSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Shoe size is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+
+// Validate and set waist size
+                    try {
+                        String waistSizeStr = (String) finalDetails.get("waistSizeCms");
+                        if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
+                            int waistSizeValue = Integer.parseInt(waistSizeStr);
+                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            } else {
+                                customCustomer.setWaistSizeCms(waistSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Waist size is required and must be a valid value.");
+                        }
+                    }catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
                 }
+            }else if(!customCustomer.getInterestedInDefence())
+                {
+                String height = (String) details.get("heightCms");
+                String weightKgs = (String) details.get("weightKgs");
+                String shoeSizeInches = (String) details.get("shoeSizeInches");
+                String waistSizeCms = (String) details.get("waistSizeCms");
+
+// Standard size ranges (example values, replace with your actual ranges)
+                int minHeight = 50, maxHeight = 250; // in cms
+                int minWeight = 10, maxWeight = 300; // in kgs
+                int minShoeSize = 4, maxShoeSize = 15; // in inches
+                int minWaistSize = 20, maxWaistSize = 150; // in cms
+
+// Validate and set height
+                if (height != null && !height.isEmpty()) {
+                    try {
+                        int heightValue = Integer.parseInt(height);
+                        if (heightValue < minHeight || heightValue > maxHeight) {
+                            errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                        } else {
+                            customCustomer.setHeightCms(heightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
+                    }
+                }
+
+// Validate and set weight
+                if (weightKgs != null && !weightKgs.isEmpty()) {
+                    try {
+                        int weightValue = Integer.parseInt(weightKgs);
+                        if (weightValue < minWeight || weightValue > maxWeight) {
+                            errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                        } else {
+                            customCustomer.setWeightKgs(weightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+                }
+
+// Validate and set shoe size
+                if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
+                    try {
+                        int shoeSizeValue = Integer.parseInt(shoeSizeInches);
+                        if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                            errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                        } else {
+                            customCustomer.setShoeSizeInches(shoeSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+                }
+
+// Validate and set waist size
+                if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
+                    try {
+                        int waistSizeValue = Integer.parseInt(waistSizeCms);
+                        if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                            errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                        } else {
+                            customCustomer.setWaistSizeCms(waistSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
+                }
+            }
             }
             if(details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
@@ -334,6 +453,11 @@ public class CustomerEndpoint {
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
+            }
+
+            if(details.containsKey("sportCertificateId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("sportCertificateId")));
+                customCustomer.setSportCertificateId(customApplicationScope);
             }
 
             if(details.containsKey("domicile")) {
@@ -1730,9 +1854,9 @@ public class CustomerEndpoint {
             Map<String,Object>responseBody=new HashMap<>();
             /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+            /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
@@ -1766,9 +1890,9 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+           /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
@@ -1793,9 +1917,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1823,9 +1947,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1853,10 +1977,10 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());*/
                 List<Post>postList= customProduct.getPosts();
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                //List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 customProductWrapper.wrapDetails(customProduct,postList,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
