@@ -10,6 +10,7 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
@@ -157,6 +158,9 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
             if (!productService.addProductAccessAuthorisation(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD PRODUCT", HttpStatus.FORBIDDEN);
             }
@@ -298,35 +302,28 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             List<Post> postList= new ArrayList<>();
+            OtherItem otherItem=null;
             if (!saveDraft) {
                 if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                    productService.validatePostRequirement(addProductDto, null);
+                   otherItem= productService.validatePostRequirement(addProductDto, roleId,userId);
                    postList= postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
-                productService.validatePostRequirement(addProductDto, null);
+                otherItem= productService.validatePostRequirement(addProductDto, roleId,userId);
                 postList=postService.savePosts(addProductDto.getPosts(), product);
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
             {
-                if(addProductDto.getPosts()!=null)
-                {
-                    productService.validatePostRequirement(addProductDto,null);
-                }
                 if (postList != null && !postList.isEmpty()) {
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItem);
                 }
                 wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,entityManager,postList);
             }
-            else if(saveDraft)
+             if(saveDraft)
             {
-                if(addProductDto.getPosts()!=null)
-                {
-                    productService.validatePostRequirement(addProductDto,null);
-                }
                 if (postList != null && !postList.isEmpty()) {
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList,otherItem);
                 }
                 if(reserveCategoryService!=null)
                 {
@@ -339,7 +336,7 @@ public class ProductController extends CatalogEndpoint {
             }
             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
-                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
+                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItem);
             }
             return response;
 
@@ -491,6 +488,7 @@ public class ProductController extends CatalogEndpoint {
                     postProjectionDTO.setPostId(post.getPostId());
                     postProjectionDTO.setPostName(post.getPostName());
                     postProjectionDTO.setPostCode(post.getPostCode());
+                    postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
                     postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                     postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                     postProjectionDTO.setStateDistributions(post.getStateDistributions());

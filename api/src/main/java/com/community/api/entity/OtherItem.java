@@ -49,4 +49,7 @@ public class OtherItem
     @Column(name = "field_name")
     String field_name;
 
+    @ManyToOne
+    @JoinColumn(name = "product_id", nullable = true)
+    private CustomProduct customProduct;
 }

@@ -678,6 +678,7 @@ public class CommandLineService implements CommandLineRunner {
             entityManager.merge(new VacancyDistributionType(1, "State Wise Distribution"));
             entityManager.merge(new VacancyDistributionType(2, "Zone Wise Distribution"));
             entityManager.merge(new VacancyDistributionType(3, "Category Wise Distribution"));
+            entityManager.merge(new VacancyDistributionType(4, "Others"));
         }
     }
 }

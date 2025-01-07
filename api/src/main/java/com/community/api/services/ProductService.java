@@ -19,6 +19,7 @@ import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
 import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.Districts;
 import com.community.api.entity.CustomProductRejectionStatus;
@@ -2877,7 +2878,7 @@ public class ProductService {
         }
     }
 
-    public Boolean validatePostRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
+    public OtherItem validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
@@ -2898,6 +2899,10 @@ public class ProductService {
                 } else if (distributionTypes.contains(3)) {
                     validateGenderDistribution(postDto, postDto.getGenderWiseDistribution());
                 }
+                else if(distributionTypes.contains(4))
+                {
+                  return validateOtherVacancyDistribution(postDto,roleId,userId);
+                }
             } else {
                 // If no distribution type, only validate basic gender distribution
                 validateBasicGenderDistribution(postDto, postDto.getGenderWiseDistribution());
@@ -2913,7 +2918,7 @@ public class ProductService {
             }
         }
 
-        return true;
+        return null;
     }
     private void validatePostBasics(PostDto postDto) {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
@@ -2982,6 +2987,8 @@ public class ProductService {
                 break;
             case 3:
                 validateGenderDistribution(postDto, genderDistributionDto);
+                break;
+            case 4:
                 break;
             default:
                 throw new IllegalArgumentException("Invalid vacancy distribution type: " + distributionTypeId);
@@ -3424,6 +3431,26 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception while validating gender specific id: " + exception.getMessage() + "\n");
         }
+    }
+
+    public OtherItem validateOtherVacancyDistribution(PostDto postDto, Integer roleId,Long userId)
+    {
+        if(postDto.getOtherVacancyDistribution()==null)
+        {
+            throw new IllegalArgumentException("You have to enter a text field for other vacancy distribution");
+        }
+        if(postDto.getOtherVacancyDistribution().trim().isEmpty())
+        {
+            throw new IllegalArgumentException("The text field cannot be empty for adding other vacancy distribution");
+        }
+        OtherItem otherItem =new OtherItem();
+        otherItem.setTyped_text(postDto.getOtherVacancyDistribution());
+        otherItem.setField_name("vacancy_distribution");
+        otherItem.setSource_name("add_product");
+        otherItem.setRole_id(roleId);
+        otherItem.setUser_id(userId);
+        entityManager.persist(otherItem);
+        return otherItem;
     }
 
     public CustomSector validateSector(AddProductDto addProductDto) throws Exception {

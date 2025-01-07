@@ -31,16 +31,19 @@ public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long postId;
+    private Long postId;
 
     @Column(name = "post_name",nullable = false)
-    String postName;
+    private String postName;
 
     @Column(name = "post_total_vacancies",nullable = false)
-    Long postTotalVacancies;
+    private Long postTotalVacancies;
 
     @Column(name = "post_code")
-    String postCode;
+    private String postCode;
+
+    @Column(name = "other_vacancy_distribution", columnDefinition = "text")
+    private String otherVacancyDistribution;
 
     @ManyToMany
     @JoinTable(

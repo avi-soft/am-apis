@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.dto.PostDto;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.OtherItem;
 import com.community.api.entity.Post;
 
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 @Service
 public class PostExecutionService {
@@ -28,7 +31,7 @@ public class PostExecutionService {
 
     @Transactional
     @Async("customAsyncExecutor")  // Use custom async executor defined in AsyncConfig
-    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList) {
+    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList, OtherItem otherItem) {
         try {
             // Introduce a 1-second delay before execution
             Thread.sleep(1000);  // 1000 milliseconds = 1 second
@@ -41,6 +44,20 @@ public class PostExecutionService {
         if (customProduct == null) {
             throw new IllegalArgumentException("Custom product with id " + product.getId() + " does not exist");
         }
+        if (otherItem != null) {
+            otherItem.setCustomProduct(customProduct);
+
+            List<OtherItem> existingItems = customProduct.getOtherItems();
+
+            existingItems.clear();
+            existingItems.add(otherItem);
+            customProduct.setOtherItems(existingItems);
+
+            entityManager.merge(otherItem);
+        }
+
+        entityManager.merge(customProduct);
+            entityManager.flush();
 
         // Your business logic for saving posts and updating age requirements
         System.out.println(customProduct.getId());
