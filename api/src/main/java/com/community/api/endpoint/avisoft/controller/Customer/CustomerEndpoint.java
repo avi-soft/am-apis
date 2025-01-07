@@ -92,12 +92,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
@@ -542,8 +544,6 @@ public class CustomerEndpoint {
             if(details.containsKey("is_nss_certificate"))
             {
                 Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
-                System.out.println("430");
-                System.out.println(isNssCertificate);
                 if(isNssCertificate.equals(true))
                 {
                     if(!details.containsKey("nss_certificate"))
@@ -954,6 +954,7 @@ public class CustomerEndpoint {
             }
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
+                HashSet<Document> documentsToSave= new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -1048,6 +1049,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setName(null);
                                     em.persist(existingDocument);
+                                    documentsToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                                 }
@@ -1078,75 +1080,77 @@ public class CustomerEndpoint {
                                 existingDocument13.setFilePath(null);
                                 existingDocument13.setName(null);
                                 existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument);
+                                em.merge(existingDocument13);
+                                documentsToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
-                                String filePath = existingDocument.getFilePath();
-                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
+
+                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                            {
+                                DocumentValidity documentValidity=null;
+                                if(existingDocument.getDocumentValidity()==null)
                                 {
-                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
-                                    existingDocument.setIs_qualification_document(true);
-                                    existingDocument.setQualificationDetails(qualificationDetails);
-                                }
+                                    documentValidity= new DocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
+                                    }
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.persist(documentValidity);
 
-                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                                }
+                                else if(existingDocument.getDocumentValidity()!=null)
                                 {
-                                    DocumentValidity documentValidity=null;
-                                    if(existingDocument.getDocumentValidity()==null)
+                                    documentValidity= existingDocument.getDocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                    if(validUpto==null)
                                     {
-                                        documentValidity= new DocumentValidity();
-                                        validateDate(dateOfIssue,validUpto);
-                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                        if(validUpto==null)
-                                        {
-                                            documentValidity.setIs_valid_upto_na(true);
-                                            documentValidity.setValid_upto(null);
-                                        }
-                                        else {
-                                            documentValidity.setIs_valid_upto_na(false);
-                                            documentValidity.setValid_upto( convertStringToDate(validUpto));
-                                        }
-                                        documentValidity.setDocument(existingDocument);
-                                        existingDocument.setDocumentValidity(documentValidity);
-                                        entityManager.persist(documentValidity);
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
 
                                     }
-                                    else if(existingDocument.getDocumentValidity()!=null)
-                                    {
-                                        documentValidity= existingDocument.getDocumentValidity();
-                                        validateDate(dateOfIssue,validUpto);
-                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                        if(validUpto==null)
-                                        {
-                                            documentValidity.setIs_valid_upto_na(true);
-                                            documentValidity.setValid_upto(null);
-
-                                        }
-                                        else {
-                                            documentValidity.setIs_valid_upto_na(false);
-                                            documentValidity.setValid_upto(convertStringToDate(validUpto));
-                                        }
-                                        documentValidity.setDocument(existingDocument);
-                                        existingDocument.setDocumentValidity(documentValidity);
-                                        entityManager.merge(documentValidity);
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
-
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.merge(documentValidity);
                                 }
-                                if (filePath != null) {
-                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                    File oldFile = new File(absolutePath);
-                                    String oldFileName = oldFile.getName();
-                                    String newFileName = file.getOriginalFilename();
-                                    existingDocument.setIsArchived(false);
-                                    if (!newFileName.equals(oldFileName)) {
-                                        fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
-                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
-                                    }
+
+                            }
+                            if (filePath != null) {
+                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                File oldFile = new File(absolutePath);
+                                String oldFileName = oldFile.getName();
+                                String newFileName = file.getOriginalFilename();
+                                existingDocument.setIsArchived(false);
+                                if (!newFileName.equals(oldFileName)) {
+                                    fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
+                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
                                 }
+                            }
                             entityManager.merge(existingDocument);
+                            documentsToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1157,6 +1161,7 @@ public class CustomerEndpoint {
                                     document.setIs_qualification_document(true);
                                     document.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1181,14 +1186,43 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                CustomCustomer updatedCustomer = entityManager.find(CustomCustomer.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnCustomerDocuments(updatedCustomer.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get(); // Blocks until the result is available
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+                for (Document document : documentsToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
 
-                // Construct the response with the updated data
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id",qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails); // Include as nested map
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
+                Set<ServiceProviderDocument> serviceProviderDocumentToSave= new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -1264,7 +1298,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setServiceProviderEntity(null);
                                     em.persist(existingDocument);
-
+                                    serviceProviderDocumentToSave.add(existingDocument);
                                     deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                                 }
                                 continue;
@@ -1298,6 +1332,7 @@ public class CustomerEndpoint {
                                 existingDocument13.setServiceProviderEntity(null);
 
                                 em.merge(existingDocument13);
+                                serviceProviderDocumentToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
 
@@ -1360,6 +1395,8 @@ public class CustomerEndpoint {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                 }
                             }
+                            entityManager.merge(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -1370,6 +1407,7 @@ public class CustomerEndpoint {
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
+
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1389,16 +1427,46 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     serviceProviderDocument.setDocumentValidity(documentValidity);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                             }
                         }
                     }
 
                 }
-                ServiceProviderEntity updatedServiceProviderEntity = entityManager.find(ServiceProviderEntity.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnServiceProvider(updatedServiceProviderEntity.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get();
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
+                for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails);
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
