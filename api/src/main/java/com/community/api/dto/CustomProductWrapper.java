@@ -378,7 +378,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = customProduct.getModifierRole();
 
         this.domicileRequired = customProduct.getDomicileRequired();
-        this.advertiserUrl = customProduct.getAdvertiserUrl();
+//        this.advertiserUrl = customProduct.getAdvertiserUrl();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
 
