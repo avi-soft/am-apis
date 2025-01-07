@@ -28,8 +28,6 @@ public class AddProductDto {
     @JsonProperty("application_scope_id")
     @NotNull
     Long applicationScope;
-    @JsonProperty("job_group_id")
-    Long jobGroup;
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("active_start_date")
     Date activeStartDate;
@@ -51,16 +49,10 @@ public class AddProductDto {
     String metaDescription;
     @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
-    @JsonProperty("physical_requirement")
-    List<AddPhysicalRequirementDto> physicalRequirement;
-    @JsonProperty("reserve_category_age")
-    List<AddProductAgeDTO> reserveCategoryAge;
     @JsonProperty("state_id")
     Integer state;
     @JsonProperty("quantity")
     Integer quantity;
-    @JsonProperty("advertiser_url")
-    String advertiserUrl;
     @JsonProperty("domicile_required")
     Boolean domicileRequired;
     @JsonProperty("product_state_id")
@@ -90,20 +82,10 @@ public class AddProductDto {
     String downloadSyllabusLink;
     @JsonProperty("form_complexity")
     Long formComplexity;
-    @JsonProperty("qualification_id")
-    Integer qualification;
-    @JsonProperty("stream_id")
-    Long stream;
-    @JsonProperty("subject_id")
-    Long subject;
-    @JsonProperty("gender_specific_id")
-    Long genderSpecific;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("sector_id")
     Long sector;
-    @JsonProperty("notifying_authority")
-    String notifyingAuthority;
     @JsonProperty("post_name")
     String postName;
     @JsonProperty("is_review_required")

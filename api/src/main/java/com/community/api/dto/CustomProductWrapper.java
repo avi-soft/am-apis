@@ -45,8 +45,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected String displayTemplate;
     @JsonProperty("meta_description")
     protected String metaDescription;
-    @JsonProperty("long_description")
-    protected String longDescription;
     @JsonProperty("category_name")
     protected String categoryName;
     @JsonProperty("priority_level")
@@ -61,22 +59,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Long defaultCategoryId;
     @JsonProperty("archived")
     protected Character archived;
-
-    @JsonProperty("url")
-    protected String url;
     @JsonProperty("active")
     protected Boolean active;
-    @JsonProperty("promo_message")
-    protected String promoMessage;
-    @JsonProperty("quantity")
-    protected Integer quantity;
-    @JsonProperty("media")
-    protected List<MediaWrapper> media;
 
     @JsonProperty("reserve_category_fee")
     protected List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();
-    @JsonProperty("physical_attribute_list")
-    protected List<PhysicalRequirementDto> physicalRequirementDtoList = new ArrayList<>();
 
     @JsonProperty("platform_fee")
     protected Double platformFee;
@@ -86,8 +73,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected CustomApplicationScope customApplicationScope;
     @JsonProperty("custom_product_state")
     protected CustomProductState customProductState;
-    @JsonProperty("custom_job_group")
-    protected CustomJobGroup customJobGroup;
     @JsonProperty("custom_rejection_status")
     protected CustomProductRejectionStatus customProductRejectionStatus;
 
@@ -100,8 +85,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
     @JsonProperty("modified_date")
     protected Date modifiedDate;
-    @JsonProperty("advertiser_url")
-    protected String advertiserUrl;
     @JsonProperty("domicile_required")
     protected Boolean domicileRequired;
     @JsonProperty("modifier_user_id")
@@ -129,56 +112,37 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     String downloadSyllabusLink;
     @JsonProperty("form_complexity")
     Long formComplexity;
-    @JsonProperty("qualification")
-    Qualification qualification;
     @JsonProperty("sector")
     CustomSector customSector;
-    @JsonProperty("gender_specific")
-    CustomGender customGender;
-    @JsonProperty("stream")
-    CustomStream customStream;
-    @JsonProperty("subject")
-    CustomSubject customSubject;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("created_date")
     Date createdDate;
-    @JsonProperty("notifying_authority")
-    String notifyingAuthority;
-    @JsonProperty("post_name")
-    String postName;
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
     @JsonProperty("advertisement")
     AdvertisementWrapper advertisement;
-
-
     @JsonProperty("posts")
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
 
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomJobGroup customJobGroup, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomGender customGender, CustomSector customSector, Qualification qualification, CustomStream customStream, CustomSubject customSubject, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
-        this.longDescription = product.getLongDescription();
         this.active = product.isActive();
-        this.quantity = product.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.categoryName = product.getDefaultCategory().getName();
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.archived = 'N';
         this.createdDate = currentDate;
-        this.promoMessage = product.getPromoMessage();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
-        this.url = product.getUrl();
         this.metaDescription = product.getMetaDescription();
 
         this.displayTemplate = product.getDisplayTemplate();
-        this.postName = addProductDto.getPostName();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
 
 
@@ -234,10 +198,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             }
         }
         this.platformFee = addProductDto.getPlatformFee();
-        this.notifyingAuthority = addProductDto.getNotifyingAuthority();
 
         this.customApplicationScope = customApplicationScope;
-        this.customJobGroup = customJobGroup;
         this.customProductState = customProductState;
 
         this.modifiedDate = product.getActiveStartDate();
@@ -247,7 +209,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = null;
 
         this.domicileRequired = addProductDto.getDomicileRequired();
-        this.advertiserUrl = addProductDto.getAdvertiserUrl();
         this.examDateFrom = addProductDto.getExamDateFrom();
         this.examDateTo = addProductDto.getExamDateTo();
 
@@ -260,11 +221,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.downloadSyllabusLink = addProductDto.getDownloadSyllabusLink();
         this.formComplexity = addProductDto.getFormComplexity();
 
-        this.customGender = customGender;
         this.customSector = customSector;
-        this.qualification = qualification;
-        this.customStream = customStream;
-        this.customSubject = customSubject;
         this.selectionCriteria = addProductDto.getSelectionCriteria();
         this.state = state;
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
@@ -281,18 +238,14 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
 
         this.displayTemplate = customProduct.getDisplayTemplate();
@@ -300,7 +253,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.state = customProduct.getState();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
-        this.customJobGroup = customProduct.getJobGroup();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
         this.modifiedDate = customProduct.getModifiedDate();
@@ -311,13 +263,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = customProduct.getModifierRole();
 
         this.domicileRequired = customProduct.getDomicileRequired();
-        this.advertiserUrl = customProduct.getAdvertiserUrl();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
-        this.notifyingAuthority = customProduct.getNotifyingAuthority();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
-        this.postName = customProduct.getPostName();
         this.isReviewRequired=customProduct.getIsReviewRequired();
 
         if (customProduct.getDefaultCategory() != null) {
@@ -331,24 +280,19 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.feeService=feeService;
         this.displayTemplate = customProduct.getDisplayTemplate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
-        this.customJobGroup = customProduct.getJobGroup();
         this.customProductState = customProduct.getProductState();
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
@@ -368,8 +312,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             }
         }
         this.reserveCategoryDtoList = feeDto;
-        this.physicalRequirementDtoList = physicalRequirementDtoList;
-
         this.modifiedDate = customProduct.getModifiedDate();
 
         this.creatorUserId = customProduct.getUserId();
@@ -378,7 +320,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = customProduct.getModifierRole();
 
         this.domicileRequired = customProduct.getDomicileRequired();
-//        this.advertiserUrl = customProduct.getAdvertiserUrl();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
 
@@ -391,17 +332,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.downloadSyllabusLink = customProduct.getDownloadSyllabusLink();
         this.formComplexity = customProduct.getFormComplexity();
 
-        this.customGender = customProduct.getGenderSpecific();
         this.customSector = customProduct.getSector();
-        this.qualification = customProduct.getQualification();
-        this.customStream = customProduct.getStream();
-        this.customSubject = customProduct.getSubject();
         this.selectionCriteria = customProduct.getSelectionCriteria();
         this.state = customProduct.getState();
-        this.notifyingAuthority = customProduct.getNotifyingAuthority();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
-        this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
 
@@ -429,26 +364,20 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.createdDate = customProduct.getCreatedDate();
-        this.longDescription = customProduct.getLongDescription();
         this.active = customProduct.isActive();
-        this.quantity = customProduct.getDefaultSku().getQuantityAvailable();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
-        this.promoMessage = customProduct.getPromoMessage();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
-        this.url = customProduct.getUrl();
         this.metaDescription = customProduct.getMetaDescription();
-        this.postName = customProduct.getPostName();
 
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
-        this.customJobGroup = customProduct.getJobGroup();
         this.customProductState = customProduct.getProductState();
 
         this.creatorUserId = customProduct.getUserId();
@@ -456,12 +385,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierUserId = customProduct.getModifierUserId();
         this.modifierRoleId = customProduct.getModifierRole();
 
-        this.advertiserUrl = customProduct.getAdvertiserUrl();
 
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
         this.selectionCriteria = customProduct.getSelectionCriteria();
-        this.notifyingAuthority = customProduct.getNotifyingAuthority();
         this.formComplexity = customProduct.getFormComplexity();
         this.downloadNotificationLink = customProduct.getDownloadNotificationLink();
         this.downloadSyllabusLink = customProduct.getDownloadSyllabusLink();
@@ -472,13 +399,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.lateDateToPayFee = customProduct.getLateDateToPayFee();
         this.domicileRequired = customProduct.getDomicileRequired();
         this.modifiedDate = customProduct.getModifiedDate();
-        this.qualification = customProduct.getQualification();
         this.customSector = customProduct.getSector();
-        this.customStream = customProduct.getStream();
-        this.customSubject = customProduct.getSubject();
-        this.customGender = customProduct.getGenderSpecific();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
-        this.postName = customProduct.getPostName();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         if(advertisement != null) {
@@ -498,15 +420,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
         this.metaDescription = product.getMetaDescription();
-        this.longDescription = product.getLongDescription();
-        this.url = product.getUrl();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
-        this.promoMessage = product.getPromoMessage();
         this.archived = ((Status) product).getArchived();
         this.categoryName = product.getDefaultCategory().getName();
         this.active = product.isActive();
-        this.quantity = product.getDefaultSku().getQuantityAvailable();
 
         if (product.getDefaultCategory() != null) {
             this.defaultCategoryId = product.getDefaultCategory().getId();
@@ -518,8 +436,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = model.getId();
         this.metaTitle = model.getName();
         this.metaDescription = model.getDescription();
-        this.longDescription = model.getLongDescription();
-        this.url = model.getUrl();
         this.active = model.isActive();
     }
 }
