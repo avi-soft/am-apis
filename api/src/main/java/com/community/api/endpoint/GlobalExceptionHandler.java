@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = { RuntimeException.class })
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
 
-        return generateErrorResponse("Runtime exception" , HttpStatus.BAD_REQUEST,ex.getMessage());
+        return generateErrorResponse("Runtime exception : " , HttpStatus.BAD_REQUEST,ex.getMessage());
 
     }
 

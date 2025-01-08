@@ -1,3 +1,4 @@
+
 package com.community.api.endpoint.avisoft.controller.Customer;
 
 import com.community.api.annotation.Authorize;
@@ -287,34 +288,178 @@ public class CustomerEndpoint {
             if (secondaryMobileNumber != null && mobileNumber==null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
-            if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
-                // List of required fields
-                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
+            if(details.containsKey("interestedInDefence")) {
+                Boolean value = (Boolean) details.get("interestedInDefence");
+                customCustomer.setInterestedInDefence(value);
+            }
+            if ((customCustomer.getInterestedInDefence()!=null&&details.containsKey("interestedInDefence"))) {
+                if(customCustomer.getInterestedInDefence())
+                {
+                    // List of required fields
+                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
 
-                // Check if all required fields are present and not empty
-                Map<String, Object> finalDetails = details;
-                boolean conditionExists = requiredFields.stream()
-                        .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-
+                    // Check if all required fields are present and not empty
+                    Map<String, Object> finalDetails = details;
+                    boolean conditionExists = requiredFields.stream()
+                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
                 if (!conditionExists) {
                     errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
                 }else{
-                    customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
-                    customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
-                    customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
-                    customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
+                    int minHeight = 50, maxHeight = 250; // in cms
+                    int minWeight = 10, maxWeight = 300; // in kgs
+                    int minShoeSize = 4, maxShoeSize = 15; // in inches
+                    int minWaistSize = 20, maxWaistSize = 150;
+                    try {
+                        String heightStr = (String) finalDetails.get("heightCms");
+                        if (heightStr != null && !heightStr.isEmpty()) {
+                            int heightValue = Integer.parseInt(heightStr);
+                            if (heightValue < minHeight || heightValue > maxHeight) {
+                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                            } else {
+                                customCustomer.setHeightCms(heightValue);
+                            }
+                        } else {
+                            errorMessages.add("Height is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
+                    }
+
+// Validate and set weight
+                    try {
+                        String weightStr = (String) finalDetails.get("weightKgs");
+                        if (weightStr != null && !weightStr.isEmpty()) {
+                            int weightValue = Integer.parseInt(weightStr);
+                            if (weightValue < minWeight || weightValue > maxWeight) {
+                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                            } else {
+                                customCustomer.setWeightKgs(weightValue);
+                            }
+                        } else {
+                            errorMessages.add("Weight is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+
+// Validate and set shoe size
+                    try {
+                        String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
+                        if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
+                            int shoeSizeValue = Integer.parseInt(shoeSizeStr);
+                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                            } else {
+                                customCustomer.setShoeSizeInches(shoeSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Shoe size is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+
+// Validate and set waist size
+                    try {
+                        String waistSizeStr = (String) finalDetails.get("waistSizeCms");
+                        if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
+                            int waistSizeValue = Integer.parseInt(waistSizeStr);
+                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            } else {
+                                customCustomer.setWaistSizeCms(waistSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Waist size is required and must be a valid value.");
+                        }
+                    }catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
+                }
+            }else if(!customCustomer.getInterestedInDefence())
+                {
+                String height = (String) details.get("heightCms");
+                String weightKgs = (String) details.get("weightKgs");
+                String shoeSizeInches = (String) details.get("shoeSizeInches");
+                String waistSizeCms = (String) details.get("waistSizeCms");
+
+// Standard size ranges (example values, replace with your actual ranges)
+                int minHeight = 50, maxHeight = 250; // in cms
+                int minWeight = 10, maxWeight = 300; // in kgs
+                int minShoeSize = 4, maxShoeSize = 15; // in inches
+                int minWaistSize = 20, maxWaistSize = 150; // in cms
+
+// Validate and set height
+                if (height != null && !height.isEmpty()) {
+                    try {
+                        int heightValue = Integer.parseInt(height);
+                        if (heightValue < minHeight || heightValue > maxHeight) {
+                            errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                        } else {
+                            customCustomer.setHeightCms(heightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
+                    }
+                }
+
+// Validate and set weight
+                if (weightKgs != null && !weightKgs.isEmpty()) {
+                    try {
+                        int weightValue = Integer.parseInt(weightKgs);
+                        if (weightValue < minWeight || weightValue > maxWeight) {
+                            errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                        } else {
+                            customCustomer.setWeightKgs(weightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+                }
+
+// Validate and set shoe size
+                if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
+                    try {
+                        int shoeSizeValue = Integer.parseInt(shoeSizeInches);
+                        if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                            errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                        } else {
+                            customCustomer.setShoeSizeInches(shoeSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+                }
+
+// Validate and set waist size
+                if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
+                    try {
+                        int waistSizeValue = Integer.parseInt(waistSizeCms);
+                        if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                            errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                        } else {
+                            customCustomer.setWaistSizeCms(waistSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
                 }
             }
-
+            }
             if(details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
-                     Integer workExperience = (Integer) details.get("workExperience");
-                     customCustomer.setWorkExperience(workExperience.toString());
+                    Integer workExperience = (Integer) details.get("workExperience");
+                    customCustomer.setWorkExperience(workExperience.toString());
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
+            }
+
+            if(details.containsKey("sportCertificateId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("sportCertificateId")));
+                customCustomer.setSportCertificateId(customApplicationScope);
             }
 
             if(details.containsKey("domicile")) {
@@ -341,7 +486,7 @@ public class CustomerEndpoint {
                 customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
                 if((Boolean)details.get("hidePhoneNumber").equals(true))
                 {
-                errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
+                    errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
                 }
                 if(secondaryMobileNumber!=null &&!customCustomerService.isValidMobileNumber(secondaryMobileNumber))
                     errorMessages.add("Secondary mobile is invalid");
@@ -351,10 +496,10 @@ public class CustomerEndpoint {
                     customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
                     customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));
                     customCustomer.setHidePhoneNumber((Boolean) details.get("hidePhoneNumber"));
-                    }
-                    details.remove("secondaryMobileNumber");
-                    details.remove("whatsappNumber");
-                    details.remove("hidePhoneNumber");
+                }
+                details.remove("secondaryMobileNumber");
+                details.remove("whatsappNumber");
+                details.remove("hidePhoneNumber");
             }
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
@@ -493,11 +638,11 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("dob"))
             {
-               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
-                   errorMessages.add("DOB cannot be in future");
+                if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                    errorMessages.add("DOB cannot be in future");
             }
-                if(details.containsKey("is_ncc_certificate"))
-                {
+            if(details.containsKey("is_ncc_certificate"))
+            {
                 Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
                 if(isNccCertificate.equals(true))
                 {
@@ -611,10 +756,10 @@ public class CustomerEndpoint {
                 field.setAccessible(true);
                 if(newValue!=null)
                 {
-                if (newValue.toString().isEmpty() && !isNullable) {
-                    errorMessages.add(fieldName + " cannot be null");
-                    continue;
-                }}
+                    if (newValue.toString().isEmpty() && !isNullable) {
+                        errorMessages.add(fieldName + " cannot be null");
+                        continue;
+                    }}
                 if (field.isAnnotationPresent(Pattern.class)) {
                     Pattern patternAnnotation = field.getAnnotation(Pattern.class);
                     String regex = patternAnnotation.regexp();
@@ -663,7 +808,7 @@ public class CustomerEndpoint {
                     }
                 }
 
-            // Set value if type is compatible
+                // Set value if type is compatible
                 if (newValue != null && field.getType().isAssignableFrom(newValue.getClass())) {
                     field.set(customCustomer, newValue);
                 }
@@ -687,11 +832,6 @@ public class CustomerEndpoint {
                 if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"),  customCustomer, errorMessages)) {
                     customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
-            }
-
-            if(details.containsKey("interestedInDefence")) {
-                Boolean value = (Boolean) details.get("interestedInDefence");
-                customCustomer.setInterestedInDefence(value);
             }
             if(details.containsKey("disability")) {
                 Boolean cond = (Boolean) details.get("disability");
@@ -1794,9 +1934,9 @@ public class CustomerEndpoint {
             Map<String,Object>responseBody=new HashMap<>();
             /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+            /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
@@ -1830,9 +1970,9 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+           /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
@@ -1857,9 +1997,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1887,9 +2027,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1917,10 +2057,10 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());*/
                 List<Post>postList= customProduct.getPosts();
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                //List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 customProductWrapper.wrapDetails(customProduct,postList,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
