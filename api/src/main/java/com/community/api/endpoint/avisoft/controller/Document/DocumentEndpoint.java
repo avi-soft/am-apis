@@ -109,8 +109,8 @@ public class DocumentEndpoint {
         try {
             List<DocumentType> documentTypes;
 
-                documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt ", DocumentType.class)
-                        .getResultList();
+            documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt ORDER BY dt.sort_order ASC", DocumentType.class)
+                    .getResultList();
 
             if (documentTypes.isEmpty()) {
                 return responseService.generateErrorResponse("No document found", HttpStatus.OK);

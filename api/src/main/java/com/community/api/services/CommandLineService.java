@@ -36,15 +36,17 @@ public class CommandLineService implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         try{
-            System.out.println("CLR STARTING");
-            String scriptPath = "insertion_log.sql";
+            String scriptPathForInsertion = "insertion_log.sql";
             String sqlScript = new BufferedReader(
-                    new InputStreamReader(new ClassPathResource(scriptPath).getInputStream())
+                    new InputStreamReader(new ClassPathResource(scriptPathForInsertion).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
-            // Execute the SQL script
             jdbcTemplate.execute(sqlScript);
         zoneDivisionService.populateZoneDivision();
-            System.out.println("CLR DONE");
+        String scriptPathForAlteration = "alteration_log.sql";
+            sqlScript = new BufferedReader(
+                    new InputStreamReader(new ClassPathResource(scriptPathForAlteration).getInputStream())
+            ).lines().collect(Collectors.joining("\n"));
+            // Execute the SQL script
 
     }catch (Exception exception)
         {
