@@ -41,10 +41,10 @@ BEGIN
     ALTER TABLE custom_product DROP COLUMN post_name;
 END
 -- SIMRAN -7 JAN 2024
--- KSHTIJ -8 JAN 2024
+-- KSHITIJ -8 JAN 2024
 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_service_provider_ticket' AND COLUMN_NAME = 'ticketid')
 BEGIN
     ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
 END
--- KSHTIJ -8 JAN 2024
+-- KSHITIJ -8 JAN 2024
 END $$;
