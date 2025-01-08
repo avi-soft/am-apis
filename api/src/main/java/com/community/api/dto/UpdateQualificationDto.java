@@ -24,8 +24,7 @@ public class UpdateQualificationDto
 
     private Long institution_id;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date date_of_passing;
+    private String date_of_passing;
 
     private Long board_university_id;
 

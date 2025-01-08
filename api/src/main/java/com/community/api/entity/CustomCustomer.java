@@ -326,6 +326,10 @@ public class CustomCustomer extends CustomerImpl {
     protected CustomApplicationScope workExperienceScopeId;
 
     @ManyToOne
+    @JoinColumn(name = "sport_certificate_id")
+    protected CustomApplicationScope sportCertificateId;
+
+    @ManyToOne
     @JoinColumn(name = "domicile_state")
     protected StateCode domicileState;
 }

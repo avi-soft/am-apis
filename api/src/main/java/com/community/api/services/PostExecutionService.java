@@ -43,10 +43,8 @@ public class PostExecutionService {
         }
 
         // Your business logic for saving posts and updating age requirements
-        System.out.println(customProduct.getId());
         savePostsWithoutAgeRequirement(customProduct, postList);
         postService.updatePostAgeRequirements(postDto, customProduct, postList);
-        System.out.println("Async operation completed!");
     }
 
     @Transactional

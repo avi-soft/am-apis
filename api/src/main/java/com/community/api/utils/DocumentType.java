@@ -52,6 +52,9 @@ public class DocumentType {
     @Column(name = "min_document_size")
     private String min_document_size;
 
+    @Column(name = "sort_order")  // New column for sorting order
+    private Integer sort_order = Integer.MAX_VALUE;
+
     public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size, Boolean is_qualification_document, Boolean is_issue_date_required, Boolean is_expiration_date_required) {
         this.document_type_id = document_type_id;
         this.document_type_name = document_type_name;
