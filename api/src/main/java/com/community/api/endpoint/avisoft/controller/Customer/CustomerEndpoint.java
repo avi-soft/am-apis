@@ -1211,7 +1211,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document createdDocument= documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(createdDocument);
                             } else if (existingDocument13 != null) {
                                 String filePath = existingDocument13.getFilePath();
                                 if (removeFileTypes != null && removeFileTypes && newFileName!=null ) {
@@ -1295,6 +1296,7 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(document);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
@@ -1321,6 +1323,7 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                             }
                         }
@@ -1459,7 +1462,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument= documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                             }
 
                             else if (existingDocument13 != null) {
@@ -1541,13 +1545,14 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
-
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
