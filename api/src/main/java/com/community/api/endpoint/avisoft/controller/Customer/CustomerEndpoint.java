@@ -253,7 +253,6 @@ public class CustomerEndpoint {
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
-            Map<String,String>errorResponse=new HashMap<>();
             String jwtToken = authHeader.substring(7);
             List<String>deleteLogs=new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -628,7 +627,7 @@ public class CustomerEndpoint {
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
                         if (result > 0) {
-                            errorMessages.add("Aadhar number already in use!!");
+                            errorMessages.add("Aadhar number already in use.");
                             details.remove("adharNumber");
                         }
                     }
@@ -907,7 +906,13 @@ public class CustomerEndpoint {
             }
 
             if (!errorMessages.isEmpty()) {
-                return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
+                StringBuilder response= new StringBuilder();
+                for(String error:errorMessages)
+                {
+                    response.append(error).append(",");
+                }
+                response = new StringBuilder(response.substring(0, response.length() - 1));
+                return ResponseService.generateErrorResponse(response.toString(), HttpStatus.BAD_REQUEST);
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
