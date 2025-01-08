@@ -1,3 +1,4 @@
+
 package com.community.api.entity;
 
 import com.community.api.utils.Document;
@@ -324,6 +325,10 @@ public class CustomCustomer extends CustomerImpl {
     @ManyToOne
     @JoinColumn(name = "work_experience_scope_id")
     protected CustomApplicationScope workExperienceScopeId;
+
+    @ManyToOne
+    @JoinColumn(name = "sport_certificate_id")
+    protected CustomApplicationScope sportCertificateId;
 
     @ManyToOne
     @JoinColumn(name = "domicile_state")

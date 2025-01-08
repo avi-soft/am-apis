@@ -238,7 +238,7 @@ public class OrderController {
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
                         query.setParameter("orderId", order.getId());
-                        BigInteger id = (BigInteger) query.getSingleResult();
+                        Integer id =query.getFirstResult();
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
