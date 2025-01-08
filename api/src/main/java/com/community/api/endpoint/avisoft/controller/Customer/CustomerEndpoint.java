@@ -253,6 +253,7 @@ public class CustomerEndpoint {
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Map<String,String>errorResponse=new HashMap<>();
             String jwtToken = authHeader.substring(7);
             List<String>deleteLogs=new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -615,6 +616,33 @@ public class CustomerEndpoint {
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
+                }
+            }
+            if(details.containsKey("adharNumber"))
+            {
+                String adharNumber = (String) details.get("adharNumber");
+                if(customCustomer.getAdharNumber()!=null)
+                {
+                    if(!customCustomer.getAdharNumber().equals(adharNumber)) {
+                        Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                        query.setParameter("adharNumber", adharNumber);
+                        Integer result = ((Number) query.getSingleResult()).intValue();
+                        if (result > 0) {
+                            errorMessages.add("Aadhar number already in use!!");
+                            details.remove("adharNumber");
+                        }
+                    }
+                }
+                else if(customCustomer.getAdharNumber()==null)
+                {
+                    Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                    query.setParameter("adharNumber", adharNumber);
+                    Integer result = ((Number) query.getSingleResult()).intValue();
+                    System.out.println("result"+result);
+                    if (result > 0) {
+                        errorMessages.add("Aadhar number already in use!!");
+                        details.remove("adharNumber");
+                    }
                 }
             }
 
