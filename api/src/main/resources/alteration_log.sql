@@ -1,0 +1,50 @@
+DO $$
+BEGIN
+-- SIMRAN -7 JAN 2024
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'qualification_id')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN qualification_id;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'advertiser_url')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN advertiser_url;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'job_group_id')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN job_group_id;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'notifying_authority')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN notifying_authority;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'gender_specific_id')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN gender_specific_id;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'stream_id')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN stream_id;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'subject_id')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN subject_id;
+END
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'post_name')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN post_name;
+END
+-- SIMRAN -7 JAN 2024
+-- KSHITIJ -8 JAN 2024
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_service_provider_ticket' AND COLUMN_NAME = 'ticketid')
+BEGIN
+    ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
+END
+-- KSHITIJ -8 JAN 2024
+END $$;

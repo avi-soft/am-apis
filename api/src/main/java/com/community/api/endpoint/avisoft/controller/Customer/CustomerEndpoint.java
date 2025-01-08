@@ -1,3 +1,4 @@
+
 package com.community.api.endpoint.avisoft.controller.Customer;
 
 import com.community.api.annotation.Authorize;
@@ -92,12 +93,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
@@ -285,34 +288,178 @@ public class CustomerEndpoint {
             if (secondaryMobileNumber != null && mobileNumber==null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
                 return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
             }
-            if (details.containsKey("interestedInDefence") && Boolean.TRUE.equals(details.get("interestedInDefence"))) {
-                // List of required fields
-                final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
+            if(details.containsKey("interestedInDefence")) {
+                Boolean value = (Boolean) details.get("interestedInDefence");
+                customCustomer.setInterestedInDefence(value);
+            }
+            if ((customCustomer.getInterestedInDefence()!=null&&details.containsKey("interestedInDefence"))) {
+                if(customCustomer.getInterestedInDefence())
+                {
+                    // List of required fields
+                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
 
-                // Check if all required fields are present and not empty
-                Map<String, Object> finalDetails = details;
-                boolean conditionExists = requiredFields.stream()
-                        .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-
+                    // Check if all required fields are present and not empty
+                    Map<String, Object> finalDetails = details;
+                    boolean conditionExists = requiredFields.stream()
+                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
                 if (!conditionExists) {
                     errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
                 }else{
-                    customCustomer.setHeightCms(Integer.parseInt((String) finalDetails.get("heightCms")));
-                    customCustomer.setWeightKgs(Integer.parseInt((String) finalDetails.get("weightKgs")));
-                    customCustomer.setShoeSizeInches(Integer.parseInt((String) finalDetails.get("shoeSizeInches")));
-                    customCustomer.setWaistSizeCms(Integer.parseInt((String) finalDetails.get("waistSizeCms")));
+                    int minHeight = 50, maxHeight = 250; // in cms
+                    int minWeight = 10, maxWeight = 300; // in kgs
+                    int minShoeSize = 4, maxShoeSize = 15; // in inches
+                    int minWaistSize = 20, maxWaistSize = 150;
+                    try {
+                        String heightStr = (String) finalDetails.get("heightCms");
+                        if (heightStr != null && !heightStr.isEmpty()) {
+                            int heightValue = Integer.parseInt(heightStr);
+                            if (heightValue < minHeight || heightValue > maxHeight) {
+                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                            } else {
+                                customCustomer.setHeightCms(heightValue);
+                            }
+                        } else {
+                            errorMessages.add("Height is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
+                    }
+
+// Validate and set weight
+                    try {
+                        String weightStr = (String) finalDetails.get("weightKgs");
+                        if (weightStr != null && !weightStr.isEmpty()) {
+                            int weightValue = Integer.parseInt(weightStr);
+                            if (weightValue < minWeight || weightValue > maxWeight) {
+                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                            } else {
+                                customCustomer.setWeightKgs(weightValue);
+                            }
+                        } else {
+                            errorMessages.add("Weight is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+
+// Validate and set shoe size
+                    try {
+                        String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
+                        if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
+                            int shoeSizeValue = Integer.parseInt(shoeSizeStr);
+                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                            } else {
+                                customCustomer.setShoeSizeInches(shoeSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Shoe size is required and must be a valid value.");
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+
+// Validate and set waist size
+                    try {
+                        String waistSizeStr = (String) finalDetails.get("waistSizeCms");
+                        if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
+                            int waistSizeValue = Integer.parseInt(waistSizeStr);
+                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            } else {
+                                customCustomer.setWaistSizeCms(waistSizeValue);
+                            }
+                        } else {
+                            errorMessages.add("Waist size is required and must be a valid value.");
+                        }
+                    }catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
+                }
+            }else if(!customCustomer.getInterestedInDefence())
+                {
+                String height = (String) details.get("heightCms");
+                String weightKgs = (String) details.get("weightKgs");
+                String shoeSizeInches = (String) details.get("shoeSizeInches");
+                String waistSizeCms = (String) details.get("waistSizeCms");
+
+// Standard size ranges (example values, replace with your actual ranges)
+                int minHeight = 50, maxHeight = 250; // in cms
+                int minWeight = 10, maxWeight = 300; // in kgs
+                int minShoeSize = 4, maxShoeSize = 15; // in inches
+                int minWaistSize = 20, maxWaistSize = 150; // in cms
+
+// Validate and set height
+                if (height != null && !height.isEmpty()) {
+                    try {
+                        int heightValue = Integer.parseInt(height);
+                        if (heightValue < minHeight || heightValue > maxHeight) {
+                            errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                        } else {
+                            customCustomer.setHeightCms(heightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Height must be a valid integer.");
+                    }
+                }
+
+// Validate and set weight
+                if (weightKgs != null && !weightKgs.isEmpty()) {
+                    try {
+                        int weightValue = Integer.parseInt(weightKgs);
+                        if (weightValue < minWeight || weightValue > maxWeight) {
+                            errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                        } else {
+                            customCustomer.setWeightKgs(weightValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Weight must be a valid integer.");
+                    }
+                }
+
+// Validate and set shoe size
+                if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
+                    try {
+                        int shoeSizeValue = Integer.parseInt(shoeSizeInches);
+                        if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                            errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                        } else {
+                            customCustomer.setShoeSizeInches(shoeSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Shoe size must be a valid integer.");
+                    }
+                }
+
+// Validate and set waist size
+                if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
+                    try {
+                        int waistSizeValue = Integer.parseInt(waistSizeCms);
+                        if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                            errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                        } else {
+                            customCustomer.setWaistSizeCms(waistSizeValue);
+                        }
+                    } catch (NumberFormatException e) {
+                        errorMessages.add("Waist size must be a valid integer.");
+                    }
                 }
             }
-
+            }
             if(details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
-                     Integer workExperience = (Integer) details.get("workExperience");
-                     customCustomer.setWorkExperience(workExperience.toString());
+                    Integer workExperience = (Integer) details.get("workExperience");
+                    customCustomer.setWorkExperience(workExperience.toString());
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
+            }
+
+            if(details.containsKey("sportCertificateId")) {
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("sportCertificateId")));
+                customCustomer.setSportCertificateId(customApplicationScope);
             }
 
             if(details.containsKey("domicile")) {
@@ -339,7 +486,7 @@ public class CustomerEndpoint {
                 customCustomer.setHidePhoneNumber((Boolean)details.get("hidePhoneNumber"));
                 if((Boolean)details.get("hidePhoneNumber").equals(true))
                 {
-                errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
+                    errorMessages.addAll(validateHidePhoneNumber(details, customCustomer));
                 }
                 if(secondaryMobileNumber!=null &&!customCustomerService.isValidMobileNumber(secondaryMobileNumber))
                     errorMessages.add("Secondary mobile is invalid");
@@ -349,10 +496,10 @@ public class CustomerEndpoint {
                     customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
                     customCustomer.setWhatsappNumber((String)details.get("whatsappNumber"));
                     customCustomer.setHidePhoneNumber((Boolean) details.get("hidePhoneNumber"));
-                    }
-                    details.remove("secondaryMobileNumber");
-                    details.remove("whatsappNumber");
-                    details.remove("hidePhoneNumber");
+                }
+                details.remove("secondaryMobileNumber");
+                details.remove("whatsappNumber");
+                details.remove("hidePhoneNumber");
             }
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
@@ -491,11 +638,11 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("dob"))
             {
-               if(sharedUtilityService.isFutureDate((String)details.get("dob")))
-                   errorMessages.add("DOB cannot be in future");
+                if(sharedUtilityService.isFutureDate((String)details.get("dob")))
+                    errorMessages.add("DOB cannot be in future");
             }
-                if(details.containsKey("is_ncc_certificate"))
-                {
+            if(details.containsKey("is_ncc_certificate"))
+            {
                 Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
                 if(isNccCertificate.equals(true))
                 {
@@ -542,8 +689,6 @@ public class CustomerEndpoint {
             if(details.containsKey("is_nss_certificate"))
             {
                 Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
-                System.out.println("430");
-                System.out.println(isNssCertificate);
                 if(isNssCertificate.equals(true))
                 {
                     if(!details.containsKey("nss_certificate"))
@@ -611,10 +756,10 @@ public class CustomerEndpoint {
                 field.setAccessible(true);
                 if(newValue!=null)
                 {
-                if (newValue.toString().isEmpty() && !isNullable) {
-                    errorMessages.add(fieldName + " cannot be null");
-                    continue;
-                }}
+                    if (newValue.toString().isEmpty() && !isNullable) {
+                        errorMessages.add(fieldName + " cannot be null");
+                        continue;
+                    }}
                 if (field.isAnnotationPresent(Pattern.class)) {
                     Pattern patternAnnotation = field.getAnnotation(Pattern.class);
                     String regex = patternAnnotation.regexp();
@@ -663,7 +808,7 @@ public class CustomerEndpoint {
                     }
                 }
 
-            // Set value if type is compatible
+                // Set value if type is compatible
                 if (newValue != null && field.getType().isAssignableFrom(newValue.getClass())) {
                     field.set(customCustomer, newValue);
                 }
@@ -687,11 +832,6 @@ public class CustomerEndpoint {
                 if(sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"),  customCustomer, errorMessages)) {
                     customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
                 }
-            }
-
-            if(details.containsKey("interestedInDefence")) {
-                Boolean value = (Boolean) details.get("interestedInDefence");
-                customCustomer.setInterestedInDefence(value);
             }
             if(details.containsKey("disability")) {
                 Boolean cond = (Boolean) details.get("disability");
@@ -954,6 +1094,7 @@ public class CustomerEndpoint {
             }
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
+                HashSet<Document> documentsToSave= new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -1009,17 +1150,17 @@ public class CustomerEndpoint {
 
                         if( qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                         {
-                             existingDocument = em.createQuery(
-                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType " +
-                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
-                                                "AND d.name IS NOT NULL", Document.class)
-                                .setParameter("customCustomer", customCustomer)
-                                .setParameter("documentType", documentTypeObj)
-                                .setParameter("qualificationDetailId", qualificationDetailId)
-                                .getResultStream()
-                                .findFirst()
-                                .orElse(null);
+                            existingDocument = em.createQuery(
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
+                                                    "AND d.name IS NOT NULL", Document.class)
+                                    .setParameter("customCustomer", customCustomer)
+                                    .setParameter("documentType", documentTypeObj)
+                                    .setParameter("qualificationDetailId", qualificationDetailId)
+                                    .getResultStream()
+                                    .findFirst()
+                                    .orElse(null);
                         }
                         else {
                             existingDocument = em.createQuery(
@@ -1048,6 +1189,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setName(null);
                                     em.persist(existingDocument);
+                                    documentsToSave.add(existingDocument);
 
                                     deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                                 }
@@ -1069,7 +1211,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document createdDocument= documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(createdDocument);
                             } else if (existingDocument13 != null) {
                                 String filePath = existingDocument13.getFilePath();
                                 if (removeFileTypes != null && removeFileTypes && newFileName!=null ) {
@@ -1078,85 +1221,89 @@ public class CustomerEndpoint {
                                 existingDocument13.setFilePath(null);
                                 existingDocument13.setName(null);
                                 existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument);
+                                em.merge(existingDocument13);
+                                documentsToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
-                                String filePath = existingDocument.getFilePath();
-                                if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            String filePath = existingDocument.getFilePath();
+                            if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
+                            {
+                                QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
+                                existingDocument.setIs_qualification_document(true);
+                                existingDocument.setQualificationDetails(qualificationDetails);
+                            }
+
+                            if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                            {
+                                DocumentValidity documentValidity=null;
+                                if(existingDocument.getDocumentValidity()==null)
                                 {
-                                    QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
-                                    existingDocument.setIs_qualification_document(true);
-                                    existingDocument.setQualificationDetails(qualificationDetails);
-                                }
+                                    documentValidity= new DocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                    if(validUpto==null)
+                                    {
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
+                                    }
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto( convertStringToDate(validUpto));
+                                    }
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.persist(documentValidity);
 
-                                if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
+                                }
+                                else if(existingDocument.getDocumentValidity()!=null)
                                 {
-                                    DocumentValidity documentValidity=null;
-                                    if(existingDocument.getDocumentValidity()==null)
+                                    documentValidity= existingDocument.getDocumentValidity();
+                                    validateDate(dateOfIssue,validUpto);
+                                    documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
+                                    if(validUpto==null)
                                     {
-                                        documentValidity= new DocumentValidity();
-                                        validateDate(dateOfIssue,validUpto);
-                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                        if(validUpto==null)
-                                        {
-                                            documentValidity.setIs_valid_upto_na(true);
-                                            documentValidity.setValid_upto(null);
-                                        }
-                                        else {
-                                            documentValidity.setIs_valid_upto_na(false);
-                                            documentValidity.setValid_upto( convertStringToDate(validUpto));
-                                        }
-                                        documentValidity.setDocument(existingDocument);
-                                        existingDocument.setDocumentValidity(documentValidity);
-                                        entityManager.persist(documentValidity);
+                                        documentValidity.setIs_valid_upto_na(true);
+                                        documentValidity.setValid_upto(null);
 
                                     }
-                                    else if(existingDocument.getDocumentValidity()!=null)
-                                    {
-                                        documentValidity= existingDocument.getDocumentValidity();
-                                        validateDate(dateOfIssue,validUpto);
-                                        documentValidity.setDate_of_issue( convertStringToDate(dateOfIssue));
-                                        if(validUpto==null)
-                                        {
-                                            documentValidity.setIs_valid_upto_na(true);
-                                            documentValidity.setValid_upto(null);
-
-                                        }
-                                        else {
-                                            documentValidity.setIs_valid_upto_na(false);
-                                            documentValidity.setValid_upto(convertStringToDate(validUpto));
-                                        }
-                                        documentValidity.setDocument(existingDocument);
-                                        existingDocument.setDocumentValidity(documentValidity);
-                                        entityManager.merge(documentValidity);
+                                    else {
+                                        documentValidity.setIs_valid_upto_na(false);
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
-
+                                    documentValidity.setDocument(existingDocument);
+                                    existingDocument.setDocumentValidity(documentValidity);
+                                    entityManager.merge(documentValidity);
                                 }
-                                if (filePath != null) {
-                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                    File oldFile = new File(absolutePath);
-                                    String oldFileName = oldFile.getName();
-                                    String newFileName = file.getOriginalFilename();
-                                    existingDocument.setIsArchived(false);
-                                    if (!newFileName.equals(oldFileName)) {
-                                        fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
-                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
-                                    }
+
+                            }
+                            if (filePath != null) {
+                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                File oldFile = new File(absolutePath);
+                                String oldFileName = oldFile.getName();
+                                String newFileName = file.getOriginalFilename();
+                                existingDocument.setIsArchived(false);
+                                if (!newFileName.equals(oldFileName)) {
+                                    fileUploadService.deleteFile( customerId,  documentTypeObj.getDocument_type_name(),  existingDocument.getName(),  role);
+                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
                                 }
+                            }
                             entityManager.merge(existingDocument);
+                            documentsToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(document);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
                                     document.setIs_qualification_document(true);
                                     document.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1176,19 +1323,49 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                             }
                         }
                     }
                 }
-                CustomCustomer updatedCustomer = entityManager.find(CustomCustomer.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnCustomerDocuments(updatedCustomer.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get(); // Blocks until the result is available
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+                for (Document document : documentsToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
 
-                // Construct the response with the updated data
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id",qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails); // Include as nested map
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
+                Set<ServiceProviderDocument> serviceProviderDocumentToSave= new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -1264,7 +1441,7 @@ public class CustomerEndpoint {
                                     existingDocument.setFilePath(null);
                                     existingDocument.setServiceProviderEntity(null);
                                     em.persist(existingDocument);
-
+                                    serviceProviderDocumentToSave.add(existingDocument);
                                     deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                                 }
                                 continue;
@@ -1285,7 +1462,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument= documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                             }
 
                             else if (existingDocument13 != null) {
@@ -1298,6 +1476,7 @@ public class CustomerEndpoint {
                                 existingDocument13.setServiceProviderEntity(null);
 
                                 em.merge(existingDocument13);
+                                serviceProviderDocumentToSave.add(existingDocument13);
                                 deletedDocumentMessages.add( documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
 
@@ -1360,16 +1539,20 @@ public class CustomerEndpoint {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                 }
                             }
+                            entityManager.merge(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
@@ -1389,16 +1572,46 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     serviceProviderDocument.setDocumentValidity(documentValidity);
                                     entityManager.merge(serviceProviderDocument);
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                             }
                         }
                     }
 
                 }
-                ServiceProviderEntity updatedServiceProviderEntity = entityManager.find(ServiceProviderEntity.class,customerId);
-                CompletableFuture<List<Map<String, Object>>> futureDocuments = postExecutionService.returnServiceProvider(updatedServiceProviderEntity.getDocuments());
-                List<Map<String, Object>> filteredDocuments = futureDocuments.get();
+                List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
+                for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
+                    if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                        if (document.getFilePath() != null && document.getDocumentType() != null) {
+                            Map<String, Object> documentDetails = new HashMap<>();
+                            documentDetails.put("documentId", document.getDocumentId());
+                            documentDetails.put("name", document.getName());
+                            documentDetails.put("filePath", document.getFilePath());
+
+                            // Add qualification details if applicable
+                            if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                                documentDetails.put("qualification_detail_id", qualificationDetailId);
+                            }
+
+                            // Add document validity details if applicable
+                            if (document.getDocumentValidity() != null) {
+                                Map<String, String> validityDetails = new HashMap<>();
+                                validityDetails.put("dateOfIssue", dateOfIssue);
+                                validityDetails.put("validUpto", validUpto);
+
+                                documentDetails.put("documentValidity", validityDetails);
+                            }
+
+                            // Generate a file URL for the document
+                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            documentDetails.put("fileUrl", fileUrl);
+
+                            documentDetails.put("documentType", document.getDocumentType());
+                            filteredDocuments.add(documentDetails);
+                        }
+                    }
+                }
                 responseData.put("uploadedDocuments", filteredDocuments);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
@@ -1719,11 +1932,11 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             Map<String,Object>responseBody=new HashMap<>();
-           /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
+            /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+            /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Saved",customProductWrapper,HttpStatus.OK);
         }
@@ -1757,9 +1970,9 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
+           /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
             customProductWrapper.wrapDetails(product, null,null,reserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Form Removed",customProductWrapper,HttpStatus.OK);
         }catch (NumberFormatException e) {
@@ -1784,9 +1997,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1814,9 +2027,9 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
                 List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct,null,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
@@ -1844,10 +2057,10 @@ public class CustomerEndpoint {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
+               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
+                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());*/
                 List<Post>postList= customProduct.getPosts();
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+                //List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 customProductWrapper.wrapDetails(customProduct,postList,null,reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }

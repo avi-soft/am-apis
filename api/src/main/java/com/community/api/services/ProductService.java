@@ -141,15 +141,6 @@ public class ProductService {
             StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate, :advertisement");
 
             // Dynamically add columns and values based on non-null fields
-            if (addProductDto.getPostName() != null) {
-                sql.append(", post_name");
-                values.append(", :postName");
-            }
-
-            if(addProductDto.getNotifyingAuthority() != null) {
-                sql.append(", notifying_authority");
-                values.append(", :notifyingAuthority");
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 sql.append(", application_scope_id");
@@ -159,11 +150,6 @@ public class ProductService {
             if (addProductDto.getExamDateFrom() != null) {
                 sql.append(", exam_date_from");
                 values.append(", :examDateFrom");
-            }
-
-            if (addProductDto.getAdvertiserUrl() != null) {
-                sql.append(", advertiser_url");
-                values.append(", :advertiserUrl");
             }
 
             if (addProductDto.getExamDateTo() != null) {
@@ -231,11 +217,6 @@ public class ProductService {
                 values.append(", :formComplexity");
             }
 
-            if (addProductDto.getGenderSpecific() != null) {
-                sql.append(", gender_specific_id");
-                values.append(", :genderSpecificId");
-            }
-
             if (addProductDto.getSector() != null) {
                 sql.append(", sector_id");
                 values.append(", :sectorId");
@@ -246,25 +227,6 @@ public class ProductService {
                 values.append(", :selectionCriteria");
             }
 
-            if (addProductDto.getQualification() != null) {
-                sql.append(", qualification_id");
-                values.append(", :qualificationId");
-            }
-
-            if (addProductDto.getStream() != null) {
-                sql.append(", stream_id");
-                values.append(", :streamId");
-            }
-
-            if (addProductDto.getSubject() != null) {
-                sql.append(", subject_id");
-                values.append(", :subjectId");
-            }
-
-            if (addProductDto.getJobGroup() != null) {
-                sql.append(", job_group_id");
-                values.append(", :jobGroup");
-            }
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 sql.append(", is_review_required");
@@ -284,13 +246,6 @@ public class ProductService {
                     .setParameter("advertisement", addProductDto.getAdvertisement());
 
             // Set parameters conditionally
-            if (addProductDto.getPostName() != null) {
-                query.setParameter("postName", addProductDto.getPostName());
-            }
-
-            if (addProductDto.getNotifyingAuthority() != null) {
-                query.setParameter("notifyingAuthority", addProductDto.getNotifyingAuthority());
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 query.setParameter("applicationScope", addProductDto.getApplicationScope());
@@ -298,14 +253,6 @@ public class ProductService {
 
             if (addProductDto.getExamDateFrom() != null) {
                 query.setParameter("examDateFrom", new Timestamp(addProductDto.getExamDateFrom().getTime()));
-            }
-
-            if (addProductDto.getAdvertiserUrl() != null) {
-                query.setParameter("advertiserUrl", addProductDto.getAdvertiserUrl());
-            }
-
-            if (addProductDto.getJobGroup() != null) {
-                query.setParameter("jobGroup", addProductDto.getJobGroup());
             }
 
             query.setParameter("productState", productState);
@@ -362,10 +309,6 @@ public class ProductService {
                 query.setParameter("formComplexity", addProductDto.getFormComplexity());
             }
 
-            if (addProductDto.getGenderSpecific() != null) {
-                query.setParameter("genderSpecificId", addProductDto.getGenderSpecific());
-            }
-
             if (addProductDto.getSector() != null) {
                 query.setParameter("sectorId", addProductDto.getSector());
             }
@@ -374,17 +317,6 @@ public class ProductService {
                 query.setParameter("selectionCriteria", addProductDto.getSelectionCriteria());
             }
 
-            if (addProductDto.getQualification() != null) {
-                query.setParameter("qualificationId", addProductDto.getQualification());
-            }
-
-            if (addProductDto.getStream() != null) {
-                query.setParameter("streamId", addProductDto.getStream());
-            }
-
-            if (addProductDto.getSubject() != null) {
-                query.setParameter("subjectId", addProductDto.getSubject());
-            }
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
@@ -647,7 +579,8 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+            if (customProduct != null && ((customProduct.getArchived().equals('N'))))
+            {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
                 responses.add(wrapper);
@@ -764,11 +697,6 @@ public class ProductService {
                 addProductDto.setPlatformFee(DEFAULT_PLATFORM_FEE);
             }
 
-            if (addProductDto.getNotifyingAuthority() == null || addProductDto.getNotifyingAuthority().trim().isEmpty()) {
-                throw new IllegalArgumentException("Notifying authority cannot be null");
-            } else {
-                addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-            }
 
             if (addProductDto.getPriorityLevel() != null) {
                 if (addProductDto.getPriorityLevel() <= 0 || addProductDto.getPriorityLevel() > 5) {
@@ -781,7 +709,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -797,12 +724,6 @@ public class ProductService {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
              */
-
-            if (addProductDto.getPostName() == null || addProductDto.getPostName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Post Name cannot be null or empty.");
-            } else {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
 
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
@@ -851,20 +772,6 @@ public class ProductService {
             if (advertisement == null) {
                 throw new NoSuchElementException("Advertisement not found.");
             }
-
-            if (addProductDto.getJobGroup() == null || addProductDto.getJobGroup() <= 0) {
-                throw new IllegalArgumentException("Job group cannot be null or <= 0.");
-            }
-
-            CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-            if (jobGroup == null) {
-                throw new NoSuchElementException("Job group not found.");
-            }
-
-            if (addProductDto.getAdvertiserUrl() == null || addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                throw new IllegalArgumentException("Advertiser url cannot be null or empty.");
-            }
-            addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
 
             if (addProductDto.getApplicationScope() == null || addProductDto.getApplicationScope() <= 0) {
                 throw new IllegalArgumentException("Application scope cannot be null or <= 0.");
@@ -955,10 +862,6 @@ public class ProductService {
             } else {
                 addProductDto.setPlatformFee(DEFAULT_PLATFORM_FEE);
             }
-            if(addProductDto.getNotifyingAuthority()!=null)
-            {
-                addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-            }
 
             if (addProductDto.getPriorityLevel() != null) {
                 if (addProductDto.getPriorityLevel() <= 0 || addProductDto.getPriorityLevel() > 5) {
@@ -971,7 +874,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -986,11 +888,6 @@ public class ProductService {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
             */
-
-            if(addProductDto.getPostName()!=null)
-            {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
@@ -1033,19 +930,6 @@ public class ProductService {
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
-            if (addProductDto.getJobGroup() == null || addProductDto.getJobGroup() <= 0) {
-                throw new IllegalArgumentException("Job group cannot be null or <= 0.");
-            }
-
-            CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-            if (jobGroup == null) {
-                throw new NoSuchElementException("Job group not found.");
-            }
-
-            if (addProductDto.getAdvertiserUrl() == null || addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                throw new IllegalArgumentException("Advertiser url cannot be null or empty.");
-            }
-            addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
 
             if (addProductDto.getApplicationScope() !=null) {
                 CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
@@ -1126,10 +1010,6 @@ public class ProductService {
 
             if (customProduct.getCustomApplicationScope() == null) {
                 throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
-            }
-            if(customProduct.getNotifyingAuthority()==null || customProduct.getNotifyingAuthority().trim().isEmpty())
-            {
-                throw new IllegalArgumentException("Notifying Authority cannot be null to move Product from Draft to NEW state ");
             }
         }
         catch (IllegalArgumentException illegalArgumentException) {
@@ -1321,104 +1201,6 @@ public class ProductService {
 
         return dateMap;
     }
-    public boolean validateAge(AddProductDto addProductDto) throws Exception {
-        try {
-
-            if (addProductDto.getReserveCategoryAge().isEmpty()) {
-                throw new IllegalArgumentException("Reserve category cannot be empty.");
-            }
-            Set<Long> reserveCategoryId = new HashSet<>();
-            Set<Integer>genderCategoryComboSet=new HashSet<>();
-
-            Date currentDate = new Date(); // Current date for comparison
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(currentDate);
-
-            calendar.add(Calendar.YEAR, -105);
-            Date minBornAfterDate = calendar.getTime();
-            calendar.add(Calendar.YEAR, 100);
-            Date maxBornBeforeDate = calendar.getTime();
-
-            for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReserveCategoryAge().size(); reserveCategoryIndex++) {
-                AddProductAgeDTO addProductAgeDTO=addProductDto.getReserveCategoryAge().get(reserveCategoryIndex);
-                if(addProductAgeDTO.getBornBeofreAfter()==null)
-                {
-                    throw new IllegalArgumentException("born_before_after cannot be null");
-                }
-                if(!addProductAgeDTO.getBornBeofreAfter())
-                {
-                    if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
-                        throw new IllegalArgumentException("Both minimum and maximum age re required");
-                    Map<String,Date>dates=calculateDateRange(addProductAgeDTO.getAsOfDate(),addProductAgeDTO.getMinAge(),addProductAgeDTO.getMaxAge());
-                    addProductAgeDTO.setBornBefore(dates.get("bornBeforeDate"));
-                    addProductAgeDTO.setBornAfter(dates.get("bornAfterDate"));
-                }
-                else
-                {
-                    addProductAgeDTO.setAsOfDate(null);
-                    addProductAgeDTO.setMaxAge(0);
-                    addProductAgeDTO.setMinAge(0);
-                }
-                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory() <= 0) {
-                    throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
-                }if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender() <= 0) {
-                    throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
-                }
-                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender());
-                if(gender==null)
-                    throw new NotFoundException("Invalid gender id");
-                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
-                if(category==null)
-                    throw new NotFoundException("Invalid category id");
-                int genderAndCategoryCombo=(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getGender().intValue());
-                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReserveCategoryAge().size()>1)
-                {
-                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender age can be applied.");
-                }
-                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
-                {
-                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
-                }
-                reserveCategoryId.add(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
-
-                CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
-                if (reserveCategory == null) {
-                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getReserveCategory());
-                }/*
-                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() == null) {
-                    addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).setPost(Constant.DEFAULT_QUANTITY);
-                } else if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getPost() <= 0) {
-                    throw new IllegalArgumentException(POSTLESSTHANORZERO);
-                }*/
-
-                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore() == null || addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter() == null) {
-                    throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
-                }
-                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter()));
-                dateFormat.parse(dateFormat.format(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore()));
-
-                if (!addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore().before(new Date()) || !addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(new Date())) {
-                    throw new IllegalArgumentException("Born before date and born after date must be of past.");
-                } else if (!addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore())) {
-                    throw new IllegalArgumentException("Born after date must be past of born before date.");
-                }
-
-                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornAfter().before(minBornAfterDate)) {
-                    throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
-                }
-                if (addProductDto.getReserveCategoryAge().get(reserveCategoryIndex).getBornBefore().after(maxBornBeforeDate)) {
-                    throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
-                }
-            }
-            return true;
-        } catch (NotFoundException | IllegalArgumentException notFoundException) {
-            exceptionHandlingService.handleException(notFoundException);
-            throw new IllegalArgumentException(notFoundException.getMessage());
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
-        }
-    }
     //****************************************
     //FOR FUTURE USE IF NEEDED
     /*public Boolean checkForOpenCategory(CustomReserveCategory openCategory,AddProductDto addProductDto)
@@ -1535,16 +1317,6 @@ public class ProductService {
                 customProduct.getDefaultSku().setDescription(addProductDto.getMetaDescription());
             }
 
-            CustomJobGroup jobGroup;
-            if (addProductDto.getJobGroup() != null) {
-
-                jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-                if (jobGroup == null) {
-                    throw new IllegalArgumentException("NO JOB GROUP EXISTS WITH THIS JOB GROUP ID");
-                }
-                customProduct.setJobGroup(jobGroup);
-            }
-
             if (addProductDto.getPlatformFee() != null) {
                 if (addProductDto.getPlatformFee() <= 0) {
                     throw new IllegalArgumentException("PLATFORM FEE CANNOT BE LESS THAN OR EQUAL TO ZERO");
@@ -1643,54 +1415,9 @@ public class ProductService {
 //                }
 //            }
 
-            if (addProductDto.getAdvertiserUrl() != null) {
-                if (!addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                    addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
-                    customProduct.setAdvertiserUrl(addProductDto.getAdvertiserUrl());
-                } else {
-                    throw new IllegalArgumentException("Adviser Url cannot be empty");
-                }
-            }
-
-            if (addProductDto.getNotifyingAuthority() != null) {
-                if (!addProductDto.getNotifyingAuthority().trim().isEmpty()) {
-                    addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-                    customProduct.setNotifyingAuthority(addProductDto.getNotifyingAuthority());
-                } else {
-                    throw new IllegalArgumentException("Notifying authority cannot be empty");
-                }
-            }
-
-            if (addProductDto.getPostName() != null) {
-                if (!addProductDto.getPostName().trim().isEmpty()) {
-                    addProductDto.setPostName(addProductDto.getPostName().trim());
-                    customProduct.setPostName(addProductDto.getPostName());
-                } else {
-                    throw new IllegalArgumentException("Post name cannot be empty");
-                }
-            }
-
-
             if (addProductDto.getState() != null) {
                 CustomSector customSector = sectorService.getSectorBySectorId(addProductDto.getSector());
                 customProduct.setSector(customSector);
-            }
-
-
-            if (addProductDto.getQualification() != null) {
-                Qualification qualification = qualificationService.getQualificationByQualificationId(addProductDto.getQualification());
-                customProduct.setQualification(qualification);
-            }
-
-
-            if (addProductDto.getStream() != null) {
-                CustomStream customStream = streamService.getStreamByStreamId(addProductDto.getStream());
-                customProduct.setStream(customStream);
-            }
-
-            if (addProductDto.getSubject() != null) {
-                CustomSubject customSubject = subjectService.getSubjectBySubjectId(addProductDto.getSubject());
-                customProduct.setSubject(customSubject);
             }
 
             if (addProductDto.getFormComplexity() != null) {
@@ -2882,7 +2609,10 @@ public class ProductService {
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
         {
-            throw new IllegalArgumentException("No any post can be saved");
+            if(postDtos.size()>1)
+            {
+                throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+            }
         }
 
         for (PostDto postDto : postDtos) {
@@ -2898,9 +2628,6 @@ public class ProductService {
                 } else if (distributionTypes.contains(3)) {
                     validateGenderDistribution(postDto, postDto.getGenderWiseDistribution());
                 }
-            } else {
-                // If no distribution type, only validate basic gender distribution
-                validateBasicGenderDistribution(postDto, postDto.getGenderWiseDistribution());
             }
 
             if(postDto.getPhysicalRequirements()!=null)
@@ -2937,55 +2664,35 @@ public class ProductService {
 
         // Case: No distribution type selected (empty or null list)
         if (vacancyDistributionTypeIds == null || vacancyDistributionTypeIds.isEmpty()) {
-            if (genderDistributionDto == null) {
-                throw new IllegalArgumentException("Gender distribution data must be provided.");
+            if (postDto.getStateDistributions() != null || postDto.getZoneDistributions() != null || postDto.getGenderWiseDistribution() != null) {
+                throw new IllegalArgumentException("No any distribution can be given if vacancy Distribution Type Id is null or empty");
             }
+        }
 
-            boolean isGenderWise = Boolean.TRUE.equals(genderDistributionDto.getIsGenderWise());
-            if (isGenderWise) {
-                if (genderDistributionDto.getMaleVacancy() == null || genderDistributionDto.getFemaleVacancy() == null) {
-                    throw new IllegalArgumentException("Male and Female vacancy counts must be provided when gender-wise distribution is enabled.");
-                }
-
-                // Auto-calculate total vacancy
-                Long calculatedTotalVacancy = genderDistributionDto.getMaleVacancy() + genderDistributionDto.getFemaleVacancy();
-                genderDistributionDto.setTotalVacancy(calculatedTotalVacancy);
-
-                if (!calculatedTotalVacancy.equals(postTotalVacancies)) {
-                    throw new IllegalArgumentException("Total vacancies must equal the total vacancies in the post.");
-                }
-            } else {
-                // Case 2: Gender-wise is false
-                if (genderDistributionDto.getTotalVacancy() == null) {
-                    throw new IllegalArgumentException("Total vacancy must be provided when gender-wise distribution is disabled.");
-                }
-
-                if (!genderDistributionDto.getTotalVacancy().equals(postTotalVacancies)) {
-                    throw new IllegalArgumentException("Total vacancy must equal the total vacancies in the post.");
+        if(vacancyDistributionTypeIds!=null )
+        {
+            if (vacancyDistributionTypeIds.size() > 1) {
+                throw new IllegalArgumentException("Exactly one vacancy distribution type is required.");
+            }
+            if(!vacancyDistributionTypeIds.isEmpty())
+            {
+                int distributionTypeId = vacancyDistributionTypeIds.get(0);
+                switch (distributionTypeId) {
+                    case 1:
+                        validateStatesDistribution(postDto.getStateDistributions(), postTotalVacancies);
+                        break;
+                    case 2:
+                        validateZonesDistribution(postDto.getZoneDistributions(), postTotalVacancies);
+                        break;
+                    case 3:
+                        validateGenderDistribution(postDto, genderDistributionDto);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid vacancy distribution type: " + distributionTypeId);
                 }
             }
-            return; // Exit method as no further validation needed
         }
 
-        // Case: Distribution type is selected
-        if (vacancyDistributionTypeIds.size() != 1) {
-            throw new IllegalArgumentException("Exactly one vacancy distribution type is required.");
-        }
-
-        int distributionTypeId = vacancyDistributionTypeIds.get(0);
-        switch (distributionTypeId) {
-            case 1:
-                validateStatesDistribution(postDto.getStateDistributions(), postTotalVacancies);
-                break;
-            case 2:
-                validateZonesDistribution(postDto.getZoneDistributions(), postTotalVacancies);
-                break;
-            case 3:
-                validateGenderDistribution(postDto, genderDistributionDto);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid vacancy distribution type: " + distributionTypeId);
-        }
     }
 
     private void validateStatesDistribution(List<StateDistributionDto> stateDistributions, Long postTotalVacancies) {
@@ -3298,8 +3005,6 @@ public class ProductService {
                 .filter(category -> category.getCategoryVacancies() != null)  // Ensure no null categoryVacancies
                 .mapToLong(CategoryDistributionDto::getCategoryVacancies)
                 .sum();
-        System.out.println("Category Vacancies Sum: " + categoryVacancySum);
-        System.out.println("Total Vacancies: " + totalVacancy);
 
         if (!categoryVacancySum.equals(totalVacancy)) {
             throw new IllegalArgumentException("Sum of category vacancies must equal the total vacancies.");
@@ -3407,25 +3112,6 @@ public class ProductService {
         }
     }
 
-    public CustomGender validateGenderSpecificField(AddProductDto addProductDto) throws Exception {
-        try {
-            if (addProductDto.getGenderSpecific() != null) {
-                CustomGender customGender = genderService.getGenderByGenderId(addProductDto.getGenderSpecific());
-                if (customGender == null) {
-                    throw new IllegalArgumentException("No gender found with this id.");
-                }
-                return customGender;
-            }
-            return null;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating gender specific id: " + exception.getMessage() + "\n");
-        }
-    }
-
     public CustomSector validateSector(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getSector() != null) {
@@ -3460,66 +3146,6 @@ public class ProductService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception while validating selection criteria: " + exception.getMessage() + "\n");
-        }
-    }
-
-    public Qualification validateQualification(AddProductDto addProductDto) throws Exception {
-        try {
-            if (addProductDto.getQualification() != null) {
-                Qualification qualification = qualificationService.getQualificationByQualificationId(addProductDto.getQualification());
-                if (qualification == null) {
-                    throw new IllegalArgumentException("Qualification not found with this id.");
-                }
-                return qualification;
-
-            } else {
-                throw new IllegalArgumentException("Qualification cannot be null.");
-            }
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating qualification: " + exception.getMessage() + "\n");
-        }
-    }
-
-    public CustomStream validateStream(AddProductDto addProductDto) throws Exception {
-        try {
-            if (addProductDto.getStream() != null) {
-                CustomStream customStream = streamService.getStreamByStreamId(addProductDto.getStream());
-                if (customStream == null) {
-                    throw new IllegalArgumentException("Stream not found with this id.");
-                }
-                return customStream;
-
-            }
-            return null;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating stream: " + exception.getMessage() + "\n");
-        }
-    }
-
-    public CustomSubject validateSubject(AddProductDto addProductDto) throws Exception {
-        try {
-            if (addProductDto.getSubject() != null) {
-                CustomSubject customSubject = subjectService.getSubjectBySubjectId(addProductDto.getSubject());
-                if (customSubject == null) {
-                    throw new IllegalArgumentException("Subject not found with this id.");
-                }
-                return customSubject;
-            }
-            return null;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating subject: " + exception.getMessage() + "\n");
         }
     }
 
