@@ -1,5 +1,6 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.utils.CustomDateDeserializer;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -9,6 +10,7 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Fetch;
@@ -54,7 +56,7 @@ public class QualificationDetails {
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
+    @JsonDeserialize(using = CustomDateDeserializer.class)
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
