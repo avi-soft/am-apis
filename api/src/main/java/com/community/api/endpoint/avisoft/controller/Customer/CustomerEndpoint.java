@@ -1181,6 +1181,7 @@ public class CustomerEndpoint {
                                     entityManager.persist(documentValidity);
                                     document.setDocumentValidity(documentValidity);
                                     entityManager.merge(document);
+                                    documentsToSave.add(document);
                                 }
                             }
                         }
@@ -1407,7 +1408,7 @@ public class CustomerEndpoint {
                                     serviceProviderDocument.setIs_qualification_document(true);
                                     serviceProviderDocument.setQualificationDetails(qualificationDetails);
                                     entityManager.merge(serviceProviderDocument);
-
+                                    serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 }
                                 if(dateOfIssue!=null && documentTypeObj.getIs_issue_date_required().equals(true))
                                 {
