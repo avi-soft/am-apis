@@ -579,7 +579,8 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+            if (customProduct != null && ((customProduct.getArchived().equals('N'))))
+            {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
                 responses.add(wrapper);

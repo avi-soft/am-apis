@@ -1010,17 +1010,17 @@ public class CustomerEndpoint {
 
                         if( qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                         {
-                             existingDocument = em.createQuery(
-                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType " +
-                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
-                                                "AND d.name IS NOT NULL", Document.class)
-                                .setParameter("customCustomer", customCustomer)
-                                .setParameter("documentType", documentTypeObj)
-                                .setParameter("qualificationDetailId", qualificationDetailId)
-                                .getResultStream()
-                                .findFirst()
-                                .orElse(null);
+                            existingDocument = em.createQuery(
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
+                                                    "AND d.name IS NOT NULL", Document.class)
+                                    .setParameter("customCustomer", customCustomer)
+                                    .setParameter("documentType", documentTypeObj)
+                                    .setParameter("qualificationDetailId", qualificationDetailId)
+                                    .getResultStream()
+                                    .findFirst()
+                                    .orElse(null);
                         }
                         else {
                             existingDocument = em.createQuery(
@@ -1071,7 +1071,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document createdDocument= documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(createdDocument);
                             } else if (existingDocument13 != null) {
                                 String filePath = existingDocument13.getFilePath();
                                 if (removeFileTypes != null && removeFileTypes && newFileName!=null ) {
@@ -1155,6 +1156,7 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 Document document=documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                documentsToSave.add(document);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForCustomer(qualificationDetailId,customCustomer);
@@ -1320,7 +1322,8 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument= documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                             }
 
                             else if (existingDocument13 != null) {
@@ -1402,6 +1405,7 @@ public class CustomerEndpoint {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 ServiceProviderDocument serviceProviderDocument=documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 if(qualificationDetailId!=null && documentTypeObj.getIs_qualification_document().equals(true))
                                 {
                                     QualificationDetails qualificationDetails=findQualificationDetailForServiceProvider(qualificationDetailId,serviceProviderEntity);
@@ -1788,7 +1792,7 @@ public class CustomerEndpoint {
             customer.setSavedForms(savedForms);
             entityManager.merge(customer);
             Map<String,Object>responseBody=new HashMap<>();
-           /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
+            /* Map<String,Object>formBody=sharedUtilityService.createProductResponseMap(product,null,customer);*/
             CustomProductWrapper customProductWrapper = new CustomProductWrapper();
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product_id);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product_id);
