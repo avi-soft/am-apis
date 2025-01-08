@@ -98,32 +98,22 @@ public class CustomCustomer extends CustomerImpl {
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
-    @Min(value = 1, message = "Height must be greater than or equal to 1 cm.")
-    @Max(value = 300, message = "Height must be less than or equal to 300 cm.")
     private Integer heightCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "weight_kgs")
-    @Min(value = 1, message = "Weight must be greater than or equal to 1 kg.")
-    @Max(value = 300, message = "Weight must be less than or equal to 300 kg.")
     private Integer weightKgs; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "chest_size_cms")
-    @Min(value = 1, message = "Chest size must be greater than or equal to 1 cm.")
-    @Max(value = 200, message = "Chest size must be less than or equal to 200 cm.")
     private Integer chestSizeCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "shoe_size_inches")
-    @Min(value = 1, message = "Shoe size must be greater than or equal to 1 inch.")
-    @Max(value = 20, message = "Shoe size must be less than or equal to 20 inches.")
     private Integer shoeSizeInches; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "waist_size_cms")
-    @Min(value = 1, message = "Waist size must be greater than or equal to 1 cm.")
-    @Max(value = 200, message = "Waist size must be less than or equal to 200 cm.")
     private Integer waistSizeCms; // Integer type for numeric validation
     @Nullable
     @Column(name = "can_swim")
@@ -180,6 +170,7 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean domicile = false;
 
     @Nullable
+    @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
     @Column(name = "secondary_mobile_number")
     private String secondaryMobileNumber;
 
@@ -333,6 +324,10 @@ public class CustomCustomer extends CustomerImpl {
     @ManyToOne
     @JoinColumn(name = "work_experience_scope_id")
     protected CustomApplicationScope workExperienceScopeId;
+
+    @ManyToOne
+    @JoinColumn(name = "sport_certificate_id")
+    protected CustomApplicationScope sportCertificateId;
 
     @ManyToOne
     @JoinColumn(name = "domicile_state")

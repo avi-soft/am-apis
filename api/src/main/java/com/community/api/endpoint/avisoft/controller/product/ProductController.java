@@ -204,11 +204,6 @@ public class ProductController extends CatalogEndpoint {
             sku.setActiveEndDate(addProductDto.getActiveEndDate());
             sku.setDefaultProduct(product);
 
-            CustomJobGroup customJobGroup = productService.validateCustomJobGroup(addProductDto.getJobGroup());
-            if (customJobGroup == null) {
-                return ResponseService.generateErrorResponse("Custom job group not found.", HttpStatus.NOT_FOUND);
-            }
-
             CustomProductState customProductState=null;
                 if(!saveDraft)
                 {
@@ -240,13 +235,9 @@ public class ProductController extends CatalogEndpoint {
                         productService.validateReserveCategory(addProductDto);
                     }
                 }
-                CustomGender customGender = productService.validateGenderSpecificField(addProductDto);
                 CustomSector customSector = productService.validateSector(addProductDto);
 
                 productService.validateSelectionCriteria(addProductDto);
-                Qualification  qualification  = productService.validateQualification(addProductDto);
-                CustomStream customStream = productService.validateStream(addProductDto);
-                CustomSubject customSubject = productService.validateSubject(addProductDto);
 
                 productService.validateAdmitCardDates(addProductDto);
                 productService.validateModificationDates(addProductDto);
@@ -293,8 +284,6 @@ public class ProductController extends CatalogEndpoint {
                     productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
                 }
             }
-
-            CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
             CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
 
             StateCode stateCode = null;
@@ -318,7 +307,7 @@ public class ProductController extends CatalogEndpoint {
                 if (postList != null && !postList.isEmpty()) {
                     postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItem);
                 }
-                wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,entityManager,postList);
+                wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList);
             }
              if(saveDraft)
             {
@@ -327,9 +316,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,entityManager,postList);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, jobGroup, customProductState, applicationScope, creatorUserId, role, null, stateCode, customGender, customSector, qualification, customStream, customSubject, currentDate, advertisement,genderService,entityManager,postList);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList);
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
@@ -412,13 +401,6 @@ public class ProductController extends CatalogEndpoint {
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
-            if(addProductDto.getGenderSpecific()!=null){
-                if(addProductDto.getGenderSpecific() == 0) {
-                    customProduct.setGenderSpecific(null);
-                }else{
-                    customProduct.setGenderSpecific(genderService.getGenderByGenderId(addProductDto.getGenderSpecific()));
-                }
-            }
 
             List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
             List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
