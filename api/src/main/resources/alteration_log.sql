@@ -47,4 +47,11 @@ BEGIN
     ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
 END
 -- KSHITIJ -8 JAN 2024
+
+-- RAMAN - 9 JAN 2025
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_customer' AND COLUMN_NAME = 'work_experience')
+BEGIN
+    ALTER TABLE custom_customer MODIFY work_experience INTEGER;
+END
+-- RAMAN - 9 JAN 2025
 END $$;

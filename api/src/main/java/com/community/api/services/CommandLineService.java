@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
@@ -32,6 +33,9 @@ public class CommandLineService implements CommandLineRunner {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -41,16 +45,17 @@ public class CommandLineService implements CommandLineRunner {
                     new InputStreamReader(new ClassPathResource(scriptPathForInsertion).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
-        zoneDivisionService.populateZoneDivision();
+            zoneDivisionService.populateZoneDivision();
             System.out.println("ALTERATION START");
-        String scriptPathForAlteration = "alteration_log.sql";
+            String scriptPathForAlteration = "alteration_log.sql";
             sqlScript = new BufferedReader(
                     new InputStreamReader(new ClassPathResource(scriptPathForAlteration).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
+            jdbcTemplate.execute(sqlScript);
             // Execute the SQL script
             System.out.println("ALTERATION END");
-    }catch (Exception exception)
-        {
-            System.out.println(exception.getMessage());
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
         }
-}}
+    }
+}

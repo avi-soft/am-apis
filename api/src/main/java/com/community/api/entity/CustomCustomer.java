@@ -145,7 +145,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "work_experience")
-    private String workExperience; // work experience in months.
+    private Integer workExperience; // work experience in months.
 
     @Nullable
     @Column(name = "category_valid_upto_date")

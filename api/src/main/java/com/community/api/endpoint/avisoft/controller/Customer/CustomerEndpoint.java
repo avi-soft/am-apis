@@ -441,11 +441,11 @@ public class CustomerEndpoint {
             }
             }
             if(details.containsKey("workExperienceScopeId")) {
-                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById((Long) details.get("workExperienceScopeId"));
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong(details.get("workExperienceScopeId").toString()));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
-                    Integer workExperience = (Integer) details.get("workExperience");
-                    customCustomer.setWorkExperience(workExperience.toString());
+                    Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
+                    customCustomer.setWorkExperience(workExperience);
                 }
             } else if(details.containsKey("workExperience")) {
                 errorMessages.add("Give scope of work before adding work experience");
@@ -864,7 +864,7 @@ public class CustomerEndpoint {
             }
 
             if(details.containsKey("workExperienceScopeId")) {
-                Long scopeId = (Long) details.get("workExperienceScopeId");
+                Long scopeId = Long.parseLong(details.get("workExperienceScopeId").toString());
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");
@@ -880,21 +880,21 @@ public class CustomerEndpoint {
             em.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
-        }catch (DataIntegrityViolationException ex) {
-            exceptionHandling.handleException(ex);
-            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (ConstraintViolationException ex) {
-            exceptionHandling.handleException(ex);
-            return ResponseService.generateErrorResponse("Error updating " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch(NoSuchFieldException e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        catch(Exception e){
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error updating " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (NumberFormatException exception) {
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Error updating " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+            exceptionHandling.handleException(dataIntegrityViolationException);
+            return ResponseService.generateErrorResponse("Error updating " + dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (ConstraintViolationException constraintViolationException) {
+            exceptionHandling.handleException(constraintViolationException);
+            return ResponseService.generateErrorResponse("Error updating " + constraintViolationException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch(NoSuchFieldException noSuchFieldException) {
+            exceptionHandling.handleException(noSuchFieldException);
+            return ResponseService.generateErrorResponse("No such field present :" + noSuchFieldException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch(Exception exception){
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Error updating " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     public List<String> validateHidePhoneNumber(Map<String,Object>details,CustomCustomer customer)
