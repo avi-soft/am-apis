@@ -459,9 +459,13 @@ public class CustomerEndpoint {
             if(details.containsKey("domicile")) {
                 Boolean domicile = (Boolean) details.get("domicile");
                 if(domicile) {
-                    StateCode state = districtService.getStateByStateId((Integer) details.get("domicileState"));
-                    customCustomer.setDomicile(true);
-                    customCustomer.setDomicileState(state);
+                    if(details.containsKey("domicileState")) {
+                        StateCode state = districtService.getStateByStateId(Integer.parseInt(details.get("domicileState").toString()));
+                        customCustomer.setDomicile(true);
+                        customCustomer.setDomicileState(state);
+                    }else {
+                      errorMessages.add("cannot leave domicile state as null by opting for the domicile.");
+                    }
                 } else {
                     if((details.containsKey("domicileState"))) {
                         errorMessages.add("cannot give domicile state w/o opting for the domicile.");
@@ -471,8 +475,6 @@ public class CustomerEndpoint {
                 }
             } else if(details.containsKey("domicileState")) {
                 errorMessages.add("cannot give domicile state w/o opting for the domicile.");
-            }else {
-                customCustomer.setDomicile(false);
             }
 
             if(details.containsKey("hidePhoneNumber"))
