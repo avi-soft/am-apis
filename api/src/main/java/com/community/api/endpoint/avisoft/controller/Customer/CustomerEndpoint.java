@@ -670,7 +670,7 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("is_ncc_certificate"))
             {
-                Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
+                Boolean isNccCertificate = Boolean.parseBoolean(String.valueOf((Boolean)  details.get("is_ncc_certificate")));
                 if(isNccCertificate.equals(true))
                 {
                     if(!details.containsKey("ncc_certificate"))
@@ -715,7 +715,7 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("is_nss_certificate"))
             {
-                Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
+                Boolean isNssCertificate = Boolean.parseBoolean(String.valueOf((Boolean)   details.get("is_nss_certificate")));
                 if(isNssCertificate.equals(true))
                 {
                     if(!details.containsKey("nss_certificate"))
