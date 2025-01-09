@@ -169,7 +169,7 @@ public class AdvertisementController {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
 
-                if (advertisement.getArchived() != 'Y') {
+                if (advertisement.getArchived() != 'Y' && advertisement.getNotificationEndDate().after(new Date())) {
                     /*List<CustomProductWrapper> products = new ArrayList<>();
 
                     List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
