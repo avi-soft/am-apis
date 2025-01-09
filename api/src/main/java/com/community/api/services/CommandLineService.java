@@ -47,6 +47,7 @@ public class CommandLineService implements CommandLineRunner {
             sqlScript = new BufferedReader(
                     new InputStreamReader(new ClassPathResource(scriptPathForAlteration).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
+            jdbcTemplate.execute(sqlScript);
             // Execute the SQL script
             System.out.println("ALTERATION END");
         }catch (Exception exception)
