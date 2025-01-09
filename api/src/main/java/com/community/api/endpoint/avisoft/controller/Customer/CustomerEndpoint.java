@@ -634,8 +634,14 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("dob"))
             {
-                if(sharedUtilityService.isFutureDate((String)details.get("dob")))
-                    errorMessages.add("DOB cannot be in future");
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+
+                // Parse the string to a Date object
+                Date dob = dateFormat.parse(details.get("dob").toString());
+                if(!dob.before(new Date())) {
+                    errorMessages.add("DOB must be of past.");
+                }
+                customCustomer.setDob(dob);
             }
             if(details.containsKey("is_ncc_certificate"))
             {

@@ -1,8 +1,10 @@
 package com.community.api.endpoint;
 
+import com.community.api.services.exception.ExceptionHandlingService;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.http.ContentTooLongException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +31,9 @@ import java.util.List;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 
 public class GlobalExceptionHandler {
+
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
 
     public static ResponseEntity<ErrorResponse> generateErrorResponse(String message, HttpStatus status, String trace) {
         ErrorResponse errorResponse = new ErrorResponse();
@@ -115,9 +120,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = {RuntimeException.class})
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-
+        exceptionHandlingService.handleException(ex);
         return generateErrorResponse("Runtime exception : ", HttpStatus.BAD_REQUEST, ex.getMessage());
-
     }
 
     @ExceptionHandler(value = {MissingServletRequestParameterException.class})

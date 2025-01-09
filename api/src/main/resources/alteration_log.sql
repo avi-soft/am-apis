@@ -43,5 +43,13 @@ BEGIN
     IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_customer' AND COLUMN_NAME = 'work_experience') THEN
         ALTER TABLE custom_customer ALTER COLUMN work_experience TYPE INTEGER USING work_experience::INTEGER;
     END IF;
+
+    -- Check if the column exists
+        IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_customer' AND COLUMN_NAME = 'date_of_birth') THEN
+            -- Alter the column data type to TIMESTAMP
+            ALTER TABLE custom_customer
+            ALTER COLUMN date_of_birth
+            TYPE TIMESTAMP
+        END IF;
     -- RAMAN - 9 JAN 2025
 END $$;

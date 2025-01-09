@@ -708,7 +708,7 @@ public class SharedUtilityService {
     }
 
     public boolean isFutureDate(String dateStr) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
             Date inputDate = sdf.parse(dateStr);
