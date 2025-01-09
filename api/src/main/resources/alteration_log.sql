@@ -47,4 +47,13 @@ BEGIN
     ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
 END
 -- KSHTIJ -8 JAN 2024
+
+--SIMRAN -9 JAN 2025
+    IF EXISTS (SELECT 1  FROM INFORMATION_SCHEMA.tables  WHERE table_schema = 'public' AND table_name = 'custom_product') THEN
+        IF EXISTS (SELECT 1  FROM information_schema.columns  WHERE table_schema = 'public' AND table_name = 'custom_product'  AND column_name = 'selection_criteria' ) THEN
+            ALTER TABLE public.custom_product
+            ALTER COLUMN selection_criteria TYPE TEXT;
+        END IF;
+    END IF;
+--SIMRAN -9 JAN 2025
 END $$;
