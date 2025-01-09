@@ -2465,28 +2465,32 @@ public class ProductService {
                 {
                     throw new IllegalArgumentException("Qualification cannot be null");
                 }
-                else if(qualificationEligibilityDto.getQualificationIds().isEmpty())
+                else
+                if(qualificationEligibilityDto.getQualificationIds()!=null)
                 {
-                    throw new IllegalArgumentException("Qualification cannot be empty");
-                }
-                else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
-                    if(qualificationEligibilityDto.getQualificationIds().size()>1)
+                    if(qualificationEligibilityDto.getQualificationIds().isEmpty())
                     {
-                        throw new IllegalArgumentException("Enter only one qualification (Highest)");
+                        throw new IllegalArgumentException("Qualification cannot be empty");
                     }
-                    Set<Integer> qualificationIdSet = new HashSet<>();
-                    List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
-                    for(Integer qualificationId: qualificationIds)
-                    {
-                        Qualification qualification= entityManager.find(Qualification.class,qualificationId);
-                        if(qualification==null)
+                    else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
+                        if(qualificationEligibilityDto.getQualificationIds().size()>1)
                         {
-                            throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                            throw new IllegalArgumentException("Enter only one qualification (Highest)");
                         }
-                        qualificationIdSet.add(qualificationId);
-                    }
-                    if (qualificationIdSet.size() != qualificationIds.size()) {
-                        throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                        Set<Integer> qualificationIdSet = new HashSet<>();
+                        List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                        for(Integer qualificationId: qualificationIds)
+                        {
+                            Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                            if(qualification==null)
+                            {
+                                throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                            }
+                            qualificationIdSet.add(qualificationId);
+                        }
+                        if (qualificationIdSet.size() != qualificationIds.size()) {
+                            throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                        }
                     }
                 }
 
@@ -2512,15 +2516,9 @@ public class ProductService {
                 }
 
                 //Validate Streams
-                if(qualificationEligibilityDto.getCustomStreamIds()==null)
+                if(qualificationEligibilityDto.getCustomStreamIds()!=null)
                 {
-                    throw new IllegalArgumentException("You have to fill atleast one Stream");
-                }
-                else if(qualificationEligibilityDto.getCustomStreamIds().isEmpty())
-                {
-                    throw new IllegalArgumentException("Stream cannot be empty");
-                }
-                else if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
+                    if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
                     Set<Long> streamIdSet = new HashSet<>();
                     List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
                     for(Long streamId: streamIds)
@@ -2535,7 +2533,9 @@ public class ProductService {
                     if (streamIdSet.size() != streamIds.size()) {
                         throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
                     }
+                   }
                 }
+
                 if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
                 {
                     CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
@@ -2636,7 +2636,10 @@ public class ProductService {
             }
             if(postDto.getQualificationEligibilityDto()!=null)
             {
-                validateQualificationRequirement(postDto);
+                if(postDto.getQualificationEligibilityDto().getQualificationIds()!=null )
+                {
+                    validateQualificationRequirement(postDto);
+                }
             }
         }
 
