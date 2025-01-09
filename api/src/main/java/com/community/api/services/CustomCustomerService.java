@@ -31,9 +31,16 @@ public class CustomCustomerService {
 
     public boolean isValidMobileNumber(String mobileNumber) {
 
+        // If the mobile number is empty, return true (valid).
+        if (mobileNumber == null || mobileNumber.isEmpty()) {
+            return true;
+        }
+
+        // Remove leading "0" if present.
         if (mobileNumber.startsWith("0")) {
             mobileNumber = mobileNumber.substring(1);
         }
+
         String mobileNumberPattern = "^\\d{9,13}$";
         return Pattern.compile(mobileNumberPattern).matcher(mobileNumber).matches();
     }

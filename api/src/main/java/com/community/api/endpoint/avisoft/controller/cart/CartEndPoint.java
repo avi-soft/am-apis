@@ -246,13 +246,6 @@ public class CartEndPoint extends BaseEndpoint {
                 //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                 noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L);//1 for general
             }*/
-            if(customProduct.getGenderSpecific()!=null)
-            {
-                if(!customCustomer.getGender().equalsIgnoreCase(customProduct.getGenderSpecific().getGenderName()))
-                {
-                    return ResponseService.generateErrorResponse("Cannot add product to cart: Product not specified for gender "+ customCustomer.getGender(),HttpStatus.BAD_REQUEST);
-                }
-            }
 
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {
@@ -385,7 +378,7 @@ public class CartEndPoint extends BaseEndpoint {
                 archievedItems.clear();
                 return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
             } else
-                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -415,7 +408,7 @@ public class CartEndPoint extends BaseEndpoint {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null || cart.getOrderItems() == null) {
-                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.OK);
             }
             OrderItem orderItemToRemove=null;
             for(OrderItem orderItem:cart.getOrderItems())
