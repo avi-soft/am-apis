@@ -291,28 +291,28 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             List<Post> postList= new ArrayList<>();
-            OtherItem otherItem=null;
+            List<OtherItem> otherItemList=null;
             if (!saveDraft) {
                 if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                   otherItem= productService.validatePostRequirement(addProductDto, roleId,userId);
+                   otherItemList= productService.validatePostRequirement(addProductDto, roleId,userId);
                    postList= postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
-                otherItem= productService.validatePostRequirement(addProductDto, roleId,userId);
+                otherItemList= productService.validatePostRequirement(addProductDto, roleId,userId);
                 postList=postService.savePosts(addProductDto.getPosts(), product);
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             if(!saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItem);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItemList);
                 }
                 wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList);
             }
              if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList,otherItem);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList,otherItemList);
                 }
                 if(reserveCategoryService!=null)
                 {
@@ -325,7 +325,7 @@ public class ProductController extends CatalogEndpoint {
             }
             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
-                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItem);
+                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItemList);
             }
             return response;
 

@@ -6,6 +6,7 @@ import com.community.api.entity.OtherItem;
 import com.community.api.entity.Post;
 
 import org.broadleafcommerce.core.catalog.domain.Product;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -30,34 +31,56 @@ public class PostExecutionService {
     private FileService fileService;
 
     @Transactional
-    @Async("customAsyncExecutor")  // Use custom async executor defined in AsyncConfig
-    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList, OtherItem otherItem) {
+    @Async("customAsyncExecutor")
+    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList, List<OtherItem> otherItemList) {
         try {
-            // Introduce a 1-second delay before execution
-            Thread.sleep(1000);  // 1000 milliseconds = 1 second
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();  // Handle interruption
+            Thread.currentThread().interrupt();
         }
 
-        // Now the business logic will execute after the 1-second delay
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (customProduct == null) {
             throw new IllegalArgumentException("Custom product with id " + product.getId() + " does not exist");
         }
-        if (otherItem != null) {
-            otherItem.setCustomProduct(customProduct);
 
-            List<OtherItem> existingItems = customProduct.getOtherItems();
-
-            existingItems.clear();
-            existingItems.add(otherItem);
-            customProduct.setOtherItems(existingItems);
-
-            entityManager.merge(otherItem);
+        // Clear existing other items
+        if (customProduct.getOtherItems() != null) {
+            customProduct.getOtherItems().clear();
+            entityManager.merge(customProduct);
+            entityManager.flush();
         }
 
-        entityManager.merge(customProduct);
-            entityManager.flush();
+        int otherItemIndex = 0;
+        for (Post post : postList) {
+            if (post.getVacancyDistributionTypes().get(0).getVacancyDistributionTypeId().equals(4)) {
+                if (otherItemIndex < otherItemList.size()) {
+                    OtherItem otherItem = otherItemList.get(otherItemIndex);
+
+                    // Set relationships
+                    otherItem.setCustomProduct(customProduct);
+
+                    // Fetch and update the post
+                    Post managedPost = entityManager.find(Post.class, post.getPostId());
+                    otherItem.setPost(managedPost);
+
+                    // Save the other item
+                    entityManager.merge(otherItem);
+
+                    // Update directly in the database
+                    entityManager.createNativeQuery(
+                                    "UPDATE other_item SET post_id = :postId, product_id = :productId WHERE other_item_id = :itemId")
+                            .setParameter("postId", managedPost.getPostId())
+                            .setParameter("productId", customProduct.getId())
+                            .setParameter("itemId", otherItem.getOther_item_id())
+                            .executeUpdate();
+
+                    otherItemIndex++;
+                }
+            }
+        }
+
+        entityManager.flush();
 
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);

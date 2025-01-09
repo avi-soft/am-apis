@@ -61,6 +61,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -2604,7 +2605,9 @@ public class ProductService {
         }
     }
 
-    public OtherItem validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
+    public List<OtherItem> validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
+        List<OtherItem> otherItemsToSave= new ArrayList<>();
+        OtherItem otherItemToSave=null;
         List<PostDto> postDtos = addProductDto.getPosts();
 
         if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
@@ -2630,9 +2633,10 @@ public class ProductService {
                 }
                   else if(distributionTypes.contains(4))
                 {
-                  return validateOtherVacancyDistribution(postDto,roleId,userId);
+                    otherItemToSave =validateOtherVacancyDistribution(postDto,roleId,userId);
                 }
             }
+            otherItemsToSave.add(otherItemToSave);
 
             if(postDto.getPhysicalRequirements()!=null)
             {
@@ -2643,8 +2647,7 @@ public class ProductService {
                 validateQualificationRequirement(postDto);
             }
         }
-
-        return null;
+        return otherItemsToSave;
     }
     private void validatePostBasics(PostDto postDto) {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
@@ -3119,13 +3122,27 @@ public class ProductService {
 
     public OtherItem validateOtherVacancyDistribution(PostDto postDto, Integer roleId,Long userId)
     {
+        if(postDto.getStateDistributions()!=null && !postDto.getStateDistributions().isEmpty())
+        {
+            throw new IllegalArgumentException("State distribution cannot be given if the vacancy distribution type is OTHERS");
+        }
+
+        if(postDto.getZoneDistributions()!=null && !postDto.getZoneDistributions().isEmpty())
+        {
+            throw new IllegalArgumentException("Zone distribution cannot be given if the vacancy distribution type is OTHERS");
+        }
+
+        if(postDto.getGenderWiseDistribution()!=null && !isDtoEmpty(postDto.getGenderWiseDistribution()))
+        {
+            throw new IllegalArgumentException("Category distribution cannot be given if the vacancy distribution type is OTHERS");
+        }
         if(postDto.getOtherVacancyDistribution()==null)
         {
-            throw new IllegalArgumentException("You have to enter a text field for other vacancy distribution");
+            throw new IllegalArgumentException("You have to enter a text field for other vacancy distribution in post with name "+ postDto.getPostName());
         }
         if(postDto.getOtherVacancyDistribution().trim().isEmpty())
         {
-            throw new IllegalArgumentException("The text field cannot be empty for adding other vacancy distribution");
+            throw new IllegalArgumentException("The text field cannot be empty for adding other vacancy distribution in post with name "+ postDto.getPostName());
         }
         OtherItem otherItem =new OtherItem();
         otherItem.setTyped_text(postDto.getOtherVacancyDistribution());
@@ -3135,6 +3152,18 @@ public class ProductService {
         otherItem.setUser_id(userId);
         entityManager.persist(otherItem);
         return otherItem;
+    }
+
+    private boolean isDtoEmpty(Object dto) {
+        return Arrays.stream(dto.getClass().getDeclaredFields())
+                .peek(field -> field.setAccessible(true))
+                .allMatch(field -> {
+                    try {
+                        return field.get(dto) == null;
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException("Error accessing field value", e);
+                    }
+                });
     }
 
     public CustomSector validateSector(AddProductDto addProductDto) throws Exception {

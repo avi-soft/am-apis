@@ -21,7 +21,9 @@ import javax.persistence.ManyToMany;
 import javax.persistence.JoinTable;
 import javax.persistence.Table;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "post_details")
@@ -83,5 +85,8 @@ public class Post {
     private Long refId;
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL/*,fetch = FetchType.EAGER*/)
     private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<OtherItem> otherItems = new ArrayList<>();
 
 }
