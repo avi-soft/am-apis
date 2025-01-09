@@ -442,6 +442,17 @@ public class PostService {
         } else if (!Boolean.TRUE.equals(stateDto.getIsGenderWise())) {
             stateDistribution.setTotalVacanciesInState(stateDto.getTotalVacanciesInState());
         }
+        if(!stateDto.getIsGenderWise().equals(true) && stateDto.getCategoryDistributions()!=null)
+        {
+            if(stateDto.getCategoryDistributions().isEmpty())
+            {
+                stateDistribution.setTotalVacanciesInState(stateDto.getTotalVacanciesInState());
+            }
+        }
+        else if(!stateDto.getIsGenderWise().equals(true) && stateDto.getCategoryDistributions()==null)
+        {
+            stateDistribution.setTotalVacanciesInState(stateDto.getTotalVacanciesInState());
+        }
     }
 
     private void saveDistrictCategoryDistributions(List<DistrictCategoryDistributionDto> dtos, DistrictDistribution districtDist) {
@@ -550,6 +561,18 @@ public class PostService {
                 zoneDistribution.setTotalVacanciesInZone(totalVacancies);
             }
         } else if (!Boolean.TRUE.equals(zoneDto.getIsGenderWise())) {
+            zoneDistribution.setTotalVacanciesInZone(zoneDto.getTotalVacanciesInZone());
+        }
+
+        if(!zoneDto.getIsGenderWise().equals(true) && zoneDto.getCategoryDistributions()!=null)
+        {
+            if(zoneDto.getCategoryDistributions().isEmpty())
+            {
+                zoneDistribution.setTotalVacanciesInZone(zoneDto.getTotalVacanciesInZone());
+            }
+        }
+        else if(!zoneDto.getIsGenderWise().equals(true) && zoneDto.getCategoryDistributions()==null)
+        {
             zoneDistribution.setTotalVacanciesInZone(zoneDto.getTotalVacanciesInZone());
         }
     }
@@ -689,6 +712,7 @@ public class PostService {
                 entityManager.flush();
             }
 
+
             // Create new category distributions
             List<CategoryDistribution> newDistributions = new ArrayList<>();
             for (CategoryDistributionDto catDto : categoryDtos) {
@@ -707,6 +731,12 @@ public class PostService {
                 newDistributions.add(catDist);
             }
 
+            Long totalCategoryVacancies=0L;
+            for(CategoryDistribution categoryDistribution: newDistributions)
+            {
+                totalCategoryVacancies+=categoryDistribution.getCategoryVacancies();
+            }
+            genderDist.setTotalVacancy(totalCategoryVacancies);
             genderDist.setCategoryDistributions(newDistributions);
         }
 
