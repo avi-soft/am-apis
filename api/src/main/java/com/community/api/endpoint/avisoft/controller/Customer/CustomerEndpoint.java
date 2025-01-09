@@ -1,13 +1,9 @@
-
 package com.community.api.endpoint.avisoft.controller.Customer;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -101,10 +97,8 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
-import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -447,7 +441,7 @@ public class CustomerEndpoint {
             }
             }
             if(details.containsKey("workExperienceScopeId")) {
-                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById( Long.parseLong((String) details.get("workExperienceScopeId")));
+                CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById((Long) details.get("workExperienceScopeId"));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if(details.containsKey("workExperience")) {
                     Integer workExperience = (Integer) details.get("workExperience");
@@ -870,7 +864,7 @@ public class CustomerEndpoint {
             }
 
             if(details.containsKey("workExperienceScopeId")) {
-                Long scopeId = Long.parseLong(( String) details.get("workExperienceScopeId"));
+                Long scopeId = (Long) details.get("workExperienceScopeId");
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if(customApplicationScope == null) {
                     errorMessages.add("No Application scope found with this id");
