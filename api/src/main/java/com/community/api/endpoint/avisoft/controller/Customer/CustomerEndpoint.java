@@ -92,15 +92,7 @@ import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.HashMap;
-import java.util.Date;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
@@ -617,7 +609,33 @@ public class CustomerEndpoint {
                     addAddress(customerId, addressMap);
                 }
             }
-
+            if(details.containsKey("adharNumber"))
+            {
+                String adharNumber = (String) details.get("adharNumber");
+                if(customCustomer.getAdharNumber()!=null)
+                {
+                    if(!customCustomer.getAdharNumber().equals(adharNumber)) {
+                        Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                        query.setParameter("adharNumber", adharNumber);
+                        Integer result = ((Number) query.getSingleResult()).intValue();
+                        if (result > 0) {
+                            errorMessages.add("Aadhar number already in use!!");
+                            details.remove("adharNumber");
+                        }
+                    }
+                }
+                else if(customCustomer.getAdharNumber()==null)
+                {
+                    Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                    query.setParameter("adharNumber", adharNumber);
+                    Integer result = ((Number) query.getSingleResult()).intValue();
+                    System.out.println("result"+result);
+                    if (result > 0) {
+                        errorMessages.add("Aadhar number already in use!!");
+                        details.remove("adharNumber");
+                    }
+                }
+            }
             details.remove("permanentState");
             details.remove("permanentDistrict");
             details.remove("permanentAddress");
@@ -877,9 +895,14 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
-
             if (!errorMessages.isEmpty()) {
-                return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
+                StringBuilder response= new StringBuilder();
+                for(String error:errorMessages)
+                {
+                    response.append(error).append(",");
+                }
+                response = new StringBuilder(response.substring(0, response.length() - 1));
+                return ResponseService.generateErrorResponse(response.toString(), HttpStatus.BAD_REQUEST);
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);

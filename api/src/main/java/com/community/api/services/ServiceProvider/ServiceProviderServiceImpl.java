@@ -530,8 +530,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     field.set(existingServiceProvider, newValue);
                 }
             }
-            if (!errorMessages.isEmpty())
-                return ResponseService.generateErrorResponse(errorMessages.toString(), HttpStatus.BAD_REQUEST);
+            if (!errorMessages.isEmpty()) {
+                StringBuilder response= new StringBuilder();
+                for(String error:errorMessages)
+                {
+                    response.append(error).append(",");
+                }
+                response = new StringBuilder(response.substring(0, response.length() - 1));
+                return ResponseService.generateErrorResponse(response.toString(), HttpStatus.BAD_REQUEST);
+            }
             // Merge the updated entity
             entityManager.merge(existingServiceProvider);
             if (existingServiceProvider.getUser_name() == null && !existingServiceProvider.getSpAddresses().isEmpty()) {
@@ -1175,8 +1182,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 errorList.add(field.getName() + "cannot be empty");
             }
         }
-        if (!isOnlyDigits(addressToupdate.getState()) || !isOnlyDigits(addressToupdate.getDistrict()))
-            errorList.add("Invalid state or district");
+        /*if (!isOnlyDigits(addressToupdate.getState()) || !isOnlyDigits(addressToupdate.getDistrict()))
+            errorList.add("Invalid state or district");*/
         if (!errorList.isEmpty())
             return errorList;
         if (addressToupdate != null) {

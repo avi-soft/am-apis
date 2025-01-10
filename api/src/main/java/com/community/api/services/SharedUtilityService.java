@@ -113,6 +113,8 @@ public class SharedUtilityService {
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
+            if(fee==null)
+                fee=0.0;
         }
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
