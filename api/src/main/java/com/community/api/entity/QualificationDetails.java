@@ -10,6 +10,7 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -50,9 +51,10 @@ public class QualificationDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
 
-    @NotNull(message = "institution id is required")
-    @Column(name = "institution_id", nullable = false)
-    private Long institution_id;
+    @NotNull(message = "Institution is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id", nullable = false)
+    private Institution institution;
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
@@ -133,5 +135,12 @@ public class QualificationDetails {
             inverseJoinColumns = @JoinColumn(name = "other_item_id")
     )
     private List<OtherItem> otherItems = new ArrayList<>();
+
+    @JsonSetter("institution_id")
+    public void setInstitutionById(Long institutionId) {
+        // Temporarily store institutionId (to be processed in the service layer)
+        this.institution = new Institution();
+        this.institution.setInstitution_id(institutionId);
+    }
 
 }
