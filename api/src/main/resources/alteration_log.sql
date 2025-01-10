@@ -29,6 +29,26 @@ BEGIN
         ALTER TABLE custom_product DROP COLUMN subject_id;
     END IF;
 
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'post_name')
+BEGIN
+    ALTER TABLE custom_product DROP COLUMN post_name;
+END
+-- SIMRAN -7 JAN 2024
+-- KSHTIJ -8 JAN 2024
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_service_provider_ticket' AND COLUMN_NAME = 'ticketid')
+BEGIN
+    ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
+END
+-- KSHTIJ -8 JAN 2024
+
+--SIMRAN -9 JAN 2025
+    IF EXISTS (SELECT 1  FROM INFORMATION_SCHEMA.tables  WHERE table_schema = 'public' AND table_name = 'custom_product') THEN
+        IF EXISTS (SELECT 1  FROM information_schema.columns  WHERE table_schema = 'public' AND table_name = 'custom_product'  AND column_name = 'selection_criteria' ) THEN
+            ALTER TABLE public.custom_product
+            ALTER COLUMN selection_criteria TYPE TEXT;
+        END IF;
+    END IF;
+--SIMRAN -9 JAN 2025
     IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'post_name') THEN
         ALTER TABLE custom_product DROP COLUMN post_name;
     END IF;

@@ -680,7 +680,7 @@ public class CustomerEndpoint {
                     customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
                 }
 
-                if(isNccCertificate.equals(false))
+                else if(isNccCertificate.equals(false))
                 {
                     customCustomer.setNcc_certificate(null);
                     List<Document> customerDocuments=customCustomer.getDocuments();
