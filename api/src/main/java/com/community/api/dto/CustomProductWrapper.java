@@ -124,6 +124,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     AdvertisementWrapper advertisement;
     @JsonProperty("posts")
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
+    @JsonProperty("total_vacancies_in_Product")
+    Long totalVacanciesInProduct;
 
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
@@ -296,6 +298,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
         if(feeList!=null) {

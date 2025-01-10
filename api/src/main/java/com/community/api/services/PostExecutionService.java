@@ -84,17 +84,22 @@ public class PostExecutionService {
 
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);
+
         postService.updatePostAgeRequirements(postDto, customProduct, postList);
     }
 
     @Transactional
     public void savePostsWithoutAgeRequirement(CustomProduct customProduct, List<Post> postList) {
+        Long totalPostInProduct=0L;
         for (Post post : postList) {
+            totalPostInProduct+=post.getPostTotalVacancies();
             post.setProduct(customProduct);
             customProduct.getPosts().add(post);
             entityManager.merge(customProduct);
             entityManager.merge(post); // Persist the post before updating the age requirement
         }
+        customProduct.setTotalVacanciesInProduct(totalPostInProduct);
+        entityManager.merge(customProduct);
     }
 
 }
