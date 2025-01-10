@@ -567,8 +567,21 @@ public class CustomerEndpoint {
             String pincode = (String) details.get("currentPincode");
             String addressLine=(String) details.get("currentAddress");
             String city=(String) details.get("currentCity");
-            errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
-            if (state != null && district != null && pincode != null && addressLine!=null &&city!=null) {
+            boolean flag = true;
+            String[] keys = {"currentState", "currentDistrict", "currentPincode", "currentAddress", "currentCity"};
+            int containsCount=0;
+            for (String key : keys) {
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flag = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            }
+            if(flag&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flag&&containsCount== 5) {
                 boolean updated=false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
@@ -605,20 +618,34 @@ public class CustomerEndpoint {
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }else
+            }else if(!flag &&containsCount!=0)
                 errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Current Address");
             details.remove("currentState");
             details.remove("currentDistrict");
             details.remove("currentAddress");
             details.remove("currentPincode");
             details.remove("currentCity");
-            state = (String) details.get("permanentState");
+            Boolean flagP = true;
+            containsCount=0;
+            String[] keysP = {"permanentState", "permanentDistrict", "permanentPincode", "permanentAddress", "permanentCity"};
+            for (String key : keysP) {
+
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flagP = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            } state = (String) details.get("permanentState");
             district = (String) details.get("permanentDistrict");
             pincode = (String) details.get("permanentPincode");
             addressLine=(String) details.get("permanentAddress");
             city=(String) details.get("permanentCity");
-            errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
-            if (state != null && district != null && pincode != null) {
+
+             if(flagP&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flagP&&containsCount== 5) {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
 
@@ -656,7 +683,7 @@ public class CustomerEndpoint {
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }else
+            }else if(!flagP&&containsCount!=0)
                 errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
             if(details.containsKey("adharNumber"))
             {
