@@ -135,4 +135,7 @@ public class CustomProduct extends ProductImpl {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
+    @Column(name = "totalVacanciesInProduct")
+    protected Long totalVacanciesInProduct;
+
 }

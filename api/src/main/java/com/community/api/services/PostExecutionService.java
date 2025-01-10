@@ -28,7 +28,7 @@ public class PostExecutionService {
 
     @Transactional
     @Async("customAsyncExecutor")  // Use custom async executor defined in AsyncConfig
-    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList) {
+    public CustomProduct savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList) {
         try {
             // Introduce a 1-second delay before execution
             Thread.sleep(1000);  // 1000 milliseconds = 1 second
@@ -44,17 +44,23 @@ public class PostExecutionService {
 
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);
+
         postService.updatePostAgeRequirements(postDto, customProduct, postList);
+        return customProduct;
     }
 
     @Transactional
     public void savePostsWithoutAgeRequirement(CustomProduct customProduct, List<Post> postList) {
+        Long totalPostInProduct=0L;
         for (Post post : postList) {
+            totalPostInProduct+=post.getPostTotalVacancies();
             post.setProduct(customProduct);
             customProduct.getPosts().add(post);
             entityManager.merge(customProduct);
             entityManager.merge(post); // Persist the post before updating the age requirement
         }
+        customProduct.setTotalVacanciesInProduct(totalPostInProduct);
+        entityManager.merge(customProduct);
     }
 
 }
