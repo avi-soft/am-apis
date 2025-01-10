@@ -21,7 +21,9 @@ import javax.persistence.ManyToMany;
 import javax.persistence.JoinTable;
 import javax.persistence.Table;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "post_details")
@@ -31,16 +33,19 @@ public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long postId;
+    private Long postId;
 
     @Column(name = "post_name",nullable = false)
-    String postName;
+    private String postName;
 
     @Column(name = "post_total_vacancies",nullable = false)
-    Long postTotalVacancies;
+    private Long postTotalVacancies;
 
     @Column(name = "post_code")
-    String postCode;
+    private String postCode;
+
+    @Column(name = "other_vacancy_distribution", columnDefinition = "text")
+    private String otherVacancyDistribution;
 
     @ManyToMany
     @JoinTable(
@@ -80,5 +85,8 @@ public class Post {
     private Long refId;
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL/*,fetch = FetchType.EAGER*/)
     private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<OtherItem> otherItems = new ArrayList<>();
 
 }
