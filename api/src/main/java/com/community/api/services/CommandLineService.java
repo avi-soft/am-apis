@@ -41,17 +41,17 @@ public class CommandLineService implements CommandLineRunner {
                     new InputStreamReader(new ClassPathResource(scriptPathForInsertion).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
-        zoneDivisionService.populateZoneDivision();
+            zoneDivisionService.populateZoneDivision();
             System.out.println("ALTERATION START");
-        String scriptPathForAlteration = "alteration_log.sql";
+            String scriptPathForAlteration = "alteration_log.sql";
             sqlScript = new BufferedReader(
                     new InputStreamReader(new ClassPathResource(scriptPathForAlteration).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
             // Execute the SQL script
             System.out.println("ALTERATION END");
-    }catch (Exception exception)
+        }catch (Exception exception)
         {
             System.out.println(exception.getMessage());
         }
-}}
+    }}
