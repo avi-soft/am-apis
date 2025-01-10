@@ -295,13 +295,33 @@ public class SharedUtilityService {
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
                 permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
 
         }
         customerDetails.put("currentAddress", currentAddress);
         customerDetails.put("permanentAddress", permanentAddress);
 
+        /*customerDetails.put("current_district_id",
+                districtService.findDistrictByName(currentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(currentAddress.get("district"))
+                        : null);
 
+        customerDetails.put("current_state_id",
+                districtService.getStateByStateName(currentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(currentAddress.get("state"))
+                        : null);
+
+        customerDetails.put("permanent_district_id",
+                districtService.findDistrictByName(permanentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(permanentAddress.get("district"))
+                        : null);
+
+        customerDetails.put("permanent_state_id",
+                districtService.getStateByStateName(permanentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(permanentAddress.get("state"))
+                        : null);*/
 
       /*  customerDetails.put("qualificationDetails",customCustomer.getQualificationDetailsList());
         customerDetails.put("documentList",customCustomer.getDocumentList());

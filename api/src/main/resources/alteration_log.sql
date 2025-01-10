@@ -58,4 +58,16 @@ END
         ALTER TABLE custom_service_provider_ticket DROP COLUMN ticketid;
     END IF;
     -- KSHITIJ - 8 JAN 2025
+    -- KSHITIJ - 10 JAN 2025
+      IF NOT EXISTS (SELECT 1 FROM blc_country WHERE abbreviation = 'ADD-C' AND name = 'Current Address') THEN
+            INSERT INTO blc_country (abbreviation, name)
+            VALUES ('ADD-C', 'Current Address');
+        END IF;
+
+        -- Insert 'ADD-P' and 'Permanent Address' if they don't exist
+        IF NOT EXISTS (SELECT 1 FROM blc_country WHERE abbreviation = 'ADD-P' AND name = 'Permanent Address') THEN
+            INSERT INTO blc_country (abbreviation, name)
+            VALUES ('ADD-P', 'Permanent Address');
+        END IF;
+       -- KSHITIJ - 10 JAN 2025
 END $$;

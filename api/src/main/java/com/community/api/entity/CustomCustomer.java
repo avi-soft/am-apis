@@ -196,6 +196,7 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "district")
     private String district;
 
+
     @Nullable
     @Column(name = "city")
     private String city;
