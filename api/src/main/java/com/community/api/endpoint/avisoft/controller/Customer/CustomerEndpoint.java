@@ -43,14 +43,18 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import org.broadleafcommerce.common.i18n.domain.ISOCountry;
+import org.broadleafcommerce.common.i18n.domain.ISOCountryImpl;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.profile.core.domain.Address;
+import org.broadleafcommerce.profile.core.domain.CountryImpl;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
+import org.broadleafcommerce.profile.core.service.CountryService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,7 +146,8 @@ public class CustomerEndpoint {
     @Autowired
     private  ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
-
+@Autowired
+    CountryService countryService;
 
     @Autowired
     private JwtUtil jwtTokenUtil;
@@ -257,7 +262,6 @@ public class CustomerEndpoint {
             List<String>deleteLogs=new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             List<String> errorMessages = new ArrayList<>();
 
             details=sanitizerService.sanitizeInputMap(details);
@@ -569,6 +573,8 @@ public class CustomerEndpoint {
                         customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
                         customerAddress.getAddress().setPostalCode(pincode);
                         customerAddress.getAddress().setCity((String) details.get("currentCity"));
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
@@ -602,6 +608,8 @@ public class CustomerEndpoint {
                         customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
                         customerAddress.getAddress().setPostalCode(pincode);
                         customerAddress.getAddress().setCity((String) details.get("permanentCity"));
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
@@ -1780,7 +1788,6 @@ public class CustomerEndpoint {
     }
 
 
-
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "add-address", method = RequestMethod.POST)
@@ -1802,7 +1809,14 @@ public class CustomerEndpoint {
                 address.setPostalCode((String) addressDetails.get("pinCode"));
                 newAddress.setAddress(address);
                 newAddress.setCustomer(customer);
-                newAddress.setAddressName((String) addressDetails.get("addressName"));
+                String addressName=(String) addressDetails.get("addressName");
+                newAddress.setAddressName(addressName);
+                CountryImpl country=null;
+                if(addressName.equals("CURRENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                else if(addressName.equals("PERMANENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                newAddress.getAddress().setCountry(country);
                 List<CustomerAddress> addressLists = customer.getCustomerAddresses();
                 addressLists.add(newAddress);
                 customer.setCustomerAddresses(addressLists);
