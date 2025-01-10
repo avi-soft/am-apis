@@ -462,40 +462,9 @@ public class ProductController extends CatalogEndpoint {
             if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
                 CustomProductWrapper wrapper = new CustomProductWrapper();
+                getPosts(customProduct);
                 List<Post> postList= customProduct.getPosts();
-                List<PostProjectionDTO> postProjectionDTOS= new ArrayList<>();
-                for(Post post:postList)
-                {
-                    PostProjectionDTO postProjectionDTO= new PostProjectionDTO();
-                    postProjectionDTO.setPostId(post.getPostId());
-                    postProjectionDTO.setPostName(post.getPostName());
-                    postProjectionDTO.setPostCode(post.getPostCode());
-                    postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
-                    postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
-                    postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
-                    postProjectionDTO.setStateDistributions(post.getStateDistributions());
-                    postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
-                    postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
-                    List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
-                    for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
-                    {
-                        ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
-                        reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
-                        reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
-                        reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
-                        reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
-                        reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
-                        reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
-                        reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
-                        reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
-                        reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
-                        reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
-                    }
-                    postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
-                    postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
-                    postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-                    postProjectionDTOS.add(postProjectionDTO);
-                }
+                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
                 wrapper.wrapDetails(customProduct, postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
 
@@ -778,5 +747,42 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-
+    public static List<PostProjectionDTO> getPosts (CustomProduct customProduct)
+    {
+        List<Post> postList= customProduct.getPosts();
+        List<PostProjectionDTO> postProjectionDTOS= new ArrayList<>();
+        for(Post post:postList)
+        {
+            PostProjectionDTO postProjectionDTO= new PostProjectionDTO();
+            postProjectionDTO.setPostId(post.getPostId());
+            postProjectionDTO.setPostName(post.getPostName());
+            postProjectionDTO.setPostCode(post.getPostCode());
+            postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
+            postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
+            postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
+            postProjectionDTO.setStateDistributions(post.getStateDistributions());
+            postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
+            postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
+            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
+            for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
+            {
+                ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
+                reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
+                reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
+                reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
+                reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
+                reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
+                reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
+                reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
+                reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
+                reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
+            }
+            postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
+            postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+            postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
+            postProjectionDTOS.add(postProjectionDTO);
+        }
+        return postProjectionDTOS;
+    }
 }

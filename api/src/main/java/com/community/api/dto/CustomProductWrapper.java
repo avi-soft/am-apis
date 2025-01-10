@@ -21,6 +21,8 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.common.persistence.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static com.community.api.endpoint.avisoft.controller.product.ProductController.getPosts;
+
 
 @Data
 @NoArgsConstructor
@@ -406,7 +408,15 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifiedDate = customProduct.getModifiedDate();
         this.customSector = customProduct.getSector();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
-
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
+        List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+        if(postProjectionDTOS!=null )
+        {
+            if(!postProjectionDTOS.isEmpty())
+            {
+                this.postDTOList=postProjectionDTOS;
+            }
+        }
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         if(advertisement != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
