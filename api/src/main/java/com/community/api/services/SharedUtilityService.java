@@ -264,7 +264,7 @@ public class SharedUtilityService {
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
         customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
         customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
-        customerDetails.put("is_nss_certificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("is_nss_certificate",customCustomer.getIs_nss_certificate());
         customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
         customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
         customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
