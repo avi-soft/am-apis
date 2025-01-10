@@ -321,6 +321,10 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
         try {
+            Customer customer = customerService.readCustomerById(customerId);
+            Order cart = orderService.findCartForCustomer(customer);
+            if (cart == null)
+                return ResponseService.generateErrorResponse("Cart not activated", HttpStatus.OK);
             double productFee=0.0;
             Double individualFee=0.0;
             List<OrderItem>archievedItems=new ArrayList<>();
@@ -332,16 +336,11 @@ public class CartEndPoint extends BaseEndpoint {
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            Customer customer = customerService.readCustomerById(customerId);
-
             if (customer == null) {
                 return ResponseService.generateErrorResponse("customer does not exist", HttpStatus.NOT_FOUND);
             }
                 CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();;
-            Order cart = orderService.findCartForCustomer(customer);
-            if (cart == null)
-                return ResponseService.generateErrorResponse("Cart not found", HttpStatus.NOT_FOUND);
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
