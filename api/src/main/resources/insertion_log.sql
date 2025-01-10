@@ -607,7 +607,8 @@ END IF;
         VALUES
             (1, 'State Wise Distribution'),
             (2, 'Zone Wise Distribution'),
-            (3, 'Category Wise Distribution');
+            (3, 'Category Wise Distribution'),
+            (4, 'Others');
     END IF;
 
 END $$;

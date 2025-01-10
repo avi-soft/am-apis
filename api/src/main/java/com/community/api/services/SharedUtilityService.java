@@ -112,6 +112,8 @@ public class SharedUtilityService {
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
+            if(fee==null)
+                fee=0.0;
         }
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
@@ -262,7 +264,7 @@ public class SharedUtilityService {
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
         customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
         customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
-        customerDetails.put("is_nss_certificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("is_nss_certificate",customCustomer.getIs_nss_certificate());
         customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
         customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
         customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
@@ -293,13 +295,33 @@ public class SharedUtilityService {
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
                 permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
 
         }
         customerDetails.put("currentAddress", currentAddress);
         customerDetails.put("permanentAddress", permanentAddress);
 
+        /*customerDetails.put("current_district_id",
+                districtService.findDistrictByName(currentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(currentAddress.get("district"))
+                        : null);
 
+        customerDetails.put("current_state_id",
+                districtService.getStateByStateName(currentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(currentAddress.get("state"))
+                        : null);
+
+        customerDetails.put("permanent_district_id",
+                districtService.findDistrictByName(permanentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(permanentAddress.get("district"))
+                        : null);
+
+        customerDetails.put("permanent_state_id",
+                districtService.getStateByStateName(permanentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(permanentAddress.get("state"))
+                        : null);*/
 
       /*  customerDetails.put("qualificationDetails",customCustomer.getQualificationDetailsList());
         customerDetails.put("documentList",customCustomer.getDocumentList());

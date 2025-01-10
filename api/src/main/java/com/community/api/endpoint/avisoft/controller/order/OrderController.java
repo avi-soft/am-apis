@@ -231,6 +231,7 @@ public class OrderController {
             CustomServiceProviderTicket customServiceProviderTicket = null;
             for (BigInteger orderId : orders) {
                 try {
+                    System.out.println("start");
                     Order order = orderService.findOrderById(orderId.longValue());
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                     Customer customer = customerService.readCustomerById(order.getCustomer().getId());
@@ -239,6 +240,7 @@ public class OrderController {
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
                         query.setParameter("orderId", order.getId());
+                        System.out.println("order-id"+order.getId());
                         Integer id =query.getFirstResult(); //@TODO-multiple enteries
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
@@ -248,7 +250,9 @@ public class OrderController {
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
+                    System.out.println("end");
                 } catch (NullPointerException e) {
+                    exceptionHandling.handleException(e);
                     continue;
                 }
             }
