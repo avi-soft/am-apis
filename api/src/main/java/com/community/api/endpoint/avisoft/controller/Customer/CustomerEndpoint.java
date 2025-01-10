@@ -43,6 +43,7 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import org.apache.zookeeper.data.Stat;
 import org.broadleafcommerce.common.i18n.domain.ISOCountry;
 import org.broadleafcommerce.common.i18n.domain.ISOCountryImpl;
 import org.broadleafcommerce.common.persistence.Status;
@@ -564,15 +565,24 @@ public class CustomerEndpoint {
             String state = (String) details.get("currentState");
             String district = (String) details.get("currentDistrict");
             String pincode = (String) details.get("currentPincode");
-            if (state != null && district != null && pincode != null) {
+            String addressLine=(String) details.get("currentAddress");
+            String city=(String) details.get("currentCity");
+            errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (state != null && district != null && pincode != null && addressLine!=null &&city!=null) {
                 boolean updated=false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("currentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("currentCity"));
+                        customerAddress.getAddress().setCity(city);
                         CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
                         customerAddress.getAddress().setCountry(country);
                         updated = true;
@@ -582,14 +592,21 @@ public class CustomerEndpoint {
                 if(!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("currentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("currentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }
+            }else
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Current Address");
             details.remove("currentState");
             details.remove("currentDistrict");
             details.remove("currentAddress");
@@ -598,16 +615,25 @@ public class CustomerEndpoint {
             state = (String) details.get("permanentState");
             district = (String) details.get("permanentDistrict");
             pincode = (String) details.get("permanentPincode");
+            addressLine=(String) details.get("permanentAddress");
+            city=(String) details.get("permanentCity");
+            errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
             if (state != null && district != null && pincode != null) {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
 
                     if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("permanentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("permanentCity"));
+                        customerAddress.getAddress().setCity(city);
                         CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
                         customerAddress.getAddress().setCountry(country);
                         updated = true;
@@ -617,14 +643,21 @@ public class CustomerEndpoint {
                 if (!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("permanentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("permanentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }
+            }else
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
             if(details.containsKey("adharNumber"))
             {
                 String adharNumber = (String) details.get("adharNumber");
