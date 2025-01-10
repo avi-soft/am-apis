@@ -2655,9 +2655,6 @@ public class ProductService {
         if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
             throw new IllegalArgumentException("Invalid Post Total Vacancies");
         }
-        if (postDto.getPostCode() != null && postDto.getPostCode().trim().isEmpty()) {
-            throw new IllegalArgumentException("Invalid Post code");
-        }
     }
 
     private void validateVacancyDistribution(PostDto postDto) {

@@ -111,7 +111,7 @@ public class CustomProduct extends ProductImpl {
     @Max(value = 5, message = "Value must be between 1 and 5")
     protected Long formComplexity;
 
-    @Column(name = "selection_criteria")
+    @Column(name = "selection_criteria", columnDefinition = "text")
     protected String selectionCriteria;
 
     @ManyToOne
