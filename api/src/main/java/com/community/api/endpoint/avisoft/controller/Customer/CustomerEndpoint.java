@@ -87,6 +87,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -634,7 +635,7 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("dob"))
             {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
                 // Parse the string to a Date object
                 Date dob = dateFormat.parse(details.get("dob").toString());
@@ -888,6 +889,9 @@ public class CustomerEndpoint {
             em.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader), HttpStatus.OK);
 
+        } catch(ParseException parseException) {
+          exceptionHandling.handleException(parseException);
+          return ResponseService.generateErrorResponse("Unparsable Exception: "+ parseException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (NumberFormatException exception) {
             exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Error updating " + exception.getMessage(), HttpStatus.BAD_REQUEST);

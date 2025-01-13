@@ -33,6 +33,7 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -207,7 +208,6 @@ public class SharedUtilityService {
         customerDetails.put("domicile", customCustomer.getDomicile());
         customerDetails.put("domicileState", customCustomer.getDomicileState());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-//        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
 
         if(customCustomer.getHeightCms() != null) {
