@@ -21,6 +21,8 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.common.persistence.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static com.community.api.endpoint.avisoft.controller.product.ProductController.getPosts;
+
 
 @Data
 @NoArgsConstructor
@@ -124,6 +126,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     AdvertisementWrapper advertisement;
     @JsonProperty("posts")
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
+    @JsonProperty("total_vacancies_in_Product")
+    Long totalVacanciesInProduct;
 
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
@@ -172,6 +176,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
+                postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
@@ -295,6 +300,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
         if(feeList!=null) {
@@ -402,7 +408,15 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifiedDate = customProduct.getModifiedDate();
         this.customSector = customProduct.getSector();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
-
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
+        List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+        if(postProjectionDTOS!=null )
+        {
+            if(!postProjectionDTOS.isEmpty())
+            {
+                this.postDTOList=postProjectionDTOS;
+            }
+        }
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         if(advertisement != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);

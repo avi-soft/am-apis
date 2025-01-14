@@ -21,6 +21,7 @@ public class PostProjectionDTO {
     private String postName;
     private Long postTotalVacancies;
     private String postCode;
+    private String otherVacancyDistribution;
     private List<VacancyDistributionType> vacancyDistributionTypeIds;
     private List<StateDistribution> stateDistributions;
     private List<ZoneDistribution> zoneDistributions;

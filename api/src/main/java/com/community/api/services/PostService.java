@@ -169,6 +169,7 @@ public class PostService {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
+        post.setOtherVacancyDistribution(postDto.getOtherVacancyDistribution());
         if (postDto.getPostCode() != null) {
             post.setPostCode(postDto.getPostCode());
         }
@@ -218,16 +219,21 @@ public class PostService {
         entityManager.flush(); // Ensure Post is saved and has an ID
         QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
         if (qualificationEligibilityDto!=null) {
+            if(qualificationEligibilityDto.getQualificationIds()!=null)
+            {
                 QualificationEligibility qualificationRequirement = new QualificationEligibility();
                 //set qualifications
                 List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
                 List<Qualification> qualificationsToAdd= new ArrayList<>();
-                for(Integer qualificationId: qualificationIds)
+                if(qualificationIds!=null)
                 {
-                    Qualification qualification= entityManager.find(Qualification.class,qualificationId);
-                    qualificationsToAdd.add(qualification);
+                    for(Integer qualificationId: qualificationIds)
+                    {
+                        Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                        qualificationsToAdd.add(qualification);
+                    }
+                    qualificationRequirement.setQualifications(qualificationsToAdd);
                 }
-                qualificationRequirement.setQualifications(qualificationsToAdd);
 
                 //set subjects
                 List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
@@ -248,13 +254,16 @@ public class PostService {
                 //set streams
                 List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
                 List<CustomStream> streamsToAdd= new ArrayList<>();
-                for(Long streamId: streamIds)
+                if(streamIds!=null)
                 {
-                    CustomStream customStream= entityManager.find(CustomStream.class,streamId);
-                    streamsToAdd.add(customStream);
-                }
-                qualificationRequirement.setCustomStreams(streamsToAdd);
+                    for(Long streamId: streamIds)
+                    {
+                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                        streamsToAdd.add(customStream);
+                    }
+                    qualificationRequirement.setCustomStreams(streamsToAdd);
 
+                }
                 if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
                 {
                     CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
@@ -266,6 +275,8 @@ public class PostService {
                 entityManager.persist(qualificationRequirement);
             }
             entityManager.flush();
+            }
+
 
         List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
         if (!physicalRequirementDtos.isEmpty()) {

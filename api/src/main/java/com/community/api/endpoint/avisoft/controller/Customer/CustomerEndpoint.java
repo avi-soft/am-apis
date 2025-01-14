@@ -1,9 +1,13 @@
+
 package com.community.api.endpoint.avisoft.controller.Customer;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
+import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -87,7 +91,6 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -98,8 +101,10 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
+import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -110,10 +115,6 @@ import static com.community.api.component.Constant.request;
 )
 
 public class CustomerEndpoint {
-    @Autowired
-    private static SharedUtilityService sharedUtilityServiceApi;
-    @Autowired
-    private static ResponseService responseService;
     private PasswordEncoder passwordEncoder;
     private CustomerService customerService;  //@TODO- do this task asap
     private ExceptionHandlingImplement exceptionHandling;
@@ -122,10 +123,16 @@ public class CustomerEndpoint {
     private AddressService addressService;
     private CustomerAddressService customerAddressService;
     private JwtUtil jwtUtil;
+
     @Autowired
     private DocumentStorageService fileUploadService;
+
+    @Autowired
+    private static SharedUtilityService sharedUtilityServiceApi;
+
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
+
     @Autowired
     private ExceptionHandlingService exceptionHandlingService;
     @Autowired
@@ -641,6 +648,7 @@ public class CustomerEndpoint {
                             }
                         }
                     }
+
                 }
                 customCustomer.setIs_ncc_certificate(isNccCertificate);
 
