@@ -103,7 +103,7 @@ public class AdvertisementService {
                 dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             }
 
-            if (addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
+            if (addAdvertisementDto.getNotificationEndDate() != null && addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
                 throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
             }
 
