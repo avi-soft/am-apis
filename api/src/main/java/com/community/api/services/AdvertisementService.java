@@ -97,7 +97,7 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Notification Start Date cannot be of future");
             }
             if(addAdvertisementDto.getNotificationEndDate() == null) {
-                addAdvertisementDto.setNotificationEndDate(addAdvertisementDto.getNotificationStartDate());
+                addAdvertisementDto.setNotificationEndDate(null);
             } else {
                 formattedDate = dateFormat.format(addAdvertisementDto.getNotificationEndDate());
                 dateFormat.parse(formattedDate); // Convert formatted date string back to Date
