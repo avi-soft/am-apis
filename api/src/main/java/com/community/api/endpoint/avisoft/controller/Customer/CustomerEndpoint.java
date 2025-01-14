@@ -613,7 +613,7 @@ public class CustomerEndpoint {
                 if (!dob.before(new Date())) {
                     errorMessages.add("DOB must be of past.");
                 }
-                customCustomer.setDob(dob);
+//                customCustomer.setDob(dob);
             }
             if (details.containsKey("is_ncc_certificate")) {
                 Boolean isNccCertificate = Boolean.parseBoolean((String) details.get("is_ncc_certificate"));
