@@ -4,7 +4,6 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
@@ -17,7 +16,6 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
-import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
@@ -590,7 +588,7 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && ((customProduct.getArchived().equals('N'))))
+            if (customProduct != null && ((customProduct.getArchived().equals('N'))) && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
             {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
@@ -2468,11 +2466,11 @@ public class ProductService {
 
     public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
-            if (postDto.getQualificationEligibilityDto() == null) {
+            if (postDto.getQualificationEligibility() == null) {
                 return true;
             }
             else {
-                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibilityDto();
+                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibility();
 
                 //Validate Qualification ids
                 if(qualificationEligibilityDto.getQualificationIds()==null)
@@ -2657,9 +2655,9 @@ public class ProductService {
             {
                 validatePhysicalRequirement(postDto, null);
             }
-            if(postDto.getQualificationEligibilityDto()!=null)
+            if(postDto.getQualificationEligibility()!=null)
             {
-                if(postDto.getQualificationEligibilityDto().getQualificationIds()!=null )
+                if(postDto.getQualificationEligibility().getQualificationIds()!=null )
                 {
                     validateQualificationRequirement(postDto);
                 }
