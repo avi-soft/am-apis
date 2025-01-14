@@ -81,21 +81,21 @@ END
     -- KSHITIJ - 8 JAN 2025
 
     -- RAMAN - 9 JAN 2025
-    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_customer' AND COLUMN_NAME = 'work_experience') THEN
-        ALTER TABLE custom_customer ALTER COLUMN work_experience TYPE INTEGER USING work_experience::INTEGER;
-    END IF;
-
-    ALTER TABLE custom_customer
-    ALTER COLUMN date_of_birth DROP DEFAULT;
-
-    -- Step 2: Alter the column type to TIMESTAMP
-    ALTER TABLE custom_customer
-    ALTER COLUMN date_of_birth
-    TYPE TIMESTAMP
-    USING CASE
-        WHEN date_of_birth IS NOT NULL THEN TO_TIMESTAMP(date_of_birth::TEXT, 'YYYY-MM-DD')
-        ELSE NULL
-    END;
+--    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_customer' AND COLUMN_NAME = 'work_experience') THEN
+--        ALTER TABLE custom_customer ALTER COLUMN work_experience TYPE INTEGER USING work_experience::INTEGER;
+--    END IF;
+--
+--    ALTER TABLE custom_customer
+--    ALTER COLUMN date_of_birth DROP DEFAULT;
+--
+--    -- Step 2: Alter the column type to TIMESTAMP
+--    ALTER TABLE custom_customer
+--    ALTER COLUMN date_of_birth
+--    TYPE TIMESTAMP
+--    USING CASE
+--        WHEN date_of_birth IS NOT NULL THEN TO_TIMESTAMP(date_of_birth::TEXT, 'YYYY-MM-DD')
+--        ELSE NULL
+--    END;
 
     -- RAMAN - 9 JAN 2025
 END $$;
