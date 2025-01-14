@@ -17,6 +17,8 @@ import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class PostExecutionService {
 
@@ -26,6 +28,9 @@ public class PostExecutionService {
     private ProductReserveCategoryBornBeforeAfterRefService refService;
     @Autowired
     private PostService postService;
+
+    @Autowired
+    private ProductService productService;
 
     @Autowired
     private FileService fileService;
@@ -43,45 +48,10 @@ public class PostExecutionService {
         if (customProduct == null) {
             throw new IllegalArgumentException("Custom product with id " + product.getId() + " does not exist");
         }
-
-        // Clear existing other items
-        if (customProduct.getOtherItems() != null) {
-            customProduct.getOtherItems().clear();
-            entityManager.merge(customProduct);
-            entityManager.flush();
-        }
-
-        int otherItemIndex = 0;
-        for (Post post : postList) {
-            if (post.getVacancyDistributionTypes().get(0).getVacancyDistributionTypeId().equals(4)) {
-                if (otherItemIndex < otherItemList.size()) {
-                    OtherItem otherItem = otherItemList.get(otherItemIndex);
-
-                    // Set relationships
-                    otherItem.setCustomProduct(customProduct);
-
-                    // Fetch and update the post
-                    Post managedPost = entityManager.find(Post.class, post.getPostId());
-                    otherItem.setPost(managedPost);
-
-                    // Save the other item
-                    entityManager.merge(otherItem);
-
-                    // Update directly in the database
-                    entityManager.createNativeQuery(
-                                    "UPDATE other_item SET post_id = :postId, product_id = :productId WHERE other_item_id = :itemId")
-                            .setParameter("postId", managedPost.getPostId())
-                            .setParameter("productId", customProduct.getId())
-                            .setParameter("itemId", otherItem.getOther_item_id())
-                            .executeUpdate();
-
-                    otherItemIndex++;
-                }
-            }
-        }
-
-        entityManager.flush();
-
+        postList = postList.stream()
+                .map(post -> entityManager.contains(post) ? post : entityManager.merge(post))
+                .collect(Collectors.toList());
+        productService.setMappedProductWithPost(customProduct,postList,otherItemList);
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);
 
@@ -101,5 +71,4 @@ public class PostExecutionService {
         customProduct.setTotalVacanciesInProduct(totalPostInProduct);
         entityManager.merge(customProduct);
     }
-
 }

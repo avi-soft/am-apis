@@ -15,8 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
@@ -60,7 +62,6 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         try {
             List<CustomProductReserveCategoryBornBeforeAfterRef>resultList=new ArrayList<>();
             for(AddProductAgeDTO addReserveCategoryDto:addReserveCategoryDtos) {
-                System.out.println("Size after addition "+resultList.size());
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 Date bornAfter = addReserveCategoryDto.getBornAfter();
                 Date bornBefore = addReserveCategoryDto.getBornBefore();
@@ -118,12 +119,25 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
 
     }
 
-    public boolean removeProductReserveCategoryBornBeforeAfterByProductId (CustomProduct customProduct) throws Exception {
+    @Transactional
+    public boolean removeProductReserveCategoryBornBeforeAfterByProductId(CustomProduct customProduct) throws Exception {
         try {
+            // First, clear the associations in the join table
+            String clearJoinTableQuery = "DELETE FROM post_age_requirement pa " +
+                    "WHERE pa.age_requirement_id IN " +
+                    "(SELECT c.product_reserve_category_id FROM custom_product_reserve_category_born_before_after_reference c " +
+                    "WHERE c.product_id = :productId)";
 
-            int rowsAffected = entityManager.createQuery(
-                            "DELETE FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct")
-                    .setParameter("customProduct", customProduct)
+            entityManager.createNativeQuery(clearJoinTableQuery)
+                    .setParameter("productId", customProduct.getId())
+                    .executeUpdate();
+
+            // Then delete the main records
+            String deleteMainQuery = "DELETE FROM custom_product_reserve_category_born_before_after_reference " +
+                    "WHERE product_id = :productId";
+
+            int rowsAffected = entityManager.createNativeQuery(deleteMainQuery)
+                    .setParameter("productId", customProduct.getId())
                     .executeUpdate();
 
             return rowsAffected > 0;
@@ -131,6 +145,18 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
+        }
+    }
+
+    public CustomProductReserveCategoryBornBeforeAfterRef findByPost(Post post) {
+        try {
+            return entityManager.createQuery(
+                            "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.post = :post",
+                            CustomProductReserveCategoryBornBeforeAfterRef.class)
+                    .setParameter("post", post)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
         }
     }
 }
