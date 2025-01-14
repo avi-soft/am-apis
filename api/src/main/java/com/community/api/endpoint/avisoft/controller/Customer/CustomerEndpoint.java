@@ -5,9 +5,6 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -101,10 +98,8 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import static com.community.api.component.Constant.request;
-import static org.apache.hc.core5.util.Deadline.DATE_FORMAT;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -125,14 +120,13 @@ public class CustomerEndpoint {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private DocumentStorageService fileUploadService;
-
+    private ResponseService responseService;
     @Autowired
-    private static SharedUtilityService sharedUtilityServiceApi;
-
+    private DocumentStorageService fileUploadService;
+    @Autowired
+    private SharedUtilityService sharedUtilityServiceApi;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
-
     @Autowired
     private ExceptionHandlingService exceptionHandlingService;
     @Autowired
@@ -157,19 +151,14 @@ public class CustomerEndpoint {
     private DocumentStorageService documentStorageService;
     @Autowired
     private ReserveCategoryService reserveCategoryService;
-
     @Autowired
     private ApplicationScopeService applicationScopeService;
-
     @Autowired
     private SanitizerService sanitizerService;
-
     @Autowired
     private CatalogService catalogService;
-
     @PersistenceContext
     private EntityManager entityManager;
-
     @Autowired
     private PostExecutionService postExecutionService;
     @Autowired
