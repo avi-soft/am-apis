@@ -285,7 +285,7 @@ public class SharedUtilityService {
                 currentAddress.put("city", customerAddress.getAddress().getCity());
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
                 currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
                 currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
@@ -294,7 +294,7 @@ public class SharedUtilityService {
                 permanentAddress.put("city", customerAddress.getAddress().getCity());
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
                 permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
                 permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
