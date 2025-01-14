@@ -9,22 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import com.community.api.component.Constant;
+
 import com.community.api.dto.*;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
-import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.community.api.endpoint.avisoft.controller.product.ProductController.POSTLESSTHANORZERO;
 import static com.community.api.services.ProductService.calculateDateRange;
 
 @Service
@@ -217,7 +211,7 @@ public class PostService {
         }
         entityManager.persist(post);
         entityManager.flush(); // Ensure Post is saved and has an ID
-        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
+        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibility();
         if (qualificationEligibilityDto!=null) {
             if(qualificationEligibilityDto.getQualificationIds()!=null)
             {
