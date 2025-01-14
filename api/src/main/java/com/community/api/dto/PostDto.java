@@ -1,8 +1,6 @@
 package com.community.api.dto;
 
 import com.community.api.entity.AddProductAgeDTO;
-import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
-import com.community.api.entity.ZoneDistribution;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -25,6 +23,6 @@ public class PostDto {
     private GenderDistributionDto genderWiseDistribution;
     @JsonProperty("reserve_category_age")
     List<AddProductAgeDTO>reserveCategoryAge;
-    private QualificationEligibilityDto qualificationEligibilityDto;
+    private QualificationEligibilityDto qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
 }
