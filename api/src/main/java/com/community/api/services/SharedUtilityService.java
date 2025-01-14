@@ -281,6 +281,7 @@ public class SharedUtilityService {
         Map<String, String> permanentAddress = new HashMap<>();
         for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
             if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 currentAddress.put("city", customerAddress.getAddress().getCity());
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
@@ -290,6 +291,7 @@ public class SharedUtilityService {
                 currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 permanentAddress.put("city", customerAddress.getAddress().getCity());
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
