@@ -528,7 +528,7 @@ public class SharedUtilityService {
                     Map<String, Object> qualificationInfo = new HashMap<>();
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution =  qualificationDetail.getInstitution();
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -555,7 +555,7 @@ public class SharedUtilityService {
 
                     // Populate the map
                     qualificationInfo.put("qualification_detail_id", qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
@@ -643,7 +643,7 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution().getInstitution_id());
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -674,7 +674,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
