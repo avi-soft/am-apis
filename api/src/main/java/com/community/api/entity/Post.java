@@ -74,7 +74,7 @@ public class Post {
     private CustomProduct product;
 
     @JsonProperty("reserve_category_age")
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
     @JoinTable(
             name = "post_age_requirement",  // The name of the mapping table
             joinColumns = @JoinColumn(name = "post_id"),  // Foreign key to the Product entity

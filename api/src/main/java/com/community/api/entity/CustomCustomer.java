@@ -28,6 +28,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -57,7 +58,6 @@ public class CustomCustomer extends CustomerImpl {
     @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be a valid 10-character alphanumeric string.")
     private String panNumber;
 
-
     @Nullable
     @Column(name = "father_name")
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
@@ -68,12 +68,11 @@ public class CustomCustomer extends CustomerImpl {
     @Pattern(regexp = "^[a-zA-Z ]+$", message = "Nationality must only contain alphabetic characters.")
     private String nationality;
 
-
     @Nullable
     @Column(name = "date_of_birth")
-//    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
-    private String dob;
-
+    @Temporal(TemporalType.DATE)
+//    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-([12][0-9]{3})$", message = "Date of Birth must be in DD-MM-YYYY format.")
+    private Date dob;
 
     @Nullable
     @Column(name = "gender")
@@ -84,7 +83,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "adhar_number", unique = true)
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhar number must be a valid 12-digit numeric value.")
     private String adharNumber;
-
 
     @Nullable
     @Column(name = "category")
@@ -145,7 +143,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "work_experience")
-    private String workExperience; // work experience in months.
+    private Integer workExperience; // work experience in months.
 
     @Nullable
     @Column(name = "category_valid_upto_date")

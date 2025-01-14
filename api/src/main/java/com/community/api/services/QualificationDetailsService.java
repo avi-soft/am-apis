@@ -81,8 +81,8 @@ public class QualificationDetailsService {
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
             List<Institution> institutions = institutionService.getAllInstitutions();
-            Long institutionToAdd = findInstitutionId(qualificationDetails.getInstitution_id(), institutions);
-            qualificationDetails.setInstitution_id(institutionToAdd);
+            Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
+            qualificationDetails.setInstitution(institutionToAdd);
             List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
             Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
             OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId,sourceName);
@@ -139,8 +139,8 @@ public class QualificationDetailsService {
         Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         qualificationDetails.setQualification_id(qualificationToAdd);
         List<Institution> institutions = institutionService.getAllInstitutions();
-        Long institutionToAdd = findInstitutionId(qualificationDetails.getInstitution_id(), institutions);
-        qualificationDetails.setInstitution_id(institutionToAdd);
+        Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
+        qualificationDetails.setInstitution(institutionToAdd);
         List<BoardUniversity> boardUniversities = boardUniversityService.getAllBoardUniversities();
         Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
         OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId,sourceName);
@@ -409,8 +409,8 @@ public class QualificationDetailsService {
         if(Objects.nonNull(qualification.getInstitution_id()))
         {
             List<Institution> institutions = institutionService.getAllInstitutions();
-            Long institutionToAdd= findInstitutionId(qualification.getInstitution_id(),institutions);
-            qualificationDetailsToUpdate.setInstitution_id(institutionToAdd);
+            Institution institutionToAdd= findInstitutionId(qualification.getInstitution_id(),institutions);
+            qualificationDetailsToUpdate.setInstitution(institutionToAdd);
         }
 
         if (Objects.nonNull(qualification.getExamination_role_number())) {
@@ -724,13 +724,13 @@ public class QualificationDetailsService {
         }
         throw new IllegalArgumentException("Board or University with id "+ boardUniversityId+ " does not exist");
     }
-    public Long findInstitutionId(Long institutionId,List<Institution> institutions)
+    public Institution findInstitutionId(Long institutionId,List<Institution> institutions)
     {
         for(Institution institution : institutions)
         {
             if(institution.getInstitution_id().equals(institutionId))
             {
-                return institution.getInstitution_id();
+                return institution;
             }
         }
         throw new IllegalArgumentException("Institution with id "+ institutionId+ " does not exist");

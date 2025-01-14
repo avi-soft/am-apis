@@ -234,6 +234,11 @@ public class ProductService {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
             }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                sql.append(", is_multiple_post_same_fee");
+                values.append(", :isMultiplePostSameFee");
+            }
 
             // Complete the SQL statement
             sql.append(") ").append(values).append(")");
@@ -322,6 +327,10 @@ public class ProductService {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
             }
 
             // Execute the update
@@ -1012,6 +1021,10 @@ public class ProductService {
             if (customProduct.getCustomApplicationScope() == null) {
                 throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
             }
+            if(customProduct.getPosts()==null || customProduct.getPosts().isEmpty())
+            {
+                throw new IllegalArgumentException("Posts cannot be empty or null to move Product from Draft to NEW state");
+            }
         }
         catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -1023,7 +1036,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList, CustomProductWrapper wrapper) throws Exception {
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, CustomProductWrapper wrapper) throws Exception {
         try{
             validateUpdateFields(customProduct);
             CustomProductState customProductState=null;
@@ -2610,11 +2623,14 @@ public class ProductService {
         OtherItem otherItemToSave=null;
         List<PostDto> postDtos = addProductDto.getPosts();
 
-        if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
+        if(addProductDto.getIsMultiplePostSameFee()!=null)
         {
-            if(postDtos.size()>1)
+            if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
             {
-                throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+                if(postDtos.size()>1)
+                {
+                    throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+                }
             }
         }
 
@@ -2634,10 +2650,9 @@ public class ProductService {
                   else if(distributionTypes.contains(4))
                 {
                     otherItemToSave =validateOtherVacancyDistribution(postDto,roleId,userId);
+                    otherItemsToSave.add(otherItemToSave);
                 }
             }
-            otherItemsToSave.add(otherItemToSave);
-
             if(postDto.getPhysicalRequirements()!=null)
             {
                 validatePhysicalRequirement(postDto, null);
@@ -3230,5 +3245,46 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
+    }
+
+    public void setMappedProductWithPost(CustomProduct customProduct,List<Post> postList,List<OtherItem> otherItemList)
+    {
+        // Clear existing other items
+        if (customProduct.getOtherItems() != null) {
+            customProduct.getOtherItems().clear();
+            entityManager.merge(customProduct);
+            entityManager.flush();
+        }
+
+        int otherItemIndex = 0;
+        for (Post post : postList) {
+            if (post.getVacancyDistributionTypes().get(0).getVacancyDistributionTypeId().equals(4)) {
+                if (otherItemIndex < otherItemList.size()) {
+                    OtherItem otherItem = otherItemList.get(otherItemIndex);
+
+                    // Set relationships
+                    otherItem.setCustomProduct(customProduct);
+
+                    // Fetch and update the post
+                    Post managedPost = entityManager.find(Post.class, post.getPostId());
+                    otherItem.setPost(managedPost);
+
+                    // Save the other item
+                    entityManager.merge(otherItem);
+
+                    // Update directly in the database
+                    entityManager.createNativeQuery(
+                                    "UPDATE other_item SET post_id = :postId, product_id = :productId WHERE other_item_id = :itemId")
+                            .setParameter("postId", managedPost.getPostId())
+                            .setParameter("productId", customProduct.getId())
+                            .setParameter("itemId", otherItem.getOther_item_id())
+                            .executeUpdate();
+
+                    otherItemIndex++;
+                }
+            }
+        }
+
+        entityManager.flush();
     }
 }

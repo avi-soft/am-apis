@@ -169,8 +169,8 @@ public class AdvertisementController {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
 
-                if (advertisement.getArchived() != 'Y') {
-                    List<CustomProductWrapper> products = new ArrayList<>();
+                if (advertisement.getArchived() != 'Y' && advertisement.getNotificationEndDate().after(new Date())) {
+                    /*List<CustomProductWrapper> products = new ArrayList<>();
 
                     List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                     for (CustomProduct customProduct : customProducts) {
@@ -180,9 +180,9 @@ public class AdvertisementController {
                             wrapper.wrapDetails(customProduct);
                             products.add(wrapper);
                         }
-                    }
+                    }*/
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
-                    wrapper.wrapDetails(advertisement, products, null);
+                    wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                 }
             }
