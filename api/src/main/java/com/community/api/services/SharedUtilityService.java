@@ -38,6 +38,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +111,14 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
+        List<Long>preferenceOrder=null;
+        String retrievedPostPreferenceString =(String)orderItem.getOrderItemAttributes().get("postPreference").getValue();
+        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+        }
+        productDetails.put("preference_order",preferenceOrder);
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
