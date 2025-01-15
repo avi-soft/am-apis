@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.CombinedOrderDTO;
@@ -13,14 +14,20 @@ import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.*;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderAttribute;
+import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import javax.xml.transform.Source;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderDTOService {
@@ -43,9 +50,30 @@ public class OrderDTOService {
         Long assigneeId=null;
         if(ticket!=null)
             assigneeId=ticket.getAssignee();
+        List<Long>preferenceOrder=null;
+        OrderAttribute orderAttribute =(OrderAttribute)order.getOrderAttributes().get("sorted");
+        String retrievedPostPreferenceString=orderAttribute.getValue();
+        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+        }
+        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
+        for(Long id :preferenceOrder)
+        {
+            Post post=entityManager.find(Post.class,id);
+            if(post!=null) {
+                PostDetailsDTO detailsDTO=new PostDetailsDTO();
+                detailsDTO.setPostId(post.getPostId());
+                detailsDTO.setPostName(post.getPostName());
+                detailsDTO.setPostCode(post.getPostCode());
+                postPreferenceOrder.add(detailsDTO);
+            }
+        }
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
                 order.getId(),
+                postPreferenceOrder,
                 order.getName(),
                 order.getTotal(),
                 order.getSubmitDate(),
