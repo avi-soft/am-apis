@@ -29,6 +29,9 @@ public class SubjectDetail {
     @Column(name = "subject_total_marks")
     private String subject_total_marks;
 
+    @Column(name = "subject_grade")
+    private String subject_grade;
+
     @Column(name="subject_equivalent_percentage")
     private Double subject_equivalent_percentage;
 

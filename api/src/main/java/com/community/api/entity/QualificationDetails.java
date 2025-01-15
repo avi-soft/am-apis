@@ -83,6 +83,18 @@ public class QualificationDetails {
     @Column(name = "marks_obtained", nullable = false)
     private String marks_obtained;
 
+    @Column(name = "is_grade",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_grade;
+
+    @Column(name = "grade_value")
+    private String grade_value;
+
+    @Column(name = "is_division", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_division;
+
+    @Column(name = "division_value")
+    private String division_value;
+
     @NotNull(message = "Qualification id is required")
     @Column(name = "qualification_id", nullable = false)
     private Integer qualification_id;
