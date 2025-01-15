@@ -568,6 +568,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
                     qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Add qualification_name
                     if (qualification != null) {
@@ -685,6 +689,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
                     qualificationInfo.put("qualification_document",qualificationDetail.getQualificationDocument());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {

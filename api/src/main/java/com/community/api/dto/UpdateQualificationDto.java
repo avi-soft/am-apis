@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 import javax.validation.constraints.Size;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
@@ -48,6 +46,14 @@ public class UpdateQualificationDto
     private Long examination_role_number;
 
     private Long examination_registration_number;
+
+    private Boolean is_grade;
+
+    private String grade_value;
+
+    private Boolean is_division;
+
+    private String division_value;
 
     private String total_marks_type;
     private String subject_marks_type;
