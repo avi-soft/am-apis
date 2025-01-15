@@ -468,8 +468,12 @@ public class ServiceProviderTicketService {
             while (!rankedServiceProvider.isEmpty()) {
                 ServiceProviderEntity serviceProvider = rankedServiceProvider.poll();
 
-                double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
-
+                double bandwidth = 0.0;
+                if(serviceProvider.getMaximumTicketSize() != null){
+                    bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getMaximumTicketSize() * 100;
+                } else {
+                    bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
+                }
                 // if the capacity is reached then continue to next service provider.
                 if (bandwidth >= 100.0) {
                     logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider.getService_provider_id());

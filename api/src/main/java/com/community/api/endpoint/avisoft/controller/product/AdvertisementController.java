@@ -3,7 +3,9 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
+import com.community.api.dto.AdvertisementProductWrapper;
 import com.community.api.dto.AdvertisementWrapper;
+import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomProduct;
@@ -191,7 +193,61 @@ public class AdvertisementController {
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get-all-advertisement-by-categoryId")
+    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false) List<Long> categories){
+
+        try {
+
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, categories);
+
+            if (advertisements.isEmpty()) {
+                return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
+            }
+
+            List<AdvertisementProductWrapper> responses = new ArrayList<>();
+            for (Advertisement advertisement : advertisements) {
+
+                if (advertisement == null) {
+                    return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
+                }
+
+                if ( advertisement.getArchived() != 'Y' && (( advertisement.getNotificationEndDate() == null )|| (advertisement.getNotificationEndDate() != null && advertisement.getNotificationEndDate().after(new Date())))) {
+                    List<CustomAdvertisementProductWrapper> products = new ArrayList<>();
+
+                    List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                    for (CustomProduct customProduct : customProducts) {
+
+                        if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                            CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
+                            wrapper.wrapDetails(customProduct, null);
+                            products.add(wrapper);
+                        }
+                    }
+                    AdvertisementProductWrapper wrapper = new AdvertisementProductWrapper();
+                    wrapper.wrapDetails(advertisement, products, null);
+                    responses.add(wrapper);
+                }
+            }
+
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", responses, HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
