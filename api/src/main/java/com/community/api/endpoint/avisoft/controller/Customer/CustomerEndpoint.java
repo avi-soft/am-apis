@@ -98,6 +98,7 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
+import java.util.TimeZone;
 
 import static com.community.api.component.Constant.request;
 
@@ -165,10 +166,16 @@ public class CustomerEndpoint {
     private SharedUtilityService sharedUtilityService;
 
     public static Date convertStringToDate(String dateStr) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
+
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -678,6 +685,63 @@ public class CustomerEndpoint {
             details.remove("ncc_certificate");
             details.remove("is_nss_certificate");
             details.remove("nss_certificate");
+
+            if (details.containsKey("isOtherOrStateCategory")) {
+                Boolean isOtherCategory = (Boolean) details.get("isOtherOrStateCategory");
+                if (isOtherCategory.equals(true)) {
+                    if (!details.containsKey("otherOrStateCategory")) {
+                        return ResponseService.generateErrorResponse("You have to enter other or State Category", HttpStatus.BAD_REQUEST);
+                    }
+                    if(!details.containsKey("otherCategoryDateOfIssue"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
+                    }
+                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
+                    customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue")));
+                    if(details.containsKey("otherCategoryValidUpto"))
+                    {
+                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto")));
+                    }
+                } else if (isOtherCategory.equals(false)) {
+                    customCustomer.setOtherOrStateCategory(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(30)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                    customCustomer.setOtherCategoryDateOfIssue(null);
+                    customCustomer.setOtherCategoryValidUpto(null);
+                }
+                customCustomer.setIsOtherOrStateCategory(isOtherCategory);
+            }
+            details.remove("isOtherOrStateCategory");
+
+            if (details.containsKey("isMinority")) {
+                Boolean isMinority = (Boolean) details.get("isMinority");
+                if (isMinority.equals(false)) {
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(31)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIsMinority(isMinority);
+            }
+            details.remove("isMinority");
+
 
 //            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
 //                    || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
