@@ -112,7 +112,7 @@ public class SharedUtilityService {
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
         List<Long>preferenceOrder=null;
-        String retrievedPostPreferenceString =(String)orderItem.getOrderItemAttributes().get("postPreference").getValue();
+        String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
         if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
             preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
                     .map(Long::parseLong)

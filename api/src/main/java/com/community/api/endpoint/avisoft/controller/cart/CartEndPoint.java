@@ -21,6 +21,8 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderAttribute;
+import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
@@ -204,7 +206,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
-    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId, @RequestBody List<Long>postPreference) {
+    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId,@RequestBody Map<String,Object>map) {
         try {
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
@@ -230,6 +232,7 @@ public class CartEndPoint extends BaseEndpoint {
                         HttpStatus.BAD_REQUEST
                 );
             }
+            List<Long>postPreference=getLongList(map,"postPreference");
             if(postPreference.isEmpty())
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Order cart = orderService.findCartForCustomer(customer);
@@ -285,12 +288,12 @@ public class CartEndPoint extends BaseEndpoint {
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference", postPreferenceString);
             } else {
-                postPreference = null;
+                postPreference.removeAll(postPreference);
                 postPreference.add(customProduct.getPosts().get(0).getPostId());
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
-                atrtributes.put("postPrefrence",postPreferenceString);
+                atrtributes.put("postPreference",postPreferenceString);
             }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
@@ -563,6 +566,12 @@ public class CartEndPoint extends BaseEndpoint {
                     Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
                     individualOrder.setSubmitDate(date);
                     individualOrder.setSubmitDate(date);
+                    String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    OrderAttributeImpl orderAttribute=new OrderAttributeImpl();
+                    orderAttribute.setOrder(individualOrder);
+                    orderAttribute.setName("postPreference");
+                    orderAttribute.setValue(retrievedPostPreferenceString);
+                    individualOrder.getOrderAttributes().put("sorted",orderAttribute);
                     entityManager.merge(individualOrder);
                     CustomOrderState orderState=new CustomOrderState();
                     orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
@@ -573,7 +582,6 @@ public class CartEndPoint extends BaseEndpoint {
                     entityManager.persist(orderState);
                     customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
                     individualOrders.add(individualOrder);
-            
                 }
             }
                 responseMap.put("Orders", individualOrders);
