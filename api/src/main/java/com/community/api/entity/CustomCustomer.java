@@ -11,8 +11,6 @@ import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 
 import javax.persistence.*;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -257,6 +255,21 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "nss_certificate")
     private String nss_certificate;
+
+    @Column(name = "is_other_or_state_category")
+    private Boolean isOtherOrStateCategory;
+
+    @Column(name = "other_or_state_category", columnDefinition = "text")
+    private String otherOrStateCategory;
+
+    @Column(name = "other_category_date_of_issue")
+    private Date otherCategoryDateOfIssue;
+
+    @Column(name = "other_category_valid_upto")
+    private Date otherCategoryValidUpto;
+
+    @Column(name = "is_minority")
+    private Boolean isMinority;
 
     @Column(name = "is_married")
     private Boolean isMarried = false;
