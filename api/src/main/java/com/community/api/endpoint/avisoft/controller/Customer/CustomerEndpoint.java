@@ -834,6 +834,41 @@ public class CustomerEndpoint {
             }
             details.remove("isMinority");
 
+            if (details.containsKey("sportsCertificate")) {
+                String sportsCertificate = (String) details.get("sportsCertificate");
+                if (!sportsCertificate.equalsIgnoreCase("Sports Certificate Center") && !sportsCertificate.equalsIgnoreCase("Sports Certificate State")) {
+                    return ResponseService.generateErrorResponse("You can add value for sports certificate either Sports Certificate Center or Sports Certificate State", HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setSportsCertificate(sportsCertificate);
+                customCustomer.setIsSportsCertificate(true);
+            }
+            if (details.containsKey("isSportsCertificate")) {
+                Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
+                if (isSportsCertificate.equals(true)) {
+                    if (!details.containsKey("sportsCertificate")) {
+                        return ResponseService.generateErrorResponse("You have to select sports certificate type", HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setSportsCertificate((String) details.get("sportsCertificate"));
+                } else if (isSportsCertificate.equals(false)) {
+                    customCustomer.setSportsCertificate(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(22) || document.getDocumentType().getDocument_type_id().equals(23)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIsSportsCertificate(isSportsCertificate);
+            }
+
+            details.remove("sportsCertificate");
+            details.remove("isSportsCertificate");
+
             if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
                     || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male") && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female")))

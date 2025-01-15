@@ -281,6 +281,8 @@ public class SharedUtilityService {
         customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
         customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
         customerDetails.put("isMinority",customCustomer.getIsMinority());
+        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("sportsCertificate",customCustomer.getSportsCertificate());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
