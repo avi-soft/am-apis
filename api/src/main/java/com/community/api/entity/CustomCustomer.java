@@ -4,6 +4,7 @@ import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,7 +28,6 @@ import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -269,13 +269,13 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "other_or_state_category", columnDefinition = "text")
     private String otherOrStateCategory;
 
-    @Column(name = "other_category_date_of_issue")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
-    private Date otherCategoryDateOfIssue;
+    @Column(name = "other_category_date_of_issue", columnDefinition = "DATE")
+    private java.sql.Date otherCategoryDateOfIssue;
 
-    @Column(name = "other_category_valid_upto")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
-    private Date otherCategoryValidUpto;
+    @Column(name = "other_category_valid_upto", columnDefinition = "DATE")
+    private java.sql.Date  otherCategoryValidUpto;
 
     @Column(name = "is_minority")
     private Boolean isMinority;

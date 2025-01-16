@@ -86,7 +86,9 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -176,7 +178,14 @@ public class CustomerEndpoint {
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
-
+    public static java.sql.Date convertStringToSQLDate(String dateStr, String dateFormatInString) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        dateFormat.setLenient(false);
+        return new java.sql.Date(dateFormat.parse(dateStr).getTime());
+    }
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -791,10 +800,10 @@ public class CustomerEndpoint {
                     }
                     validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
-                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto"),dateFormat));
+                        customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"),dateFormat));
                     }
                 } else if (isOtherCategory.equals(false)) {
                     customCustomer.setOtherOrStateCategory(null);
