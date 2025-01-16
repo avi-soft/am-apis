@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToDate;
@@ -613,7 +615,6 @@ public class QualificationDetailsService {
             }
             if(Objects.nonNull(qualification.getSubject_ids()))
             {
-                createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
                 if(subjectValidationCheck.equals(true))
                 {
                     if(qualification.getSubject_details().size()<5)
@@ -621,6 +622,7 @@ public class QualificationDetailsService {
                         throw new IllegalArgumentException("You have to add at least five subjects");
                     }
                 }
+                createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
             }
             else
             {
@@ -992,8 +994,10 @@ public class QualificationDetailsService {
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
 
-        if (subjectIds == null || subjectIds.isEmpty() || userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
+        if (! subjectIds.isEmpty()) {
+            if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
             throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
+            }
         }
 
         List<SubjectDetail> subjectDetailsList = new ArrayList<>();
