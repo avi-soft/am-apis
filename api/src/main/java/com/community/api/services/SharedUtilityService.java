@@ -38,6 +38,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +111,14 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
+        List<Long>preferenceOrder=null;
+        String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+        }
+        productDetails.put("preference_order",preferenceOrder);
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
@@ -276,6 +285,11 @@ public class SharedUtilityService {
         customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
         customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
+        customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
+        customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
+        customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
+        customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
+        customerDetails.put("isMinority",customCustomer.getIsMinority());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
@@ -568,6 +582,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
                     qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Add qualification_name
                     if (qualification != null) {
@@ -685,6 +703,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
                     qualificationInfo.put("qualification_document",qualificationDetail.getQualificationDocument());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {

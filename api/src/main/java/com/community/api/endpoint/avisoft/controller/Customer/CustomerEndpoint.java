@@ -43,11 +43,9 @@ import io.micrometer.core.lang.Nullable;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
-import org.broadleafcommerce.profile.core.domain.Address;
-import org.broadleafcommerce.profile.core.domain.Customer;
-import org.broadleafcommerce.profile.core.domain.CustomerAddress;
-import org.broadleafcommerce.profile.core.domain.CustomerImpl;
+import org.broadleafcommerce.profile.core.domain.*;
 import org.broadleafcommerce.profile.core.service.AddressService;
+import org.broadleafcommerce.profile.core.service.CountryService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,6 +96,7 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
+import java.util.TimeZone;
 
 import static com.community.api.component.Constant.request;
 
@@ -139,6 +138,9 @@ public class CustomerEndpoint {
     private JwtUtil jwtTokenUtil;
     @Autowired
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
+
+    @Autowired
+    private CountryService countryService;
     @Autowired
     private RoleService roleService;
     @Autowired
@@ -528,51 +530,108 @@ public class CustomerEndpoint {
             details.remove("firstName");
             details.remove("lastName");
             details.remove("emailAddress");
+
             String state = (String) details.get("currentState");
             String district = (String) details.get("currentDistrict");
             String pincode = (String) details.get("currentPincode");
-            if (state != null && district != null && pincode != null) {
-                boolean updated = false;
+            String addressLine=(String) details.get("currentAddress");
+            String city=(String) details.get("currentCity");
+            boolean flag = true;
+            String[] keys = {"currentState", "currentDistrict", "currentPincode", "currentAddress", "currentCity"};
+            int containsCount=0;
+            for (String key : keys) {
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flag = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            }
+            if(flag&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flag&&containsCount== 5) {
+                boolean updated=false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("currentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("currentCity"));
+                        customerAddress.getAddress().setCity(city);
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
                 }
-                if (!updated) {
+                if(!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("currentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("currentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }
+            }else if(!flag &&containsCount!=0)
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Current Address");
             details.remove("currentState");
             details.remove("currentDistrict");
             details.remove("currentAddress");
             details.remove("currentPincode");
             details.remove("currentCity");
-            state = (String) details.get("permanentState");
+            Boolean flagP = true;
+            containsCount=0;
+            String[] keysP = {"permanentState", "permanentDistrict", "permanentPincode", "permanentAddress", "permanentCity"};
+            for (String key : keysP) {
+
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flagP = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            } state = (String) details.get("permanentState");
             district = (String) details.get("permanentDistrict");
             pincode = (String) details.get("permanentPincode");
-            if (state != null && district != null && pincode != null) {
+            addressLine=(String) details.get("permanentAddress");
+            city=(String) details.get("permanentCity");
+
+            if(flagP&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flagP&&containsCount== 5) {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
 
                     if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("permanentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("permanentCity"));
+                        customerAddress.getAddress().setCity(city);
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
@@ -580,12 +639,46 @@ public class CustomerEndpoint {
                 if (!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("permanentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("permanentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
+                }
+            }else if(!flagP&&containsCount!=0)
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
+            if(details.containsKey("adharNumber"))
+            {
+                String adharNumber = (String) details.get("adharNumber");
+                if(customCustomer.getAdharNumber()!=null)
+                {
+                    if(!customCustomer.getAdharNumber().equals(adharNumber)) {
+                        Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                        query.setParameter("adharNumber", adharNumber);
+                        Integer result = ((Number) query.getSingleResult()).intValue();
+                        if (result > 0) {
+                            errorMessages.add("Aadhar number already in use.");
+                            details.remove("adharNumber");
+                        }
+                    }
+                }
+                else if(customCustomer.getAdharNumber()==null)
+                {
+                    Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                    query.setParameter("adharNumber", adharNumber);
+                    Integer result = ((Number) query.getSingleResult()).intValue();
+                    System.out.println("result"+result);
+                    if (result > 0) {
+                        errorMessages.add("Aadhar number already in use!!");
+                        details.remove("adharNumber");
+                    }
                 }
             }
 
@@ -606,17 +699,17 @@ public class CustomerEndpoint {
 
             }
             if (details.containsKey("dob")) {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                //SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
                 // Parse the string to a Date object
-                Date dob = dateFormat.parse(details.get("dob").toString());
-                if (!dob.before(new Date())) {
-                    errorMessages.add("DOB must be of past.");
-                }
-                customCustomer.setDob(dob.toString());
+                String dob = (String)details.get("dob").toString();
+                //if (!dob.before(new Date())) {
+                    //errorMessages.add("DOB must be of past.");
+                //}
+                customCustomer.setDob(dob);
             }
             if (details.containsKey("is_ncc_certificate")) {
-                Boolean isNccCertificate = Boolean.parseBoolean((String) details.get("is_ncc_certificate"));
+                Boolean isNccCertificate = (Boolean) details.get("is_ncc_certificate");
                 if (isNccCertificate.equals(true)) {
                     if (!details.containsKey("ncc_certificate")) {
                         return ResponseService.generateErrorResponse("You have to select ncc certificate type", HttpStatus.BAD_REQUEST);
@@ -651,7 +744,7 @@ public class CustomerEndpoint {
                 customCustomer.setIs_nss_certificate(true);
             }
             if (details.containsKey("is_nss_certificate")) {
-                Boolean isNssCertificate = Boolean.parseBoolean((String) details.get("is_nss_certificate"));
+                Boolean isNssCertificate = (Boolean) details.get("is_nss_certificate");
                 if (isNssCertificate.equals(true)) {
                     if (!details.containsKey("nss_certificate")) {
                         return ResponseService.generateErrorResponse("You have to select nss certificate type", HttpStatus.BAD_REQUEST);
@@ -679,36 +772,92 @@ public class CustomerEndpoint {
             details.remove("is_nss_certificate");
             details.remove("nss_certificate");
 
-//            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
-//                    || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
-//                    || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male") && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female")))
-//                    && details.containsKey("chestSizeCms")) {
-//                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
-//            }
-//
-//            if (customCustomer.getGender() == null && details.containsKey("chestSizeCms"))
-//                return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender", HttpStatus.BAD_REQUEST);
-//
-//            if (details.containsKey("chestSizeCms")) {
-//                if (customCustomer.getGender().equals("Female")) {
-//                    return ResponseService.generateErrorResponse("Cannot add chest size with female", HttpStatus.BAD_REQUEST);
-//                } else {
-//                    String chestSizeCms = (String) details.get("chestSizeCms");
-//                    if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
-//                        try {
-//                            int waistSizeValue = Integer.parseInt(chestSizeCms);
-//                            if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
-//                                errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-//                            } else {
-//                                customCustomer.setWaistSizeCms(waistSizeValue);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Chest size must be a valid integer.");
-//                        }
-//                    }
-//                    customCustomer.setChestSizeCms(Integer.parseInt(chestSizeCms));
-//                }
-//            }
+            if (details.containsKey("isOtherOrStateCategory")) {
+                Boolean isOtherCategory = (Boolean) details.get("isOtherOrStateCategory");
+                if (isOtherCategory.equals(true)) {
+                    if (!details.containsKey("otherOrStateCategory")) {
+                        return ResponseService.generateErrorResponse("You have to enter other or State Category", HttpStatus.BAD_REQUEST);
+                    }
+                    if(!details.containsKey("otherCategoryDateOfIssue"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
+                    }
+                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
+                    customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue")));
+                    if(details.containsKey("otherCategoryValidUpto"))
+                    {
+                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto")));
+                    }
+                } else if (isOtherCategory.equals(false)) {
+                    customCustomer.setOtherOrStateCategory(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(30)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                    customCustomer.setOtherCategoryDateOfIssue(null);
+                    customCustomer.setOtherCategoryValidUpto(null);
+                }
+                customCustomer.setIsOtherOrStateCategory(isOtherCategory);
+            }
+            details.remove("isOtherOrStateCategory");
+
+            if (details.containsKey("isMinority")) {
+                Boolean isMinority = (Boolean) details.get("isMinority");
+                if (isMinority.equals(false)) {
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(31)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIsMinority(isMinority);
+            }
+            details.remove("isMinority");
+
+            if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
+                    || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
+                    || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male") && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female")))
+                    && details.containsKey("chestSizeCms")) {
+                return ResponseService.generateErrorResponse("Cannot add chest size for gender : Female", HttpStatus.BAD_REQUEST);
+            }
+
+            if (customCustomer.getGender() == null && details.containsKey("chestSizeCms"))
+                return ResponseService.generateErrorResponse("Cannot add chest size without specifying gender", HttpStatus.BAD_REQUEST);
+
+            if (details.containsKey("chestSizeCms")) {
+                if (customCustomer.getGender().equals("Female")) {
+                    return ResponseService.generateErrorResponse("Cannot add chest size with female", HttpStatus.BAD_REQUEST);
+                } else {
+                    String chestSizeCms = (String) details.get("chestSizeCms");
+                    if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
+                        try {
+                            int waistSizeValue = Integer.parseInt(chestSizeCms);
+                            if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
+                                errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            } else {
+                                customCustomer.setWaistSizeCms(waistSizeValue);
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Chest size must be a valid integer.");
+                        }
+                    }
+                    customCustomer.setChestSizeCms(Integer.parseInt(chestSizeCms));
+                }
+            }
 
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
@@ -2073,11 +2222,18 @@ public class CustomerEndpoint {
                 address.setPostalCode((String) addressDetails.get("pinCode"));
                 newAddress.setAddress(address);
                 newAddress.setCustomer(customer);
-                newAddress.setAddressName((String) addressDetails.get("addressName"));
+                String addressName=(String) addressDetails.get("addressName");
+                newAddress.setAddressName(addressName);
+                CountryImpl country=null;
+                if(addressName.equals("CURRENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                else if(addressName.equals("PERMANENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                newAddress.getAddress().setCountry(country);
                 List<CustomerAddress> addressLists = customer.getCustomerAddresses();
                 addressLists.add(newAddress);
                 customer.setCustomerAddresses(addressLists);
-                if (!addressDetails.containsKey("inFunctionCall"))
+                if(!addressDetails.containsKey("inFunctionCall"))
                     em.merge(customer);
                 addressDetails.remove("inFunctionCall");
                 //using reflections
