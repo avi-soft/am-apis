@@ -48,6 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
@@ -659,30 +660,37 @@ public class CartEndPoint extends BaseEndpoint {
     @Transactional
     @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
     public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
-        List<Long>postPreference=getLongList(map,"postPreference");
-        CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
-        if(customProduct==null)
-            return ResponseService.generateErrorResponse("Invalid product id provided",HttpStatus.NOT_FOUND);
-        for(Post post:customProduct.getPosts())
+        try {
+            List<Long> postPreference = getLongList(map, "postPreference");
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            if (customProduct == null)
+                return ResponseService.generateErrorResponse("Invalid product id provided", HttpStatus.NOT_FOUND);
+            for (Post post : customProduct.getPosts()) {
+                if (!postPreference.contains(post.getPostId()))
+                    return ResponseService.generateErrorResponse("Invalid post id in preference list", HttpStatus.BAD_REQUEST);
+            }
+            if (postPreference.size() < customProduct.getPosts().size())
+                return ResponseService.generateErrorResponse("Need to provide all post preference ids", HttpStatus.BAD_REQUEST);
+            if (postPreference.size() > customProduct.getPosts().size())
+                return ResponseService.generateErrorResponse("Post ids provided do not belong to product", HttpStatus.BAD_REQUEST);
+            String postPreferenceString = postPreference.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            String sql = "UPDATE blc_order_item_attribute " +
+                    "SET value = ? " +
+                    "WHERE order_item_id = ? " +
+                    "AND name = 'postPreference' " +
+                    "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
+            int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
+            if (rowsUpdated >= 0) {
+                return retrieveCartItems(customerId, true);
+            }
+        }catch (PersistenceException persistenceException)
         {
-            if(!postPreference.contains(post.getPostId()))
-                return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
-        }
-        if(postPreference.size()<customProduct.getPosts().size())
-            return ResponseService.generateErrorResponse("Need to provide all post preference ids",HttpStatus.BAD_REQUEST);
-        if(postPreference.size()>customProduct.getPosts().size())
-            return ResponseService.generateErrorResponse("Post ids provided do not belong to product",HttpStatus.BAD_REQUEST);
-        String postPreferenceString = postPreference.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-        String sql = "UPDATE blc_order_item_attribute " +
-                "SET value = ? " +
-                "WHERE order_item_id = ? " +
-                "AND name = 'postPreference' " +
-                "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
-        int rowsUpdated=jdbcTemplate.update(sql, postPreferenceString,orderItemId, orderItemId);
-        if(rowsUpdated>=0) {
-            return retrieveCartItems(customerId,true);
+            exceptionHandling.handleException(persistenceException);
+        } catch(Exception exception)
+        {
+            exceptionHandling.handleException(exception);
         }
         return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
 }
