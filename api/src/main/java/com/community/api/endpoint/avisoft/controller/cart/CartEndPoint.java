@@ -37,10 +37,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -87,6 +90,8 @@ public class CartEndPoint extends BaseEndpoint {
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
     @Autowired
     public void setGenderService(GenderService genderService) {
         this.genderService = genderService;
@@ -275,14 +280,12 @@ public class CartEndPoint extends BaseEndpoint {
                 for(Post post:customProduct.getPosts())
                 {
                     if(!postPreference.contains(post.getPostId()))
-                    {
-                        return ResponseService.generateErrorResponse("Invalid post id in post preference list",HttpStatus.BAD_REQUEST);
-                    }
-                    if(postPreference.size()!=customProduct.getPosts().size())
-                    {
-                        return ResponseService.generateErrorResponse("Need to provide prefernce for all posts present in form",HttpStatus.BAD_REQUEST);
-                    }
+                        return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
                 }
+                if(postPreference.size()<customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Need to provide all post preference ids",HttpStatus.BAD_REQUEST);
+                if(postPreference.size()>customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Post ids provided do not belong to product",HttpStatus.BAD_REQUEST);
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
@@ -352,7 +355,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
+    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall",required = false,defaultValue = "false")boolean inFunctionCall) {
         try {
             Customer customer = customerService.readCustomerById(customerId);
             Order cart = orderService.findCartForCustomer(customer);
@@ -410,7 +413,10 @@ public class CartEndPoint extends BaseEndpoint {
                     cart.getOrderItems().remove(orderItem);
                 }
                 archievedItems.clear();
-                return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                if(!inFunctionCall)
+                    return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                else
+                    return ResponseService.generateSuccessResponse("Cart items after modifying post preference", response, HttpStatus.OK);
             } else
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
@@ -650,7 +656,36 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error fetching recovery log", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Transactional
+    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
+    public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
+        List<Long>postPreference=getLongList(map,"postPreference");
+        CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
+        if(customProduct==null)
+            return ResponseService.generateErrorResponse("Invalid product id provided",HttpStatus.NOT_FOUND);
+        for(Post post:customProduct.getPosts())
+        {
+            if(!postPreference.contains(post.getPostId()))
+                return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+        }
+        if(postPreference.size()<customProduct.getPosts().size())
+            return ResponseService.generateErrorResponse("Need to provide all post preference ids",HttpStatus.BAD_REQUEST);
+        if(postPreference.size()>customProduct.getPosts().size())
+            return ResponseService.generateErrorResponse("Post ids provided do not belong to product",HttpStatus.BAD_REQUEST);
+        String postPreferenceString = postPreference.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+        String sql = "UPDATE blc_order_item_attribute " +
+                "SET value = ? " +
+                "WHERE order_item_id = ? " +
+                "AND name = 'postPreference' " +
+                "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
+        int rowsUpdated=jdbcTemplate.update(sql, postPreferenceString,orderItemId, orderItemId);
+        if(rowsUpdated>=0) {
+            return retrieveCartItems(customerId,true);
+        }
+        return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
+}
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;
     }
