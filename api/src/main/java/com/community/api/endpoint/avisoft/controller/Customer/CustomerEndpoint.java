@@ -166,8 +166,13 @@ public class CustomerEndpoint {
     @Autowired
     private SharedUtilityService sharedUtilityService;
 
-    public static Date convertStringToDate(String dateStr) throws ParseException {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public static Date convertStringToDate(String dateStr, String dateFormatInString) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
@@ -688,6 +693,7 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
+            String dateFormat= "dd-MM-yyyy";
             if (details.containsKey("ncc_certificate")) {
                 String nccCertificateValue = (String) details.get("ncc_certificate");
 
@@ -782,12 +788,12 @@ public class CustomerEndpoint {
                     {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
+                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue")));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
-                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto")));
+                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto"),dateFormat));
                     }
                 } else if (isOtherCategory.equals(false)) {
                     customCustomer.setOtherOrStateCategory(null);
@@ -827,6 +833,41 @@ public class CustomerEndpoint {
                 customCustomer.setIsMinority(isMinority);
             }
             details.remove("isMinority");
+
+            if (details.containsKey("sportsCertificate")) {
+                String sportsCertificate = (String) details.get("sportsCertificate");
+                if (!sportsCertificate.equalsIgnoreCase("Sports Certificate Center") && !sportsCertificate.equalsIgnoreCase("Sports Certificate State")) {
+                    return ResponseService.generateErrorResponse("You can add value for sports certificate either Sports Certificate Center or Sports Certificate State", HttpStatus.BAD_REQUEST);
+                }
+                customCustomer.setSportsCertificate(sportsCertificate);
+                customCustomer.setIsSportsCertificate(true);
+            }
+            if (details.containsKey("isSportsCertificate")) {
+                Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
+                if (isSportsCertificate.equals(true)) {
+                    if (!details.containsKey("sportsCertificate")) {
+                        return ResponseService.generateErrorResponse("You have to select sports certificate type", HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setSportsCertificate((String) details.get("sportsCertificate"));
+                } else if (isSportsCertificate.equals(false)) {
+                    customCustomer.setSportsCertificate(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(22) || document.getDocumentType().getDocument_type_id().equals(23)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIsSportsCertificate(isSportsCertificate);
+            }
+
+            details.remove("sportsCertificate");
+            details.remove("isSportsCertificate");
 
             if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
@@ -1478,6 +1519,7 @@ public class CustomerEndpoint {
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String dateFormat= "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
@@ -1726,14 +1768,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1741,15 +1783,15 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
 
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1784,14 +1826,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setDocument(document);
                                     entityManager.persist(documentValidity);
@@ -1961,14 +2003,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1976,14 +2018,14 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -2020,14 +2062,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
+                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
                                     }
                                     documentValidity.setServiceProviderDocument(serviceProviderDocument);
                                     entityManager.persist(documentValidity);
@@ -2631,14 +2673,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr) throws Exception {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr,String dateFormatInString) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in yyyy-MM-dd format");
+                throw new IllegalArgumentException("Date of Issue must be in "+dateFormatInString +" format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2646,7 +2688,7 @@ public class CustomerEndpoint {
             Date validUpto = null;
             if (validUptoStr != null) {
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in yyyy-MM-dd format");
+                    throw new IllegalArgumentException("Valid Upto Date must be in "+dateFormatInString+" format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 

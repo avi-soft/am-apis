@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.BoardUniversity;
@@ -14,6 +15,7 @@ import com.community.api.entity.CustomerAddressDTO;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Post;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -100,6 +102,7 @@ public class SharedUtilityService {
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
             productDetails.put("order_item_id", orderItem.getId());
+        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
         productDetails.put("product_id", product.getId());
         productDetails.put("url", product.getUrl());
         productDetails.put("meta_title", product.getName());
@@ -118,7 +121,18 @@ public class SharedUtilityService {
                     .map(Long::parseLong)
                     .collect(Collectors.toList());
         }
-        productDetails.put("preference_order",preferenceOrder);
+        for(Long id :preferenceOrder)
+        {
+            Post post=entityManager.find(Post.class,id);
+            if(post!=null) {
+                PostDetailsDTO detailsDTO=new PostDetailsDTO();
+                detailsDTO.setPostId(post.getPostId());
+                detailsDTO.setPostName(post.getPostName());
+                detailsDTO.setPostCode(post.getPostCode());
+                postPreferenceOrder.add(detailsDTO);
+            }
+        }
+        productDetails.put("preference_order",postPreferenceOrder);
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
@@ -290,6 +304,8 @@ public class SharedUtilityService {
         customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
         customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
         customerDetails.put("isMinority",customCustomer.getIsMinority());
+        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("sportsCertificate",customCustomer.getSportsCertificate());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
