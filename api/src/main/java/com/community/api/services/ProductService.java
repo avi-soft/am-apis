@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
@@ -2854,6 +2855,7 @@ public class ProductService {
     }
 
     public void validateZoneDistributionRelationship(ZoneDistributionDto zoneDistribution) {
+        // Skip validation if not division distribution
         if (!Boolean.TRUE.equals(zoneDistribution.getIsDivisionDistribution())) {
             return;
         }
@@ -2862,28 +2864,42 @@ public class ProductService {
             throw new IllegalArgumentException("Zone ID is required for validation.");
         }
 
-        // Get all valid zoneDivisionIds for this zone
-        List<Long> zoneDivisionIds;
+        // Get all valid division IDs for this zone
+        List<DivisionProjectionDTO> validDivisionIds;
         try {
-            zoneDivisionIds = zoneDivisionService.getDivisionsIdsByZoneId(zoneDistribution.getZoneId());
+            validDivisionIds = zoneDivisionService.getDivisionsByZoneId(zoneDistribution.getZoneId());
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid zone ID: " + zoneDistribution.getZoneId(), e);
         }
 
-        // Validate each division in the distribution
+        // Validate division distributions
         List<DivisionDistributionDto> divisionDistributions = zoneDistribution.getDivisionDistributions();
         if (divisionDistributions == null || divisionDistributions.isEmpty()) {
             throw new IllegalArgumentException(
                     "Division distributions are required when isDivisionDistribution is true");
         }
 
+        // Validate each division ID belongs to the zone
         for (DivisionDistributionDto divisionDto : divisionDistributions) {
-            if (!zoneDivisionIds.contains(divisionDto.getDivisionId())) {
+            if (divisionDto.getDivisionId() == null) {
+                throw new IllegalArgumentException("Division ID cannot be null");
+            }
+            List<Integer>ids=new ArrayList<>();
+            for(DivisionProjectionDTO dto :validDivisionIds)
+            {
+                ids.add(dto.getDivisionId());
+            }
+
+            if (!ids.contains(divisionDto.getDivisionId().intValue())) {
+                System.out.println("inside validation");
+                System.out.println(validDivisionIds);
+                System.out.println(divisionDto.getDivisionId());
                 throw new IllegalArgumentException(
-                        String.format("Division with ID %d is not part of the selected zone (Zone ID: %d)",
+                        String.format("Division ID %d is not associated with Zone ID %d",
                                 divisionDto.getDivisionId(), zoneDistribution.getZoneId()));
             }
         }
+
     }
 
     private void validateZonesDistribution(List<ZoneDistributionDto> zoneDistributions, Long postTotalVacancies) {
