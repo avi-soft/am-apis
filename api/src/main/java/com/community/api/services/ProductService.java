@@ -2891,9 +2891,6 @@ public class ProductService {
             }
 
             if (!ids.contains(divisionDto.getDivisionId().intValue())) {
-                System.out.println("inside validation");
-                System.out.println(validDivisionIds);
-                System.out.println(divisionDto.getDivisionId());
                 throw new IllegalArgumentException(
                         String.format("Division ID %d is not associated with Zone ID %d",
                                 divisionDto.getDivisionId(), zoneDistribution.getZoneId()));
