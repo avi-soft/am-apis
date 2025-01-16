@@ -2,6 +2,7 @@ package com.community.api.entity;
 
 import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
@@ -269,9 +270,11 @@ public class CustomCustomer extends CustomerImpl {
     private String otherOrStateCategory;
 
     @Column(name = "other_category_date_of_issue")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
     private Date otherCategoryDateOfIssue;
 
     @Column(name = "other_category_valid_upto")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
     private Date otherCategoryValidUpto;
 
     @Column(name = "is_minority")
