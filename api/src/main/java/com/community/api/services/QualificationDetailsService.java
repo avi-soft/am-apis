@@ -500,7 +500,7 @@ public class QualificationDetailsService {
 
         if (Objects.nonNull(qualification.getDate_of_passing())) {
             validateDate(qualification.getDate_of_passing());
-            qualificationDetailsToUpdate.setDate_of_passing(convertStringToDate(qualification.getDate_of_passing()));
+            qualificationDetailsToUpdate.setDate_of_passing(convertStringToDate(qualification.getDate_of_passing(),"yyyy-MM-dd"));
         }
 
         if(Objects.nonNull(qualification.getGrade_value()))
