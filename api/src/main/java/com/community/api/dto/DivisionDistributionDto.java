@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @Setter
 public class DivisionDistributionDto {
-    private Long divisionId;
+    private Integer divisionId;
     private Boolean isGenderWise;
     private Integer maleVacancy;
     private Integer femaleVacancy;

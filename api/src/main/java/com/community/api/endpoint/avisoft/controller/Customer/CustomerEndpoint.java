@@ -86,7 +86,9 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -176,7 +178,14 @@ public class CustomerEndpoint {
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
-
+    public static java.sql.Date convertStringToSQLDate(String dateStr, String dateFormatInString) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        dateFormat.setLenient(false);
+        return new java.sql.Date(dateFormat.parse(dateStr).getTime());
+    }
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -694,6 +703,7 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
+            String dateFormat= "dd-MM-yyyy";
             if (details.containsKey("ncc_certificate")) {
                 String nccCertificateValue = (String) details.get("ncc_certificate");
 
@@ -790,10 +800,10 @@ public class CustomerEndpoint {
                     }
                     validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue")));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
-                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto")));
+                        customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"),dateFormat));
                     }
                 } else if (isOtherCategory.equals(false)) {
                     customCustomer.setOtherOrStateCategory(null);
@@ -833,6 +843,28 @@ public class CustomerEndpoint {
                 customCustomer.setIsMinority(isMinority);
             }
             details.remove("isMinority");
+
+            if (details.containsKey("isSportsCertificate")) {
+                Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
+                if (isSportsCertificate.equals(false)) {
+                    customCustomer.setSportsCertificate(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(22) || document.getDocumentType().getDocument_type_id().equals(23)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                }
+                customCustomer.setIsSportsCertificate(isSportsCertificate);
+            }
+
+            details.remove("sportsCertificate");
+            details.remove("isSportsCertificate");
 
             if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
@@ -1099,6 +1131,7 @@ public class CustomerEndpoint {
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            String dateFormat= "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
