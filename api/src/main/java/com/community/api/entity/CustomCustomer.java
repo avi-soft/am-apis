@@ -260,9 +260,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "is_sports_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isSportsCertificate;
 
-    @Column(name = "sports_certificate")
-    private String sportsCertificate;
-
     @Column(name = "is_other_or_state_category")
     private Boolean isOtherOrStateCategory;
 
