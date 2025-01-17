@@ -417,17 +417,31 @@ public class ProductController extends CatalogEndpoint {
             {
                 if(addProductDto.getIsMultiplePostSameFee().equals(true))
                 {
+                    if(addProductDto.getPosts()!=null) {
+                        if (addProductDto.getPosts().isEmpty()) {
+                            throw new IllegalArgumentException("You have to fill at least one post");
+                        }
+                    }
                     customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
                 }
                 else if (addProductDto.getIsMultiplePostSameFee().equals(false))
                 {
-                    if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+                    if(addProductDto.getPosts()!=null)
                     {
-                        if(addProductDto.getPosts().size()>1)
+                        if(addProductDto.getPosts().isEmpty())
                         {
-                            throw new IllegalArgumentException("Only one post is allowed to save if multiple posts does not have same fees");
+                            throw new IllegalArgumentException("You have to fill at least one post");
                         }
+                        else if(!addProductDto.getPosts().isEmpty())
+                        {
+                            if(addProductDto.getPosts().size()>1)
+                            {
+                                throw new IllegalArgumentException("Only one post is allowed to save if multiple posts does not have same fees");
+                            }
+                        }
+
                     }
+
                     else if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                     {
                         if (customProduct.getPosts().size()>1)
