@@ -844,22 +844,9 @@ public class CustomerEndpoint {
             }
             details.remove("isMinority");
 
-            if (details.containsKey("sportsCertificate")) {
-                String sportsCertificate = (String) details.get("sportsCertificate");
-                if (!sportsCertificate.equalsIgnoreCase("Sports Certificate Center") && !sportsCertificate.equalsIgnoreCase("Sports Certificate State")) {
-                    return ResponseService.generateErrorResponse("You can add value for sports certificate either Sports Certificate Center or Sports Certificate State", HttpStatus.BAD_REQUEST);
-                }
-                customCustomer.setSportsCertificate(sportsCertificate);
-                customCustomer.setIsSportsCertificate(true);
-            }
             if (details.containsKey("isSportsCertificate")) {
                 Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
-                if (isSportsCertificate.equals(true)) {
-                    if (!details.containsKey("sportsCertificate")) {
-                        return ResponseService.generateErrorResponse("You have to select sports certificate type", HttpStatus.BAD_REQUEST);
-                    }
-                    customCustomer.setSportsCertificate((String) details.get("sportsCertificate"));
-                } else if (isSportsCertificate.equals(false)) {
+                if (isSportsCertificate.equals(false)) {
                     customCustomer.setSportsCertificate(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
