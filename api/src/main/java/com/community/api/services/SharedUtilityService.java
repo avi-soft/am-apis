@@ -116,20 +116,21 @@ public class SharedUtilityService {
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
         List<Long>preferenceOrder=null;
         String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
-        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
-            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
-                    .map(Long::parseLong)
-                    .collect(Collectors.toList());
-        }
-        for(Long id :preferenceOrder)
-        {
-            Post post=entityManager.find(Post.class,id);
-            if(post!=null) {
-                PostDetailsDTO detailsDTO=new PostDetailsDTO();
-                detailsDTO.setPostId(post.getPostId());
-                detailsDTO.setPostName(post.getPostName());
-                detailsDTO.setPostCode(post.getPostCode());
-                postPreferenceOrder.add(detailsDTO);
+        if(retrievedPostPreferenceString!=null) {
+            if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+            }
+            for (Long id : preferenceOrder) {
+                Post post = entityManager.find(Post.class, id);
+                if (post != null) {
+                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                    detailsDTO.setPostId(post.getPostId());
+                    detailsDTO.setPostName(post.getPostName());
+                    detailsDTO.setPostCode(post.getPostCode());
+                    postPreferenceOrder.add(detailsDTO);
+                }
             }
         }
         productDetails.put("preference_order",postPreferenceOrder);
