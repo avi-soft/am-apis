@@ -830,12 +830,9 @@ public class ProductService {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
 
-            if(addProductDto.getIsMultiplePostSameFee().equals(true))
+            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
-                if(addProductDto.getPosts()==null)
-                {
-                    throw new IllegalArgumentException("Post cannot be null");
-                }
+                throw new IllegalArgumentException("Post cannot be null or empty");
             }
 
             return true;
@@ -980,12 +977,9 @@ public class ProductService {
             }
 
             if (addProductDto.getIsMultiplePostSameFee() != null) {
-                if(addProductDto.getIsMultiplePostSameFee().equals(true))
+                if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                 {
-                    if(addProductDto.getPosts()==null)
-                    {
-                        throw new IllegalArgumentException("Post cannot be null");
-                    }
+                    throw new IllegalArgumentException("Post cannot be null or empty");
                 }
             }
 
