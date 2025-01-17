@@ -278,7 +278,7 @@ public class CartEndPoint extends BaseEndpoint {
             atrtributes.put("productId", product.getId().toString());
             if(customProduct.getPosts().size()>=2)
             {
-                for(Post post:customProduct.getPosts())
+                /*for(Post post:customProduct.getPosts())
                 {
                     if(!postPreference.contains(post.getPostId()))
                         return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
@@ -286,7 +286,7 @@ public class CartEndPoint extends BaseEndpoint {
                 if(postPreference.size()<customProduct.getPosts().size())
                     return ResponseService.generateErrorResponse("Need to provide all post preference ids",HttpStatus.BAD_REQUEST);
                 if(postPreference.size()>customProduct.getPosts().size())
-                    return ResponseService.generateErrorResponse("Post ids provided do not belong to product",HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateErrorResponse("Post ids provided do not belong to product",HttpStatus.BAD_REQUEST);*/
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
@@ -665,14 +665,14 @@ public class CartEndPoint extends BaseEndpoint {
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
             if (customProduct == null)
                 return ResponseService.generateErrorResponse("Invalid product id provided", HttpStatus.NOT_FOUND);
-            for (Post post : customProduct.getPosts()) {
+            /*for (Post post : customProduct.getPosts()) {
                 if (!postPreference.contains(post.getPostId()))
                     return ResponseService.generateErrorResponse("Invalid post id in preference list", HttpStatus.BAD_REQUEST);
             }
             if (postPreference.size() < customProduct.getPosts().size())
                 return ResponseService.generateErrorResponse("Need to provide all post preference ids", HttpStatus.BAD_REQUEST);
             if (postPreference.size() > customProduct.getPosts().size())
-                return ResponseService.generateErrorResponse("Post ids provided do not belong to product", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Post ids provided do not belong to product", HttpStatus.BAD_REQUEST);*/
             String postPreferenceString = postPreference.stream()
                     .map(String::valueOf)
                     .collect(Collectors.joining(","));

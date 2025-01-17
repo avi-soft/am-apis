@@ -51,14 +51,16 @@ public class OrderDTOService {
         if(ticket!=null)
             assigneeId=ticket.getAssignee();
         List<Long>preferenceOrder=null;
+        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
         OrderAttribute orderAttribute =(OrderAttribute)order.getOrderAttributes().get("sorted");
+        if(orderAttribute!=null)
+        {
         String retrievedPostPreferenceString=orderAttribute.getValue();
         if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
             preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
                     .map(Long::parseLong)
                     .collect(Collectors.toList());
         }
-        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
         for(Long id :preferenceOrder)
         {
             Post post=entityManager.find(Post.class,id);
@@ -69,7 +71,7 @@ public class OrderDTOService {
                 detailsDTO.setPostCode(post.getPostCode());
                 postPreferenceOrder.add(detailsDTO);
             }
-        }
+        }}
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
                 order.getId(),
