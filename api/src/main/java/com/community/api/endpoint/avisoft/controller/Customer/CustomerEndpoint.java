@@ -86,9 +86,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -168,12 +166,12 @@ public class CustomerEndpoint {
     @Autowired
     private SharedUtilityService sharedUtilityService;
 
-    public static Date convertStringToDate(String dateStr, String dateFormatInString) throws ParseException {
+    public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
             throw new IllegalArgumentException("Date string cannot be null or empty");
         }
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
@@ -798,7 +796,7 @@ public class CustomerEndpoint {
                     {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
+                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
                     customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                     if(details.containsKey("otherCategoryValidUpto"))
@@ -1380,14 +1378,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1395,15 +1393,15 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
 
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1438,14 +1436,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setDocument(document);
                                     entityManager.persist(documentValidity);
@@ -1615,14 +1613,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1630,14 +1628,14 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1674,14 +1672,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                                     }
                                     documentValidity.setServiceProviderDocument(serviceProviderDocument);
                                     entityManager.persist(documentValidity);
@@ -2285,14 +2283,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr,String dateFormatInString) throws Exception {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in "+dateFormatInString +" format");
+                throw new IllegalArgumentException("Date of Issue must be in yyyy-MM-dd format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2300,7 +2298,7 @@ public class CustomerEndpoint {
             Date validUpto = null;
             if (validUptoStr != null) {
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in "+dateFormatInString+" format");
+                    throw new IllegalArgumentException("Valid Upto Date must be in yyyy-MM-dd format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
