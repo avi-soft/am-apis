@@ -166,16 +166,17 @@ public class CustomerEndpoint {
     @Autowired
     private SharedUtilityService sharedUtilityService;
 
-    public static Date convertStringToDate(String dateStr, String dateFormatInString) throws ParseException {
+    public static Date convertStringToDate(String dateStr) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
             throw new IllegalArgumentException("Date string cannot be null or empty");
         }
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
+
 
     @Autowired
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -284,148 +285,148 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
-//            // physical attributes locale variables.
-//            int minHeight = 50, maxHeight = 250;
-//            int minWeight = 10, maxWeight = 300;
-//            int minShoeSize = 4, maxShoeSize = 15;
-//            int minWaistSize = 20, maxWaistSize = 150;
-//            int minChestSize = 20, maxChestSize = 125;
-//
-//            if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
-//                if (customCustomer.getInterestedInDefence()) {
-//                    // List of required fields
-//                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
-//
-//                    // Check if all required fields are present and not empty
-//                    Map<String, Object> finalDetails = details;
-//                    boolean conditionExists = requiredFields.stream()
-//                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-//                    if (!conditionExists) {
-//                        errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
-//                    } else {
-//                        try {
-//                            String heightStr = (String) finalDetails.get("heightCms");
-//                            if (heightStr != null && !heightStr.isEmpty()) {
-//                                int heightValue = Integer.parseInt(heightStr);
-//                                if (heightValue < minHeight || heightValue > maxHeight) {
-//                                    errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-//                                } else {
-//                                    customCustomer.setHeightCms(heightValue);
-//                                }
-//                            } else {
-//                                errorMessages.add("Height is required and must be a valid value.");
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Height must be a valid integer.");
-//                        }
-//
-//                        try {
-//                            String weightStr = (String) finalDetails.get("weightKgs");
-//                            if (weightStr != null && !weightStr.isEmpty()) {
-//                                int weightValue = Integer.parseInt(weightStr);
-//                                if (weightValue < minWeight || weightValue > maxWeight) {
-//                                    errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-//                                } else {
-//                                    customCustomer.setWeightKgs(weightValue);
-//                                }
-//                            } else {
-//                                errorMessages.add("Weight is required and must be a valid value.");
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Weight must be a valid integer.");
-//                        }
-//
-//                        try {
-//                            String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
-//                            if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
-//                                int shoeSizeValue = Integer.parseInt(shoeSizeStr);
-//                                if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-//                                    errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-//                                } else {
-//                                    customCustomer.setShoeSizeInches(shoeSizeValue);
-//                                }
-//                            } else {
-//                                errorMessages.add("Shoe size is required and must be a valid value.");
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Shoe size must be a valid integer.");
-//                        }
-//
-//                        try {
-//                            String waistSizeStr = (String) finalDetails.get("waistSizeCms");
-//                            if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
-//                                int waistSizeValue = Integer.parseInt(waistSizeStr);
-//                                if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-//                                    errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-//                                } else {
-//                                    customCustomer.setWaistSizeCms(waistSizeValue);
-//                                }
-//                            } else {
-//                                errorMessages.add("Waist size is required and must be a valid value.");
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Waist size must be a valid integer.");
-//                        }
-//                    }
-//                } else {
-//                    String height = (String) details.get("heightCms");
-//                    String weightKgs = (String) details.get("weightKgs");
-//                    String shoeSizeInches = (String) details.get("shoeSizeInches");
-//                    String waistSizeCms = (String) details.get("waistSizeCms");
-//
-//                    if (height != null && !height.isEmpty()) {
-//                        try {
-//                            int heightValue = Integer.parseInt(height);
-//                            if (heightValue < minHeight || heightValue > maxHeight) {
-//                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-//                            } else {
-//                                customCustomer.setHeightCms(heightValue);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Height must be a valid integer.");
-//                        }
-//                    }
-//
-//                    if (weightKgs != null && !weightKgs.isEmpty()) {
-//                        try {
-//                            int weightValue = Integer.parseInt(weightKgs);
-//                            if (weightValue < minWeight || weightValue > maxWeight) {
-//                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-//                            } else {
-//                                customCustomer.setWeightKgs(weightValue);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Weight must be a valid integer.");
-//                        }
-//                    }
-//
-//                    if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
-//                        try {
-//                            int shoeSizeValue = Integer.parseInt(shoeSizeInches);
-//                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-//                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-//                            } else {
-//                                customCustomer.setShoeSizeInches(shoeSizeValue);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Shoe size must be a valid integer.");
-//                        }
-//                    }
-//
-//                    if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
-//                        try {
-//                            int waistSizeValue = Integer.parseInt(waistSizeCms);
-//                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-//                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-//                            } else {
-//                                customCustomer.setWaistSizeCms(waistSizeValue);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            errorMessages.add("Waist size must be a valid integer.");
-//                        }
-//                    }
-//                }
-//            }
+            // physical attributes locale variables.
+            int minHeight = 50, maxHeight = 250;
+            int minWeight = 10, maxWeight = 300;
+            int minShoeSize = 4, maxShoeSize = 15;
+            int minWaistSize = 20, maxWaistSize = 150;
+            int minChestSize = 20, maxChestSize = 125;
+
+            if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
+                if (customCustomer.getInterestedInDefence()) {
+                    // List of required fields
+                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
+
+                    // Check if all required fields are present and not empty
+                    Map<String, Object> finalDetails = details;
+                    boolean conditionExists = requiredFields.stream()
+                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
+                    if (!conditionExists) {
+                        errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
+                    } else {
+                        try {
+                            String heightStr = (String) finalDetails.get("heightCms");
+                            if (heightStr != null && !heightStr.isEmpty()) {
+                                int heightValue = Integer.parseInt(heightStr);
+                                if (heightValue < minHeight || heightValue > maxHeight) {
+                                    errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                                } else {
+                                    customCustomer.setHeightCms(heightValue);
+                                }
+                            } else {
+                                errorMessages.add("Height is required and must be a valid value.");
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Height must be a valid integer.");
+                        }
+
+                        try {
+                            String weightStr = (String) finalDetails.get("weightKgs");
+                            if (weightStr != null && !weightStr.isEmpty()) {
+                                int weightValue = Integer.parseInt(weightStr);
+                                if (weightValue < minWeight || weightValue > maxWeight) {
+                                    errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                                } else {
+                                    customCustomer.setWeightKgs(weightValue);
+                                }
+                            } else {
+                                errorMessages.add("Weight is required and must be a valid value.");
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Weight must be a valid integer.");
+                        }
+
+                        try {
+                            String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
+                            if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
+                                int shoeSizeValue = Integer.parseInt(shoeSizeStr);
+                                if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                                    errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                                } else {
+                                    customCustomer.setShoeSizeInches(shoeSizeValue);
+                                }
+                            } else {
+                                errorMessages.add("Shoe size is required and must be a valid value.");
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Shoe size must be a valid integer.");
+                        }
+
+                        try {
+                            String waistSizeStr = (String) finalDetails.get("waistSizeCms");
+                            if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
+                                int waistSizeValue = Integer.parseInt(waistSizeStr);
+                                if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                                    errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                                } else {
+                                    customCustomer.setWaistSizeCms(waistSizeValue);
+                                }
+                            } else {
+                                errorMessages.add("Waist size is required and must be a valid value.");
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Waist size must be a valid integer.");
+                        }
+                    }
+                } else {
+                    String height = (String) details.get("heightCms");
+                    String weightKgs = (String) details.get("weightKgs");
+                    String shoeSizeInches = (String) details.get("shoeSizeInches");
+                    String waistSizeCms = (String) details.get("waistSizeCms");
+
+                    if (height != null && !height.isEmpty()) {
+                        try {
+                            int heightValue = Integer.parseInt(height);
+                            if (heightValue < minHeight || heightValue > maxHeight) {
+                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                            } else {
+                                customCustomer.setHeightCms(heightValue);
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Height must be a valid integer.");
+                        }
+                    }
+
+                    if (weightKgs != null && !weightKgs.isEmpty()) {
+                        try {
+                            int weightValue = Integer.parseInt(weightKgs);
+                            if (weightValue < minWeight || weightValue > maxWeight) {
+                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                            } else {
+                                customCustomer.setWeightKgs(weightValue);
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Weight must be a valid integer.");
+                        }
+                    }
+
+                    if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
+                        try {
+                            int shoeSizeValue = Integer.parseInt(shoeSizeInches);
+                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
+                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                            } else {
+                                customCustomer.setShoeSizeInches(shoeSizeValue);
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Shoe size must be a valid integer.");
+                        }
+                    }
+
+                    if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
+                        try {
+                            int waistSizeValue = Integer.parseInt(waistSizeCms);
+                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
+                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            } else {
+                                customCustomer.setWaistSizeCms(waistSizeValue);
+                            }
+                        } catch (NumberFormatException e) {
+                            errorMessages.add("Waist size must be a valid integer.");
+                        }
+                    }
+                }
+            }
 
             if (details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong(details.get("workExperienceScopeId").toString()));
@@ -693,7 +694,6 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
-            String dateFormat= "dd-MM-yyyy";
             if (details.containsKey("ncc_certificate")) {
                 String nccCertificateValue = (String) details.get("ncc_certificate");
 
@@ -788,12 +788,12 @@ public class CustomerEndpoint {
                     {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
+                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"));
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToDate((String) details.get("otherCategoryDateOfIssue")));
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
-                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto"),dateFormat));
+                        customCustomer.setOtherCategoryValidUpto(convertStringToDate((String) details.get("otherCategoryValidUpto")));
                     }
                 } else if (isOtherCategory.equals(false)) {
                     customCustomer.setOtherOrStateCategory(null);
@@ -833,41 +833,6 @@ public class CustomerEndpoint {
                 customCustomer.setIsMinority(isMinority);
             }
             details.remove("isMinority");
-
-            if (details.containsKey("sportsCertificate")) {
-                String sportsCertificate = (String) details.get("sportsCertificate");
-                if (!sportsCertificate.equalsIgnoreCase("Sports Certificate Center") && !sportsCertificate.equalsIgnoreCase("Sports Certificate State")) {
-                    return ResponseService.generateErrorResponse("You can add value for sports certificate either Sports Certificate Center or Sports Certificate State", HttpStatus.BAD_REQUEST);
-                }
-                customCustomer.setSportsCertificate(sportsCertificate);
-                customCustomer.setIsSportsCertificate(true);
-            }
-            if (details.containsKey("isSportsCertificate")) {
-                Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
-                if (isSportsCertificate.equals(true)) {
-                    if (!details.containsKey("sportsCertificate")) {
-                        return ResponseService.generateErrorResponse("You have to select sports certificate type", HttpStatus.BAD_REQUEST);
-                    }
-                    customCustomer.setSportsCertificate((String) details.get("sportsCertificate"));
-                } else if (isSportsCertificate.equals(false)) {
-                    customCustomer.setSportsCertificate(null);
-                    List<Document> customerDocuments = customCustomer.getDocuments();
-                    for (Document document : customerDocuments) {
-                        if (document.getIsArchived().equals(false)) {
-                            if (document.getCustom_customer().getId().equals(customerId)) {
-                                if (document.getDocumentType().getDocument_type_id().equals(22) || document.getDocumentType().getDocument_type_id().equals(23)) {
-                                    document.setIsArchived(true);
-                                    entityManager.merge(document);
-                                }
-                            }
-                        }
-                    }
-                }
-                customCustomer.setIsSportsCertificate(isSportsCertificate);
-            }
-
-            details.remove("sportsCertificate");
-            details.remove("isSportsCertificate");
 
             if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
@@ -969,391 +934,6 @@ public class CustomerEndpoint {
                     field.set(customCustomer, newValue);
                 }
             }
-
-            // physical attributes locale variables.
-            int minHeight = 50, maxHeight = 250;
-            int minWeight = 10, maxWeight = 300;
-            int minShoeSize = 4, maxShoeSize = 15;
-            int minWaistSize = 20, maxWaistSize = 150;
-            int minChestSize = 20, maxChestSize = 125;
-
-            if (customCustomer.getGender().equals("Female")) {
-                if (details.containsKey("chestSizeCms")) {
-                    errorMessages.add("Cannot add chest size incase of female candidate");
-                }
-                if (customCustomer.getInterestedInDefence()) {
-                    // List of required fields
-                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
-
-                    // Check if all required fields are present and not empty
-                    Map<String, Object> finalDetails = details;
-                    boolean conditionExists = requiredFields.stream()
-                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-                    if (!conditionExists) {
-                        errorMessages.add("All relevant fields : height, weight, shoe size, waist size must be present ");
-                    } else {
-                        try {
-                            String heightStr = (String) finalDetails.get("heightCms");
-                            if (heightStr != null && !heightStr.isEmpty()) {
-                                int heightValue = Integer.parseInt(heightStr);
-                                if (heightValue < minHeight || heightValue > maxHeight) {
-                                    errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-                                } else {
-                                    customCustomer.setHeightCms(heightValue);
-                                }
-                            } else {
-                                errorMessages.add("Height is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Height must be a valid integer.");
-                        }
-
-                        try {
-                            String weightStr = (String) finalDetails.get("weightKgs");
-                            if (weightStr != null && !weightStr.isEmpty()) {
-                                int weightValue = Integer.parseInt(weightStr);
-                                if (weightValue < minWeight || weightValue > maxWeight) {
-                                    errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-                                } else {
-                                    customCustomer.setWeightKgs(weightValue);
-                                }
-                            } else {
-                                errorMessages.add("Weight is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Weight must be a valid integer.");
-                        }
-
-                        try {
-                            String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
-                            if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
-                                int shoeSizeValue = Integer.parseInt(shoeSizeStr);
-                                if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                    errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-                                } else {
-                                    customCustomer.setShoeSizeInches(shoeSizeValue);
-                                }
-                            } else {
-                                errorMessages.add("Shoe size is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Shoe size must be a valid integer.");
-                        }
-
-                        try {
-                            String waistSizeStr = (String) finalDetails.get("waistSizeCms");
-                            if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
-                                int waistSizeValue = Integer.parseInt(waistSizeStr);
-                                if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                    errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                                } else {
-                                    customCustomer.setWaistSizeCms(waistSizeValue);
-                                }
-                            } else {
-                                errorMessages.add("Waist size is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Waist size must be a valid integer.");
-                        }
-                    }
-                } else {
-                    String height = (String) details.get("heightCms");
-                    String weightKgs = (String) details.get("weightKgs");
-                    String shoeSizeInches = (String) details.get("shoeSizeInches");
-                    String waistSizeCms = (String) details.get("waistSizeCms");
-
-                    if (height != null && !height.isEmpty()) {
-                        try {
-                            int heightValue = Integer.parseInt(height);
-                            if (heightValue < minHeight || heightValue > maxHeight) {
-                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-                            } else {
-                                customCustomer.setHeightCms(heightValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Height must be a valid integer.");
-                        }
-                    }
-
-                    if (weightKgs != null && !weightKgs.isEmpty()) {
-                        try {
-                            int weightValue = Integer.parseInt(weightKgs);
-                            if (weightValue < minWeight || weightValue > maxWeight) {
-                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-                            } else {
-                                customCustomer.setWeightKgs(weightValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Weight must be a valid integer.");
-                        }
-                    }
-
-                    if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
-                        try {
-                            int shoeSizeValue = Integer.parseInt(shoeSizeInches);
-                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-                            } else {
-                                customCustomer.setShoeSizeInches(shoeSizeValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Shoe size must be a valid integer.");
-                        }
-                    }
-
-                    if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
-                        try {
-                            int waistSizeValue = Integer.parseInt(waistSizeCms);
-                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                            } else {
-                                customCustomer.setWaistSizeCms(waistSizeValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Waist size must be a valid integer.");
-                        }
-                    }
-                }
-
-
-            } else if (customCustomer.getGender().equals("Male")) {
-                if (customCustomer.getInterestedInDefence()) {
-                    // List of required fields
-                    final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms", "chestSizeCms");
-
-                    // Check if all required fields are present and not empty
-                    Map<String, Object> finalDetails = details;
-                    boolean conditionExists = requiredFields.stream()
-                            .allMatch(field -> finalDetails.containsKey(field) && finalDetails.get(field) != null && !finalDetails.get(field).toString().isEmpty());
-                    if (!conditionExists) {
-                        errorMessages.add("All relevant fields : height, weight, shoe size, waist size and chest size must be present ");
-                    } else {
-                        try {
-                            String heightStr = (String) finalDetails.get("heightCms");
-                            if (heightStr != null && !heightStr.isEmpty()) {
-                                int heightValue = Integer.parseInt(heightStr);
-                                if (heightValue < minHeight || heightValue > maxHeight) {
-                                    errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-                                } else {
-                                    customCustomer.setHeightCms(heightValue);
-                                }
-                            } else {
-                                errorMessages.add("Height is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Height must be a valid integer.");
-                        }
-
-                        try {
-                            String weightStr = (String) finalDetails.get("weightKgs");
-                            if (weightStr != null && !weightStr.isEmpty()) {
-                                int weightValue = Integer.parseInt(weightStr);
-                                if (weightValue < minWeight || weightValue > maxWeight) {
-                                    errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-                                } else {
-                                    customCustomer.setWeightKgs(weightValue);
-                                }
-                            } else {
-                                errorMessages.add("Weight is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Weight must be a valid integer.");
-                        }
-
-                        try {
-                            String shoeSizeStr = (String) finalDetails.get("shoeSizeInches");
-                            if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
-                                int shoeSizeValue = Integer.parseInt(shoeSizeStr);
-                                if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                    errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-                                } else {
-                                    customCustomer.setShoeSizeInches(shoeSizeValue);
-                                }
-                            } else {
-                                errorMessages.add("Shoe size is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Shoe size must be a valid integer.");
-                        }
-
-                        try {
-                            String waistSizeStr = (String) finalDetails.get("waistSizeCms");
-                            if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
-                                int waistSizeValue = Integer.parseInt(waistSizeStr);
-                                if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                    errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                                } else {
-                                    customCustomer.setWaistSizeCms(waistSizeValue);
-                                }
-                            } else {
-                                errorMessages.add("Waist size is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Waist size must be a valid integer.");
-                        }
-
-                        try {
-                            String chestSizeStr = (String) finalDetails.get("chestSizeCms");
-                            if (chestSizeStr != null && !chestSizeStr.isEmpty()) {
-                                int chestSizeValue = Integer.parseInt(chestSizeStr);
-                                if (chestSizeValue < minChestSize || chestSizeValue > maxChestSize) {
-                                    errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                                } else {
-                                    customCustomer.setWaistSizeCms(chestSizeValue);
-                                }
-                            } else {
-                                errorMessages.add("Chest size is required and must be a valid value.");
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Chest size must be a valid integer.");
-                        }
-                    }
-                } else {
-                    String height = (String) details.get("heightCms");
-                    String weightKgs = (String) details.get("weightKgs");
-                    String shoeSizeInches = (String) details.get("shoeSizeInches");
-                    String waistSizeCms = (String) details.get("waistSizeCms");
-                    String chestSizeCms = (String) details.get("chestSizeCms");
-
-                    if (height != null && !height.isEmpty()) {
-                        try {
-                            int heightValue = Integer.parseInt(height);
-                            if (heightValue < minHeight || heightValue > maxHeight) {
-                                errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-                            } else {
-                                customCustomer.setHeightCms(heightValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Height must be a valid integer.");
-                        }
-                    }
-
-                    if (weightKgs != null && !weightKgs.isEmpty()) {
-                        try {
-                            int weightValue = Integer.parseInt(weightKgs);
-                            if (weightValue < minWeight || weightValue > maxWeight) {
-                                errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-                            } else {
-                                customCustomer.setWeightKgs(weightValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Weight must be a valid integer.");
-                        }
-                    }
-
-                    if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
-                        try {
-                            int shoeSizeValue = Integer.parseInt(shoeSizeInches);
-                            if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-                            } else {
-                                customCustomer.setShoeSizeInches(shoeSizeValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Shoe size must be a valid integer.");
-                        }
-                    }
-
-                    if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
-                        try {
-                            int waistSizeValue = Integer.parseInt(waistSizeCms);
-                            if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                            } else {
-                                customCustomer.setWaistSizeCms(waistSizeValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Waist size must be a valid integer.");
-                        }
-                    }
-
-                    if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
-                        try {
-                            int waistSizeValue = Integer.parseInt(chestSizeCms);
-                            if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
-                                errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                            } else {
-                                customCustomer.setWaistSizeCms(waistSizeValue);
-                            }
-                        } catch (NumberFormatException e) {
-                            errorMessages.add("Chest size must be a valid integer.");
-                        }
-                    }
-                }
-            } else {
-                String height = (String) details.get("heightCms");
-                String weightKgs = (String) details.get("weightKgs");
-                String shoeSizeInches = (String) details.get("shoeSizeInches");
-                String waistSizeCms = (String) details.get("waistSizeCms");
-                String chestSizeCms = (String) details.get("chestSizeCms");
-
-                if (height != null && !height.isEmpty()) {
-                    try {
-                        int heightValue = Integer.parseInt(height);
-                        if (heightValue < minHeight || heightValue > maxHeight) {
-                            errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
-                        } else {
-                            customCustomer.setHeightCms(heightValue);
-                        }
-                    } catch (NumberFormatException e) {
-                        errorMessages.add("Height must be a valid integer.");
-                    }
-                }
-
-                if (weightKgs != null && !weightKgs.isEmpty()) {
-                    try {
-                        int weightValue = Integer.parseInt(weightKgs);
-                        if (weightValue < minWeight || weightValue > maxWeight) {
-                            errorMessages.add("Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
-                        } else {
-                            customCustomer.setWeightKgs(weightValue);
-                        }
-                    } catch (NumberFormatException e) {
-                        errorMessages.add("Weight must be a valid integer.");
-                    }
-                }
-
-                if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
-                    try {
-                        int shoeSizeValue = Integer.parseInt(shoeSizeInches);
-                        if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                            errorMessages.add("Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
-                        } else {
-                            customCustomer.setShoeSizeInches(shoeSizeValue);
-                        }
-                    } catch (NumberFormatException e) {
-                        errorMessages.add("Shoe size must be a valid integer.");
-                    }
-                }
-
-                if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
-                    try {
-                        int waistSizeValue = Integer.parseInt(waistSizeCms);
-                        if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                            errorMessages.add("Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                        } else {
-                            customCustomer.setWaistSizeCms(waistSizeValue);
-                        }
-                    } catch (NumberFormatException e) {
-                        errorMessages.add("Waist size must be a valid integer.");
-                    }
-                }
-
-                if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
-                    try {
-                        int waistSizeValue = Integer.parseInt(chestSizeCms);
-                        if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
-                            errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
-                        } else {
-                            customCustomer.setWaistSizeCms(waistSizeValue);
-                        }
-                    } catch (NumberFormatException e) {
-                        errorMessages.add("Chest size must be a valid integer.");
-                    }
-                }
-
-            }
-
             // Update address if needed
             if (details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {
 
@@ -1519,7 +1099,6 @@ public class CustomerEndpoint {
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            String dateFormat= "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
@@ -1768,14 +1347,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1783,15 +1362,15 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
 
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -1826,14 +1405,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setDocument(document);
                                     entityManager.persist(documentValidity);
@@ -2003,14 +1582,14 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -2018,14 +1597,14 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(existingDocument);
                                     existingDocument.setDocumentValidity(documentValidity);
@@ -2062,14 +1641,14 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
-                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue,dateFormat));
+                                    validateDate(dateOfIssue, validUpto);
+                                    documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
                                         documentValidity.setValid_upto(null);
                                     } else {
                                         documentValidity.setIs_valid_upto_na(false);
-                                        documentValidity.setValid_upto(convertStringToDate(validUpto,dateFormat));
+                                        documentValidity.setValid_upto(convertStringToDate(validUpto));
                                     }
                                     documentValidity.setServiceProviderDocument(serviceProviderDocument);
                                     entityManager.persist(documentValidity);
@@ -2303,7 +1882,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("No Records found for this ID", HttpStatus.NOT_FOUND);
 
             }
-        } catch (NumberFormatException e) {
+        }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -2673,14 +2252,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr,String dateFormatInString) throws Exception {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in "+dateFormatInString +" format");
+                throw new IllegalArgumentException("Date of Issue must be in yyyy-MM-dd format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2688,7 +2267,7 @@ public class CustomerEndpoint {
             Date validUpto = null;
             if (validUptoStr != null) {
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in "+dateFormatInString+" format");
+                    throw new IllegalArgumentException("Valid Upto Date must be in yyyy-MM-dd format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
