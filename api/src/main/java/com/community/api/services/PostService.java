@@ -591,9 +591,10 @@ public class PostService {
                 divisionDist.setZoneDistribution(zoneDistribution);
 
                 Integer divisionIdToFind= divisionDto.getDivisionId();
-                String jpql = "SELECT z FROM ZoneDivisions z WHERE z.divisions.state_id = :divisionId";
+                String jpql = "SELECT z FROM ZoneDivisions z WHERE z.divisions.state_id = :divisionId AND z.zone.zoneId = :zoneId";
                 ZoneDivisions division = entityManager.createQuery(jpql, ZoneDivisions.class)
                         .setParameter("divisionId", divisionDto.getDivisionId())
+                        .setParameter("zoneId", zoneDistribution.getZone().getZoneId())
                         .getSingleResult();
 
                 if (division == null) {
