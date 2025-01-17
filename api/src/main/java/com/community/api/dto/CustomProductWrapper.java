@@ -128,7 +128,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
     @JsonProperty("is_multiple_post_same_fee")
     Boolean isMultiplePostSameFee;
-    @JsonProperty("total_vacancies_in_Product")
+    @JsonProperty("total_vacancies_in_product")
     Long totalVacanciesInProduct;
 
 
