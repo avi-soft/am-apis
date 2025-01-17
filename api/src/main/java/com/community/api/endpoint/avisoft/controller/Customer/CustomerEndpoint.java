@@ -255,6 +255,7 @@ public class CustomerEndpoint {
     @RequestMapping(value = "update", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Boolean isValidDate=null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -798,13 +799,24 @@ public class CustomerEndpoint {
                     {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
-                    customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
-                        customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"),dateFormat));
+                        String validUpto= (String) details.get("otherCategoryValidUpto");
+                        if(validUpto.trim().isEmpty())
+                        {
+                            customCustomer.setOtherCategoryValidUpto(null);
+                             isValidDate=validateDate((String) details.get("otherCategoryDateOfIssue"),null,dateFormat);
+                        }
+                        else {
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
+                            customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"),dateFormat));
+                        }
                     }
+                    else {
+                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
+                    }
+                    customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                 } else if (isOtherCategory.equals(false)) {
                     customCustomer.setOtherOrStateCategory(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -847,7 +859,6 @@ public class CustomerEndpoint {
             if (details.containsKey("isSportsCertificate")) {
                 Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
                 if (isSportsCertificate.equals(false)) {
-                    customCustomer.setSportsCertificate(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
                         if (document.getIsArchived().equals(false)) {
@@ -859,6 +870,7 @@ public class CustomerEndpoint {
                             }
                         }
                     }
+                    customCustomer.setSportCertificateId(null);
                 }
                 customCustomer.setIsSportsCertificate(isSportsCertificate);
             }
@@ -1029,7 +1041,10 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
-
+            if(isValidDate!=null && isValidDate.equals(true))
+            {
+                errorMessages.remove(errorMessages.size()-1);
+            }
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
             }
@@ -1174,11 +1189,9 @@ public class CustomerEndpoint {
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
                         int result = query.executeUpdate();
-                        System.out.println("rows affected :" + result);
                         if (result == 1) {
                             switch (role) {
                                 case Constant.roleUser:
-                                    System.out.println("CID:" + id.longValue());
                                     Document document = entityManager.find(Document.class, id.longValue());
                                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
                                     if (customCustomer.getDocuments() != null) {
@@ -1812,7 +1825,6 @@ public class CustomerEndpoint {
                     em.merge(customer);
                     return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader), HttpStatus.OK);
                 }
-                System.out.println(password + "," + customer.getPassword());
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
 
                     customer.setPassword(passwordEncoder.encode(password));
@@ -2296,9 +2308,8 @@ public class CustomerEndpoint {
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
-
             Date validUpto = null;
-            if (validUptoStr != null) {
+            if (validUptoStr != null ) {
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
                     throw new IllegalArgumentException("Valid Upto Date must be in "+dateFormatInString+" format");
                 }
