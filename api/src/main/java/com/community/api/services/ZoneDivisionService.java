@@ -48,21 +48,24 @@ public class ZoneDivisionService {
         }
       return resultList;
     }
-  
-    public List<Long> getDivisionsIdsByZoneId(Integer zoneId) throws NotFoundException {
+
+    public List<Integer> getDivisionIdsByZoneId(Integer zoneId) throws NotFoundException {
         if (zoneId == null) {
             throw new IllegalArgumentException("Zone ID is compulsory");
         }
+
+        // Check if the zone exists
         Zone zone = entityManager.find(Zone.class, zoneId);
         if (zone == null) {
             throw new NotFoundException("Invalid zone selected");
         }
 
-        // Fetching zoneDivisionId instead of StateCode
-        List<Long> divisionIds = entityManager.createQuery(
-                        "SELECT zd.zoneDivisionId FROM ZoneDivisions zd WHERE zd.zone.zoneId = :zoneId", Long.class)
+        // Using the correct field name state_id from StateCode entity
+        List<Integer> divisionIds = entityManager.createQuery(
+                        "SELECT zd.divisions.state_id FROM ZoneDivisions zd WHERE zd.zone.zoneId = :zoneId", Integer.class)
                 .setParameter("zoneId", zoneId)
                 .getResultList();
+        System.out.println(divisionIds);
 
         if (divisionIds.isEmpty()) {
             throw new NoResultException("No divisions found for the selected zone");

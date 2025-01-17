@@ -590,9 +590,14 @@ public class PostService {
                 DivisionDistribution divisionDist = new DivisionDistribution();
                 divisionDist.setZoneDistribution(zoneDistribution);
 
-                ZoneDivisions division = entityManager.find(ZoneDivisions.class, divisionDto.getDivisionId());
+                Integer divisionIdToFind= divisionDto.getDivisionId();
+                String jpql = "SELECT z FROM ZoneDivisions z WHERE z.divisions.state_id = :divisionId";
+                ZoneDivisions division = entityManager.createQuery(jpql, ZoneDivisions.class)
+                        .setParameter("divisionId", divisionDto.getDivisionId())
+                        .getSingleResult();
+
                 if (division == null) {
-                    throw new IllegalArgumentException("Division not found with id: " + divisionDto.getDivisionId());
+                    throw new IllegalArgumentException("Division not found with id: " + divisionDto.getDivisionId().intValue());
                 }
                 divisionDist.setDivisions(division);
 
