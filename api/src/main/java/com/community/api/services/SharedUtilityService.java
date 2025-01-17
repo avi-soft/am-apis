@@ -236,69 +236,69 @@ public class SharedUtilityService {
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
 
         if(customCustomer.getHeightCms() != null) {
-            customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
+            customerDetails.put("heightCms", customCustomer.getHeightCms().toString());
         }else {
-            customerDetails.put("height_cms", customCustomer.getHeightCms());
+            customerDetails.put("heightCms", customCustomer.getHeightCms());
         }
 
         if(customCustomer.getWeightKgs() != null) {
-            customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
+            customerDetails.put("weightKgs", customCustomer.getWeightKgs().toString());
         }else {
-            customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
+            customerDetails.put("weightKgs", customCustomer.getWeightKgs());
         }
 
         if(customCustomer.getChestSizeCms() != null) {
-            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+            customerDetails.put("chestSizeCms", customCustomer.getChestSizeCms().toString());
         }else {
-            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
+            customerDetails.put("chestSizeCms", customCustomer.getChestSizeCms());
         }
 
         if(customCustomer.getShoeSizeInches() != null) {
-            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+            customerDetails.put("shoeSizeInches", customCustomer.getShoeSizeInches().toString());
         }else {
-            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
+            customerDetails.put("shoeSizeInches", customCustomer.getShoeSizeInches());
         }
 
         if(customCustomer.getWaistSizeCms() != null) {
-            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
+            customerDetails.put("waistSizeCms", customCustomer.getWaistSizeCms().toString());
         }else {
-            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+            customerDetails.put("waistSizeCms", customCustomer.getWaistSizeCms());
         }
 
-        customerDetails.put("can_swim", customCustomer.getCanSwim());
-        customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
-        customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
-        customerDetails.put("second_choice_exam_city", customCustomer.getSecondChoiceExamCity());
-        customerDetails.put("third_choice_exam_city", customCustomer.getThirdChoiceExamCity());
-        customerDetails.put("mphil_passed", customCustomer.getMphilPassed());
-        customerDetails.put("phd_passed", customCustomer.getPhdPassed());
-        customerDetails.put("number_of_attempts", customCustomer.getNumberOfAttempts());
-        customerDetails.put("category_valid_upto", customCustomer.getCategoryValidUpto());
+        customerDetails.put("canSwim", customCustomer.getCanSwim());
+        customerDetails.put("proficiencyInSportsNationalLevel", customCustomer.getProficiencyInSportsNationalLevel());
+        customerDetails.put("firstChoiceExamCity", customCustomer.getFirstChoiceExamCity());
+        customerDetails.put("secondChoiceExamCity", customCustomer.getSecondChoiceExamCity());
+        customerDetails.put("thirdChoiceExamCity", customCustomer.getThirdChoiceExamCity());
+        customerDetails.put("mphilPassed", customCustomer.getMphilPassed());
+        customerDetails.put("phdPassed", customCustomer.getPhdPassed());
+        customerDetails.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
+        customerDetails.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
         customerDetails.put("religion", customCustomer.getReligion());
-        customerDetails.put("belongs_to_minority", customCustomer.getBelongsToMinority());
-        customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
-        customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
-        customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
-        customerDetails.put("disability_handicapped", customCustomer.getDisability());
-        customerDetails.put("disability_type", customCustomer.getDisabilityType());
-        customerDetails.put("disability_percentage", customCustomer.getDisabilityPercentage());
-        customerDetails.put("is_ex_service_man", customCustomer.getExService());
-        customerDetails.put("is_married", customCustomer.getIsMarried());
-        customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
-        customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
-        customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
-        customerDetails.put("is_nss_certificate",customCustomer.getIs_nss_certificate());
-        customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
-        customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
-        customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
-        customerDetails.put("created_by_id",customCustomer.getCreatedById());
-        customerDetails.put("modified_by_role",customCustomer.getModifiedByRole());
-        customerDetails.put("modified_by_id",customCustomer.getModifiedById());
-        customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
-        customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
+        customerDetails.put("belongsToMinority", customCustomer.getBelongsToMinority());
+        customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
+        customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
+        customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
+        customerDetails.put("disabilityHandicapped", customCustomer.getDisability());
+        customerDetails.put("disabilityType", customCustomer.getDisabilityType());
+        customerDetails.put("disabilityPercentage", customCustomer.getDisabilityPercentage());
+        customerDetails.put("isExServiceMan", customCustomer.getExService());
+        customerDetails.put("isMarried", customCustomer.getIsMarried());
+        customerDetails.put("visibleIdentificationMark1", customCustomer.getIdentificationMark1());
+        customerDetails.put("visibleIdentificationMark2", customCustomer.getIdentificationMark2());
+        customerDetails.put("isNccCertificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("isNssCertificate",customCustomer.getIs_nss_certificate());
+        customerDetails.put("nccCertificate",customCustomer.getNcc_certificate());
+        customerDetails.put("nssCertificate",customCustomer.getNss_certificate());
+        customerDetails.put("createdByRole",customCustomer.getCreatedByRole());
+        customerDetails.put("createdById",customCustomer.getCreatedById());
+        customerDetails.put("modifiedByRole",customCustomer.getModifiedByRole());
+        customerDetails.put("modifiedById",customCustomer.getModifiedById());
+        customerDetails.put("registeredBySp",customCustomer.getRegisteredBySp());
+        customerDetails.put("interestedInDefence", customCustomer.getInterestedInDefence());
         customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
-        customerDetails.put("work_experience", customCustomer.getWorkExperience());
-        customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
+        customerDetails.put("workExperience", customCustomer.getWorkExperience());
+        customerDetails.put("sportCertificate", customCustomer.getSportCertificateId());
         customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
         customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
         customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
