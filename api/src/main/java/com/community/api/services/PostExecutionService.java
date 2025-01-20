@@ -37,7 +37,7 @@ public class PostExecutionService {
 
     @Transactional
     @Async("customAsyncExecutor")
-    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList, List<OtherItem> otherItemList) {
+    public void savePostsToCustomProduct(List<PostDto> postDto, Product product, List<Post> postList) {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -51,7 +51,6 @@ public class PostExecutionService {
         postList = postList.stream()
                 .map(post -> entityManager.contains(post) ? post : entityManager.merge(post))
                 .collect(Collectors.toList());
-        productService.setMappedProductWithPost(customProduct,postList,otherItemList);
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);
 
