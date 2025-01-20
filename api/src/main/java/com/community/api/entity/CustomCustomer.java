@@ -166,6 +166,12 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "domicile")
     private Boolean domicile = false;
 
+    @Column(name = "domicile_issue_date")
+    private java.sql.Date domicileIssueDate;
+
+    @Column(name = "domicile_valid_upto")
+    private java.sql.Date domicileValidUpto;
+
     @Nullable
     @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
     @Column(name = "secondary_mobile_number")

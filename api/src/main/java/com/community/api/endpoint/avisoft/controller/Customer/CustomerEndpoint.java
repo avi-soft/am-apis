@@ -855,6 +855,66 @@ public class CustomerEndpoint {
             }
             details.remove("isOtherOrStateCategory");
 
+            if (details.containsKey("domicile")) {
+                Boolean domicile = (Boolean) details.get("domicile");
+                if (domicile.equals(true)) {
+                    if(!details.containsKey("domicileIssueDate"))
+                    {
+                        return ResponseService.generateErrorResponse("You have to enter date of issue for domicile", HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("domicileIssueDate") && details.get("domicileIssueDate").toString().trim().isEmpty())
+                    {
+                        return ResponseService.generateErrorResponse("domicile DateOfIssue cannot be empty ",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("domicileValidUpto"))
+                    {
+                        String validUpto= (String) details.get("domicileValidUpto");
+                        if(validUpto.trim().isEmpty())
+                        {
+                            customCustomer.setDomicileValidUpto(null);
+                            validateDate((String) details.get("domicileIssueDate"),null,dateFormat);
+                        }
+                        else {
+                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"),dateFormat);
+                            customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"),dateFormat));
+                        }
+                    }
+                    else {
+                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"),dateFormat);
+                    }
+                    customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
+                } else if (domicile.equals(false)) {
+                    if(details.containsKey("domicileIssueDate"))
+                    {
+                        return ResponseService.generateErrorResponse("domicileIssueDate key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("domicileState"))
+                    {
+                        return ResponseService.generateErrorResponse("domicileState key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("domicileValidUpto"))
+                    {
+                        return ResponseService.generateErrorResponse("domicileValidUpto key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setDomicileState(null);
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(10)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                    customCustomer.setDomicileIssueDate(null);
+                    customCustomer.setDomicileValidUpto(null);
+                }
+                customCustomer.setDomicile(domicile);
+            }
+            details.remove("domicile");
+
             if (details.containsKey("isMinority")) {
                 Boolean isMinority = (Boolean) details.get("isMinority");
                 if (isMinority.equals(false)) {

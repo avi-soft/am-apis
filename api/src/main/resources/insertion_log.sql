@@ -1200,7 +1200,7 @@ END IF;
             (7, 'Address_Certificate', 'Verifies an individual’s residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26),
             (8, 'Income_Certificate', 'Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27),
             (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28),
-            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, FALSE, FALSE, 9),
+            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, TRUE, FALSE, 9),
             (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities; "person with a disability" is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10),
             (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25),
             (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '200KB', '100KB', FALSE, FALSE, FALSE, 100),
