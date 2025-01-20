@@ -35,6 +35,7 @@ import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Post;
+import com.community.api.entity.OtherDistribution;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
@@ -2611,9 +2612,7 @@ public class ProductService {
         }
     }
 
-    public List<OtherItem> validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
-        List<OtherItem> otherItemsToSave= new ArrayList<>();
-        OtherItem otherItemToSave=null;
+    public boolean validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
 
         if(addProductDto.getIsMultiplePostSameFee()!=null)
@@ -2642,8 +2641,7 @@ public class ProductService {
                 }
                   else if(distributionTypes.contains(4))
                 {
-                    otherItemToSave =validateOtherVacancyDistribution(postDto,roleId,userId);
-                    otherItemsToSave.add(otherItemToSave);
+                    validateOtherVacancyDistribution(postDto);
                 }
             }
             if(postDto.getPhysicalRequirements()!=null)
@@ -2658,7 +2656,7 @@ public class ProductService {
                 }
             }
         }
-        return otherItemsToSave;
+        return true;
     }
     private void validatePostBasics(PostDto postDto) {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
@@ -3052,7 +3050,10 @@ public class ProductService {
         if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()) ) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
@@ -3067,7 +3068,10 @@ public class ProductService {
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution())) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
@@ -3082,6 +3086,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         // Additional validation for category distributions when type is 3
         List<CategoryDistributionDto> categoryDtos = genderDto.getCategoryDistributionDtos();
@@ -3107,6 +3114,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         Long postTotalVacancies = postDto.getPostTotalVacancies();
         boolean isGenderWise = Boolean.TRUE.equals(genderDto.getIsGenderWise());
@@ -3140,38 +3150,44 @@ public class ProductService {
         }
     }
 
-    public OtherItem validateOtherVacancyDistribution(PostDto postDto, Integer roleId,Long userId)
-    {
-        if(postDto.getStateDistributions()!=null && !postDto.getStateDistributions().isEmpty())
+    public void validateOtherVacancyDistribution(PostDto postDto) {
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if(postDto.getGenderWiseDistribution()!=null&& !isDtoEmpty(postDto.getGenderWiseDistribution()))
         {
-            throw new IllegalArgumentException("State distribution cannot be given if the vacancy distribution type is OTHERS");
+            throw new IllegalArgumentException("You cannot distribute vacancies category wise");
+        }
+        List<OtherDistribution> otherDistributions = postDto.getOtherDistributions();
+
+        // Check if the list is empty
+        if (otherDistributions == null || otherDistributions.isEmpty()) {
+            throw new IllegalArgumentException("OtherDistribution list cannot be empty for VacancyTypeId 4.");
         }
 
-        if(postDto.getZoneDistributions()!=null && !postDto.getZoneDistributions().isEmpty())
-        {
-            throw new IllegalArgumentException("Zone distribution cannot be given if the vacancy distribution type is OTHERS");
+        long totalVacanciesSum = 0L;
+
+        // Validate each OtherDistribution in the list
+        for (OtherDistribution distribution : otherDistributions) {
+            if (distribution.getOtherDistributionValue() == null || distribution.getOtherDistributionValue().isEmpty()) {
+                throw new IllegalArgumentException("OtherDistributionValue cannot be null or empty.");
+            }
+
+            if (distribution.getTotalVacancy() == null) {
+                throw new IllegalArgumentException("TotalVacancy cannot be null.");
+            }
+
+            // Add the totalVacancy to the sum
+            totalVacanciesSum += distribution.getTotalVacancy();
         }
 
-        if(postDto.getGenderWiseDistribution()!=null && !isDtoEmpty(postDto.getGenderWiseDistribution()))
-        {
-            throw new IllegalArgumentException("Category distribution cannot be given if the vacancy distribution type is OTHERS");
+        // Check if the sum matches postTotalVacancies
+        if (totalVacanciesSum != postDto.getPostTotalVacancies()) {
+            throw new IllegalArgumentException("The sum of total vacancies in OtherDistributions must equal PostTotalVacancies.");
         }
-        if(postDto.getOtherVacancyDistribution()==null)
-        {
-            throw new IllegalArgumentException("You have to enter a text field for other vacancy distribution in post with name "+ postDto.getPostName());
-        }
-        if(postDto.getOtherVacancyDistribution().trim().isEmpty())
-        {
-            throw new IllegalArgumentException("The text field cannot be empty for adding other vacancy distribution in post with name "+ postDto.getPostName());
-        }
-        OtherItem otherItem =new OtherItem();
-        otherItem.setTyped_text(postDto.getOtherVacancyDistribution());
-        otherItem.setField_name("vacancy_distribution");
-        otherItem.setSource_name("add_product");
-        otherItem.setRole_id(roleId);
-        otherItem.setUser_id(userId);
-        entityManager.persist(otherItem);
-        return otherItem;
     }
 
     private boolean isDtoEmpty(Object dto) {
@@ -3250,46 +3266,5 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
-    }
-
-    public void setMappedProductWithPost(CustomProduct customProduct,List<Post> postList,List<OtherItem> otherItemList)
-    {
-        // Clear existing other items
-        if (customProduct.getOtherItems() != null) {
-            customProduct.getOtherItems().clear();
-            entityManager.merge(customProduct);
-            entityManager.flush();
-        }
-
-        int otherItemIndex = 0;
-        for (Post post : postList) {
-            if (post.getVacancyDistributionTypes().get(0).getVacancyDistributionTypeId().equals(4)) {
-                if (otherItemIndex < otherItemList.size()) {
-                    OtherItem otherItem = otherItemList.get(otherItemIndex);
-
-                    // Set relationships
-                    otherItem.setCustomProduct(customProduct);
-
-                    // Fetch and update the post
-                    Post managedPost = entityManager.find(Post.class, post.getPostId());
-                    otherItem.setPost(managedPost);
-
-                    // Save the other item
-                    entityManager.merge(otherItem);
-
-                    // Update directly in the database
-                    entityManager.createNativeQuery(
-                                    "UPDATE other_item SET post_id = :postId, product_id = :productId WHERE other_item_id = :itemId")
-                            .setParameter("postId", managedPost.getPostId())
-                            .setParameter("productId", customProduct.getId())
-                            .setParameter("itemId", otherItem.getOther_item_id())
-                            .executeUpdate();
-
-                    otherItemIndex++;
-                }
-            }
-        }
-
-        entityManager.flush();
     }
 }

@@ -10,8 +10,6 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.OtherItem;
-import com.community.api.entity.Qualification;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
@@ -291,14 +289,13 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             List<Post> postList= new ArrayList<>();
-            List<OtherItem> otherItemList=null;
             if (!saveDraft) {
                 if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                   otherItemList= productService.validatePostRequirement(addProductDto, roleId,userId);
+                   productService.validatePostRequirement(addProductDto, roleId,userId);
                    postList= postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
-                otherItemList= productService.validatePostRequirement(addProductDto, roleId,userId);
+                productService.validatePostRequirement(addProductDto, roleId,userId);
                 postList=postService.savePosts(addProductDto.getPosts(), product);
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
@@ -310,7 +307,7 @@ public class ProductController extends CatalogEndpoint {
                     {
                         totalPostInProduct+=post.getPostTotalVacancies();
                     }
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItemList);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
                 }
                 wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
             }
@@ -321,7 +318,7 @@ public class ProductController extends CatalogEndpoint {
                     {
                         totalPostInProduct+=post.getPostTotalVacancies();
                     }
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList,otherItemList);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
                 }
                 if(reserveCategoryService!=null)
                 {
@@ -334,7 +331,7 @@ public class ProductController extends CatalogEndpoint {
             }
             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
-                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList,otherItemList);
+                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
             return response;
 
@@ -453,7 +450,6 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
             }
 
-            List<OtherItem> otherItemList=new ArrayList<>();
             List<Post> postList= new ArrayList<>();
             if(addProductDto.getPosts() != null) {
                 if(!addProductDto.getPosts().isEmpty()) {
@@ -485,7 +481,7 @@ public class ProductController extends CatalogEndpoint {
                     entityManager.flush();
 
                     // Add new posts
-                    otherItemList = productService.validatePostRequirement(addProductDto, roleId, userId);
+                    productService.validatePostRequirement(addProductDto, roleId, userId);
                     postList = postService.savePosts(addProductDto.getPosts(), product);
 
                     // Set the relationships for new posts
@@ -500,7 +496,6 @@ public class ProductController extends CatalogEndpoint {
                     entityManager.flush();
                 }
 
-                productService.setMappedProductWithPost(customProduct, postList, otherItemList);
                 postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
                 postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
             }
@@ -869,12 +864,12 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setPostId(post.getPostId());
             postProjectionDTO.setPostName(post.getPostName());
             postProjectionDTO.setPostCode(post.getPostCode());
-            postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
             postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
             postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
             postProjectionDTO.setStateDistributions(post.getStateDistributions());
             postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
             postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
+            postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {

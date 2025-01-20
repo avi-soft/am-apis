@@ -44,9 +44,6 @@ public class Post {
     @Column(name = "post_code")
     private String postCode;
 
-    @Column(name = "other_vacancy_distribution", columnDefinition = "text")
-    private String otherVacancyDistribution;
-
     @ManyToMany
     @JoinTable(
             name = "post_vacancy_distribution_type",
@@ -86,7 +83,6 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL/*,fetch = FetchType.EAGER*/)
     private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
-    private List<OtherItem> otherItems = new ArrayList<>();
-
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+    private List<OtherDistribution> otherDistributions = new ArrayList<>();
 }

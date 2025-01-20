@@ -1,6 +1,7 @@
 
 package com.community.api.services;
 import javax.persistence.EntityManager;
+import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -163,7 +164,6 @@ public class PostService {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
-        post.setOtherVacancyDistribution(postDto.getOtherVacancyDistribution());
         if (postDto.getPostCode() != null) {
             post.setPostCode(postDto.getPostCode());
         }
@@ -295,6 +295,12 @@ public class PostService {
         }
 
         entityManager.refresh(post);
+        if (postDto.getVacancyDistributionTypeIds() != null && postDto.getVacancyDistributionTypeIds().contains(4)) {
+            if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+                List<OtherDistribution> otherDistributions = saveOtherDistributions(postDto.getOtherDistributions(), post);
+                post.setOtherDistributions(otherDistributions);
+            }
+        }
 
         return post;
     }
@@ -332,6 +338,55 @@ public class PostService {
 
         return stateDistributions;
     }
+
+    private List<OtherDistribution> saveOtherDistributions(List<OtherDistribution> otherDistributions, Post post) {
+        if (otherDistributions == null || post == null) {
+            throw new IllegalArgumentException("Other distributions and post must not be null");
+        }
+
+        List<OtherDistribution> savedOtherDistributions = new ArrayList<>();
+
+        for (OtherDistribution otherDistributionEntity : otherDistributions) {
+            if (otherDistributionEntity == null) {
+                continue;  // Skip null entries
+            }
+
+            try {
+                OtherDistribution otherDistribution = new OtherDistribution();
+                otherDistribution.setPost(post);
+
+                // Validate and set total vacancy
+                Long totalVacancy = otherDistributionEntity.getTotalVacancy();
+                if (totalVacancy != null && totalVacancy >= 0) {
+                    otherDistribution.setTotalVacancy(totalVacancy);
+                } else {
+                    throw new IllegalArgumentException("Total vacancy must be non-negative");
+                }
+
+                // Validate and set distribution value
+                String distributionValue = otherDistributionEntity.getOtherDistributionValue();
+                if (distributionValue != null && !distributionValue.trim().isEmpty()) {
+                    otherDistribution.setOtherDistributionValue(distributionValue.trim());
+                } else {
+                    throw new IllegalArgumentException("Distribution value must not be empty");
+                }
+
+                entityManager.persist(otherDistribution);
+                entityManager.flush();  // Flush after each persist to catch constraints early
+                savedOtherDistributions.add(otherDistribution);
+
+            } catch (ConstraintViolationException e) {
+                throw new IllegalStateException("Constraint violation while saving other distribution: " +
+                        otherDistributionEntity.getOtherDistributionValue(), e);
+            } catch (Exception e) {
+                throw new IllegalStateException("Error saving other distribution: " +
+                        otherDistributionEntity.getOtherDistributionValue(), e);
+            }
+        }
+
+        return savedOtherDistributions;
+    }
+
 
     private Integer calculateDistrictBasedStateVacancies(StateDistributionDto stateDto) {
         return stateDto.getDistrictDistributions().stream()

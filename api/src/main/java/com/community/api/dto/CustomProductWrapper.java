@@ -178,7 +178,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
-                postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
+                postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());

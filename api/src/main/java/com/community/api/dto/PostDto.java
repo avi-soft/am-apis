@@ -1,6 +1,7 @@
 package com.community.api.dto;
 
 import com.community.api.entity.AddProductAgeDTO;
+import com.community.api.entity.OtherDistribution;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -16,7 +17,6 @@ public class PostDto {
     private String postName;
     private Long postTotalVacancies;
     private String postCode;
-    private String otherVacancyDistribution;
     private List<Integer> vacancyDistributionTypeIds;
     private List<StateDistributionDto> stateDistributions;
     private List<ZoneDistributionDto> zoneDistributions;
@@ -25,4 +25,5 @@ public class PostDto {
     List<AddProductAgeDTO>reserveCategoryAge;
     private QualificationEligibilityDto qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
+    private List<OtherDistribution> otherDistributions = new ArrayList<>();
 }
