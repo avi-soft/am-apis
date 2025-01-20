@@ -17,7 +17,6 @@ public class PostDto {
     private String postName;
     private Long postTotalVacancies;
     private String postCode;
-    private String otherVacancyDistribution;
     private List<Integer> vacancyDistributionTypeIds;
     private List<StateDistributionDto> stateDistributions;
     private List<ZoneDistributionDto> zoneDistributions;

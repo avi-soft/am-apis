@@ -3032,6 +3032,9 @@ public class ProductService {
         if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
         }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
         if (postDto.getGenderWiseDistribution() != null ) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
@@ -3046,6 +3049,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         if (postDto.getGenderWiseDistribution() != null ) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
@@ -3062,6 +3068,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         // Additional validation for category distributions when type is 3
         List<CategoryDistributionDto> categoryDtos = genderDto.getCategoryDistributionDtos();
@@ -3087,6 +3096,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         Long postTotalVacancies = postDto.getPostTotalVacancies();
         boolean isGenderWise = Boolean.TRUE.equals(genderDto.getIsGenderWise());
@@ -3121,6 +3133,16 @@ public class ProductService {
     }
 
     public void validateOtherVacancyDistribution(PostDto postDto) {
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if(postDto.getGenderWiseDistribution()!=null)
+        {
+            throw new IllegalArgumentException("You cannot distribute vacancies category wise");
+        }
         List<OtherDistribution> otherDistributions = postDto.getOtherDistributions();
 
         // Check if the list is empty
@@ -3228,4 +3250,3 @@ public class ProductService {
         }
     }
 }
-// git add

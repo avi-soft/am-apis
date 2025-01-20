@@ -10,8 +10,6 @@ import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
-import com.community.api.entity.OtherItem;
-import com.community.api.entity.Qualification;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
@@ -452,7 +450,6 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
             }
 
-            List<OtherItem> otherItemList=new ArrayList<>();
             List<Post> postList= new ArrayList<>();
             if(addProductDto.getPosts() != null) {
                 if(!addProductDto.getPosts().isEmpty()) {
@@ -867,12 +864,12 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setPostId(post.getPostId());
             postProjectionDTO.setPostName(post.getPostName());
             postProjectionDTO.setPostCode(post.getPostCode());
-            postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
             postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
             postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
             postProjectionDTO.setStateDistributions(post.getStateDistributions());
             postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
             postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
+            postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {

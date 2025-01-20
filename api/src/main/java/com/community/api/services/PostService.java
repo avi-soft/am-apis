@@ -164,7 +164,6 @@ public class PostService {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
-        post.setOtherVacancyDistribution(postDto.getOtherVacancyDistribution());
         if (postDto.getPostCode() != null) {
             post.setPostCode(postDto.getPostCode());
         }
