@@ -39,11 +39,13 @@ import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
+import static com.community.api.component.Constant.request;
+import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
+import static elemental2.core.JsRegExp.input;
 
 @RestController
 @RequestMapping(value = "/advertisement", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -204,15 +206,19 @@ public class AdvertisementController {
     }
 
     @GetMapping("/get-all-advertisement-by-categoryId")
-    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false) List<Long> categories){
+    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false)String categories){
 
         try {
-
+            List<Long> longList = Arrays.stream(categories.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, categories);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList);
+            for (Advertisement advertisement:advertisements)
+
 
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);

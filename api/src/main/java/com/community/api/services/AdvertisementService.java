@@ -131,7 +131,6 @@ public class AdvertisementService {
             } else {
                 return null;
             }
-
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return null;
