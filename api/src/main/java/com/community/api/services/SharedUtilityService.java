@@ -319,6 +319,8 @@ public class SharedUtilityService {
         customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
         customerDetails.put("isMinority",customCustomer.getIsMinority());
         customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
+        customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
