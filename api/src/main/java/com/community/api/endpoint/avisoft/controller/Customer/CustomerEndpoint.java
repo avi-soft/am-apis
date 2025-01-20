@@ -797,6 +797,14 @@ public class CustomerEndpoint {
                     {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
+                    if(details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty())
+                    {
+                        return ResponseService.generateErrorResponse("other or state Category value cannot be empty ",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty())
+                    {
+                        return ResponseService.generateErrorResponse("otherCategory DateOfIssue cannot be empty ",HttpStatus.BAD_REQUEST);
+                    }
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
                         String validUpto= (String) details.get("otherCategoryValidUpto");
@@ -816,6 +824,18 @@ public class CustomerEndpoint {
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
                     customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
                 } else if (isOtherCategory.equals(false)) {
+                   if(details.containsKey("otherOrStateCategory"))
+                    {
+                        return ResponseService.generateErrorResponse("otherOrStateCategory cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("otherCategoryDateOfIssue"))
+                    {
+                        return ResponseService.generateErrorResponse("otherCategoryDateOfIssue key cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    }
+                    if(details.containsKey("otherCategoryValidUpto"))
+                    {
+                        return ResponseService.generateErrorResponse("otherCategoryValidUpto key cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    }
                     customCustomer.setOtherOrStateCategory(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
