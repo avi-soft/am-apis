@@ -17,7 +17,25 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
-import com.community.api.entity.*;
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.Districts;
+import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomGender;
+import com.community.api.entity.StateCode;
+import com.community.api.entity.Privileges;
+import com.community.api.entity.Role;
+import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.CustomJobGroup;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSector;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.Post;
+import com.community.api.entity.OtherDistribution;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
@@ -3035,7 +3053,7 @@ public class ProductService {
         if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot give other distributions");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()) ) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
@@ -3053,7 +3071,7 @@ public class ProductService {
         if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot give other distributions");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution())) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
@@ -3139,7 +3157,7 @@ public class ProductService {
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
         }
-        if(postDto.getGenderWiseDistribution()!=null)
+        if(postDto.getGenderWiseDistribution()!=null&& !isDtoEmpty(postDto.getGenderWiseDistribution()))
         {
             throw new IllegalArgumentException("You cannot distribute vacancies category wise");
         }
