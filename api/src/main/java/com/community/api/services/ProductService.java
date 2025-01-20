@@ -3172,7 +3172,7 @@ public class ProductService {
 
         // Validate each OtherDistribution in the list
         for (OtherDistribution distribution : otherDistributions) {
-            if (distribution.getOtherDistributionValue() == null || distribution.getOtherDistributionValue().isEmpty()) {
+            if (distribution.getOtherDistributionValue() == null || distribution.getOtherDistributionValue().trim().isEmpty()) {
                 throw new IllegalArgumentException("OtherDistributionValue cannot be null or empty.");
             }
 
