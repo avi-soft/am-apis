@@ -109,24 +109,24 @@ public class ServiceProviderEntity  {
     @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isArchived = false;
     @Size(min = 9, max = 13)
-    private String mobileNumber;
+    public String mobileNumber;
     private String otp;
     @Nullable
     @Size(min = 9, max = 13)
     @Pattern(regexp="^[6789]\\d{9,13}$",message = "Mobile number should be 10 digits in length and should begin with either 6,7,8,9")
-    private String secondary_mobile_number;
+    public String secondary_mobile_number;
     private int role;
     @Size(min = 9, max = 13)
     @Pattern(regexp = "^\\d{9,13}$", message = "WhatsApp number should be between 9 and 13 digits in length")
-    private String whatsapp_number;
+    public String whatsapp_number;
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
-    private String primary_email;
+    public String primary_email;
 
     @Nullable
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Please enter a valid email address.")*/
-    private String secondary_email;
+    public String secondary_email;
     @JsonIgnore
     private String password;
     @Nullable
@@ -260,7 +260,7 @@ public class ServiceProviderEntity  {
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceProviderAcceptedOrders> acceptedOrders;
-    @Column(name="is_active")
+    @Column(name="is_active",columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isActive;
 
     @Column(name="maximum_ticket_size")

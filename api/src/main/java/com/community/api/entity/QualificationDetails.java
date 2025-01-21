@@ -1,5 +1,6 @@
 package com.community.api.entity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.utils.CustomDateDeserializer;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -7,9 +8,10 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import java.util.ArrayList;
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Fetch;
@@ -36,7 +38,6 @@ import javax.validation.constraints.Size;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Max;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -50,13 +51,14 @@ public class QualificationDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
 
-    @NotNull(message = "institution id is required")
-    @Column(name = "institution_id", nullable = false)
-    private Long institution_id;
+    @NotNull(message = "Institution is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id", nullable = false)
+    private Institution institution;
 
     @NotNull(message = "Date of passing is required")
     @Column(name = "date_of_passing", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
+    @JsonDeserialize(using = CustomDateDeserializer.class)
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
@@ -80,6 +82,18 @@ public class QualificationDetails {
     @NotNull(message = "marks obtained cannot be null")
     @Column(name = "marks_obtained", nullable = false)
     private String marks_obtained;
+
+    @Column(name = "is_grade",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_grade;
+
+    @Column(name = "grade_value")
+    private String grade_value;
+
+    @Column(name = "is_division", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean is_division;
+
+    @Column(name = "division_value")
+    private String division_value;
 
     @NotNull(message = "Qualification id is required")
     @Column(name = "qualification_id", nullable = false)
@@ -120,7 +134,7 @@ public class QualificationDetails {
     private ServiceProviderEntity service_provider;
 
     @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Document document;
+    private Document qualificationDocument;
 
     @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
     private ServiceProviderDocument serviceProviderDocument;
@@ -133,5 +147,12 @@ public class QualificationDetails {
             inverseJoinColumns = @JoinColumn(name = "other_item_id")
     )
     private List<OtherItem> otherItems = new ArrayList<>();
+
+    @JsonSetter("institution_id")
+    public void setInstitutionById(Long institutionId) {
+        // Temporarily store institutionId (to be processed in the service layer)
+        this.institution = new Institution();
+        this.institution.setInstitution_id(institutionId);
+    }
 
 }

@@ -36,6 +36,7 @@ import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
+import org.glassfish.jaxb.core.v2.TODO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -230,7 +231,10 @@ public class OrderController {
             CustomServiceProviderTicket customServiceProviderTicket = null;
             for (BigInteger orderId : orders) {
                 try {
+                    System.out.println("start");
                     Order order = orderService.findOrderById(orderId.longValue());
+                    if(order.getTaxOverride())//a way to archive old orders
+                        continue;
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                     Customer customer = customerService.readCustomerById(order.getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -238,7 +242,8 @@ public class OrderController {
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
                         query.setParameter("orderId", order.getId());
-                        BigInteger id = (BigInteger) query.getSingleResult();
+                        System.out.println("order-id"+order.getId());
+                        Integer id =query.getFirstResult(); //@TODO-multiple enteries
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
@@ -247,7 +252,9 @@ public class OrderController {
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
+                    System.out.println("end");
                 } catch (NullPointerException e) {
+                    exceptionHandling.handleException(e);
                     continue;
                 }
             }

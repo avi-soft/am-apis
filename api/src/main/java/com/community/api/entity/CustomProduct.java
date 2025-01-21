@@ -9,6 +9,7 @@ import org.springframework.lang.Nullable;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
@@ -38,11 +39,6 @@ public class CustomProduct extends ProductImpl {
     @Min(value = 1, message = "Value must be between 1 and 5")
     @Max(value = 5, message = "Value must be between 1 and 5")
     protected Integer priorityLevel;
-
-    @ManyToOne
-    @NotNull
-    @JoinColumn(name = "job_group_id")
-    protected CustomJobGroup jobGroup;
 
     @Column(name = "platform_fee")
     protected Double platformFee;
@@ -75,10 +71,6 @@ public class CustomProduct extends ProductImpl {
     @ManyToOne
     @JoinColumn(name = "state_id")
     protected StateCode state;
-
-    @NotNull
-    @Column(name = "advertiser_url")
-    protected String advertiserUrl;
 
     @Column(name = "domicile_required")
     protected Boolean domicileRequired;
@@ -122,39 +114,16 @@ public class CustomProduct extends ProductImpl {
     @Max(value = 5, message = "Value must be between 1 and 5")
     protected Long formComplexity;
 
-    @NotNull
-    @ManyToOne
-    @JoinColumn(name = "qualification_id")
-    protected Qualification qualification;
-
-    @ManyToOne
-    @JoinColumn(name = "stream_id")
-    protected CustomStream stream;
-
-    @ManyToOne
-    @JoinColumn(name = "subject_id")
-    protected CustomSubject subject;
-
-    @ManyToOne
-    @JoinColumn(name = "gender_specific_id")
-    protected CustomGender genderSpecific;
-
-    @Column(name = "selection_criteria")
+    @Column(name = "selection_criteria", columnDefinition = "text")
     protected String selectionCriteria;
 
     @ManyToOne
     @JoinColumn(name = "sector_id")
     protected CustomSector sector;
 
-    @Column(name = "notifying_authority")
-    protected String notifyingAuthority;
-
     @NotNull
     @Column(name = "created_date")
     protected Date createdDate;
-
-    @Column(name = "post_name")
-    protected String postName;
 
     @Column(name = "is_review_required")
     protected Boolean isReviewRequired;
@@ -164,6 +133,16 @@ public class CustomProduct extends ProductImpl {
     private List<OtherItem> otherItems = new ArrayList<>();
 
     @ManyToOne
-    @JoinColumn(name = "advertisement")
+    @JoinColumn(name = "advertisement_id")
     protected Advertisement advertisement;
+
+    @Column(name = "is_multiple_post_same_fee",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    protected Boolean isMultiplePostSameFee;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Post> posts;
+
+    @Column(name = "totalVacanciesInProduct")
+    protected Long totalVacanciesInProduct;
+
 }

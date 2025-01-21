@@ -124,6 +124,7 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -346,7 +347,7 @@ public class ServiceProviderController {
 
             if(mobileNumber!=null&&!mobileNumber.isEmpty()&& serviceProviderService.isValidMobileNumber(mobileNumber))
             {
-                return ResponseService.generateSuccessResponse("Service Provider",serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id),HttpStatus.OK);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
             }
 
             if(full_name!=null) {

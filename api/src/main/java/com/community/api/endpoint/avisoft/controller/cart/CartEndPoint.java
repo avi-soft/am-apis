@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.cart;
 
 import com.broadleafcommerce.rest.api.endpoint.BaseEndpoint;
 import com.community.api.component.Constant;
+import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -11,6 +12,7 @@ import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
+import com.community.api.entity.Post;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -19,6 +21,8 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderAttribute;
+import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
@@ -33,14 +37,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
@@ -53,6 +61,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import static com.community.api.component.Constant.ORDER_STATE_NEW;
 
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
@@ -74,12 +84,21 @@ public class CartEndPoint extends BaseEndpoint {
     private ReserveCategoryService reserveCategoryService;
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
     private OrderDTOService orderDTOService;
+    private GenderService genderService;
 
     // Setter-based injection
     @Autowired
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    public void setGenderService(GenderService genderService) {
+        this.genderService = genderService;
+    }
+    @Autowired
+    private CustomerEndpoint customerEndpoint;
     @Autowired
     public void setOrderDTOService(OrderDTOService orderDTOService) {
         this.orderDTOService = orderDTOService;
@@ -193,7 +212,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
-    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId) {
+    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId,@RequestBody Map<String,Object>map) {
         try {
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
@@ -219,6 +238,9 @@ public class CartEndPoint extends BaseEndpoint {
                         HttpStatus.BAD_REQUEST
                 );
             }
+            List<Long>postPreference=getLongList(map,"postPreference");
+            if(postPreference.isEmpty())
+                return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null) {
                 cart = orderService.createNewCartForCustomer(customer);
@@ -233,15 +255,11 @@ public class CartEndPoint extends BaseEndpoint {
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
             if(reserveCategoryId==null)
                 return ResponseService.generateErrorResponse("Invalid Category",HttpStatus.INTERNAL_SERVER_ERROR);
-            if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null)
-                return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category",HttpStatus.UNPROCESSABLE_ENTITY);
-            if(customProduct.getGenderSpecific()!=null)
-            {
-                if(!customCustomer.getGender().equalsIgnoreCase(customProduct.getGenderSpecific().getGenderName()))
-                {
-                    return ResponseService.generateErrorResponse("Cannot add product to cart: Product not specified for gender "+ customCustomer.getGender(),HttpStatus.BAD_REQUEST);
-                }
-            }
+            double noReserveCategoryFee=0.0;
+            /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null) {
+                //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
+                noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L);//1 for general
+            }*/
 
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {
@@ -258,6 +276,34 @@ public class CartEndPoint extends BaseEndpoint {
             orderItemRequest.setItemName(product.getName());
             Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
             atrtributes.put("productId", product.getId().toString());
+            List<Long>actualPostIds=new ArrayList<>();
+            for(Post post:customProduct.getPosts())
+            {
+                actualPostIds.add(post.getPostId());
+            }
+            if(customProduct.getPosts().size()>=2)
+            {
+                for(Long pId:postPreference)
+                {
+                    if(!actualPostIds.contains(pId))
+                        return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+                }
+                if(postPreference.size()<1)
+                    return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
+                if(postPreference.size()>customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
+                String postPreferenceString = postPreference.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                atrtributes.put("postPreference", postPreferenceString);
+            } else {
+                postPreference.removeAll(postPreference);
+                postPreference.add(customProduct.getPosts().get(0).getPostId());
+                String postPreferenceString = postPreference.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                atrtributes.put("postPreference",postPreferenceString);
+            }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
             List<OrderItem> items = cart.getOrderItems();
@@ -315,27 +361,28 @@ public class CartEndPoint extends BaseEndpoint {
 
     @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
+    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall",required = false,defaultValue = "false")boolean inFunctionCall) {
         try {
+            Customer customer = customerService.readCustomerById(customerId);
+            Order cart = orderService.findCartForCustomer(customer);
+            if (cart == null)
+                return ResponseService.generateErrorResponse("Cart not activated", HttpStatus.OK);
             double productFee=0.0;
+            Double individualFee=0.0;
             List<OrderItem>archievedItems=new ArrayList<>();
             Long id = Long.valueOf(customerId);
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
             Double subTotal = 0.0;
-            Double platformfee=100.0;
+            Double platformfee=10.0;
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            Customer customer = customerService.readCustomerById(customerId);
-
             if (customer == null) {
                 return ResponseService.generateErrorResponse("customer does not exist", HttpStatus.NOT_FOUND);
             }
                 CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-            Order cart = orderService.findCartForCustomer(customer);
-            if (cart == null)
-                return ResponseService.generateErrorResponse("Cart not found", HttpStatus.NOT_FOUND);
+            Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();;
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
@@ -349,10 +396,17 @@ public class CartEndPoint extends BaseEndpoint {
                             archievedItems.add(orderItem);
                             continue;
                         }
-                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer);
+                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                         products.add(productDetails);
-                        productFee=productFee+productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
-                    }
+                        individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        if(individualFee==null)
+                            individualFee=0.0;
+                        if(individualFee==null)
+                            //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
+                            individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        }
+                        productFee=productFee+individualFee;
+
                 }
                 subTotal=orderItemList.size()*platformfee+productFee;
                 response.put("cart_id", cart.getId());
@@ -365,9 +419,12 @@ public class CartEndPoint extends BaseEndpoint {
                     cart.getOrderItems().remove(orderItem);
                 }
                 archievedItems.clear();
-                return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                if(!inFunctionCall)
+                    return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                else
+                    return ResponseService.generateSuccessResponse("Cart items after modifying post preference", response, HttpStatus.OK);
             } else
-                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
         }catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -397,7 +454,7 @@ public class CartEndPoint extends BaseEndpoint {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null || cart.getOrderItems() == null) {
-                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.OK);
             }
             OrderItem orderItemToRemove=null;
             for(OrderItem orderItem:cart.getOrderItems())
@@ -503,20 +560,30 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
-                    Double platformFee=productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId()).getFee();
-                    if(platformFee==null)
-                        platformFee=0.0;
+                    Double platformFee=10.0;
                     Money subTotal=new Money(platformFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-"+customer.getId()+"-B-"+batchNumber);
-                    Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId());
-                    totalCost=totalCost+platformFee;
+                    Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());
+                    if(totalCost==null) {
+                        //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
+
+                        totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    if(totalCost==null)
+                        totalCost=0.0;
+                    }totalCost=totalCost+platformFee;
                     Money total=new Money(totalCost);
                     individualOrder.setTotal(total);
                     LocalDateTime localDateTime = LocalDateTime.now();
                     Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
                     individualOrder.setSubmitDate(date);
                     individualOrder.setSubmitDate(date);
+                    String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    OrderAttributeImpl orderAttribute=new OrderAttributeImpl();
+                    orderAttribute.setOrder(individualOrder);
+                    orderAttribute.setName("postPreference");
+                    orderAttribute.setValue(retrievedPostPreferenceString);
+                    individualOrder.getOrderAttributes().put("sorted",orderAttribute);
                     entityManager.merge(individualOrder);
                     CustomOrderState orderState=new CustomOrderState();
                     orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
@@ -525,8 +592,8 @@ public class CartEndPoint extends BaseEndpoint {
                     orderState.setOrderStatusId(orderStatusId);
                     orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
+                    customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
                     individualOrders.add(individualOrder);
-            
                 }
             }
                 responseMap.put("Orders", individualOrders);
@@ -583,7 +650,7 @@ public class CartEndPoint extends BaseEndpoint {
                 List<Map<String,Object>>productList=new ArrayList<>();
                 for(Product product:customCustomer.getCartRecoveryLog())
                 {
-                    productList.add(sharedUtilityService.createProductResponseMap(product,null,customCustomer));
+                    productList.add(sharedUtilityService.createProductResponseMap(product,null,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId()));
                 }
                 return ResponseService.generateSuccessResponse("Cart Recovery Log : ",productList,HttpStatus.OK);
 
@@ -595,7 +662,49 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error fetching recovery log", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Transactional
+    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
+    public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
+        try {
+            List<Long> postPreference = getLongList(map, "postPreference");
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            if (customProduct == null)
+                return ResponseService.generateErrorResponse("Invalid product id provided", HttpStatus.NOT_FOUND);
+            List<Long>actualPostIds=new ArrayList<>();
+            for(Post post:customProduct.getPosts())
+            {
+                actualPostIds.add(post.getPostId());
+            }
+            for(Long pId:postPreference)
+            {
+                if(!actualPostIds.contains(pId))
+                    return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+            }
+            if(postPreference.size()<1)
+                return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
+            if(postPreference.size()>customProduct.getPosts().size())
+                return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
+            String postPreferenceString = postPreference.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            String sql = "UPDATE blc_order_item_attribute " +
+                    "SET value = ? " +
+                    "WHERE order_item_id = ? " +
+                    "AND name = 'postPreference' " +
+                    "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
+            int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
+            if (rowsUpdated >= 0) {
+                return retrieveCartItems(customerId, true);
+            }
+        }catch (PersistenceException persistenceException)
+        {
+            exceptionHandling.handleException(persistenceException);
+        } catch(Exception exception)
+        {
+            exceptionHandling.handleException(exception);
+        }
+        return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
+}
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;
     }

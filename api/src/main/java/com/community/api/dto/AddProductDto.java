@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.entity.AddProductAgeDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,21 +17,17 @@ import java.util.List;
 @NoArgsConstructor
 public class AddProductDto {
 
+    @JsonProperty("is_multiple_post_same_fee")
+    protected Boolean isMultiplePostSameFee;
     @JsonProperty("meta_title")
     @NotNull
     String metaTitle;
-
     @JsonProperty("platform_fee")
     @NotNull
     Double platformFee;
-
     @JsonProperty("application_scope_id")
     @NotNull
     Long applicationScope;
-
-    @JsonProperty("job_group_id")
-    Long jobGroup;
-
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("active_start_date")
     Date activeStartDate;
@@ -46,34 +43,24 @@ public class AddProductDto {
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("exam_date_to")
     Date examDateTo;
-
     @JsonProperty("priority_level")
     Integer priorityLevel;
     @JsonProperty("meta_description")
     String metaDescription;
-
-    @JsonProperty("reserve_category")
+    @JsonProperty("reserve_category_fee")
     List<AddReserveCategoryDto> reservedCategory;
-
-    @JsonProperty("physical_requirement")
-    List<AddPhysicalRequirementDto> physicalRequirement;
-
     @JsonProperty("state_id")
     Integer state;
     @JsonProperty("quantity")
     Integer quantity;
-    @JsonProperty("advertiser_url")
-    String advertiserUrl;
     @JsonProperty("domicile_required")
     Boolean domicileRequired;
     @JsonProperty("product_state_id")
     Long productState;
     @JsonProperty("display_template")
     String displayTemplate;
-
     @JsonProperty("rejection_status_id")
     Long rejectionStatus;
-
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("last_date_to_pay_fee")
     Date lastDateToPayFee;
@@ -95,27 +82,15 @@ public class AddProductDto {
     String downloadSyllabusLink;
     @JsonProperty("form_complexity")
     Long formComplexity;
-
-    @JsonProperty("qualification_id")
-    Integer qualification;
-    @JsonProperty("stream_id")
-    Long stream;
-    @JsonProperty("subject_id")
-    Long subject;
-    @JsonProperty("gender_specific_id")
-    Long genderSpecific;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("sector_id")
     Long sector;
-
-    @JsonProperty("notifying_authority")
-    String notifyingAuthority;
-
-    @JsonProperty("post_name")
-    String postName;
-
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
+    @JsonProperty("advertisement_id")
+    Long advertisement;
+    @JsonProperty("posts")
+    private List<PostDto> posts;
 
 }

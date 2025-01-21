@@ -5,11 +5,41 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.AddReserveCategoryDto;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.DivisionProjectionDTO;
+import com.community.api.dto.QualificationEligibilityDto;
+import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.entity.*;
+import com.community.api.dto.CategoryDistributionDto;
+import com.community.api.dto.DistrictDistributionDto;
+import com.community.api.dto.PostDto;
+import com.community.api.dto.DistrictCategoryDistributionDto;
+import com.community.api.dto.ZoneDistributionDto;
+import com.community.api.dto.StateDistributionDto;
+import com.community.api.dto.GenderDistributionDto;
+import com.community.api.dto.DivisionDistributionDto;
+import com.community.api.dto.DivisionCategoryDistributionDto;
+import com.community.api.entity.Advertisement;
+import com.community.api.entity.OtherItem;
+import com.community.api.entity.Qualification;
+import com.community.api.entity.Districts;
+import com.community.api.entity.CustomProductRejectionStatus;
+import com.community.api.entity.CustomGender;
+import com.community.api.entity.StateCode;
+import com.community.api.entity.Privileges;
+import com.community.api.entity.Role;
+import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomProductState;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.CustomJobGroup;
+import com.community.api.entity.CustomSubject;
+import com.community.api.entity.CustomStream;
+import com.community.api.entity.CustomSector;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.Post;
+import com.community.api.entity.OtherDistribution;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.google.gson.Gson;
+import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -22,16 +52,28 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.sql.Wrapper;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
 import static com.community.api.component.Constant.PRODUCTNOTFOUND;
@@ -48,6 +90,8 @@ public class ProductService {
     ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     ProductStateService productStateService;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
     ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     @Autowired
@@ -82,6 +126,8 @@ public class ProductService {
     SubjectService subjectService;
     @Autowired
     ProductGenderPhysicalRequirementService productGenderPhysicalRequirementService;
+    @Autowired
+    AdvertisementService advertisementService;
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
@@ -89,25 +135,17 @@ public class ProductService {
 
     @Autowired
     private SharedUtilityService sharedUtilityService;
+    ZoneDivisionService zoneDivisionService;
 
     public void saveCustomProduct(Product product, AddProductDto addProductDto, CustomProductState productState, Role role, Long creatorUserId, Date modifiedDate, Date currentDate) {
 
         try {
 
             // Start building the SQL query
-            StringBuilder sql = new StringBuilder("INSERT INTO custom_product (product_id, creator_user_id, creator_role_id, last_modified, product_state_id, created_date");
-            StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate");
+            StringBuilder sql = new StringBuilder("INSERT INTO custom_product (product_id, creator_user_id, creator_role_id, last_modified, product_state_id, created_date, advertisement_id");
+            StringBuilder values = new StringBuilder("VALUES (:productId, :creatorUserId, :role, :lastModified, :productState, :currentDate, :advertisement");
 
             // Dynamically add columns and values based on non-null fields
-            if (addProductDto.getPostName() != null) {
-                sql.append(", post_name");
-                values.append(", :postName");
-            }
-
-            if(addProductDto.getNotifyingAuthority() != null) {
-                sql.append(", notifying_authority");
-                values.append(", :notifyingAuthority");
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 sql.append(", application_scope_id");
@@ -117,11 +155,6 @@ public class ProductService {
             if (addProductDto.getExamDateFrom() != null) {
                 sql.append(", exam_date_from");
                 values.append(", :examDateFrom");
-            }
-
-            if (addProductDto.getAdvertiserUrl() != null) {
-                sql.append(", advertiser_url");
-                values.append(", :advertiserUrl");
             }
 
             if (addProductDto.getExamDateTo() != null) {
@@ -189,11 +222,6 @@ public class ProductService {
                 values.append(", :formComplexity");
             }
 
-            if (addProductDto.getGenderSpecific() != null) {
-                sql.append(", gender_specific_id");
-                values.append(", :genderSpecificId");
-            }
-
             if (addProductDto.getSector() != null) {
                 sql.append(", sector_id");
                 values.append(", :sectorId");
@@ -204,29 +232,15 @@ public class ProductService {
                 values.append(", :selectionCriteria");
             }
 
-            if (addProductDto.getQualification() != null) {
-                sql.append(", qualification_id");
-                values.append(", :qualificationId");
-            }
-
-            if (addProductDto.getStream() != null) {
-                sql.append(", stream_id");
-                values.append(", :streamId");
-            }
-
-            if (addProductDto.getSubject() != null) {
-                sql.append(", subject_id");
-                values.append(", :subjectId");
-            }
-
-            if (addProductDto.getJobGroup() != null) {
-                sql.append(", job_group_id");
-                values.append(", :jobGroup");
-            }
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
+            }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                sql.append(", is_multiple_post_same_fee");
+                values.append(", :isMultiplePostSameFee");
             }
 
             // Complete the SQL statement
@@ -238,16 +252,10 @@ public class ProductService {
                     .setParameter("creatorUserId", creatorUserId)
                     .setParameter("role", role)
                     .setParameter("lastModified", modifiedDate)
-                    .setParameter("currentDate", currentDate);
+                    .setParameter("currentDate", currentDate)
+                    .setParameter("advertisement", addProductDto.getAdvertisement());
 
             // Set parameters conditionally
-            if (addProductDto.getPostName() != null) {
-                query.setParameter("postName", addProductDto.getPostName());
-            }
-
-            if (addProductDto.getNotifyingAuthority() != null) {
-                query.setParameter("notifyingAuthority", addProductDto.getNotifyingAuthority());
-            }
 
             if (addProductDto.getApplicationScope() != null) {
                 query.setParameter("applicationScope", addProductDto.getApplicationScope());
@@ -255,14 +263,6 @@ public class ProductService {
 
             if (addProductDto.getExamDateFrom() != null) {
                 query.setParameter("examDateFrom", new Timestamp(addProductDto.getExamDateFrom().getTime()));
-            }
-
-            if (addProductDto.getAdvertiserUrl() != null) {
-                query.setParameter("advertiserUrl", addProductDto.getAdvertiserUrl());
-            }
-
-            if (addProductDto.getJobGroup() != null) {
-                query.setParameter("jobGroup", addProductDto.getJobGroup());
             }
 
             query.setParameter("productState", productState);
@@ -319,10 +319,6 @@ public class ProductService {
                 query.setParameter("formComplexity", addProductDto.getFormComplexity());
             }
 
-            if (addProductDto.getGenderSpecific() != null) {
-                query.setParameter("genderSpecificId", addProductDto.getGenderSpecific());
-            }
-
             if (addProductDto.getSector() != null) {
                 query.setParameter("sectorId", addProductDto.getSector());
             }
@@ -331,20 +327,13 @@ public class ProductService {
                 query.setParameter("selectionCriteria", addProductDto.getSelectionCriteria());
             }
 
-            if (addProductDto.getQualification() != null) {
-                query.setParameter("qualificationId", addProductDto.getQualification());
-            }
-
-            if (addProductDto.getStream() != null) {
-                query.setParameter("streamId", addProductDto.getStream());
-            }
-
-            if (addProductDto.getSubject() != null) {
-                query.setParameter("subjectId", addProductDto.getSubject());
-            }
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
             }
 
             // Execute the update
@@ -520,7 +509,7 @@ public class ProductService {
             return query.getResultList();
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
@@ -604,7 +593,8 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+            if (customProduct != null && ((customProduct.getArchived().equals('N'))) && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+            {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
                 responses.add(wrapper);
@@ -721,12 +711,6 @@ public class ProductService {
                 addProductDto.setPlatformFee(DEFAULT_PLATFORM_FEE);
             }
 
-            if (addProductDto.getNotifyingAuthority() == null || addProductDto.getNotifyingAuthority().trim().isEmpty()) {
-                throw new IllegalArgumentException("Notifying authority cannot be null");
-            } else {
-                addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-            }
-
             if (addProductDto.getPriorityLevel() != null) {
                 if (addProductDto.getPriorityLevel() <= 0 || addProductDto.getPriorityLevel() > 5) {
                     throw new IllegalArgumentException("Priority level must lie between 1-5.");
@@ -738,7 +722,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -748,17 +731,12 @@ public class ProductService {
                 addProductDto.setDisplayTemplate(addProductDto.getDisplayTemplate().trim());
             }
 
-            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
+/*            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Description cannot be null or empty.");
             } else {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
-
-            if (addProductDto.getPostName() == null || addProductDto.getPostName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Post Name cannot be null or empty.");
-            } else {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
+             */
 
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
@@ -799,19 +777,14 @@ public class ProductService {
                 throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
             }
 
-            if (addProductDto.getJobGroup() == null || addProductDto.getJobGroup() <= 0) {
-                throw new IllegalArgumentException("Job group cannot be null or <= 0.");
+            if(addProductDto.getAdvertisement() == null || addProductDto.getAdvertisement() <= 0) {
+                throw new IllegalArgumentException("Advertisement cannot be null or <= 0.");
             }
 
-            CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-            if (jobGroup == null) {
-                throw new NoSuchElementException("Job group not found.");
+            Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
+            if (advertisement == null) {
+                throw new NoSuchElementException("Advertisement not found.");
             }
-
-            if (addProductDto.getAdvertiserUrl() == null || addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                throw new IllegalArgumentException("Advertiser url cannot be null or empty.");
-            }
-            addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
 
             if (addProductDto.getApplicationScope() == null || addProductDto.getApplicationScope() <= 0) {
                 throw new IllegalArgumentException("Application scope cannot be null or <= 0.");
@@ -856,6 +829,16 @@ public class ProductService {
                 addProductDto.setIsReviewRequired(true);
             }
 
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether multiple post have same fees");
+            }
+
+            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+            {
+                throw new IllegalArgumentException("Post cannot be null or empty");
+            }
+
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -889,10 +872,6 @@ public class ProductService {
             } else {
                 addProductDto.setPlatformFee(DEFAULT_PLATFORM_FEE);
             }
-            if(addProductDto.getNotifyingAuthority()!=null)
-            {
-                addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-            }
 
             if (addProductDto.getPriorityLevel() != null) {
                 if (addProductDto.getPriorityLevel() <= 0 || addProductDto.getPriorityLevel() > 5) {
@@ -905,7 +884,6 @@ public class ProductService {
             if (addProductDto.getMetaTitle() == null || addProductDto.getMetaTitle().trim().isEmpty()) {
                 throw new IllegalArgumentException(PRODUCTTITLENOTGIVEN);
             } else {
-                addProductDto.setPostName(addProductDto.getMetaTitle().trim());
                 addProductDto.setMetaTitle(addProductDto.getMetaTitle().trim());
             }
 
@@ -914,16 +892,12 @@ public class ProductService {
                 addProductDto.setDisplayTemplate(addProductDto.getDisplayTemplate().trim());
             }
 
-            if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
+           /* if (addProductDto.getMetaDescription() == null || addProductDto.getMetaDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Description cannot be null or empty.");
             } else {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
             }
-
-            if(addProductDto.getPostName()!=null)
-            {
-                addProductDto.setPostName(addProductDto.getPostName().trim());
-            }
+            */
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
@@ -966,19 +940,6 @@ public class ProductService {
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
-            if (addProductDto.getJobGroup() == null || addProductDto.getJobGroup() <= 0) {
-                throw new IllegalArgumentException("Job group cannot be null or <= 0.");
-            }
-
-            CustomJobGroup jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-            if (jobGroup == null) {
-                throw new NoSuchElementException("Job group not found.");
-            }
-
-            if (addProductDto.getAdvertiserUrl() == null || addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                throw new IllegalArgumentException("Advertiser url cannot be null or empty.");
-            }
-            addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
 
             if (addProductDto.getApplicationScope() !=null) {
                 CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
@@ -1019,6 +980,14 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }
 
+            if (addProductDto.getIsMultiplePostSameFee() != null) {
+                if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+                {
+                    throw new IllegalArgumentException("Post cannot be null or empty");
+                }
+            }
+
+
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -1049,9 +1018,9 @@ public class ProductService {
             if (customProduct.getCustomApplicationScope() == null) {
                 throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
             }
-            if(customProduct.getNotifyingAuthority()==null || customProduct.getNotifyingAuthority().trim().isEmpty())
+            if(customProduct.getPosts()==null || customProduct.getPosts().isEmpty())
             {
-                throw new IllegalArgumentException("Notifying Authority cannot be null to move Product from Draft to NEW state ");
+                throw new IllegalArgumentException("Posts cannot be empty or null to move Product from Draft to NEW state");
             }
         }
         catch (IllegalArgumentException illegalArgumentException) {
@@ -1064,7 +1033,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList, CustomProductWrapper wrapper) throws Exception {
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, CustomProductWrapper wrapper) throws Exception {
         try{
             validateUpdateFields(customProduct);
             CustomProductState customProductState=null;
@@ -1073,7 +1042,9 @@ public class ProductService {
                 return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
             }
             customProduct.setProductState(customProductState);
-            wrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
+            List<Post>postList= customProduct.getPosts();
+            List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
+            wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
         catch (IllegalArgumentException illegalArgumentException) {
@@ -1128,6 +1099,7 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
             }
             Set<Long> reserveCategoryId = new HashSet<>();
+            Set<Integer>genderCategoryComboSet=new HashSet<>();
 
             Date currentDate = new Date(); // Current date for comparison
             Calendar calendar = Calendar.getInstance();
@@ -1144,7 +1116,37 @@ public class ProductService {
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() <= 0) {
+                    throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
                 }
+                CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender());
+                if(gender==null)
+                    throw new NotFoundException("Invalid gender id");
+                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                if(category==null)
+                    throw new NotFoundException("Invalid category id");
+                int genderAndCategoryCombo=(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender().intValue());
+                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReservedCategory().size()>1)
+                {
+                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
+                }
+                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
+                {
+                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                }
+                /*if(gender.getGenderName().equals(Constant.NO_GENDER))
+                {
+                    Boolean result=checkForOpenGender(gender,addProductDto);
+                    if(result)
+                        throw new IllegalArgumentException("This product is set to be gender independent, so no additional gender fees can be applied.");
+                }
+
+                if(category.getReserveCategoryName().equals(Constant.NO_CATEGORY))
+                {
+                    Boolean result=checkForOpenCategory(category,addProductDto);
+                    if(result)
+                        throw new IllegalArgumentException("This product is set to be category independent, so no additional category fees can be applied.");
+                }*/
                 reserveCategoryId.add(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
 
                  reserveCategory  = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
@@ -1205,7 +1207,7 @@ public class ProductService {
                     throw new IllegalArgumentException(POSTLESSTHANORZERO);
                 }
 
-                if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornBefore() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornAfter() == null) {
+              /*  if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornBefore() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornAfter() == null) {
                     throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
                 }
 
@@ -1223,13 +1225,12 @@ public class ProductService {
                 }
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getBornBefore().after(maxBornBeforeDate)) {
                     throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
+               */
                 }
                 if(sourceName.equalsIgnoreCase("add_product") || sourceName.equalsIgnoreCase("update_product"))
                 {
                     otherReserveCategories.add(reserveCategoryOtherToAdd);
                 }
-            }
-
             if(reserveCategoryOther==null)
             {
                 if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
@@ -1240,11 +1241,73 @@ public class ProductService {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+            }
+
+            /*if (reserveCategoryId.size() != addProductDto.getReservedCategory().size()) {
+                throw new IllegalArgumentException("Duplicate reserve categories not allowed.");
+            }*/
+
+//            return true;
+         catch (NotFoundException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            throw new IllegalArgumentException(notFoundException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating reserve category: " + exception.getMessage() + "\n");
+            throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
         }
     }
+    public static Map<String, Date> calculateDateRange(Date asOfDate, int minAge, int maxAge) {
+        LocalDate asOfLocalDate = asOfDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate bornBeforeLocalDate = asOfLocalDate.minusYears(minAge).plusDays(1);
+        LocalDate bornAfterLocalDate = asOfLocalDate.minusYears(maxAge).minusDays(1);
+
+        ZonedDateTime bornBeforeDateTime = bornBeforeLocalDate.atStartOfDay(ZoneId.of("Z"));
+        ZonedDateTime bornAfterDateTime = bornAfterLocalDate.atStartOfDay(ZoneId.of("Z"));
+
+        Date bornBeforeDate = Date.from(bornBeforeDateTime.toInstant());
+        Date bornAfterDate = Date.from(bornAfterDateTime.toInstant());
+
+        Map<String, Date> dateMap = new HashMap<>();
+        dateMap.put("bornBeforeDate", bornBeforeDate);
+        dateMap.put("bornAfterDate", bornAfterDate);
+
+        return dateMap;
+    }
+    //****************************************
+    //FOR FUTURE USE IF NEEDED
+    /*public Boolean checkForOpenCategory(CustomReserveCategory openCategory,AddProductDto addProductDto)
+    {
+        Boolean flag=false;
+        Boolean contains=false;
+        for(AddReserveCategoryDto reserveCategory:addProductDto.getReservedCategory())
+        {
+            CustomReserveCategory reserveCategoryEntity=reserveCategoryService.getReserveCategoryById(reserveCategory.getReserveCategory());
+            if(reserveCategoryEntity.getReserveCategoryName().equals(openCategory.getReserveCategoryName())&&contains.equals(false)) {
+                contains = true;
+                continue;
+            }
+            if(!reserveCategoryEntity.getReserveCategoryName().equals(openCategory.getReserveCategoryName())&&contains.equals(true))
+                return true;
+        }
+        return flag;
+    }
+    public Boolean checkForOpenGender(CustomGender openGender,AddProductDto addProductDto)
+    {
+        Boolean flag=false;
+        Boolean contains=false;
+        for(AddReserveCategoryDto reserveCategory:addProductDto.getReservedCategory())
+        {
+            CustomGender genderEntity=genderService.getGenderByGenderId(reserveCategory.getGender());
+            if(genderEntity.getGenderName().equals(openGender.getGenderName())&&contains.equals(false)) {
+                contains = true;
+                continue;
+            }
+            if(!genderEntity.getGenderName().equals(openGender.getGenderName())&&contains.equals(true))
+                return true;
+        }
+        return flag;
+    }*/
+    //****************************************
 
     public boolean updateProductAccessAuthorisation(String authHeader, Long productId) throws Exception {
         try {
@@ -1324,16 +1387,6 @@ public class ProductService {
                 addProductDto.setMetaDescription(addProductDto.getMetaDescription().trim());
                 customProduct.setMetaDescription(addProductDto.getMetaDescription());
                 customProduct.getDefaultSku().setDescription(addProductDto.getMetaDescription());
-            }
-
-            CustomJobGroup jobGroup;
-            if (addProductDto.getJobGroup() != null) {
-
-                jobGroup = jobGroupService.getJobGroupById(addProductDto.getJobGroup());
-                if (jobGroup == null) {
-                    throw new IllegalArgumentException("NO JOB GROUP EXISTS WITH THIS JOB GROUP ID");
-                }
-                customProduct.setJobGroup(jobGroup);
             }
 
             if (addProductDto.getPlatformFee() != null) {
@@ -1434,54 +1487,9 @@ public class ProductService {
 //                }
 //            }
 
-            if (addProductDto.getAdvertiserUrl() != null) {
-                if (!addProductDto.getAdvertiserUrl().trim().isEmpty()) {
-                    addProductDto.setAdvertiserUrl(addProductDto.getAdvertiserUrl().trim());
-                    customProduct.setAdvertiserUrl(addProductDto.getAdvertiserUrl());
-                } else {
-                    throw new IllegalArgumentException("Adviser Url cannot be empty");
-                }
-            }
-
-            if (addProductDto.getNotifyingAuthority() != null) {
-                if (!addProductDto.getNotifyingAuthority().trim().isEmpty()) {
-                    addProductDto.setNotifyingAuthority(addProductDto.getNotifyingAuthority().trim());
-                    customProduct.setNotifyingAuthority(addProductDto.getNotifyingAuthority());
-                } else {
-                    throw new IllegalArgumentException("Notifying authority cannot be empty");
-                }
-            }
-
-            if (addProductDto.getPostName() != null) {
-                if (!addProductDto.getPostName().trim().isEmpty()) {
-                    addProductDto.setPostName(addProductDto.getPostName().trim());
-                    customProduct.setPostName(addProductDto.getPostName());
-                } else {
-                    throw new IllegalArgumentException("Post name cannot be empty");
-                }
-            }
-
-
             if (addProductDto.getState() != null) {
                 CustomSector customSector = sectorService.getSectorBySectorId(addProductDto.getSector());
                 customProduct.setSector(customSector);
-            }
-
-
-            if (addProductDto.getQualification() != null) {
-                Qualification qualification = qualificationService.getQualificationByQualificationId(addProductDto.getQualification());
-                customProduct.setQualification(qualification);
-            }
-
-
-            if (addProductDto.getStream() != null) {
-                CustomStream customStream = streamService.getStreamByStreamId(addProductDto.getStream());
-                customProduct.setStream(customStream);
-            }
-
-            if (addProductDto.getSubject() != null) {
-                CustomSubject customSubject = subjectService.getSubjectBySubjectId(addProductDto.getSubject());
-                customProduct.setSubject(customSubject);
             }
 
             if (addProductDto.getFormComplexity() != null) {
@@ -2465,54 +2473,46 @@ public class ProductService {
         }
     }
 
-    public boolean validatePhysicalRequirement(AddProductDto addProductDto, CustomProduct customProduct) throws Exception {
+    public boolean validatePhysicalRequirement(PostDto postDto, CustomProduct customProduct) throws Exception {
         try {
-            CustomGender gender = null;
-            if (addProductDto.getGenderSpecific() != null) {
-                gender = genderService.getGenderByGenderId(addProductDto.getGenderSpecific());
-            }
-            if (addProductDto.getPhysicalRequirement() == null) {
+            if (postDto.getPhysicalRequirements() == null) {
                 return true;
             }
-            if (!addProductDto.getPhysicalRequirement().isEmpty()) {
+            if (!postDto.getPhysicalRequirements().isEmpty()) {
                 Set<Long> genderId = new HashSet<>();
 
-                for (int physicalAttributeIndex = 0; physicalAttributeIndex < addProductDto.getPhysicalRequirement().size(); physicalAttributeIndex++) {
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId() <= 0) {
+                for (int physicalAttributeIndex = 0; physicalAttributeIndex < postDto.getPhysicalRequirements().size(); physicalAttributeIndex++) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() <= 0) {
                         throw new IllegalArgumentException("GENDER ID CANNOT BE NULL OR <= 0");
                     }
-                    genderId.add(addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
+                    genderId.add(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
 
-                    CustomGender customGender = genderService.getGenderByGenderId(addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
+                    CustomGender customGender = genderService.getGenderByGenderId(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
                     if (customGender == null) {
-                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getGenderId());
-                    }
-                    if (addProductDto.getGenderSpecific() != null && customGender != gender) {
-                        throw new IllegalArgumentException("Gender id is not matched with the specific gender.");
-                    } else if (customProduct != null && customProduct.getGenderSpecific() != null && addProductDto.getGenderSpecific() == null && customGender != customProduct.getGenderSpecific()) {
-                        throw new IllegalArgumentException("Gender id is not matched with the specific gender.");
+                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
                     }
 
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() > Constant.MAX_HEIGHT || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getHeight() < Constant.MIN_HEIGHT) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
                         throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() == null || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
                         throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
                     }
 
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
                         throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
                         throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
                     }
-                    if (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() != null && (addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || addProductDto.getPhysicalRequirement().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
+
+                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
                         throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
                     }
 
                 }
 
-                if (genderId.size() != addProductDto.getPhysicalRequirement().size()) {
+                if (genderId.size() != postDto.getPhysicalRequirements().size()) {
                     throw new IllegalArgumentException("DUPLICATE GENDER NOT ALLOWED");
                 }
             }
@@ -2524,23 +2524,746 @@ public class ProductService {
         }
     }
 
-    public CustomGender validateGenderSpecificField(AddProductDto addProductDto) throws Exception {
+    public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
-            if (addProductDto.getGenderSpecific() != null) {
-                CustomGender customGender = genderService.getGenderByGenderId(addProductDto.getGenderSpecific());
-                if (customGender == null) {
-                    throw new IllegalArgumentException("No gender found with this id.");
-                }
-                return customGender;
+            if (postDto.getQualificationEligibility() == null) {
+                return true;
             }
-            return null;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating gender specific id: " + exception.getMessage() + "\n");
+            else {
+                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibility();
+
+                //Validate Qualification ids
+                if(qualificationEligibilityDto.getQualificationIds()==null)
+                {
+                    throw new IllegalArgumentException("Qualification cannot be null");
+                }
+                else
+                if(qualificationEligibilityDto.getQualificationIds()!=null)
+                {
+                    if(qualificationEligibilityDto.getQualificationIds().isEmpty())
+                    {
+                        throw new IllegalArgumentException("Qualification cannot be empty");
+                    }
+                    else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
+                        if(qualificationEligibilityDto.getQualificationIds().size()>1)
+                        {
+                            throw new IllegalArgumentException("Enter only one qualification (Highest)");
+                        }
+                        Set<Integer> qualificationIdSet = new HashSet<>();
+                        List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
+                        for(Integer qualificationId: qualificationIds)
+                        {
+                            Qualification qualification= entityManager.find(Qualification.class,qualificationId);
+                            if(qualification==null)
+                            {
+                                throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                            }
+                            qualificationIdSet.add(qualificationId);
+                        }
+                        if (qualificationIdSet.size() != qualificationIds.size()) {
+                            throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                        }
+                    }
+                }
+
+                //Validate Subjects
+                if(qualificationEligibilityDto.getCustomSubjectIds()!=null)
+                {
+                    if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()){
+                        Set<Long> subjectIdsSet = new HashSet<>();
+                        List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
+                        for(Long subjectId: subjectIds)
+                        {
+                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
+                            if(customSubject==null)
+                            {
+                                throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
+                            }
+                            subjectIdsSet.add(subjectId);
+                        }
+                        if (subjectIdsSet.size() != subjectIds.size()) {
+                            throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
+                        }
+                    }
+                }
+
+                //Validate Streams
+                if(qualificationEligibilityDto.getCustomStreamIds()!=null)
+                {
+                    if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
+                    Set<Long> streamIdSet = new HashSet<>();
+                    List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
+                    for(Long streamId: streamIds)
+                    {
+                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
+                        if(customStream==null)
+                        {
+                            throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
+                        }
+                        streamIdSet.add(streamId);
+                    }
+                    if (streamIdSet.size() != streamIds.size()) {
+                        throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
+                    }
+                   }
+                }
+
+                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
+                {
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
+                    if(customReserveCategory==null)
+                    {
+                        throw new IllegalArgumentException("Reserve Category does not exists with id "+ qualificationEligibilityDto.getCustomReserveCategoryId());
+                    }
+                }
+
+                if(qualificationEligibilityDto.getPercentage()!=null)
+                {
+                    if(qualificationEligibilityDto.getPercentage()>100 || qualificationEligibilityDto.getPercentage()<0)
+                    {
+                        throw new IllegalArgumentException("Percentage cannot be less than 0 and greater than 100");
+                    }
+                }
+            }
+            return true;
         }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
+    public void validateDistrictStateRelationship(StateDistributionDto stateDistribution) {
+        if (!Boolean.TRUE.equals(stateDistribution.getIsDistrictDistribution())) {
+            return;
+        }
+
+        // Get state code using EntityManager
+        StateCode stateCode = entityManager.find(StateCode.class, stateDistribution.getStateCodeId());
+        if (stateCode == null) {
+            throw new IllegalArgumentException("Invalid state code: " + stateDistribution.getStateCodeId());
+        }
+
+        List<DistrictDistributionDto> districtDistributions = stateDistribution.getDistrictDistributions();
+        if (districtDistributions == null || districtDistributions.isEmpty()) {
+            throw new IllegalArgumentException("District distributions are required when isDistrictDistribution is true");
+        }
+
+        // Get all districts for this state
+        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code());
+        Set<Integer> validDistrictIds = stateDistricts.stream()
+                .map(Districts::getDistrict_id)
+                .collect(Collectors.toSet());
+
+        // Validate each district in the distribution
+        for (DistrictDistributionDto districtDto : districtDistributions) {
+            if (!validDistrictIds.contains(districtDto.getDistrictId().intValue())) {
+                // Find the actual state code for this district if it exists
+                Districts district = entityManager.find(Districts.class, districtDto.getDistrictId().intValue());
+                if (district == null) {
+                    throw new IllegalArgumentException("District not found with id: " + districtDto.getDistrictId());
+                }
+
+                throw new IllegalArgumentException(
+                        String.format("District with ID %d belongs to state %s, not state %s",
+                                districtDto.getDistrictId(), district.getState_code(), stateCode.getState_code()));
+            }
+        }
+    }
+
+    public boolean validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
+        List<PostDto> postDtos = addProductDto.getPosts();
+
+        if(addProductDto.getIsMultiplePostSameFee()!=null)
+        {
+            if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
+            {
+                if(postDtos.size()>1)
+                {
+                    throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+                }
+            }
+        }
+
+        for (PostDto postDto : postDtos) {
+            validatePostBasics(postDto);
+            validateVacancyDistribution(postDto);
+            // Validate vacancy distribution only if distribution types are present
+            List<Integer> distributionTypes = postDto.getVacancyDistributionTypeIds();
+            if (distributionTypes != null && !distributionTypes.isEmpty()) {
+                if (distributionTypes.contains(1)) {
+                    validateStateDistribution(postDto);
+                } else if (distributionTypes.contains(2)) {
+                    validateZoneDistribution(postDto);
+                } else if (distributionTypes.contains(3)) {
+                    validateGenderDistribution(postDto, postDto.getGenderWiseDistribution());
+                }
+                  else if(distributionTypes.contains(4))
+                {
+                    validateOtherVacancyDistribution(postDto);
+                }
+            }
+            if(postDto.getPhysicalRequirements()!=null)
+            {
+                validatePhysicalRequirement(postDto, null);
+            }
+            if(postDto.getQualificationEligibility()!=null)
+            {
+                if(postDto.getQualificationEligibility().getQualificationIds()!=null )
+                {
+                    validateQualificationRequirement(postDto);
+                }
+            }
+        }
+        return true;
+    }
+    private void validatePostBasics(PostDto postDto) {
+        if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Post name cannot be null or empty");
+        }
+        if (!postDto.getPostName().matches("^[a-zA-Z][a-zA-Z ]*$")) {
+            throw new IllegalArgumentException("Post name cannot contain numeric values, special characters, or leading spaces");
+        }
+        if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
+            throw new IllegalArgumentException("Invalid Post Total Vacancies");
+        }
+    }
+
+    private void validateVacancyDistribution(PostDto postDto) {
+        List<Integer> vacancyDistributionTypeIds = postDto.getVacancyDistributionTypeIds();
+        Long postTotalVacancies = postDto.getPostTotalVacancies();
+        GenderDistributionDto genderDistributionDto = postDto.getGenderWiseDistribution();
+
+        // Case: No distribution type selected (empty or null list)
+        if (vacancyDistributionTypeIds == null || vacancyDistributionTypeIds.isEmpty()) {
+            if (postDto.getStateDistributions() != null || postDto.getZoneDistributions() != null || postDto.getGenderWiseDistribution() != null) {
+                throw new IllegalArgumentException("No any distribution can be given if vacancy Distribution Type Id is null or empty");
+            }
+        }
+
+        if(vacancyDistributionTypeIds!=null )
+        {
+            if (vacancyDistributionTypeIds.size() > 1) {
+                throw new IllegalArgumentException("Exactly one vacancy distribution type is required.");
+            }
+            if(!vacancyDistributionTypeIds.isEmpty())
+            {
+                int distributionTypeId = vacancyDistributionTypeIds.get(0);
+                switch (distributionTypeId) {
+                    case 1:
+                        validateStatesDistribution(postDto.getStateDistributions(), postTotalVacancies);
+                        break;
+                    case 2:
+                        validateZonesDistribution(postDto.getZoneDistributions(), postTotalVacancies);
+                        break;
+                    case 3:
+                        validateGenderDistribution(postDto, genderDistributionDto);
+                        break;
+                    case 4:
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid vacancy distribution type: " + distributionTypeId);
+                }
+            }
+        }
+    }
+
+    private void validateStatesDistribution(List<StateDistributionDto> stateDistributions, Long postTotalVacancies) {
+        if (stateDistributions == null || stateDistributions.isEmpty()) {
+            throw new IllegalArgumentException("State distributions are required");
+        }
+
+        long totalStateVacancies = 0;
+        for (StateDistributionDto state : stateDistributions) {
+            long stateVacancies = validateStateDistribution(state);
+            totalStateVacancies += stateVacancies;
+        }
+
+        if (totalStateVacancies != postTotalVacancies) {
+            throw new IllegalArgumentException(
+                    String.format("Total state vacancies (%d) must equal post total vacancies (%d)",
+                            totalStateVacancies, postTotalVacancies));
+        }
+    }
+
+    private long validateStateDistribution(StateDistributionDto state) {
+        if (state.getStateCodeId() == null) {
+            throw new IllegalArgumentException("State code ID is required");
+        }
+
+        if (Boolean.TRUE.equals(state.getIsDistrictDistribution())) {
+            return validateDistrictBasedState(state);
+        } else {
+            return validateNonDistrictBasedState(state);
+        }
+    }
+
+    private long validateDistrictBasedState(StateDistributionDto state) {
+        // For district-based distribution, state level gender fields are not required
+        if (state.getDistrictDistributions() == null || state.getDistrictDistributions().isEmpty()) {
+            throw new IllegalArgumentException("District distributions are required when isDistrictDistribution is true");
+        }
+
+        long totalDistrictVacancies = 0;
+        for (DistrictDistributionDto district : state.getDistrictDistributions()) {
+            long districtVacancies = validateDistrictDistribution(district);
+            totalDistrictVacancies += districtVacancies;
+        }
+
+        return totalDistrictVacancies;
+    }
+
+    private long validateDistrictDistribution(DistrictDistributionDto district) {
+        if (district.getDistrictId() == null) {
+            throw new IllegalArgumentException("District ID is required");
+        }
+
+        if (Boolean.TRUE.equals(district.getIsGenderWise())) {
+            return validateGenderWiseDistrict(district);
+        } else {
+            return validateNonGenderWiseDistrict(district);
+        }
+    }
+
+    private long validateGenderWiseDistrict(DistrictDistributionDto district) {
+        if (district.getMaleVacancy() == null || district.getFemaleVacancy() == null) {
+            throw new IllegalArgumentException("Male and female vacancies are required for gender-wise district distribution");
+        }
+
+        long totalGenderVacancies = district.getMaleVacancy() + district.getFemaleVacancy();
+
+        if (!district.getCategoryDistributions().isEmpty()) {
+            long categorySum = district.getCategoryDistributions().stream()
+                    .mapToLong(DistrictCategoryDistributionDto::getVacancyCount)
+                    .sum();
+
+            if (categorySum != totalGenderVacancies) {
+                throw new IllegalArgumentException(
+                        String.format("Category total (%d) must equal gender total (%d) for district %d",
+                                categorySum, totalGenderVacancies, district.getDistrictId()));
+            }
+        }
+
+        return totalGenderVacancies;
+    }
+
+    private long validateNonGenderWiseDistrict(DistrictDistributionDto district) {
+        if (!district.getCategoryDistributions().isEmpty()) {
+            return district.getCategoryDistributions().stream()
+                    .mapToLong(DistrictCategoryDistributionDto::getVacancyCount)
+                    .sum();
+        } else {
+            if (district.getTotalVacancy() == null) {
+                throw new IllegalArgumentException(
+                        "Total vacancy is required for non-gender-wise district without category distribution");
+            }
+            return district.getTotalVacancy();
+        }
+    }
+
+    private long validateNonDistrictBasedState(StateDistributionDto state) {
+        if (Boolean.TRUE.equals(state.getIsGenderWise())) {
+            return validateGenderWiseState(state);
+        } else {
+            return validateNonGenderWiseState(state);
+        }
+    }
+
+    private long validateGenderWiseState(StateDistributionDto state) {
+        if (state.getMaleVacancy() == null || state.getFemaleVacancy() == null) {
+            throw new IllegalArgumentException("Male and female vacancies are required for gender-wise state distribution");
+        }
+
+        long totalGenderVacancies = state.getMaleVacancy() + state.getFemaleVacancy();
+
+        if (!state.getCategoryDistributions().isEmpty()) {
+            long categorySum = state.getCategoryDistributions().stream()
+                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .sum();
+
+            if (categorySum != totalGenderVacancies) {
+                throw new IllegalArgumentException(
+                        String.format("Category total (%d) must equal gender total (%d) for state %d",
+                                categorySum, totalGenderVacancies, state.getStateCodeId()));
+            }
+        }
+
+        return totalGenderVacancies;
+    }
+
+    private long validateNonGenderWiseState(StateDistributionDto state) {
+        if (!state.getCategoryDistributions().isEmpty()) {
+            return state.getCategoryDistributions().stream()
+                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .sum();
+        } else {
+            if (state.getTotalVacanciesInState() == null) {
+                throw new IllegalArgumentException(
+                        "Total vacancies is required for non-gender-wise state without category distribution");
+            }
+            return state.getTotalVacanciesInState();
+        }
+    }
+
+    public void validateZoneDistributionRelationship(ZoneDistributionDto zoneDistribution) {
+        // Skip validation if not division distribution
+        if (!Boolean.TRUE.equals(zoneDistribution.getIsDivisionDistribution())) {
+            return;
+        }
+
+        if (zoneDistribution.getZoneId() == null) {
+            throw new IllegalArgumentException("Zone ID is required for validation.");
+        }
+
+        // Get all valid division IDs for this zone
+        List<DivisionProjectionDTO> validDivisionIds;
+        try {
+            validDivisionIds = zoneDivisionService.getDivisionsByZoneId(zoneDistribution.getZoneId());
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Invalid zone ID: " + zoneDistribution.getZoneId(), e);
+        }
+
+        // Validate division distributions
+        List<DivisionDistributionDto> divisionDistributions = zoneDistribution.getDivisionDistributions();
+        if (divisionDistributions == null || divisionDistributions.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Division distributions are required when isDivisionDistribution is true");
+        }
+
+        // Validate each division ID belongs to the zone
+        for (DivisionDistributionDto divisionDto : divisionDistributions) {
+            if (divisionDto.getDivisionId() == null) {
+                throw new IllegalArgumentException("Division ID cannot be null");
+            }
+            List<Integer>ids=new ArrayList<>();
+            for(DivisionProjectionDTO dto :validDivisionIds)
+            {
+                ids.add(dto.getDivisionId());
+            }
+
+            if (!ids.contains(divisionDto.getDivisionId().intValue())) {
+                throw new IllegalArgumentException(
+                        String.format("Division ID %d is not associated with Zone ID %d",
+                                divisionDto.getDivisionId(), zoneDistribution.getZoneId()));
+            }
+        }
+
+    }
+
+    private void validateZonesDistribution(List<ZoneDistributionDto> zoneDistributions, Long postTotalVacancies) {
+        if (zoneDistributions == null || zoneDistributions.isEmpty()) {
+            throw new IllegalArgumentException("Zone distributions are required");
+        }
+
+        long totalZoneVacancies = 0;
+        for (ZoneDistributionDto zone : zoneDistributions) {
+            long zoneVacancies = validateZoneDistribution(zone);
+            totalZoneVacancies += zoneVacancies;
+        }
+
+        if (totalZoneVacancies != postTotalVacancies) {
+            throw new IllegalArgumentException(
+                    String.format("Total zone vacancies (%d) must equal post total vacancies (%d)",
+                            totalZoneVacancies, postTotalVacancies));
+        }
+    }
+
+    private long validateZoneDistribution(ZoneDistributionDto zone) {
+        if (zone.getZoneId() == null) {
+            throw new IllegalArgumentException("Zone ID is required");
+        }
+
+        if (Boolean.TRUE.equals(zone.getIsDivisionDistribution())) {
+            return validateDivisionBasedZone(zone);
+        } else {
+            return validateNonDivisionBasedZone(zone);
+        }
+    }
+
+    private long validateDivisionBasedZone(ZoneDistributionDto zone) {
+        if (zone.getDivisionDistributions() == null || zone.getDivisionDistributions().isEmpty()) {
+            throw new IllegalArgumentException("Division distributions are required when isDivisionDistribution is true");
+        }
+
+        long totalDivisionVacancies = 0;
+        for (DivisionDistributionDto division : zone.getDivisionDistributions()) {
+            long divisionVacancies = validateDivisionDistribution(division);
+            totalDivisionVacancies += divisionVacancies;
+        }
+
+        return totalDivisionVacancies;
+    }
+
+    private long validateDivisionDistribution(DivisionDistributionDto division) {
+        if (division.getDivisionId() == null) {
+            throw new IllegalArgumentException("Division ID is required");
+        }
+
+        if (Boolean.TRUE.equals(division.getIsGenderWise())) {
+            return validateGenderWiseDivision(division);
+        } else {
+            return validateNonGenderWiseDivision(division);
+        }
+    }
+
+    private long validateGenderWiseDivision(DivisionDistributionDto division) {
+        if (division.getMaleVacancy() == null || division.getFemaleVacancy() == null) {
+            throw new IllegalArgumentException("Male and female vacancies are required for gender-wise division distribution");
+        }
+
+        long totalGenderVacancies = division.getMaleVacancy() + division.getFemaleVacancy();
+
+        if (!division.getCategoryDistributions().isEmpty()) {
+            long categorySum = division.getCategoryDistributions().stream()
+                    .mapToLong(DivisionCategoryDistributionDto::getVacancyCount)
+                    .sum();
+
+            if (categorySum != totalGenderVacancies) {
+                throw new IllegalArgumentException(
+                        String.format("Category total (%d) must equal gender total (%d) for division %d",
+                                categorySum, totalGenderVacancies, division.getDivisionId()));
+            }
+        }
+        return totalGenderVacancies;
+    }
+
+    private long validateNonGenderWiseDivision(DivisionDistributionDto division) {
+        if (!division.getCategoryDistributions().isEmpty()) {
+            return division.getCategoryDistributions().stream()
+                    .mapToLong(DivisionCategoryDistributionDto::getVacancyCount)
+                    .sum();
+        } else {
+            if (division.getTotalVacancy() == null) {
+                throw new IllegalArgumentException(
+                        "Total vacancy is required for non-gender-wise division without category distribution");
+            }
+            return division.getTotalVacancy();
+        }
+    }
+
+    private long validateNonDivisionBasedZone(ZoneDistributionDto zone) {
+        if (Boolean.TRUE.equals(zone.getIsGenderWise())) {
+            return validateGenderWiseZone(zone);
+        } else {
+            return validateNonGenderWiseZone(zone);
+        }
+    }
+
+    private long validateGenderWiseZone(ZoneDistributionDto zone) {
+        if (zone.getMaleVacancy() == null || zone.getFemaleVacancy() == null) {
+            throw new IllegalArgumentException("Male and female vacancies are required for gender-wise zone distribution");
+        }
+
+        int totalGenderVacancies = zone.getMaleVacancy() + zone.getFemaleVacancy();
+
+        if (!zone.getCategoryDistributions().isEmpty()) {
+            int categorySum = zone.getCategoryDistributions().stream()
+                    .mapToInt(CategoryDistributionDto::getCategoryVacancies)
+                    .sum();
+
+            if (categorySum != totalGenderVacancies) {
+                throw new IllegalArgumentException(
+                        String.format("Category total (%d) must equal gender total (%d) for zone %d",
+                                categorySum, totalGenderVacancies, zone.getZoneId()));
+            }
+        }
+        return totalGenderVacancies;
+    }
+
+    private long validateNonGenderWiseZone(ZoneDistributionDto zone) {
+        if (!zone.getCategoryDistributions().isEmpty()) {
+            return zone.getCategoryDistributions().stream()
+                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .sum();
+        } else {
+            if (zone.getTotalVacanciesInZone() == null) {
+                throw new IllegalArgumentException(
+                        "Total vacancies is required for non-gender-wise zone without category distribution");
+            }
+            return zone.getTotalVacanciesInZone();
+        }
+    }
+
+
+    private void validateCategoryDistributions(List<CategoryDistributionDto> categoryDistributions, Long totalVacancy) {
+        Long categoryVacancySum = categoryDistributions.stream()
+                .filter(category -> category.getCategoryVacancies() != null)  // Ensure no null categoryVacancies
+                .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                .sum();
+
+        if (!categoryVacancySum.equals(totalVacancy)) {
+            throw new IllegalArgumentException("Sum of category vacancies must equal the total vacancies.");
+        }
+
+        for (CategoryDistributionDto categoryDistribution : categoryDistributions) {
+            if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
+                throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
+            }
+        }
+    }
+
+    private void validateStateDistribution(PostDto postDto) {
+        if (postDto.getStateDistributions() == null || postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You have to distribute the vacancies State-wise");
+        }
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()) ) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
+        }
+        for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
+            validateDistrictStateRelationship(stateDistribution);
+        }
+    }
+
+    private void validateZoneDistribution(PostDto postDto) {
+        if (postDto.getZoneDistributions() == null || postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You have to distribute the vacancies Zone-wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution())) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
+        }
+        for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
+            validateZoneDistributionRelationship(zoneDistribution);
+        }
+    }
+
+    private void validateGenderDistribution(PostDto postDto, GenderDistributionDto genderDto) {
+        // First validate basic gender distribution
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        // Additional validation for category distributions when type is 3
+        List<CategoryDistributionDto> categoryDtos = genderDto.getCategoryDistributionDtos();
+        if (categoryDtos == null || categoryDtos.isEmpty()) {
+            throw new IllegalArgumentException("Category distributions are required when distribution type is 3");
+        }
+        validateBasicGenderDistribution(postDto, genderDto);
+
+        // Validate category distributions match total
+        Long totalVacancy = genderDto.getTotalVacancy();
+        if(totalVacancy==null)
+        {
+            totalVacancy= postDto.getPostTotalVacancies();
+        }
+        validateCategoryDistributions(categoryDtos, totalVacancy);
+    }
+
+    private void validateBasicGenderDistribution(PostDto postDto, GenderDistributionDto genderDto) {
+        if (genderDto == null) {
+            throw new IllegalArgumentException("Gender distribution data must be provided");
+        } if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        Long postTotalVacancies = postDto.getPostTotalVacancies();
+        boolean isGenderWise = Boolean.TRUE.equals(genderDto.getIsGenderWise());
+
+        if (isGenderWise && (genderDto.getCategoryDistributionDtos()!=null&& !genderDto.getCategoryDistributionDtos().isEmpty()) ) {
+            // Case 1: Gender-wise is true
+            if (genderDto.getMaleVacancy() == null || genderDto.getFemaleVacancy() == null) {
+                throw new IllegalArgumentException("Male and Female vacancy counts must be provided when gender-wise is enabled");
+            }
+
+            // Auto-calculate total vacancy
+            Long calculatedTotalVacancy = genderDto.getMaleVacancy() + genderDto.getFemaleVacancy();
+            genderDto.setTotalVacancy(calculatedTotalVacancy);
+
+            if (!calculatedTotalVacancy.equals(postTotalVacancies)) {
+                throw new IllegalArgumentException("Sum of male and female vacancies must equal post total vacancies");
+            }
+        } else {
+            // Case 2: Gender-wise is false
+            if((genderDto.getCategoryDistributionDtos()==null || genderDto.getCategoryDistributionDtos().isEmpty()) )
+            {
+                if (genderDto.getTotalVacancy() == null) {
+                    throw new IllegalArgumentException("Total vacancy must be provided when gender-wise is disabled");
+                }
+
+                if (!genderDto.getTotalVacancy().equals(postTotalVacancies)) {
+                    throw new IllegalArgumentException("Total vacancy must equal post total vacancies");
+                }
+            }
+
+        }
+    }
+
+    public void validateOtherVacancyDistribution(PostDto postDto) {
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if(postDto.getGenderWiseDistribution()!=null&& !isDtoEmpty(postDto.getGenderWiseDistribution()))
+        {
+            throw new IllegalArgumentException("You cannot distribute vacancies category wise");
+        }
+        List<OtherDistribution> otherDistributions = postDto.getOtherDistributions();
+
+        // Check if the list is empty
+        if (otherDistributions == null || otherDistributions.isEmpty()) {
+            throw new IllegalArgumentException("OtherDistribution list cannot be empty for VacancyTypeId 4.");
+        }
+
+        long totalVacanciesSum = 0L;
+
+        // Validate each OtherDistribution in the list
+        for (OtherDistribution distribution : otherDistributions) {
+            if (distribution.getOtherDistributionValue() == null || distribution.getOtherDistributionValue().trim().isEmpty()) {
+                throw new IllegalArgumentException("OtherDistributionValue cannot be null or empty.");
+            }
+
+            if (distribution.getTotalVacancy() == null) {
+                throw new IllegalArgumentException("TotalVacancy cannot be null.");
+            }
+
+            // Add the totalVacancy to the sum
+            totalVacanciesSum += distribution.getTotalVacancy();
+        }
+
+        // Check if the sum matches postTotalVacancies
+        if (totalVacanciesSum != postDto.getPostTotalVacancies()) {
+            throw new IllegalArgumentException("The sum of total vacancies in OtherDistributions must equal PostTotalVacancies.");
+        }
+    }
+
+    private boolean isDtoEmpty(Object dto) {
+        return Arrays.stream(dto.getClass().getDeclaredFields())
+                .peek(field -> field.setAccessible(true))
+                .allMatch(field -> {
+                    try {
+                        return field.get(dto) == null;
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException("Error accessing field value", e);
+                    }
+                });
     }
 
     public CustomSector validateSector(AddProductDto addProductDto) throws Exception {
@@ -2580,36 +3303,14 @@ public class ProductService {
         }
     }
 
-    public Qualification validateQualification(AddProductDto addProductDto) throws Exception {
+    public Advertisement validateAdvertisement(AddProductDto addProductDto) throws Exception {
         try {
-            if (addProductDto.getQualification() != null) {
-                Qualification qualification = qualificationService.getQualificationByQualificationId(addProductDto.getQualification());
-                if (qualification == null) {
-                    throw new IllegalArgumentException("Qualification not found with this id.");
+            if (addProductDto.getAdvertisement() != null) {
+                Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
+                if (advertisement == null) {
+                    throw new IllegalArgumentException("Advertisement not found with this id.");
                 }
-                return qualification;
-
-            } else {
-                throw new IllegalArgumentException("Qualification cannot be null.");
-            }
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating qualification: " + exception.getMessage() + "\n");
-        }
-    }
-
-    public CustomStream validateStream(AddProductDto addProductDto) throws Exception {
-        try {
-            if (addProductDto.getStream() != null) {
-                CustomStream customStream = streamService.getStreamByStreamId(addProductDto.getStream());
-                if (customStream == null) {
-                    throw new IllegalArgumentException("Stream not found with this id.");
-                }
-                return customStream;
-
+                return advertisement;
             }
             return null;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -2617,27 +3318,17 @@ public class ProductService {
             throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating stream: " + exception.getMessage() + "\n");
+            throw new Exception("Some exception while validating advertisement: " + exception.getMessage() + "\n");
         }
     }
 
-    public CustomSubject validateSubject(AddProductDto addProductDto) throws Exception {
+    public List<CustomProduct> getAllProductsByAdvertisementId (Advertisement advertisement) throws Exception {
         try {
-            if (addProductDto.getSubject() != null) {
-                CustomSubject customSubject = subjectService.getSubjectBySubjectId(addProductDto.getSubject());
-                if (customSubject == null) {
-                    throw new IllegalArgumentException("Subject not found with this id.");
-                }
-                return customSubject;
-            }
-            return null;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+            String sql = "SELECT c FROM CustomProduct c WHERE c.advertisement = :advertisementId";
+            return entityManager.createQuery(sql, CustomProduct.class).setParameter("advertisementId", advertisement).getResultList();// Use this to simplify appending conditions
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("Some exception while validating subject: " + exception.getMessage() + "\n");
+            throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
     }
-
 }

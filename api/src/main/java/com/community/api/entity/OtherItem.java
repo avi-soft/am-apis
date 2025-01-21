@@ -52,5 +52,4 @@ public class OtherItem
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = true)
     private CustomProduct customProduct;
-
 }

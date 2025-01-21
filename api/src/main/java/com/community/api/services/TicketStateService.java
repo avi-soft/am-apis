@@ -131,8 +131,10 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 if (ticketState == null)
                     return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
+
                 if(!canTransitTicket(ticket,createTicketDTO.getTicketState(),roleNameToken,createTicketDTO.getTicketStatus()))
                     return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.",HttpStatus.FORBIDDEN);
+
                 ticket.setTicketState(ticketState);
             }
             if ((createTicketDTO.getTicketStatus() != null && createTicketDTO.getTicketState() == null) || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() != null))
@@ -156,6 +158,7 @@ public class TicketStateService {
                 if (!resultListLong.contains(createTicketDTO.getTicketStatus()))
                     return ResponseService.generateErrorResponse("Invalid Status selected for ticket State :" + ticketState.getTicketState(), HttpStatus.BAD_REQUEST);
                 ticket.setTicketStatus(ticketStatus);
+
                 if (createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_IN_REVIEW) && createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP)) {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty()) {
                         return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
@@ -186,6 +189,7 @@ public class TicketStateService {
             }
             if (createTicketDTO.getAssigneeRole() == null && createTicketDTO.getAssignee() != null)
                 return ResponseService.generateErrorResponse("Assignee and role must be provided together.", HttpStatus.BAD_REQUEST);
+
             if (createTicketDTO.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == 1) {
                     return ResponseService.generateErrorResponse("Target Completion date cannot be in past", HttpStatus.BAD_REQUEST);
@@ -210,6 +214,7 @@ public class TicketStateService {
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
+
         } catch (PersistenceException e) {
             return ResponseService.generateErrorResponse("Cannot find valid result : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException illegalArgumentException) {

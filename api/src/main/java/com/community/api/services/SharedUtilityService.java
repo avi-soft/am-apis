@@ -2,22 +2,25 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.BoardUniversity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomReserveCategory;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.CustomerAddressDTO;
+import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Post;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
-import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
-import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -33,20 +36,18 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,6 +63,8 @@ public class SharedUtilityService {
     JwtUtil jwtTokenUtil;
     @Autowired
     RoleService roleService;
+    @Autowired
+    DistrictService districtService;
     @Autowired
     HttpServletRequest request;
     private EntityManager entityManager;
@@ -95,11 +98,12 @@ public class SharedUtilityService {
         return query.getSingleResult();
     }
 
-    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer) {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer,Long genderId) {
         Map<String, Object> productDetails = new HashMap<>();
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
             productDetails.put("order_item_id", orderItem.getId());
+        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
         productDetails.put("product_id", product.getId());
         productDetails.put("url", product.getUrl());
         productDetails.put("meta_title", product.getName());
@@ -111,9 +115,44 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
-        Double fee = productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId()).getFee();
+        List<Long>preferenceOrder=null;
+        List<PostDetailsDTO>availablePosts=new ArrayList<>();
+        String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+        if(retrievedPostPreferenceString!=null) {
+            if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+            }
+            for (Long id : preferenceOrder) {
+                Post post = entityManager.find(Post.class, id);
+                if (post != null) {
+                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                    detailsDTO.setPostId(post.getPostId());
+                    detailsDTO.setPostName(post.getPostName());
+                    detailsDTO.setPostCode(post.getPostCode());
+                    postPreferenceOrder.add(detailsDTO);
+                }
+            }
+            for (Post post:customProduct.getPosts())
+            {
+                if(!preferenceOrder.contains(post.getPostId()))
+                {
+                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                    detailsDTO.setPostId(post.getPostId());
+                    detailsDTO.setPostName(post.getPostName());
+                    detailsDTO.setPostCode(post.getPostCode());
+                    availablePosts.add(detailsDTO);
+                }
+            }
+        }
+        productDetails.put("available_posts",availablePosts);
+        productDetails.put("preference_order",postPreferenceOrder);
+        Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
-            fee = 10.0; //@TODO - make it constant free
+            fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
+            if(fee==null)
+                fee=0.0;
         }
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
@@ -123,7 +162,7 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -159,9 +198,9 @@ public class SharedUtilityService {
         CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
         Order cart = orderService.findCartForCustomer(customer);
         if (cart != null)
-            customerDetails.put("orderId", cart.getId());
+            customerDetails.put("cartId", cart.getId());
         else
-            customerDetails.put("orderId", null);
+            customerDetails.put("cartId", null);
         if(role.equals(Constant.roleServiceProvider)) {
             if (customCustomer.getHidePhoneNumber().equals(false)) {
                 customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
@@ -207,14 +246,40 @@ public class SharedUtilityService {
         customerDetails.put("category", customCustomer.getCategory());
         customerDetails.put("subcategory", customCustomer.getSubcategory());
         customerDetails.put("domicile", customCustomer.getDomicile());
+        customerDetails.put("domicileState", customCustomer.getDomicileState());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
-        customerDetails.put("height_cms", customCustomer.getHeightCms());
-        customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
-        customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
-        customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
-        customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+
+        if(customCustomer.getHeightCms() != null) {
+            customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
+        }else {
+            customerDetails.put("height_cms", customCustomer.getHeightCms());
+        }
+
+        if(customCustomer.getWeightKgs() != null) {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
+        }else {
+            customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
+        }
+
+        if(customCustomer.getChestSizeCms() != null) {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+        }else {
+            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
+        }
+
+        if(customCustomer.getShoeSizeInches() != null) {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+        }else {
+            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
+        }
+
+        if(customCustomer.getWaistSizeCms() != null) {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
+        }else {
+            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
+        }
+
         customerDetails.put("can_swim", customCustomer.getCanSwim());
         customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
         customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
@@ -223,7 +288,6 @@ public class SharedUtilityService {
         customerDetails.put("mphil_passed", customCustomer.getMphilPassed());
         customerDetails.put("phd_passed", customCustomer.getPhdPassed());
         customerDetails.put("number_of_attempts", customCustomer.getNumberOfAttempts());
-        customerDetails.put("work_experience", customCustomer.getWorkExperience());
         customerDetails.put("category_valid_upto", customCustomer.getCategoryValidUpto());
         customerDetails.put("religion", customCustomer.getReligion());
         customerDetails.put("belongs_to_minority", customCustomer.getBelongsToMinority());
@@ -231,38 +295,81 @@ public class SharedUtilityService {
         customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
         customerDetails.put("disability_handicapped", customCustomer.getDisability());
+        customerDetails.put("disability_type", customCustomer.getDisabilityType());
+        customerDetails.put("disability_percentage", customCustomer.getDisabilityPercentage());
         customerDetails.put("is_ex_service_man", customCustomer.getExService());
         customerDetails.put("is_married", customCustomer.getIsMarried());
         customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
         customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
         customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
-        customerDetails.put("is_nss_certificate",customCustomer.getIs_ncc_certificate());
+        customerDetails.put("is_nss_certificate",customCustomer.getIs_nss_certificate());
         customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
         customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
+        customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
+        customerDetails.put("created_by_id",customCustomer.getCreatedById());
+        customerDetails.put("modified_by_role",customCustomer.getModifiedByRole());
+        customerDetails.put("modified_by_id",customCustomer.getModifiedById());
+        customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
+        customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
+        customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
+        customerDetails.put("work_experience", customCustomer.getWorkExperience());
+        customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
+        customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
+        customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
+        customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
+        customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
+        customerDetails.put("isMinority",customCustomer.getIsMinority());
+        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
+        customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
         for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
             if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 currentAddress.put("city", customerAddress.getAddress().getCity());
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 permanentAddress.put("city", customerAddress.getAddress().getCity());
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
 
         }
         customerDetails.put("currentAddress", currentAddress);
         customerDetails.put("permanentAddress", permanentAddress);
 
+        /*customerDetails.put("current_district_id",
+                districtService.findDistrictByName(currentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(currentAddress.get("district"))
+                        : null);
 
+        customerDetails.put("current_state_id",
+                districtService.getStateByStateName(currentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(currentAddress.get("state"))
+                        : null);
+
+        customerDetails.put("permanent_district_id",
+                districtService.findDistrictByName(permanentAddress.get("district")) != null
+                        ? districtService.findDistrictByName(permanentAddress.get("district"))
+                        : null);
+
+        customerDetails.put("permanent_state_id",
+                districtService.getStateByStateName(permanentAddress.get("state")) != null
+                        ? districtService.getStateByStateName(permanentAddress.get("state"))
+                        : null);*/
 
       /*  customerDetails.put("qualificationDetails",customCustomer.getQualificationDetailsList());
         customerDetails.put("documentList",customCustomer.getDocumentList());
@@ -469,7 +576,7 @@ public class SharedUtilityService {
                     Map<String, Object> qualificationInfo = new HashMap<>();
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution =  qualificationDetail.getInstitution();
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -496,7 +603,7 @@ public class SharedUtilityService {
 
                     // Populate the map
                     qualificationInfo.put("qualification_detail_id", qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
@@ -507,6 +614,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
                     qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Add qualification_name
                     if (qualification != null) {
@@ -551,6 +662,28 @@ public class SharedUtilityService {
                     qualificationInfo.put("subjects", subjects);
                     qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
 
+                    Map<String, Object> filteredDocument = null;
+                    Document document= qualificationDetail.getQualificationDocument();
+                    if(document==null)
+                    {
+                        qualificationInfo.put("qualification_document",null);
+                    }
+                    else {
+                        if(document.getIsArchived().equals(false))
+                        {
+                            if (document.getFilePath() != null && document.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", document.getDocumentId());
+                                documentDetails.put("name", document.getName());
+                                documentDetails.put("filePath", document.getFilePath());
+                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+                                filteredDocument=documentDetails;
+                            }
+                        }
+                        qualificationInfo.put("qualification_document", filteredDocument);
+                    }
+
                     return qualificationInfo;
                 }).collect(Collectors.toList());
     }
@@ -562,7 +695,7 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution().getInstitution_id());
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -593,7 +726,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
@@ -601,6 +734,11 @@ public class SharedUtilityService {
                     qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
+                    qualificationInfo.put("qualification_document",qualificationDetail.getQualificationDocument());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {
@@ -621,17 +759,118 @@ public class SharedUtilityService {
                     }else {
                         qualificationInfo.put("stream_name", "Unknown Stream");
                     }
+
+                    Map<String, Object> filteredDocument = null;
+                    ServiceProviderDocument serviceProviderDocument= qualificationDetail.getServiceProviderDocument();
+                    if(serviceProviderDocument==null)
+                    {
+                        qualificationInfo.put("qualification_document",null);
+                    }
+                    else {
+                        if(serviceProviderDocument.getIsArchived().equals(false))
+                        {
+                            if (serviceProviderDocument.getFilePath() != null && serviceProviderDocument.getDocumentType() != null) {
+                                Map<String, Object> documentDetails = new HashMap<>();
+                                documentDetails.put("documentId", serviceProviderDocument.getDocumentId());
+                                documentDetails.put("name", serviceProviderDocument.getName());
+                                documentDetails.put("filePath", serviceProviderDocument.getFilePath());
+                                String fileUrl = fileService.getFileUrl(serviceProviderDocument.getFilePath(), request);
+                                documentDetails.put("fileUrl", fileUrl);
+                                filteredDocument=documentDetails;
+                            }
+                        }
+                        qualificationInfo.put("qualification_document", filteredDocument);
+                    }
                     return qualificationInfo;
                 }).collect(Collectors.toList());
     }
 
     public boolean isFutureDate(String dateStr) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
             Date inputDate = sdf.parse(dateStr);
             Date currentDate = new Date();
             return inputDate.after(currentDate);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
+    public boolean validateCategoryIssueAndValidUptoDates(String categoryIssueDate, String categoryUptoDate, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date issueDate = sdf.parse(categoryIssueDate);
+            Date uptoDate = sdf.parse(categoryUptoDate);
+
+            if(issueDate.after(uptoDate)) {
+                cond = false;
+                errorMessages.add("category Issue date cannot be future of category valid upto date.");
+            }
+
+            if(issueDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("category Issue date cannot be future of current date");
+            }
+            return cond;
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
+    public boolean validateCategoryIssueDate(String categoryIssueDate, CustomCustomer customer, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date issueDate = sdf.parse(categoryIssueDate);
+
+            if(issueDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("Category issue date has to past or current date");
+            }
+            if(customer.getCategoryValidUpto() != null) {
+                Date uptoDate = sdf.parse(customer.getCategoryValidUpto());
+                if(issueDate.after(uptoDate)) {
+                    cond = false;
+                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                }
+            }
+
+            return cond;
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return false;
+        }
+    }
+
+    public boolean validateCategoryUptoDate(String categoryUptoDate, CustomCustomer customer, List<String> errorMessages) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+        sdf.setLenient(false);
+        try {
+            boolean cond = true;
+            Date uptoDate = sdf.parse(categoryUptoDate);
+
+            if(!uptoDate.after(new Date())) {
+                cond = false;
+                errorMessages.add("Category upto date has to future date");
+            }
+            if(customer.getCategoryIssueDate() == null) {
+                cond = false;
+                errorMessages.add("There is no entry of categoryIssueDate cannot");
+            }else {
+                Date issueDate = sdf.parse(customer.getCategoryIssueDate());
+                if(issueDate.after(uptoDate)) {
+                    cond = false;
+                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                }
+            }
+
+            return cond;
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return false;
@@ -693,8 +932,29 @@ public class SharedUtilityService {
             return -1; // Return -1 if there is any error
         }
     }
+    public  boolean isAlphabetic(String input) {
+        // Check if the string contains only alphabetic characters
+        if (input == null || input.isEmpty()) {
+            return false;  // Return false for null or empty strings
+        }
 
-    public OtherItem handleOtherCaseForReserveCategory(CustomReserveCategory foundedReserveCategoryName,String typedText,Integer roleId,Long userId,String sourceName)
+        // Use regular expression to check if the string contains only alphabets
+        return input.matches("[a-zA-Z]+");
+    }public long parseToLong(Object value) {
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value); // Parse string to long
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid number format");
+            }
+        } else if (value instanceof Number) {
+            return ((Number) value).longValue(); // Cast directly to long if it's already a number
+        } else {
+            throw new IllegalArgumentException("Value is neither a valid String nor a Number");
+        }
+    }
+
+    public OtherItem handleOtherCaseForReserveCategory(CustomReserveCategory foundedReserveCategoryName, String typedText, Integer roleId, Long userId, String sourceName)
     {
         String customReserveCategoryName= foundedReserveCategoryName.getReserveCategoryName();
         if(customReserveCategoryName.equalsIgnoreCase("Others"))
