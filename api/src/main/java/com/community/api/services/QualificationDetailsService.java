@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToDate;
+import static com.community.api.utils.CustomDateDeserializer.validationState;
 
 @Service
 public class QualificationDetailsService {
@@ -73,10 +74,7 @@ public class QualificationDetailsService {
         String sourceName= "add_qualification";
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
-            if(!CustomDateDeserializer.isValidDate)
-            {
-                throw new IllegalArgumentException("Date must be in yyyy-MM-dd format");
-            }
+            dateValidations();
             List<Qualification> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
@@ -130,10 +128,7 @@ public class QualificationDetailsService {
 
         }
         CustomCustomer customCustomer = findCustomCustomerById(userId);
-        if(!CustomDateDeserializer.isValidDate)
-        {
-            throw new IllegalArgumentException("Date must be in yyyy-MM-dd format");
-        }
+        dateValidations();
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
         List<Qualification> qualifications = qualificationService.getAllQualifications();
         Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
@@ -1273,4 +1268,22 @@ public class QualificationDetailsService {
         }
     }
 
+    private void dateValidations()
+    {
+        if(validationState==0)
+        {
+            throw new IllegalArgumentException("Date must be in yyyy-MM-dd format");
+        }
+        else if(validationState==-1)
+        {
+            throw new IllegalArgumentException("Invalid date: Day is not valid");
+        }
+        else if(validationState==-2)
+        {
+            throw new IllegalArgumentException("Invalid date: Month should be between 1 and 12");
+        }  else if(validationState==-3)
+        {
+            throw new IllegalArgumentException("Invalid date: Year cannot be in the future");
+        }
+    }
 }
