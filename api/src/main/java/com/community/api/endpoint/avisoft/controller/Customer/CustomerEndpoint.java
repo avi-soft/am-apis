@@ -254,6 +254,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             Boolean isValidDate=null;
+            Boolean isValidDateDomicile=null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -808,10 +809,15 @@ public class CustomerEndpoint {
                     if(details.containsKey("otherCategoryValidUpto"))
                     {
                         String validUpto= (String) details.get("otherCategoryValidUpto");
-                        if(validUpto.trim().isEmpty())
+                        if(validUpto.isEmpty())
                         {
                             customCustomer.setOtherCategoryValidUpto(null);
                             isValidDate=validateDate((String) details.get("otherCategoryDateOfIssue"),null,dateFormat);
+                        }
+                        else if(validUpto.trim().isEmpty())
+                        {
+                            customCustomer.setOtherCategoryValidUpto(null);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"),null,dateFormat);
                         }
                         else {
                             validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
@@ -869,7 +875,12 @@ public class CustomerEndpoint {
                     if(details.containsKey("domicileValidUpto"))
                     {
                         String validUpto= (String) details.get("domicileValidUpto");
-                        if(validUpto.trim().isEmpty())
+                        if(validUpto.isEmpty())
+                        {
+                            customCustomer.setDomicileValidUpto(null);
+                            isValidDateDomicile=validateDate((String) details.get("domicileIssueDate"),null,dateFormat);
+                        }
+                        else if(validUpto.trim().isEmpty())
                         {
                             customCustomer.setDomicileValidUpto(null);
                             validateDate((String) details.get("domicileIssueDate"),null,dateFormat);
@@ -1120,6 +1131,10 @@ public class CustomerEndpoint {
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
             if(isValidDate!=null && isValidDate.equals(true))
+            {
+                errorMessages.remove(errorMessages.size()-1);
+            }
+            if(isValidDateDomicile!=null && isValidDateDomicile.equals(true))
             {
                 errorMessages.remove(errorMessages.size()-1);
             }
