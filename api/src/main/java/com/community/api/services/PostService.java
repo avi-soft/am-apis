@@ -1,6 +1,7 @@
 
 package com.community.api.services;
 import javax.persistence.EntityManager;
+import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -9,22 +10,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import com.community.api.component.Constant;
+
 import com.community.api.dto.*;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
-import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.community.api.endpoint.avisoft.controller.product.ProductController.POSTLESSTHANORZERO;
 import static com.community.api.services.ProductService.calculateDateRange;
 
 @Service
@@ -169,7 +164,6 @@ public class PostService {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
-        post.setOtherVacancyDistribution(postDto.getOtherVacancyDistribution());
         if (postDto.getPostCode() != null) {
             post.setPostCode(postDto.getPostCode());
         }
@@ -217,7 +211,7 @@ public class PostService {
         }
         entityManager.persist(post);
         entityManager.flush(); // Ensure Post is saved and has an ID
-        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibilityDto();
+        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibility();
         if (qualificationEligibilityDto!=null) {
             if(qualificationEligibilityDto.getQualificationIds()!=null)
             {
@@ -301,6 +295,12 @@ public class PostService {
         }
 
         entityManager.refresh(post);
+        if (postDto.getVacancyDistributionTypeIds() != null && postDto.getVacancyDistributionTypeIds().contains(4)) {
+            if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+                List<OtherDistribution> otherDistributions = saveOtherDistributions(postDto.getOtherDistributions(), post);
+                post.setOtherDistributions(otherDistributions);
+            }
+        }
 
         return post;
     }
@@ -338,6 +338,55 @@ public class PostService {
 
         return stateDistributions;
     }
+
+    private List<OtherDistribution> saveOtherDistributions(List<OtherDistribution> otherDistributions, Post post) {
+        if (otherDistributions == null || post == null) {
+            throw new IllegalArgumentException("Other distributions and post must not be null");
+        }
+
+        List<OtherDistribution> savedOtherDistributions = new ArrayList<>();
+
+        for (OtherDistribution otherDistributionEntity : otherDistributions) {
+            if (otherDistributionEntity == null) {
+                continue;  // Skip null entries
+            }
+
+            try {
+                OtherDistribution otherDistribution = new OtherDistribution();
+                otherDistribution.setPost(post);
+
+                // Validate and set total vacancy
+                Long totalVacancy = otherDistributionEntity.getTotalVacancy();
+                if (totalVacancy != null && totalVacancy >= 0) {
+                    otherDistribution.setTotalVacancy(totalVacancy);
+                } else {
+                    throw new IllegalArgumentException("Total vacancy must be non-negative");
+                }
+
+                // Validate and set distribution value
+                String distributionValue = otherDistributionEntity.getOtherDistributionValue();
+                if (distributionValue != null && !distributionValue.trim().isEmpty()) {
+                    otherDistribution.setOtherDistributionValue(distributionValue.trim());
+                } else {
+                    throw new IllegalArgumentException("Distribution value must not be empty");
+                }
+
+                entityManager.persist(otherDistribution);
+                entityManager.flush();  // Flush after each persist to catch constraints early
+                savedOtherDistributions.add(otherDistribution);
+
+            } catch (ConstraintViolationException e) {
+                throw new IllegalStateException("Constraint violation while saving other distribution: " +
+                        otherDistributionEntity.getOtherDistributionValue(), e);
+            } catch (Exception e) {
+                throw new IllegalStateException("Error saving other distribution: " +
+                        otherDistributionEntity.getOtherDistributionValue(), e);
+            }
+        }
+
+        return savedOtherDistributions;
+    }
+
 
     private Integer calculateDistrictBasedStateVacancies(StateDistributionDto stateDto) {
         return stateDto.getDistrictDistributions().stream()
@@ -596,9 +645,15 @@ public class PostService {
                 DivisionDistribution divisionDist = new DivisionDistribution();
                 divisionDist.setZoneDistribution(zoneDistribution);
 
-                ZoneDivisions division = entityManager.find(ZoneDivisions.class, divisionDto.getDivisionId());
+                Integer divisionIdToFind= divisionDto.getDivisionId();
+                String jpql = "SELECT z FROM ZoneDivisions z WHERE z.divisions.state_id = :divisionId AND z.zone.zoneId = :zoneId";
+                ZoneDivisions division = entityManager.createQuery(jpql, ZoneDivisions.class)
+                        .setParameter("divisionId", divisionDto.getDivisionId())
+                        .setParameter("zoneId", zoneDistribution.getZone().getZoneId())
+                        .getSingleResult();
+
                 if (division == null) {
-                    throw new IllegalArgumentException("Division not found with id: " + divisionDto.getDivisionId());
+                    throw new IllegalArgumentException("Division not found with id: " + divisionDto.getDivisionId().intValue());
                 }
                 divisionDist.setDivisions(division);
 

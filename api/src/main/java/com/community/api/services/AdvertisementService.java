@@ -97,13 +97,13 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Notification Start Date cannot be of future");
             }
             if(addAdvertisementDto.getNotificationEndDate() == null) {
-                addAdvertisementDto.setNotificationEndDate(addAdvertisementDto.getNotificationStartDate());
+                addAdvertisementDto.setNotificationEndDate(null);
             } else {
                 formattedDate = dateFormat.format(addAdvertisementDto.getNotificationEndDate());
                 dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             }
 
-            if (addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
+            if (addAdvertisementDto.getNotificationEndDate() != null && addAdvertisementDto.getNotificationEndDate().before(addAdvertisementDto.getNotificationStartDate())) {
                 throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
             }
 
@@ -131,7 +131,6 @@ public class AdvertisementService {
             } else {
                 return null;
             }
-
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return null;

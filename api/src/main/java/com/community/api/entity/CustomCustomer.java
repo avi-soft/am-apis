@@ -2,7 +2,9 @@ package com.community.api.entity;
 
 import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,8 +13,6 @@ import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 
 import javax.persistence.*;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -57,7 +57,6 @@ public class CustomCustomer extends CustomerImpl {
     @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "PAN number must be a valid 10-character alphanumeric string.")
     private String panNumber;
 
-
     @Nullable
     @Column(name = "father_name")
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
@@ -68,12 +67,11 @@ public class CustomCustomer extends CustomerImpl {
     @Pattern(regexp = "^[a-zA-Z ]+$", message = "Nationality must only contain alphabetic characters.")
     private String nationality;
 
-
     @Nullable
     @Column(name = "date_of_birth")
-//    @Pattern(regexp = "^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/([12][0-9]{3})$", message = "Date of Birth must be in DD/MM/YYYY format.")
+//    @Temporal(TemporalType.DATE)
+//    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-([12][0-9]{3})$", message = "Date of Birth must be in DD-MM-YYYY format.")
     private String dob;
-
 
     @Nullable
     @Column(name = "gender")
@@ -84,7 +82,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "adhar_number", unique = true)
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhar number must be a valid 12-digit numeric value.")
     private String adharNumber;
-
 
     @Nullable
     @Column(name = "category")
@@ -145,7 +142,7 @@ public class CustomCustomer extends CustomerImpl {
 
     @Nullable
     @Column(name = "work_experience")
-    private String workExperience; // work experience in months.
+    private Integer workExperience; // work experience in months.
 
     @Nullable
     @Column(name = "category_valid_upto_date")
@@ -168,6 +165,12 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "domicile")
     private Boolean domicile = false;
+
+    @Column(name = "domicile_issue_date")
+    private java.sql.Date domicileIssueDate;
+
+    @Column(name = "domicile_valid_upto")
+    private java.sql.Date domicileValidUpto;
 
     @Nullable
     @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
@@ -259,6 +262,26 @@ public class CustomCustomer extends CustomerImpl {
 
     @Column(name = "nss_certificate")
     private String nss_certificate;
+
+    @Column(name = "is_sports_certificate",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isSportsCertificate;
+
+    @Column(name = "is_other_or_state_category")
+    private Boolean isOtherOrStateCategory;
+
+    @Column(name = "other_or_state_category", columnDefinition = "text")
+    private String otherOrStateCategory;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
+    @Column(name = "other_category_date_of_issue", columnDefinition = "DATE")
+    private java.sql.Date otherCategoryDateOfIssue;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
+    @Column(name = "other_category_valid_upto", columnDefinition = "DATE")
+    private java.sql.Date  otherCategoryValidUpto;
+
+    @Column(name = "is_minority")
+    private Boolean isMinority;
 
     @Column(name = "is_married")
     private Boolean isMarried = false;
