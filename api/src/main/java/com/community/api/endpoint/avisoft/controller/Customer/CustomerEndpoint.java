@@ -43,14 +43,19 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import org.apache.zookeeper.data.Stat;
+import org.broadleafcommerce.common.i18n.domain.ISOCountry;
+import org.broadleafcommerce.common.i18n.domain.ISOCountryImpl;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.profile.core.domain.Address;
+import org.broadleafcommerce.profile.core.domain.CountryImpl;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 import org.broadleafcommerce.profile.core.service.AddressService;
+import org.broadleafcommerce.profile.core.service.CountryService;
 import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,7 +139,8 @@ public class CustomerEndpoint {
     @Autowired
     private  ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
-
+@Autowired
+    CountryService countryService;
 
     @Autowired
     private JwtUtil jwtTokenUtil;
@@ -249,7 +255,6 @@ public class CustomerEndpoint {
             List<String>deleteLogs=new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             List<String> errorMessages = new ArrayList<>();
 
             details=sanitizerService.sanitizeInputMap(details);
@@ -552,15 +557,39 @@ public class CustomerEndpoint {
             String state = (String) details.get("currentState");
             String district = (String) details.get("currentDistrict");
             String pincode = (String) details.get("currentPincode");
-            if (state != null && district != null && pincode != null) {
+            String addressLine=(String) details.get("currentAddress");
+            String city=(String) details.get("currentCity");
+            boolean flag = true;
+            String[] keys = {"currentState", "currentDistrict", "currentPincode", "currentAddress", "currentCity"};
+            int containsCount=0;
+            for (String key : keys) {
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flag = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            }
+            if(flag&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flag&&containsCount== 5) {
                 boolean updated=false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("currentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("currentCity"));
+                        customerAddress.getAddress().setCity(city);
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
@@ -568,32 +597,64 @@ public class CustomerEndpoint {
                 if(!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("currentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("currentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }
+            }else if(!flag &&containsCount!=0)
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Current Address");
             details.remove("currentState");
             details.remove("currentDistrict");
             details.remove("currentAddress");
             details.remove("currentPincode");
             details.remove("currentCity");
-            state = (String) details.get("permanentState");
+            Boolean flagP = true;
+            containsCount=0;
+            String[] keysP = {"permanentState", "permanentDistrict", "permanentPincode", "permanentAddress", "permanentCity"};
+            for (String key : keysP) {
+
+                if (details.containsKey(key) && details.get(key) != null)
+                    containsCount++;
+                else
+                {
+                    flagP = false;
+                    break;  // Exit the loop as we found a missing or null value
+                }
+            } state = (String) details.get("permanentState");
             district = (String) details.get("permanentDistrict");
             pincode = (String) details.get("permanentPincode");
-            if (state != null && district != null && pincode != null) {
+            addressLine=(String) details.get("permanentAddress");
+            city=(String) details.get("permanentCity");
+
+             if(flagP&&containsCount== 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
+            if (flagP&&containsCount== 5) {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
 
                     if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
-                        customerAddress.getAddress().setAddressLine1((String) details.get("permanentAddress"));
-                        customerAddress.getAddress().setStateProvinceRegion(districtService.findStateById(Integer.parseInt(state)));
-                        customerAddress.getAddress().setCounty(districtService.findDistrictById(Integer.parseInt(district)));
+                        customerAddress.getAddress().setAddressLine1(addressLine);
+                        String stateName=districtService.findStateById(Integer.parseInt(state));
+                        if(stateName==null)
+                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setStateProvinceRegion(stateName);
+                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                        if(districtName==null)
+                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
-                        customerAddress.getAddress().setCity((String) details.get("permanentCity"));
+                        customerAddress.getAddress().setCity(city);
+                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                        customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
@@ -601,12 +662,46 @@ public class CustomerEndpoint {
                 if (!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("permanentAddress"));
-                    addressMap.put("state", districtService.findStateById(Integer.parseInt(state)));
+                    String stateName=districtService.findStateById(Integer.parseInt(state));
+                    if(stateName==null)
+                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                    addressMap.put("state",stateName);
                     addressMap.put("city", details.get("permanentCity"));
-                    addressMap.put("district", districtService.findDistrictById(Integer.parseInt(district)));
+                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
+                    if(districtName==null)
+                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
+                }
+            }else if(!flagP&&containsCount!=0)
+                errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
+            if(details.containsKey("adharNumber"))
+            {
+                String adharNumber = (String) details.get("adharNumber");
+                if(customCustomer.getAdharNumber()!=null)
+                {
+                    if(!customCustomer.getAdharNumber().equals(adharNumber)) {
+                        Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                        query.setParameter("adharNumber", adharNumber);
+                        Integer result = ((Number) query.getSingleResult()).intValue();
+                        if (result > 0) {
+                            errorMessages.add("Aadhar number already in use.");
+                            details.remove("adharNumber");
+                        }
+                    }
+                }
+                else if(customCustomer.getAdharNumber()==null)
+                {
+                    Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
+                    query.setParameter("adharNumber", adharNumber);
+                    Integer result = ((Number) query.getSingleResult()).intValue();
+                    System.out.println("result"+result);
+                    if (result > 0) {
+                        errorMessages.add("Aadhar number already in use!!");
+                        details.remove("adharNumber");
+                    }
                 }
             }
             if(details.containsKey("adharNumber"))
@@ -661,7 +756,7 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("is_ncc_certificate"))
             {
-                Boolean isNccCertificate = Boolean.parseBoolean((String)  details.get("is_ncc_certificate"));
+                Boolean isNccCertificate = Boolean.parseBoolean(String.valueOf((Boolean)  details.get("is_ncc_certificate")));
                 if(isNccCertificate.equals(true))
                 {
                     if(!details.containsKey("ncc_certificate"))
@@ -671,7 +766,7 @@ public class CustomerEndpoint {
                     customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
                 }
 
-                if(isNccCertificate.equals(false))
+                else if(isNccCertificate.equals(false))
                 {
                     customCustomer.setNcc_certificate(null);
                     List<Document> customerDocuments=customCustomer.getDocuments();
@@ -706,7 +801,7 @@ public class CustomerEndpoint {
             }
             if(details.containsKey("is_nss_certificate"))
             {
-                Boolean isNssCertificate = Boolean.parseBoolean((String)  details.get("is_nss_certificate"));
+                Boolean isNssCertificate = Boolean.parseBoolean(String.valueOf((Boolean)   details.get("is_nss_certificate")));
                 if(isNssCertificate.equals(true))
                 {
                     if(!details.containsKey("nss_certificate"))
@@ -1770,7 +1865,6 @@ public class CustomerEndpoint {
     }
 
 
-
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "add-address", method = RequestMethod.POST)
@@ -1792,7 +1886,14 @@ public class CustomerEndpoint {
                 address.setPostalCode((String) addressDetails.get("pinCode"));
                 newAddress.setAddress(address);
                 newAddress.setCustomer(customer);
-                newAddress.setAddressName((String) addressDetails.get("addressName"));
+                String addressName=(String) addressDetails.get("addressName");
+                newAddress.setAddressName(addressName);
+                CountryImpl country=null;
+                if(addressName.equals("CURRENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                else if(addressName.equals("PERMANENT_ADDRESS"))
+                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                newAddress.getAddress().setCountry(country);
                 List<CustomerAddress> addressLists = customer.getCustomerAddresses();
                 addressLists.add(newAddress);
                 customer.setCustomerAddresses(addressLists);

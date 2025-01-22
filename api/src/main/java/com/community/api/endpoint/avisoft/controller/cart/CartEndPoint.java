@@ -321,6 +321,10 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
         try {
+            Customer customer = customerService.readCustomerById(customerId);
+            Order cart = orderService.findCartForCustomer(customer);
+            if (cart == null)
+                return ResponseService.generateErrorResponse("Cart not activated", HttpStatus.OK);
             double productFee=0.0;
             Double individualFee=0.0;
             List<OrderItem>archievedItems=new ArrayList<>();
@@ -332,16 +336,11 @@ public class CartEndPoint extends BaseEndpoint {
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            Customer customer = customerService.readCustomerById(customerId);
-
             if (customer == null) {
                 return ResponseService.generateErrorResponse("customer does not exist", HttpStatus.NOT_FOUND);
             }
                 CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();;
-            Order cart = orderService.findCartForCustomer(customer);
-            if (cart == null)
-                return ResponseService.generateErrorResponse("Cart not found", HttpStatus.NOT_FOUND);
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
@@ -358,6 +357,8 @@ public class CartEndPoint extends BaseEndpoint {
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                         products.add(productDetails);
                         individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        if(individualFee==null)
+                            individualFee=0.0;
                         if(individualFee==null)
                             //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                             individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
@@ -524,8 +525,9 @@ public class CartEndPoint extends BaseEndpoint {
                     if(totalCost==null) {
                         //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                         totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                        if(totalCost==null)
-                            totalCost=0.0;
+                    if(totalCost==null)
+                        totalCost=0.0;
+
                     }totalCost=totalCost+platformFee;
                     Money total=new Money(totalCost);
                     individualOrder.setTotal(total);

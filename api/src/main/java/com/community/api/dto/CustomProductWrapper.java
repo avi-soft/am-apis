@@ -124,6 +124,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     AdvertisementWrapper advertisement;
     @JsonProperty("posts")
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
+    @JsonProperty("total_vacancies_in_Product")
+    Long totalVacanciesInProduct;
 
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
@@ -172,10 +174,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
+                postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
                 postProjectionDTO.setStateDistributions(post.getStateDistributions());
+                postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
 
@@ -294,6 +298,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
         if(feeList!=null) {
