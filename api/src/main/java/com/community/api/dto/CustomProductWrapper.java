@@ -21,6 +21,8 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.common.persistence.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static com.community.api.endpoint.avisoft.controller.product.ProductController.getPosts;
+
 
 @Data
 @NoArgsConstructor
@@ -124,11 +126,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     AdvertisementWrapper advertisement;
     @JsonProperty("posts")
     List<PostProjectionDTO> postDTOList=new ArrayList<>();
-    @JsonProperty("total_vacancies_in_Product")
+    @JsonProperty("is_multiple_post_same_fee")
+    Boolean isMultiplePostSameFee;
+    @JsonProperty("total_vacancies_in_product")
     Long totalVacanciesInProduct;
 
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList) throws Exception {
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList, Long totalVacanciesInProduct) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -174,7 +178,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
-                postProjectionDTO.setOtherVacancyDistribution(post.getOtherVacancyDistribution());
+                postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
@@ -226,7 +230,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.formComplexity = addProductDto.getFormComplexity();
 
         this.customSector = customSector;
+        this.isMultiplePostSameFee= addProductDto.getIsMultiplePostSameFee();
         this.selectionCriteria = addProductDto.getSelectionCriteria();
+        this.totalVacanciesInProduct=totalVacanciesInProduct;
         this.state = state;
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         advertisementWrapper.wrapDetails(advertisement, null);
@@ -272,7 +278,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
         this.isReviewRequired=customProduct.getIsReviewRequired();
-
+        this.isMultiplePostSameFee= customProduct.getIsMultiplePostSameFee();
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
         }
@@ -299,6 +305,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
         this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
+        this.isMultiplePostSameFee=customProduct.getIsMultiplePostSameFee();
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
         if(feeList!=null) {
@@ -406,7 +413,16 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifiedDate = customProduct.getModifiedDate();
         this.customSector = customProduct.getSector();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
-
+        this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
+        this.isMultiplePostSameFee=customProduct.getIsMultiplePostSameFee();
+        List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+        if(postProjectionDTOS!=null )
+        {
+            if(!postProjectionDTOS.isEmpty())
+            {
+                this.postDTOList=postProjectionDTOS;
+            }
+        }
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         if(advertisement != null) {
             advertisementWrapper.wrapDetails(customProduct.getAdvertisement(), null);
