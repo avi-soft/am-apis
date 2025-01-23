@@ -176,6 +176,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             for(Post post:postList)
             {
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
+                postProjectionDTO.setPostId(post.getPostId());
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
                 postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
