@@ -1457,9 +1457,6 @@ public class ProductService {
             }
 
             if (addProductDto.getSelectionCriteria() != null) {
-                if (addProductDto.getSelectionCriteria().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Selection criteria cannot be empty");
-                }
                 customProduct.setSelectionCriteria(addProductDto.getSelectionCriteria());
             }
 
@@ -1469,17 +1466,11 @@ public class ProductService {
             }
 
             if (addProductDto.getDownloadNotificationLink() != null) {
-                if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Download notification link cannot be empty");
-                }
                 addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                 customProduct.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink());
             }
 
             if (addProductDto.getDownloadSyllabusLink() != null) {
-                if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Download syllabus link cannot be empty");
-                }
                 addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                 customProduct.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink());
             }
@@ -2391,16 +2382,10 @@ public class ProductService {
     public boolean validateLinks(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getDownloadNotificationLink() != null) {
-                if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Notification download link cannot be empty");
-                }
                 addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
             }
 
             if (addProductDto.getDownloadSyllabusLink() != null) {
-                if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Syllabus download link cannot be empty.");
-                }
                 addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
             }
             return true;
@@ -3245,9 +3230,6 @@ public class ProductService {
     public Boolean validateSelectionCriteria(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getSelectionCriteria() != null) {
-                if (addProductDto.getSelectionCriteria().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Selection criteria cannot be emptyse");
-                }
                 addProductDto.setSelectionCriteria(addProductDto.getSelectionCriteria().trim());
             }
             return true;

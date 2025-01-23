@@ -249,16 +249,10 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(addProductDto.getDownloadNotificationLink()!=null)
                     {
-                        if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Notification download link cannot be empty");
-                        }
                         addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                     }
                     if(addProductDto.getDownloadSyllabusLink()!=null)
                     {
-                        if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Syllabus download link cannot be empty.");
-                        }
                         addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                     }
                 }
@@ -885,148 +879,5 @@ public class ProductController extends CatalogEndpoint {
         }
         return postProjectionDTOS;
     }
-
-//    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts) {
-//        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
-//        Map<String, Object> queryParams = new HashMap<>();
-//
-//        // Validate Role ID
-//        if (roleId == null) {
-//            throw new IllegalArgumentException("Role ID cannot be null");
-//        }
-//
-//        Role role = entityManager.find(Role.class, roleId);
-//        if (role == null) {
-//            throw new IllegalArgumentException("No role exists with id " + roleId);
-//        }
-//
-//        // Always join with role
-//        jpql.append("JOIN p.creatoRole r ");
-//
-//        // Start WHERE clause for archived products
-//        jpql.append("WHERE p.archiveStatus.archived = :archived ");
-//        queryParams.put("archived", 'N');
-//
-//        // Admin/SuperAdmin: Get all non-archived products
-//        if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
-//            // Service Provider: Filter by userId
-//            jpql.append("AND r.role_id = :roleId ");
-//            queryParams.put("roleId", roleId);
-//
-//            if (userId != null) {
-//                jpql.append("AND p.userId = :userId ");
-//                queryParams.put("userId", userId);
-//            }
-//        }
-//
-//        // Add draft products filter if requested
-//        if (showDraftProducts) {
-//            jpql.append("AND p.productState.productState = :draftState ");
-//            queryParams.put("draftState", "DRAFT");
-//        }
-//
-//        // Add active date condition
-//        jpql.append("AND p.defaultSku.activeEndDate > :currentDate ");
-//        queryParams.put("currentDate", new Date());
-//
-//        // Add ordering for consistent pagination
-//        jpql.append("ORDER BY p.id ASC ");
-//
-//        // Create and execute the paginated query
-//        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-//        queryParams.forEach(query::setParameter);
-//
-//        int startPosition = page * limit;
-//        query.setFirstResult(startPosition);
-//        query.setMaxResults(limit);
-//
-//        List<CustomProduct> products = query.getResultList();
-//        List<CustomProductWrapper> responses = new ArrayList<>();
-//
-//        for (CustomProduct customProduct : products) {
-//            CustomProductWrapper wrapper = new CustomProductWrapper();
-//            wrapper.wrapDetails(customProduct);
-//            responses.add(wrapper);
-//        }
-//
-//        // Get total count for pagination
-//        long totalProducts = countTotalProducts(role, userId, showDraftProducts);
-//
-//        Map<String, Object> response = new HashMap<>();
-//        response.put("products", responses);
-//        response.put("currentPage", page);
-//        response.put("totalItems", totalProducts);
-//        response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
-//
-//        String successMessage = showDraftProducts ?
-//                "Draft Products retrieved successfully" :
-//                "Products retrieved successfully";
-//        return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
-//    }
-//
-//    public long countTotalProducts(Role role, Long userId, boolean showDraftProducts) {
-//        StringBuilder countJpql = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
-//        Map<String, Object> queryParams = new HashMap<>();
-//
-//        // Always join with role
-//        countJpql.append("JOIN p.creatoRole r ");
-//
-//        // Start WHERE clause for archived products
-//        countJpql.append("WHERE p.archiveStatus.archived = :archived ");
-//        queryParams.put("archived", 'N');
-//
-//        // Admin/SuperAdmin: Get all non-archived products
-//        if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
-//            // Service Provider: Filter by userId
-//            countJpql.append("AND r.role_id = :roleId ");
-//            queryParams.put("roleId", role.getRole_id());
-//
-//            if (userId != null) {
-//                countJpql.append("AND p.userId = :userId ");
-//                queryParams.put("userId", userId);
-//            }
-//        }
-//
-//        // Add draft products filter if requested
-//        if (showDraftProducts) {
-//            countJpql.append("AND p.productState.productState = :draftState ");
-//            queryParams.put("draftState", "DRAFT");
-//        }
-//
-//        // Add active date condition
-//        countJpql.append("AND p.defaultSku.activeEndDate > :currentDate ");
-//        queryParams.put("currentDate", new Date());
-//
-//        TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
-//        queryParams.forEach(countQuery::setParameter);
-//        return countQuery.getSingleResult();
-//    }
-
-
-//    @GetMapping("/get-all")
-//    public ResponseEntity<?> getAllProductsByRole(
-//            @RequestHeader(value = "Authorization") String authHeader,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "5") int limit,
-//            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
-//
-//        try {
-//            if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
-//                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
-//            }
-//
-//            String jwtToken = authHeader.substring(7);
-//            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-//            Long userId = jwtTokenUtil.extractId(jwtToken);
-//
-//            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit,showDraftProducts);
-//
-//        } catch (IllegalArgumentException illegalArgumentException) {
-//            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
-//        } catch (Exception exception) {
-//            exceptionHandlingService.handleException(exception);
-//            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
 
 }
