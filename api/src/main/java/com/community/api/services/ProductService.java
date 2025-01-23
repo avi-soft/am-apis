@@ -590,7 +590,7 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && ((customProduct.getArchived().equals('N'))) && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+            if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
             {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
@@ -612,9 +612,11 @@ public class ProductService {
     }
 
     public long countTotalProducts(Integer roleId, Long userId, boolean showDraftProducts) {
+        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
         StringBuilder countJpql = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
+        Map<String, Object> queryParamsForJpql = new HashMap<>();
 
         if (roleId != null) {
             Role role = entityManager.find(Role.class, roleId);
@@ -624,23 +626,42 @@ public class ProductService {
 
             if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
                 countJpql.append("WHERE r.role_id = :roleId ");
+                jpql.append("WHERE r.role_id = :roleId ");
                 queryParams.put("roleId", roleId);
+                queryParamsForJpql.put("roleId", roleId);
 
                 if (userId != null) {
                     countJpql.append("AND p.userId = :userId ");
+                    jpql.append("AND p.userId = :userId ");
                     queryParams.put("userId", userId);
+                    queryParamsForJpql.put("userId", userId);
                 }
             } else {
                 countJpql.append("WHERE 1=1 ");
+                jpql.append("WHERE 1=1 ");
             }
             if (showDraftProducts) {
                 countJpql.append("AND p.productState.productState = :draftState ");
+                jpql.append("AND p.productState.productState = :draftState ");
                 queryParams.put("draftState", "DRAFT");
+                queryParamsForJpql.put("draftState", "DRAFT");
             }
         }
         TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
         queryParams.forEach(countQuery::setParameter);
-        return countQuery.getSingleResult();
+        long totalCount= countQuery.getSingleResult();
+        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+        queryParamsForJpql.forEach(query::setParameter);
+        queryParamsForJpql.forEach(countQuery::setParameter);
+        List<CustomProduct> products=new ArrayList<>();
+        products= query.getResultList();
+        for (CustomProduct customProduct : products) {
+            if(customProduct!=null && ((((Status) customProduct).getArchived() == 'Y')))
+            {
+                totalCount-=1;
+            }
+        }
+        return totalCount;
     }
 
     public boolean addProductAccessAuthorisation(String authHeader) throws Exception {
