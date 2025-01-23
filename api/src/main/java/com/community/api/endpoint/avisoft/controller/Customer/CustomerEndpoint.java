@@ -893,7 +893,7 @@ public class CustomerEndpoint {
                     else {
                         validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"),dateFormat);
                     }
-                    customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
+                    customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"),dateFormat));
                 } else if (domicile.equals(false)) {
                     if(details.containsKey("domicileIssueDate"))
                     {
