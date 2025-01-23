@@ -1,17 +1,24 @@
 package com.community.api.dto;
 
 import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
 import com.community.api.entity.Role;
+import com.community.api.services.ReserveCategoryAgeService;
+import com.community.api.services.ReserveCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Product;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
 public class CustomAdvertisementProductWrapper extends BaseWrapper implements APIWrapper<Product> {
-
+    @Autowired
+    private ReserveCategoryService reserveCategoryService;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
     @JsonProperty("product_id")
     protected Long id;
     @JsonProperty("meta_title")
@@ -76,6 +83,10 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
     Boolean isMultiplePostSameFee;
     @JsonProperty("total_vacancies_in_product")
     Long totalVacancies;
+    @JsonProperty("fee")
+    Double fee;
+    @JsonProperty("age_limit")
+    String ageLimit;
 
     public void wrapDetails(CustomProduct product, HttpServletRequest httpServletRequest) {
         this.id = product.getId();
@@ -114,6 +125,13 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacancies = product.getTotalVacanciesInProduct();
+        this.fee = (reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L) != null)
+                ? reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L)
+                : 0;
+        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L);
+        this.ageLimit = (ageLimitResult != null && ageLimitResult.getMinAge() != null && ageLimitResult.getMaxAge() != null)
+                ? ageLimitResult.getMinAge().toString() + "-" + ageLimitResult.getMaxAge().toString()
+                : "No age Limit";
     }
 
     @Override
