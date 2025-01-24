@@ -2683,7 +2683,7 @@ public class ProductService {
 
         // Case: No distribution type selected (empty or null list)
         if (vacancyDistributionTypeIds == null || vacancyDistributionTypeIds.isEmpty()) {
-            if (postDto.getStateDistributions() != null || postDto.getZoneDistributions() != null || postDto.getGenderWiseDistribution() != null) {
+            if ((postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) || (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) || (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()))) {
                 throw new IllegalArgumentException("No any distribution can be given if vacancy Distribution Type Id is null or empty");
             }
         }
