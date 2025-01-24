@@ -440,6 +440,8 @@ public class ProductController extends CatalogEndpoint {
             List<Post> postList= new ArrayList<>();
             if(addProductDto.getPosts() != null) {
                 if(!addProductDto.getPosts().isEmpty()) {
+                    productService.validatePostRequirement(addProductDto, roleId, userId);
+                    postList = postService.savePosts(addProductDto.getPosts(), product);
                     List<Post> postsToDelete = new ArrayList<>(customProduct.getPosts());
 
                     for (Post post : postsToDelete) {
@@ -462,14 +464,11 @@ public class ProductController extends CatalogEndpoint {
                         // Remove the post from custom product
                         post.setProduct(null);
                         customProduct.getPosts().remove(post);
-
                         entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
                     }
                     entityManager.flush();
 
                     // Add new posts
-                    productService.validatePostRequirement(addProductDto, roleId, userId);
-                    postList = postService.savePosts(addProductDto.getPosts(), product);
 
                     // Set the relationships for new posts
                     for (Post newPost : postList) {
