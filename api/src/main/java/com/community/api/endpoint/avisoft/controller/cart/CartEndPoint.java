@@ -288,7 +288,7 @@ public class CartEndPoint extends BaseEndpoint {
                     if(!actualPostIds.contains(pId))
                         return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
                 }
-                if(postPreference.size()<1)
+                if(postPreference.size()<1&&customProduct.getPosts().size()>=1)
                     return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
                 if(postPreference.size()>customProduct.getPosts().size())
                     return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
@@ -296,13 +296,17 @@ public class CartEndPoint extends BaseEndpoint {
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference", postPreferenceString);
-            } else {
+            } else if(customProduct.getPosts().size()==1){
                 postPreference.removeAll(postPreference);
                 postPreference.add(customProduct.getPosts().get(0).getPostId());
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference",postPreferenceString);
+            }
+            else
+            {
+                atrtributes.put("postPreference","NO_AVAILABLE_POSTS");
             }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
