@@ -34,5 +34,7 @@ public class CustomReserveCategory {
     @JsonProperty("default_category")
     protected Boolean isReservedCategory;
 
+    @Column(name = "sort_order",nullable = false)
+    private Integer sortOrder = Integer.MAX_VALUE;
 
 }
