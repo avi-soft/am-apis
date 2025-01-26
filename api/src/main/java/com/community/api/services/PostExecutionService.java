@@ -25,8 +25,6 @@ public class PostExecutionService {
     @Autowired
     private EntityManager entityManager;
     @Autowired
-    private ProductReserveCategoryBornBeforeAfterRefService refService;
-    @Autowired
     private PostService postService;
 
     @Autowired
@@ -53,8 +51,6 @@ public class PostExecutionService {
                 .collect(Collectors.toList());
         // Your business logic for saving posts and updating age requirements
         savePostsWithoutAgeRequirement(customProduct, postList);
-
-        postService.updatePostAgeRequirements(postDto, customProduct, postList);
     }
 
     @Transactional

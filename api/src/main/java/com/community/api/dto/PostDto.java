@@ -1,6 +1,5 @@
 package com.community.api.dto;
 
-import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.OtherDistribution;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -21,9 +20,11 @@ public class PostDto {
     private List<StateDistributionDto> stateDistributions;
     private List<ZoneDistributionDto> zoneDistributions;
     private GenderDistributionDto genderWiseDistribution;
-    @JsonProperty("reserve_category_age")
-    List<AddProductAgeDTO>reserveCategoryAge;
+//    @JsonProperty("reserve_category_age")
+//    List<AddProductAgeDTO>reserveCategoryAge;
     private QualificationEligibilityDto qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
+    @JsonProperty("reserve_category_age")
+    private List<ReserveCategoryAgeDto> reserveCategoryAge = new ArrayList<>();
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
 }

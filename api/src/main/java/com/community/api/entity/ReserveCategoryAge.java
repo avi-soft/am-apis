@@ -1,45 +1,24 @@
 package com.community.api.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-import javax.print.attribute.standard.MediaSize;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
-
 @Entity
-@Table(name = "custom_product_reserve_category_born_before_after_reference")
+@Table(name = "reserve_category_age")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CustomProductReserveCategoryBornBeforeAfterRef {
-
+public class ReserveCategoryAge
+{
     @Id
     @Column(name = "product_reserve_category_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long productReservedCategoryId;
-
-    @ManyToOne
-    @NotNull
-    @JsonBackReference
-    @JsonIgnore
-    @JoinColumn(name = "product_id")
-    protected CustomProduct customProduct;
 
     @ManyToOne
     @JoinColumn(name = "reserve_category_id")
@@ -62,9 +41,12 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
 
-    @JsonIgnore
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @Column(name = "as_of_date")
+    protected Date asOfDate;
 
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @NotNull
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 }

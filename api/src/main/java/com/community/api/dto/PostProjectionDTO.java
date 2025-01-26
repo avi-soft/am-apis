@@ -1,12 +1,6 @@
 package com.community.api.dto;
 
-import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
-import com.community.api.entity.GenderWiseDistribution;
-import com.community.api.entity.OtherDistribution;
-import com.community.api.entity.QualificationEligibility;
-import com.community.api.entity.StateDistribution;
-import com.community.api.entity.VacancyDistributionType;
-import com.community.api.entity.ZoneDistribution;
+import com.community.api.entity.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -28,7 +22,7 @@ public class PostProjectionDTO {
     private List<OtherDistribution> otherDistributions;
     private GenderWiseDistribution genderWiseDistribution;
     @JsonProperty("reserve_category_age")
-    List<ReserveCategoryAgeDto>reserveCategoryAge;
+    List<ReserveCategoryAge>reserveCategoryAge;
     private QualificationEligibility qualificationEligibility;
    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements ;
 }

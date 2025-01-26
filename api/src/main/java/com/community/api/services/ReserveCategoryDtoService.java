@@ -1,10 +1,8 @@
 package com.community.api.services;
 
 import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.google.common.annotations.GwtCompatible;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -52,7 +50,6 @@ public class ReserveCategoryDtoService {
 
     public List<ReserveCategoryDto> getReserveCategoryDto(Long productId) {
         try{
-            List<CustomProductReserveCategoryBornBeforeAfterRef> customProductReserveCategoryBornBeforeAfterRefList = productReserveCategoryBornBeforeAfterRefService.getProductReserveCategoryBornBeforeAfterByProductId(productId);
             List<CustomProductReserveCategoryFeePostRef> customProductReserveCategoryFeePostRefList = productReserveCategoryFeePostRefService.getProductReserveCategoryFeeAndPostByProductId(productId);
 
             List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();

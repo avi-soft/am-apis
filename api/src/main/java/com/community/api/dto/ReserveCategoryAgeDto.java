@@ -1,6 +1,7 @@
 package com.community.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -15,28 +16,25 @@ import java.util.Date;
 @Getter
 @Setter
 public class ReserveCategoryAgeDto {
-    @JsonProperty("product_id")
-    Long productId;
-    @JsonProperty("reserve_category_id")
-    Long reserveCategoryId;
-    @JsonProperty("post")
-    Integer post;
-    @JsonProperty("reserve_category")
-    String reserveCategory;
     @JsonProperty("born_before_after")
-    Boolean bornBeforeAfter;
+    Boolean bornBeofreAfter;
+    @JsonProperty("reserve_category_id")
+    Long reserveCategory;
+    @Nullable
     @JsonProperty("born_before")
-     Date bornBefore;
-     @JsonProperty("born_after")
-     Date bornAfter;
-    @JsonProperty("gender_id")
-    Long genderId;
-    @JsonProperty("gender_name")
-    String genderName;
-    @JsonProperty("min_age")
-    Integer minAge;
-    @JsonProperty("max_age")
-    Integer maxAge;
+    Date bornBefore;
+    @Nullable
+    @JsonProperty("born_after")
+    Date bornAfter;
+    @Nullable
     @JsonProperty("as_of_date")
     Date asOfDate;
+    @Nullable
+    @JsonProperty("minimum_age")
+    Integer minAge;
+    @Nullable
+    @JsonProperty("maximum_age")
+    Integer maxAge;
+    @JsonProperty("gender_id")
+    Long gender;
 }

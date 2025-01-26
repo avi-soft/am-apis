@@ -1,32 +1,25 @@
 package com.community.api.services;
 
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.PostDetailsDTO;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.*;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderAttribute;
-import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
-import javax.xml.transform.Source;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,8 +30,6 @@ public class OrderDTOService {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
@@ -107,5 +98,6 @@ public class OrderDTOService {
                 combinedOrderDTO.setCustomerDetails(customerDetails);
                 return combinedOrderDTO;
     }
+        return null;
     }
 }

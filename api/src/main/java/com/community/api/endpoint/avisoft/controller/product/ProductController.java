@@ -3,24 +3,14 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.PostProjectionDTO;
-import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.dto.AddProductDto;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.*;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
 import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.Post;
 
@@ -38,7 +28,6 @@ import com.community.api.services.JobGroupService;
 import com.community.api.services.ProductStateService;
 import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ProductReserveCategoryFeePostRefService;
-import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
@@ -103,7 +92,6 @@ public class ProductController extends CatalogEndpoint {
     private final JobGroupService jobGroupService;
     private final ProductStateService productStateService;
     private final ApplicationScopeService applicationScopeService;
-    private final ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     private final ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
     private final ReserveCategoryService reserveCategoryService;
     private final ReserveCategoryDtoService reserveCategoryDtoService;
@@ -129,7 +117,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     PostService postService;
-    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService,GenderService genderService) {
+    public ProductController(ExceptionHandlingService exceptionHandlingService, EntityManager entityManager, JwtUtil jwtTokenUtil, ProductService productService, RoleService roleService, JobGroupService jobGroupService, ProductStateService productStateService, ApplicationScopeService applicationScopeService, ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService, ReserveCategoryService reserveCategoryService, ReserveCategoryDtoService reserveCategoryDtoService, PhysicalRequirementDtoService physicalRequirementDtoService,GenderService genderService) {
 
         this.exceptionHandlingService = exceptionHandlingService;
         this.entityManager = entityManager;
@@ -139,7 +127,6 @@ public class ProductController extends CatalogEndpoint {
         this.jobGroupService = jobGroupService;
         this.productStateService = productStateService;
         this.applicationScopeService = applicationScopeService;
-        this.productReserveCategoryBornBeforeAfterRefService = productReserveCategoryBornBeforeAfterRefService;
         this.productReserveCategoryFeePostRefService = productReserveCategoryFeePostRefService;
         this.reserveCategoryService = reserveCategoryService;
         this.reserveCategoryDtoService = reserveCategoryDtoService;
@@ -446,20 +433,20 @@ public class ProductController extends CatalogEndpoint {
 
                     for (Post post : postsToDelete) {
                         // First handle the @ManyToOne relationship in CustomProductReserveCategoryBornBeforeAfterRef
-                        CustomProductReserveCategoryBornBeforeAfterRef ref =
+                       /* CustomProductReserveCategoryBornBeforeAfterRef ref =
                                 productReserveCategoryBornBeforeAfterRefService.findByPost(post);
 
                         if (ref != null) {
                             // Clear the @ManyToOne relationship
                             ref.setPost(null);
                             entityManager.merge(ref);
-                        }
+                        }*/
 
-                        // Clear the @ManyToMany relationship from Post
+                        /*// Clear the @ManyToMany relationship from Post
                         if (post.getAgeRequirement() != null) {
                             post.getAgeRequirement().clear();
                             entityManager.merge(post);
-                        }
+                        }*/
 
                         // Remove the post from custom product
                         post.setProduct(null);
@@ -483,15 +470,14 @@ public class ProductController extends CatalogEndpoint {
                 }
 
                 postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
-                postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+//                postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
             }
            /* if(addProductDto.getReserveCategoryAge()!=null)
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
 
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
+//            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
@@ -511,7 +497,7 @@ public class ProductController extends CatalogEndpoint {
                 if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
                 {
                     entityManager.merge(customProduct);
-                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,wrapper);
+                   return productService.changeStateProductFromDraftToNew(customProduct,null,wrapper);
                 }
             }
             entityManager.merge(customProduct);
@@ -687,7 +673,6 @@ public class ProductController extends CatalogEndpoint {
             }
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
@@ -856,22 +841,23 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
             postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
             postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
-            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
-            for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
-            {
-                ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
-                reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
-                reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
-                reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
-                reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
-                reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
-                reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
-                reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
-                reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
-                reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
-                reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
-            }
-            postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
+            postProjectionDTO.setReserveCategoryAge(post.getReserveCategoryAges());
+//            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
+//            for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
+//            {
+//                ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
+//                reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
+//                reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
+//                reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
+//                reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
+//                reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
+//                reserveCategoryAgeDto.setGenderId(ageRequirementEntity.getGender().getGenderId());
+//                reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
+//                reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
+//                reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+//                reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
+//            }
+//            postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
             postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
             postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
             postProjectionDTOS.add(postProjectionDTO);

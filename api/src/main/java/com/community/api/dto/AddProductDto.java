@@ -1,6 +1,5 @@
 package com.community.api.dto;
 
-import com.community.api.entity.AddProductAgeDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -30,8 +30,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
     @Autowired
     private GenderService genderService;
-    @Autowired
-    private ProductReserveCategoryBornBeforeAfterRefService refService;
+
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -173,9 +172,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         }
         if(!postList.isEmpty())
         {
-            for(Post post:postList)
-            {
-                PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
+            for(Post post:postList) {
+                PostProjectionDTO postProjectionDTO = new PostProjectionDTO();
                 postProjectionDTO.setPostId(post.getPostId());
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
@@ -187,23 +185,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-
-                Query query =entityManager.createNativeQuery("SELECT age_requirement_id from post_age_requirement where post_id = :postId");
-                query.setParameter("postId",post.getPostId());
-                List<BigInteger>resultList=query.getResultList();
-                List<ReserveCategoryAgeDto>listD=new ArrayList<>();
-                for(BigInteger bigInteger:resultList)
-                {
-                    System.out.println(resultList.size());
-                    System.out.println("PID"+bigInteger);
-                    CustomProductReserveCategoryBornBeforeAfterRef refDetails=refService.getCustomProductReserveCategoryBornBeforeAfterRefByUId(bigInteger.longValue());
-                    ReserveCategoryAgeDto reserveCategoryAgeDto=new ReserveCategoryAgeDto();
-                    reserveCategoryAgeDto.setProductId(refDetails.getCustomProduct().getId());
-                    reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
-                    listD.add(reserveCategoryAgeDto);
-                }
-                postProjectionDTO.setReserveCategoryAge(listD);
-                postDTOList.add(postProjectionDTO);
+                postProjectionDTO.setReserveCategoryAge(post.getReserveCategoryAges());
             }
         }
         this.platformFee = addProductDto.getPlatformFee();

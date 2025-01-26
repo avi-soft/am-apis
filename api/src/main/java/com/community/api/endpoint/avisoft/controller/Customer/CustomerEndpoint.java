@@ -19,7 +19,6 @@ import com.community.api.entity.StateCode;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.PostExecutionService;
-import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
 import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -132,8 +131,6 @@ public class CustomerEndpoint {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     @Autowired
     private JwtUtil jwtTokenUtil;
     @Autowired
