@@ -249,16 +249,10 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(addProductDto.getDownloadNotificationLink()!=null)
                     {
-                        if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Notification download link cannot be empty");
-                        }
                         addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                     }
                     if(addProductDto.getDownloadSyllabusLink()!=null)
                     {
-                        if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Syllabus download link cannot be empty.");
-                        }
                         addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                     }
                 }
@@ -267,7 +261,16 @@ public class ProductController extends CatalogEndpoint {
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
-
+            List<Post> postList= new ArrayList<>();
+            if (!saveDraft) {
+                if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
+                    productService.validatePostRequirement(addProductDto, roleId,userId);
+                    postList= postService.savePosts(addProductDto.getPosts(), product);
+                }
+            } else if (saveDraft && addProductDto.getPosts() != null) {
+                productService.validatePostRequirement(addProductDto, roleId,userId);
+                postList=postService.savePosts(addProductDto.getPosts(), product);
+            }
             productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
 
             if(!saveDraft)
@@ -288,29 +291,8 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getState() != null) {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
-            List<Post> postList= new ArrayList<>();
-            if (!saveDraft) {
-                if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                   productService.validatePostRequirement(addProductDto, roleId,userId);
-                   postList= postService.savePosts(addProductDto.getPosts(), product);
-                }
-            } else if (saveDraft && addProductDto.getPosts() != null) {
-                productService.validatePostRequirement(addProductDto, roleId,userId);
-                postList=postService.savePosts(addProductDto.getPosts(), product);
-            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             Long totalPostInProduct=0L;
-            if(!saveDraft)
-            {
-                if (postList != null && !postList.isEmpty()) {
-                    for(Post post: postList)
-                    {
-                        totalPostInProduct+=post.getPostTotalVacancies();
-                    }
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
-                }
-                wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
-            }
              if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
@@ -329,11 +311,16 @@ public class ProductController extends CatalogEndpoint {
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
             }
-            ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
+                for(Post post: postList)
+                {
+                    totalPostInProduct+=post.getPostTotalVacancies();
+                }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
-            return response;
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+             return response;
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -453,6 +440,8 @@ public class ProductController extends CatalogEndpoint {
             List<Post> postList= new ArrayList<>();
             if(addProductDto.getPosts() != null) {
                 if(!addProductDto.getPosts().isEmpty()) {
+                    productService.validatePostRequirement(addProductDto, roleId, userId);
+                    postList = postService.savePosts(addProductDto.getPosts(), product);
                     List<Post> postsToDelete = new ArrayList<>(customProduct.getPosts());
 
                     for (Post post : postsToDelete) {
@@ -475,14 +464,11 @@ public class ProductController extends CatalogEndpoint {
                         // Remove the post from custom product
                         post.setProduct(null);
                         customProduct.getPosts().remove(post);
-
                         entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
                     }
                     entityManager.flush();
 
                     // Add new posts
-                    productService.validatePostRequirement(addProductDto, roleId, userId);
-                    postList = postService.savePosts(addProductDto.getPosts(), product);
 
                     // Set the relationships for new posts
                     for (Post newPost : postList) {
@@ -892,6 +878,5 @@ public class ProductController extends CatalogEndpoint {
         }
         return postProjectionDTOS;
     }
-
 
 }

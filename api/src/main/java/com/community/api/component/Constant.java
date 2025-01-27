@@ -85,7 +85,7 @@ public class Constant {
     public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
-    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category";
+    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category ORDER BY sort_order ASC";
     public static String GET_COUNT_OF_JOB_ROLE = "SELECT COUNT(c) FROM CustomJobGroup c";
     public static String GET_ALL_JOB_GROUP = "SELECT s FROM CustomJobGroup s";
     public static String GET_APPLICATION_SCOPE_BY_ID = "SELECT c FROM CustomApplicationScope c WHERE c.applicationScopeId = :applicationScopeId";

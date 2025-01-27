@@ -238,9 +238,7 @@ public class CartEndPoint extends BaseEndpoint {
                         HttpStatus.BAD_REQUEST
                 );
             }
-            List<Long>postPreference=getLongList(map,"postPreference");
-            if(postPreference.isEmpty())
-                return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
+
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null) {
                 cart = orderService.createNewCartForCustomer(customer);
@@ -252,6 +250,9 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("Product not found", HttpStatus.NOT_FOUND);
             }
             CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
+            List<Long>postPreference=getLongList(map,"postPreference");
+            if(postPreference.isEmpty()&&customProduct.getPosts().size()>=1)
+                return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
             if(reserveCategoryId==null)
                 return ResponseService.generateErrorResponse("Invalid Category",HttpStatus.INTERNAL_SERVER_ERROR);
@@ -288,7 +289,7 @@ public class CartEndPoint extends BaseEndpoint {
                     if(!actualPostIds.contains(pId))
                         return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
                 }
-                if(postPreference.size()<1)
+                if(postPreference.size()<1&&customProduct.getPosts().size()>=1)
                     return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
                 if(postPreference.size()>customProduct.getPosts().size())
                     return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
@@ -296,13 +297,17 @@ public class CartEndPoint extends BaseEndpoint {
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference", postPreferenceString);
-            } else {
+            } else if(customProduct.getPosts().size()==1){
                 postPreference.removeAll(postPreference);
                 postPreference.add(customProduct.getPosts().get(0).getPostId());
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference",postPreferenceString);
+            }
+            else
+            {
+                atrtributes.put("postPreference","NO_AVAILABLE_POSTS");
             }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
@@ -670,32 +675,33 @@ public class CartEndPoint extends BaseEndpoint {
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
             if (customProduct == null)
                 return ResponseService.generateErrorResponse("Invalid product id provided", HttpStatus.NOT_FOUND);
-            List<Long>actualPostIds=new ArrayList<>();
-            for(Post post:customProduct.getPosts())
-            {
-                actualPostIds.add(post.getPostId());
-            }
-            for(Long pId:postPreference)
-            {
-                if(!actualPostIds.contains(pId))
-                    return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
-            }
-            if(postPreference.size()<1)
-                return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
-            if(postPreference.size()>customProduct.getPosts().size())
-                return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
-            String postPreferenceString = postPreference.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(","));
-            String sql = "UPDATE blc_order_item_attribute " +
-                    "SET value = ? " +
-                    "WHERE order_item_id = ? " +
-                    "AND name = 'postPreference' " +
-                    "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
-            int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
-            if (rowsUpdated >= 0) {
-                return retrieveCartItems(customerId, true);
-            }
+            if(customProduct.getPosts().size()>=1) {
+                List<Long> actualPostIds = new ArrayList<>();
+                for (Post post : customProduct.getPosts()) {
+                    actualPostIds.add(post.getPostId());
+                }
+                for (Long pId : postPreference) {
+                    if (!actualPostIds.contains(pId))
+                        return ResponseService.generateErrorResponse("Invalid post id in preference list", HttpStatus.BAD_REQUEST);
+                }
+                if (postPreference.size() < 1)
+                    return ResponseService.generateErrorResponse("Need to provide atleast one post for preference", HttpStatus.BAD_REQUEST);
+                if (postPreference.size() > customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Invalid post ids provided", HttpStatus.BAD_REQUEST);
+                String postPreferenceString = postPreference.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                String sql = "UPDATE blc_order_item_attribute " +
+                        "SET value = ? " +
+                        "WHERE order_item_id = ? " +
+                        "AND name = 'postPreference' " +
+                        "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
+                int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
+                if (rowsUpdated >= 0) {
+                    return retrieveCartItems(customerId, true);
+                }
+            }else
+                return ResponseService.generateErrorResponse("No Posts available for product",HttpStatus.NOT_FOUND);
         }catch (PersistenceException persistenceException)
         {
             exceptionHandling.handleException(persistenceException);
@@ -704,6 +710,7 @@ public class CartEndPoint extends BaseEndpoint {
             exceptionHandling.handleException(exception);
         }
         return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
+
 }
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;

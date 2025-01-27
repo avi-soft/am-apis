@@ -1281,9 +1281,6 @@ public class QualificationDetailsService {
         else if(validationState==-2)
         {
             throw new IllegalArgumentException("Invalid date: Month should be between 1 and 12");
-        }  else if(validationState==-3)
-        {
-            throw new IllegalArgumentException("Invalid date: Year cannot be in the future");
         }
     }
 }
