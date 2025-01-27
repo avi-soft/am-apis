@@ -2,14 +2,19 @@ package com.community.api.services;
 
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
+import com.community.api.entity.CustomReserveCategory;
+import com.community.api.entity.Post;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
+import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +75,21 @@ public class ReserveCategoryAgeService {
 
         } catch(Exception exception) {
             exceptionHandlingService.handleException(exception);
+            return null;
+        }
+    }
+    public CustomProductReserveCategoryBornBeforeAfterRef fetchAgeLimitByCategory(CustomProduct customProduct,Long categoryId,Long genderId) {
+        try {
+            CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(categoryId);
+            List<ReserveCategoryAgeDto> categoryAgeDtos = getReserveCategoryDto(customProduct.getId());
+            System.out.println(categoryAgeDtos.toString());
+            System.out.println("Category:"+category.getReserveCategoryName());
+            for (Post post : customProduct.getPosts()) {
+                if (post.getAgeRequirement().get(0).getCustomReserveCategory().getReserveCategoryName().equals(category.getReserveCategoryName())&&post.getAgeRequirement().get(0).getGender().getGenderId().equals(genderId))
+                    return post.getAgeRequirement().get(0);
+            }
+            return null;
+        } catch (Exception exception) {
             return null;
         }
     }
