@@ -12,7 +12,7 @@ public class ReserveCategoryAgeService {
     private EntityManager entityManager;
 
     private ExceptionHandlingService exceptionHandlingService;
-    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
+//    private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
     private ReserveCategoryService reserveCategoryService;
 
@@ -26,10 +26,10 @@ public class ReserveCategoryAgeService {
         this.exceptionHandlingService = exceptionHandlingService;
     }
 
-    @Autowired
-    public void setProductReserveCategoryBornBeforeAfterRefService(ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService) {
-        this.productReserveCategoryBornBeforeAfterRefService = productReserveCategoryBornBeforeAfterRefService;
-    }
+//    @Autowired
+//    public void setProductReserveCategoryBornBeforeAfterRefService(ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService) {
+//        this.productReserveCategoryBornBeforeAfterRefService = productReserveCategoryBornBeforeAfterRefService;
+//    }
 
     @Autowired
     public void setProductReserveCategoryFeePostRefService(ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService) {

@@ -531,7 +531,7 @@ public class ProductController extends CatalogEndpoint {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
+//            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
 
             if (customProduct == null) {
@@ -841,7 +841,7 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
             postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
             postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
-            postProjectionDTO.setReserveCategoryAge(post.getReserveCategoryAges());
+            postProjectionDTO.setReserveCategoryAges(post.getReserveCategoryAges());
 //            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
 //            for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
 //            {

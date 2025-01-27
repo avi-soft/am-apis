@@ -2,7 +2,9 @@ package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
@@ -13,6 +15,8 @@ import java.util.List;
 @Table(name = "district_distribution")
 @Getter
 @Setter
+@NoArgsConstructor  // This is crucial for Jackson deserialization
+@AllArgsConstructor
 public class DistrictDistribution {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

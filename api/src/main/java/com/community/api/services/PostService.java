@@ -192,6 +192,13 @@ public class PostService {
             }
             entityManager.flush();
         }
+        if (postDto.getVacancyDistributionTypeIds() != null && postDto.getVacancyDistributionTypeIds().contains(4)) {
+            if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+                List<OtherDistribution> otherDistributions = saveOtherDistributions(postDto.getOtherDistributions(), post);
+                post.setOtherDistributions(otherDistributions);
+            }
+        }
+        entityManager.refresh(post);
         List<ReserveCategoryAgeDto> reserveCategoryAgeDtos = postDto.getReserveCategoryAge();
         if (!reserveCategoryAgeDtos.isEmpty()) {
             entityManager.clear();
@@ -201,36 +208,27 @@ public class PostService {
                     throw new IllegalArgumentException("Gender not found for reserve category age dto");
                 }
 
-                ReserveCategoryAge requirement = new ReserveCategoryAge();
-                requirement.setGender(customGender);
-                requirement.setProductReservedCategoryId(dto.getReserveCategory());
-                requirement.setBornBeforeAfter(dto.getBornBeofreAfter());
+                ReserveCategoryAge reserveCategoryAge = new ReserveCategoryAge();
+                reserveCategoryAge.setGender(customGender);
+                reserveCategoryAge.setProductReservedCategoryId(dto.getReserveCategory());
+                reserveCategoryAge.setBornBeforeAfter(dto.getBornBeofreAfter());
                 if(dto.getBornBeofreAfter().equals(true))
                 {
-                    requirement.setBornAfter(dto.getBornAfter());
-                    requirement.setBornBefore(dto.getBornBefore());
+                    reserveCategoryAge.setBornAfter(dto.getBornAfter());
+                    reserveCategoryAge.setBornBefore(dto.getBornBefore());
                 }
                 else if(dto.getBornBeofreAfter().equals(false))
                 {
-                    requirement.setAsOfDate(dto.getAsOfDate());
-                    requirement.setMaximumAge(dto.getMaxAge());
-                    requirement.setMinimumAge(dto.getMinAge());
+                    reserveCategoryAge.setAsOfDate(dto.getAsOfDate());
+                    reserveCategoryAge.setMaximumAge(dto.getMaxAge());
+                    reserveCategoryAge.setMinimumAge(dto.getMinAge());
                 }
-                requirement.setPost(post);
+                reserveCategoryAge.setPost(post);
 
-                entityManager.persist(requirement);
+                entityManager.merge(reserveCategoryAge);
             }
             entityManager.flush();
         }
-
-        entityManager.refresh(post);
-        if (postDto.getVacancyDistributionTypeIds() != null && postDto.getVacancyDistributionTypeIds().contains(4)) {
-            if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
-                List<OtherDistribution> otherDistributions = saveOtherDistributions(postDto.getOtherDistributions(), post);
-                post.setOtherDistributions(otherDistributions);
-            }
-        }
-
         return post;
     }
 

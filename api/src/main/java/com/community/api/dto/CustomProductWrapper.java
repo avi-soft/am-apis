@@ -185,7 +185,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-                postProjectionDTO.setReserveCategoryAge(post.getReserveCategoryAges());
+                postProjectionDTO.setReserveCategoryAges(post.getReserveCategoryAges());
+                postDTOList.add(postProjectionDTO);
             }
         }
         this.platformFee = addProductDto.getPlatformFee();
