@@ -99,7 +99,6 @@ BEGIN
 --
 --    -- RAMAN - 9 JAN 2025
 
--- SIMRAN - 23-JAN-2025
  IF EXISTS (
         SELECT 1
         FROM information_schema.columns
