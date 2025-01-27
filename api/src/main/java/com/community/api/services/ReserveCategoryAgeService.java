@@ -47,7 +47,7 @@ public class ReserveCategoryAgeService {
         this.reserveCategoryService = reserveCategoryService;
     }
 
-    public List<ReserveCategoryAgeDto> getReserveCategoryDto(Long productId) {
+    /*public List<ReserveCategoryAgeDto> getReserveCategoryDto(Long productId) {
         try {
             List<CustomProductReserveCategoryBornBeforeAfterRef> customProductReserveCategoryBornBeforeAfterRefList = productReserveCategoryBornBeforeAfterRefService.getProductReserveCategoryBornBeforeAfterByProductId(productId);
             List<CustomProductReserveCategoryFeePostRef> customProductReserveCategoryFeePostRefList = productReserveCategoryFeePostRefService.getProductReserveCategoryFeeAndPostByProductId(productId);
@@ -72,5 +72,5 @@ public class ReserveCategoryAgeService {
             exceptionHandlingService.handleException(exception);
             return null;
         }
-    }
+    }*/
 }

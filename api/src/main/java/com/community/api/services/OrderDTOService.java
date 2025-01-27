@@ -107,5 +107,6 @@ public class OrderDTOService {
                 combinedOrderDTO.setCustomerDetails(customerDetails);
                 return combinedOrderDTO;
     }
+        return null;
     }
 }
