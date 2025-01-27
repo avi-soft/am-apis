@@ -1,5 +1,5 @@
---DO $$
---BEGIN
+DO $$
+BEGIN
 --    -- SIMRAN - 7 JAN 2025
 --    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'qualification_id') THEN
 --        ALTER TABLE custom_product DROP COLUMN qualification_id;
@@ -98,4 +98,4 @@
 ----    END;
 --
 --    -- RAMAN - 9 JAN 2025
---END $$;
+END $$;

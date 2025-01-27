@@ -36,6 +36,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -952,7 +953,30 @@ public class SharedUtilityService {
             throw new IllegalArgumentException("Value is neither a valid String nor a Number");
         }
     }
+    public int[] calculateAgeRange(Date bornBeforeDate, Date bornAfterDate) {
+        // Convert Date to ZonedDateTime in the IST (India Standard Time) time zone
+        ZoneId indiaZone = ZoneId.of("Asia/Kolkata");
+        ZonedDateTime bornBeforeZoned = bornBeforeDate.toInstant().atZone(indiaZone);
+        ZonedDateTime bornAfterZoned = bornAfterDate.toInstant().atZone(indiaZone);
 
+        // Get today's date in the same time zone (IST)
+        ZonedDateTime today = ZonedDateTime.now(indiaZone);
+
+        // Calculate max age (from bornBeforeDate)
+        int maxAge = calculateAge(bornBeforeZoned, today);
+
+        // Calculate min age (from bornAfterDate)
+        int minAge = calculateAge(bornAfterZoned, today);
+
+        // Return the result as an array [minAge, maxAge]
+        return new int[] { minAge, maxAge };
+    }
+
+    public  int calculateAge(ZonedDateTime birthDate, ZonedDateTime currentDate) {
+        // Calculate the years difference between birthDate and currentDate
+        Period period = Period.between(birthDate.toLocalDate(), currentDate.toLocalDate());
+        return period.getYears();
+    }
 }
 
 
