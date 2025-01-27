@@ -1098,8 +1098,8 @@ IF NOT EXISTS (SELECT 1 FROM qualification) THEN
     VALUES
         (1, 'MATRICULATION/10th', 'Completed secondary education or equivalent', TRUE, FALSE),
         (2, 'INTERMEDIATE/12th', 'Completed higher secondary education or equivalent', TRUE, TRUE),
-        (3, 'BACHELORS', 'Completed undergraduate degree program', FALSE, TRUE),
-        (4, 'MASTERS', 'Completed postgraduate degree program', FALSE, TRUE),
+        (3, 'BACHELORS/GRADUATION', 'Completed undergraduate degree program', FALSE, TRUE),
+        (4, 'MASTERS/POST_GRADUATION', 'Completed postgraduate degree program', FALSE, TRUE),
         (5, 'DOCTORATE', 'Completed doctoral degree program', FALSE, TRUE),
         (6, 'DIPLOMA', 'Completed a diploma program', FALSE, TRUE),
         (7, 'ITI', 'Completed an ITI (Industrial Training Institute) program', FALSE, TRUE);

@@ -2287,6 +2287,32 @@ public class CustomerEndpoint {
         }
     }
 
+    @PostMapping("/submit-customer-details/{customerId}")
+    public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader)
+    {
+        try {
+            CustomCustomer customCustomer= entityManager.find(CustomCustomer.class,customerId);
+            if(customCustomer==null)
+            {
+                throw new IllegalArgumentException("Customer with id "+ customerId+ " not found");
+            }
+            sharedUtilityService.validateCustomerPersonalDetails(customCustomer);
+            sharedUtilityService.validateCustomerContactDetails(customCustomer);
+            sharedUtilityService.validatePhysicalDetails(customCustomer);
+            sharedUtilityService.validateMiscellaniousDetails(customCustomer);
+            sharedUtilityService.validateDocumentsDetails(customCustomer);
+            return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader), HttpStatus.OK);
+        }
+        catch (NumberFormatException e) {
+            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+        }catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Some issue in deleting customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/get-all-customers")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
