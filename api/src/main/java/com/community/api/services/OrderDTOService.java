@@ -73,7 +73,7 @@ public class OrderDTOService {
                 detailsDTO.setPostCode(post.getPostCode());
                 postPreferenceOrder.add(detailsDTO);
             }
-        }}
+        }}}
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
                 order.getId(),
@@ -106,7 +106,5 @@ public class OrderDTOService {
                 combinedOrderDTO.setTicket(ticket);
                 combinedOrderDTO.setCustomerDetails(customerDetails);
                 return combinedOrderDTO;
-    }
-        return null;
     }
 }
