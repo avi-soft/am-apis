@@ -2,17 +2,23 @@ package com.community.api.endpoint.avisoft.controller.product;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.dto.AdvertisementProductWrapper;
 import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Role;
 import com.community.api.services.AdvertisementService;
+import com.community.api.services.GenderService;
 import com.community.api.services.ProductService;
+import com.community.api.services.ReserveCategoryAgeService;
+import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
 
@@ -66,7 +72,20 @@ public class AdvertisementController {
     CatalogService catalogService;
 
     @Autowired
+    SharedUtilityService sharedUtilityService;
+
+    @Autowired
     EntityManager entityManager;
+
+    @Autowired
+    JwtUtil jwtTokenUtil;
+
+    @Autowired
+    private ReserveCategoryService reserveCategoryService;
+    @Autowired
+    private ReserveCategoryAgeService reserveCategoryAgeService;
+    @Autowired
+    private GenderService genderService;
 
     @PostMapping("/add/{categoryIdString}")
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProvider})
@@ -206,9 +225,18 @@ public class AdvertisementController {
     }
 
     @GetMapping("/get-all-advertisement-by-categoryId")
-    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false)String categories){
+    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false)String categories,@RequestHeader(value = "Authorization",required = false) String authHeader){
 
         try {
+            CustomCustomer customCustomer=null;
+            if(authHeader!=null) {
+                String jwtToken = authHeader.substring(7);
+                List<String> deleteLogs = new ArrayList<>();
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if(roleId==5)
+                    customCustomer=entityManager.find(CustomCustomer.class,tokenUserId);
+            }
             List<Long> longList = Arrays.stream(categories.split(","))
                     .map(Long::parseLong)
                     .collect(Collectors.toList());
@@ -239,7 +267,10 @@ public class AdvertisementController {
 
                         if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
                             CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
-                            wrapper.wrapDetails(customProduct, null);
+                            if(authHeader==null)
+                                wrapper.wrapDetails(customProduct, null);
+                            else
+                                wrapper.wrapDetails(customProduct, null,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
                             products.add(wrapper);
                         }
                     }

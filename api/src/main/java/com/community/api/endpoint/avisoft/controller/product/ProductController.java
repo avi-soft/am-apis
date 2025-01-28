@@ -89,7 +89,7 @@ import static com.community.api.component.Constant.*;
 public class ProductController extends CatalogEndpoint {
 
     public static final String TENTATIVEDATEAFTERACTIVEENDDATE = "Both tentative examination data must be after active end date.";
-    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date to must be either equal or before of tentative exam date from.";
+    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date from must be before of tentative exam date to.";
     public static final String TENTATIVEEXAMDATEAFTERACTIVEENDDATE = "Tentative examination date must be after active end date.";
     public static final String POSTLESSTHANORZERO = "Number of post cannot be less than or equal to zero.";
     public static final String PRODUCTNOTFOUND = "Product not found.";
@@ -249,16 +249,10 @@ public class ProductController extends CatalogEndpoint {
                 {
                     if(addProductDto.getDownloadNotificationLink()!=null)
                     {
-                        if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Notification download link cannot be empty");
-                        }
                         addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                     }
                     if(addProductDto.getDownloadSyllabusLink()!=null)
                     {
-                        if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                            throw new IllegalArgumentException("Syllabus download link cannot be empty.");
-                        }
                         addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                     }
                 }
@@ -267,7 +261,16 @@ public class ProductController extends CatalogEndpoint {
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
-
+            List<Post> postList= new ArrayList<>();
+            if (!saveDraft) {
+                if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
+                    productService.validatePostRequirement(addProductDto, roleId,userId);
+                    postList= postService.savePosts(addProductDto.getPosts(), product);
+                }
+            } else if (saveDraft && addProductDto.getPosts() != null) {
+                productService.validatePostRequirement(addProductDto, roleId,userId);
+                postList=postService.savePosts(addProductDto.getPosts(), product);
+            }
             productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
 
             if(!saveDraft)
@@ -288,29 +291,8 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getState() != null) {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
-            List<Post> postList= new ArrayList<>();
-            if (!saveDraft) {
-                if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                   productService.validatePostRequirement(addProductDto, roleId,userId);
-                   postList= postService.savePosts(addProductDto.getPosts(), product);
-                }
-            } else if (saveDraft && addProductDto.getPosts() != null) {
-                productService.validatePostRequirement(addProductDto, roleId,userId);
-                postList=postService.savePosts(addProductDto.getPosts(), product);
-            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             Long totalPostInProduct=0L;
-            if(!saveDraft)
-            {
-                if (postList != null && !postList.isEmpty()) {
-                    for(Post post: postList)
-                    {
-                        totalPostInProduct+=post.getPostTotalVacancies();
-                    }
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
-                }
-                wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
-            }
              if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
@@ -322,18 +304,23 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
             }
-            ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
             if (postList != null && !postList.isEmpty()) {
+                for(Post post: postList)
+                {
+                    totalPostInProduct+=post.getPostTotalVacancies();
+                }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
-            return response;
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+             return response;
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -453,6 +440,8 @@ public class ProductController extends CatalogEndpoint {
             List<Post> postList= new ArrayList<>();
             if(addProductDto.getPosts() != null) {
                 if(!addProductDto.getPosts().isEmpty()) {
+                    productService.validatePostRequirement(addProductDto, roleId, userId);
+                    postList = postService.savePosts(addProductDto.getPosts(), product);
                     List<Post> postsToDelete = new ArrayList<>(customProduct.getPosts());
 
                     for (Post post : postsToDelete) {
@@ -475,14 +464,11 @@ public class ProductController extends CatalogEndpoint {
                         // Remove the post from custom product
                         post.setProduct(null);
                         customProduct.getPosts().remove(post);
-
                         entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
                     }
                     entityManager.flush();
 
                     // Add new posts
-                    productService.validatePostRequirement(addProductDto, roleId, userId);
-                    postList = postService.savePosts(addProductDto.getPosts(), product);
 
                     // Set the relationships for new posts
                     for (Post newPost : postList) {
@@ -504,8 +490,6 @@ public class ProductController extends CatalogEndpoint {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
 
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
@@ -525,11 +509,11 @@ public class ProductController extends CatalogEndpoint {
                 if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
                 {
                     entityManager.merge(customProduct);
-                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,wrapper);
+                   return productService.changeStateProductFromDraftToNew(customProduct,wrapper);
                 }
             }
             entityManager.merge(customProduct);
-            List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+            List<PostProjectionDTO> postProjectionDTOS= getPosts(postList);
             wrapper.wrapDetails(customProduct,null,postProjectionDTOS,productReserveCategoryFeePostRefService);
 
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
@@ -559,7 +543,6 @@ public class ProductController extends CatalogEndpoint {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
 
             if (customProduct == null) {
@@ -569,9 +552,8 @@ public class ProductController extends CatalogEndpoint {
             if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
                 CustomProductWrapper wrapper = new CustomProductWrapper();
-                getPosts(customProduct);
                 List<Post> postList= customProduct.getPosts();
-                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
                 wrapper.wrapDetails(customProduct, postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
 
@@ -701,7 +683,6 @@ public class ProductController extends CatalogEndpoint {
             }
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
@@ -854,9 +835,8 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    public static List<PostProjectionDTO> getPosts (CustomProduct customProduct)
+    public static List<PostProjectionDTO> getPosts (List<Post> postList)
     {
-        List<Post> postList= customProduct.getPosts();
         List<PostProjectionDTO> postProjectionDTOS= new ArrayList<>();
         for(Post post:postList)
         {
@@ -876,6 +856,7 @@ public class ProductController extends CatalogEndpoint {
                 ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
                 reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
                 reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
+                reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
                 reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
                 reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
                 reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
@@ -883,6 +864,7 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }
             postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
@@ -892,6 +874,5 @@ public class ProductController extends CatalogEndpoint {
         }
         return postProjectionDTOS;
     }
-
 
 }

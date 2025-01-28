@@ -1,7 +1,9 @@
 package com.community.api.entity;
 
 import com.community.api.entity.CustomGender;
+import com.community.api.utils.CustomDateDeserializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,7 +31,7 @@ public class AddProductAgeDTO {
     Date bornAfter;
     @Nullable
     @JsonProperty("as_of_date")
-    Date asOfDate;
+    String asOfDate;
     @Nullable
     @JsonProperty("minimum_age")
     Integer minAge;

@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Year;
 import java.util.Date;
 
 public class CustomDateDeserializer extends JsonDeserializer<Date> {
@@ -33,12 +32,6 @@ public class CustomDateDeserializer extends JsonDeserializer<Date> {
                 return new Date();
             }
 
-            int year = Integer.parseInt(dateParts[0]);
-            if(year> Year.now().getValue())
-            {
-                setValidationState(-3);
-                return new Date();
-            }
             // Try to parse the date
             try {
                 Date parsedDate = dateFormat.parse(date);

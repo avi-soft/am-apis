@@ -56,6 +56,8 @@ public class OrderDTOService {
         if(orderAttribute!=null)
         {
         String retrievedPostPreferenceString=orderAttribute.getValue();
+        if(!retrievedPostPreferenceString.equals("NO_AVAILABLE_POSTS"))
+        {
         if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
             preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
                     .map(Long::parseLong)
@@ -104,5 +106,7 @@ public class OrderDTOService {
                 combinedOrderDTO.setTicket(ticket);
                 combinedOrderDTO.setCustomerDetails(customerDetails);
                 return combinedOrderDTO;
+    }
+        return null;
     }
 }
