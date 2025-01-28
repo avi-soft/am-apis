@@ -57,7 +57,7 @@ public class Advertisement {
     @JsonProperty("archived")
     private Character archived = 'N';
 
-    @Column(name = "description")
+    @Column(name = "description",columnDefinition = "text")
     @JsonProperty("description")
     private String description;
 
