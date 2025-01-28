@@ -22,7 +22,7 @@ import java.util.List;
 public class ZoneDivisions {
     @Id
     @GeneratedValue
-    Long zoneDivisionId;
+    Integer zoneDivisionId;
 
     @ManyToOne
     @JoinColumn(name = "zone_id",nullable = false)

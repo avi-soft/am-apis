@@ -16,7 +16,7 @@ import java.util.List;
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+        private Integer id;
 
         @JsonIgnore
         @ManyToOne

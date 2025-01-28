@@ -233,6 +233,8 @@ public class OrderController {
                 try {
                     System.out.println("start");
                     Order order = orderService.findOrderById(orderId.longValue());
+                    if(order.getTaxOverride())//a way to archive old orders
+                        continue;
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                     Customer customer = customerService.readCustomerById(order.getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());

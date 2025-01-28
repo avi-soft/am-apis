@@ -3,6 +3,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.BoardUniversity;
@@ -15,6 +16,7 @@ import com.community.api.entity.CustomerAddressDTO;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.Institution;
 import com.community.api.entity.OtherItem;
+import com.community.api.entity.Post;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -34,10 +36,12 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -99,6 +103,7 @@ public class SharedUtilityService {
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
             productDetails.put("order_item_id", orderItem.getId());
+        List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
         productDetails.put("product_id", product.getId());
         productDetails.put("url", product.getUrl());
         productDetails.put("meta_title", product.getName());
@@ -110,6 +115,39 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
+        List<Long>preferenceOrder=null;
+        List<PostDetailsDTO>availablePosts=new ArrayList<>();
+        String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+        if(retrievedPostPreferenceString!=null) {
+            if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+            }
+            for (Long id : preferenceOrder) {
+                Post post = entityManager.find(Post.class, id);
+                if (post != null) {
+                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                    detailsDTO.setPostId(post.getPostId());
+                    detailsDTO.setPostName(post.getPostName());
+                    detailsDTO.setPostCode(post.getPostCode());
+                    postPreferenceOrder.add(detailsDTO);
+                }
+            }
+            for (Post post:customProduct.getPosts())
+            {
+                if(!preferenceOrder.contains(post.getPostId()))
+                {
+                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                    detailsDTO.setPostId(post.getPostId());
+                    detailsDTO.setPostName(post.getPostName());
+                    detailsDTO.setPostCode(post.getPostCode());
+                    availablePosts.add(detailsDTO);
+                }
+            }
+        }
+        productDetails.put("available_posts",availablePosts);
+        productDetails.put("preference_order",postPreferenceOrder);
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
@@ -210,7 +248,6 @@ public class SharedUtilityService {
         customerDetails.put("domicile", customCustomer.getDomicile());
         customerDetails.put("domicileState", customCustomer.getDomicileState());
         customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-//        customerDetails.put("date_of_birth", customCustomer.getDob());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
 
         if(customCustomer.getHeightCms() != null) {
@@ -277,25 +314,35 @@ public class SharedUtilityService {
         customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
         customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
+        customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
+        customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
+        customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
+        customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
+        customerDetails.put("isMinority",customCustomer.getIsMinority());
+        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
+        customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
         for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
             if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 currentAddress.put("city", customerAddress.getAddress().getCity());
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                currentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
                 currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
                 currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                currentAddress.put("addressName",customerAddress.getAddressName());
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 permanentAddress.put("city", customerAddress.getAddress().getCity());
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                permanentAddress.put("Address line", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
                 permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
                 permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
@@ -529,7 +576,7 @@ public class SharedUtilityService {
                     Map<String, Object> qualificationInfo = new HashMap<>();
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution =  qualificationDetail.getInstitution();
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -556,7 +603,7 @@ public class SharedUtilityService {
 
                     // Populate the map
                     qualificationInfo.put("qualification_detail_id", qualificationDetail.getQualification_detail_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
@@ -567,6 +614,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
                     qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Add qualification_name
                     if (qualification != null) {
@@ -644,7 +695,7 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution_id());
+                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution().getInstitution_id());
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
 
                     // Fetch the BoardUniversity
@@ -675,7 +726,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("examination_role_number", qualificationDetail.getExamination_role_number());
                     qualificationInfo.put("examination_registration_number", qualificationDetail.getExamination_registration_number());
                     qualificationInfo.put("board_university_id", qualificationDetail.getBoard_university_id());
-                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution_id());
+                    qualificationInfo.put("institution_id", qualificationDetail.getInstitution().getInstitution_id());
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
@@ -684,6 +735,10 @@ public class SharedUtilityService {
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("qualification_id",qualificationDetail.getQualification_id());
                     qualificationInfo.put("qualification_document",qualificationDetail.getQualificationDocument());
+                    qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
+                    qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
+                    qualificationInfo.put("is_division",qualificationDetail.getIs_division());
+                    qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
 
                     // Replace the qualification_id with qualification_name
                     if (qualification != null) {
@@ -731,7 +786,7 @@ public class SharedUtilityService {
     }
 
     public boolean isFutureDate(String dateStr) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
             Date inputDate = sdf.parse(dateStr);

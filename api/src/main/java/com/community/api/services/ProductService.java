@@ -4,7 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.dto.PhysicalRequirementDto;
+import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.ReserveCategoryAgeDto;
 import com.community.api.dto.ReserveCategoryDto;
@@ -17,7 +17,6 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
-import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
@@ -36,6 +35,7 @@ import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.Post;
+import com.community.api.entity.OtherDistribution;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
@@ -234,6 +234,11 @@ public class ProductService {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
             }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                sql.append(", is_multiple_post_same_fee");
+                values.append(", :isMultiplePostSameFee");
+            }
 
             // Complete the SQL statement
             sql.append(") ").append(values).append(")");
@@ -322,6 +327,10 @@ public class ProductService {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            }
+            if(addProductDto.getIsMultiplePostSameFee()!=null)
+            {
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
             }
 
             // Execute the update
@@ -581,7 +590,7 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && ((customProduct.getArchived().equals('N'))))
+            if (customProduct != null && ((customProduct.getArchived().equals('N'))) && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
             {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
@@ -822,12 +831,9 @@ public class ProductService {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
 
-            if(addProductDto.getIsMultiplePostSameFee().equals(true))
+            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
-                if(addProductDto.getPosts()==null)
-                {
-                    throw new IllegalArgumentException("Post cannot be null");
-                }
+                throw new IllegalArgumentException("Post cannot be null or empty");
             }
 
             return true;
@@ -972,12 +978,9 @@ public class ProductService {
             }
 
             if (addProductDto.getIsMultiplePostSameFee() != null) {
-                if(addProductDto.getIsMultiplePostSameFee().equals(true))
+                if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                 {
-                    if(addProductDto.getPosts()==null)
-                    {
-                        throw new IllegalArgumentException("Post cannot be null");
-                    }
+                    throw new IllegalArgumentException("Post cannot be null or empty");
                 }
             }
 
@@ -1012,6 +1015,10 @@ public class ProductService {
             if (customProduct.getCustomApplicationScope() == null) {
                 throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
             }
+            if(customProduct.getPosts()==null || customProduct.getPosts().isEmpty())
+            {
+                throw new IllegalArgumentException("Posts cannot be empty or null to move Product from Draft to NEW state");
+            }
         }
         catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -1023,7 +1030,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, List<PhysicalRequirementDto> physicalRequirementDtoList, CustomProductWrapper wrapper) throws Exception {
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, CustomProductWrapper wrapper) throws Exception {
         try{
             validateUpdateFields(customProduct);
             CustomProductState customProductState=null;
@@ -2455,11 +2462,11 @@ public class ProductService {
 
     public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
-            if (postDto.getQualificationEligibilityDto() == null) {
+            if (postDto.getQualificationEligibility() == null) {
                 return true;
             }
             else {
-                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibilityDto();
+                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibility();
 
                 //Validate Qualification ids
                 if(qualificationEligibilityDto.getQualificationIds()==null)
@@ -2605,16 +2612,17 @@ public class ProductService {
         }
     }
 
-    public List<OtherItem> validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
-        List<OtherItem> otherItemsToSave= new ArrayList<>();
-        OtherItem otherItemToSave=null;
+    public boolean validatePostRequirement(AddProductDto addProductDto, Integer roleId,Long userId) throws Exception {
         List<PostDto> postDtos = addProductDto.getPosts();
 
-        if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
+        if(addProductDto.getIsMultiplePostSameFee()!=null)
         {
-            if(postDtos.size()>1)
+            if(!Boolean.TRUE.equals(addProductDto.getIsMultiplePostSameFee()))
             {
-                throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+                if(postDtos.size()>1)
+                {
+                    throw new IllegalArgumentException("Only one post can be saved because multiple posts of this product does not have same fees");
+                }
             }
         }
 
@@ -2633,24 +2641,22 @@ public class ProductService {
                 }
                   else if(distributionTypes.contains(4))
                 {
-                    otherItemToSave =validateOtherVacancyDistribution(postDto,roleId,userId);
+                    validateOtherVacancyDistribution(postDto);
                 }
             }
-            otherItemsToSave.add(otherItemToSave);
-
             if(postDto.getPhysicalRequirements()!=null)
             {
                 validatePhysicalRequirement(postDto, null);
             }
-            if(postDto.getQualificationEligibilityDto()!=null)
+            if(postDto.getQualificationEligibility()!=null)
             {
-                if(postDto.getQualificationEligibilityDto().getQualificationIds()!=null )
+                if(postDto.getQualificationEligibility().getQualificationIds()!=null )
                 {
                     validateQualificationRequirement(postDto);
                 }
             }
         }
-        return otherItemsToSave;
+        return true;
     }
     private void validatePostBasics(PostDto postDto) {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
@@ -2841,6 +2847,7 @@ public class ProductService {
     }
 
     public void validateZoneDistributionRelationship(ZoneDistributionDto zoneDistribution) {
+        // Skip validation if not division distribution
         if (!Boolean.TRUE.equals(zoneDistribution.getIsDivisionDistribution())) {
             return;
         }
@@ -2849,28 +2856,39 @@ public class ProductService {
             throw new IllegalArgumentException("Zone ID is required for validation.");
         }
 
-        // Get all valid zoneDivisionIds for this zone
-        List<Long> zoneDivisionIds;
+        // Get all valid division IDs for this zone
+        List<DivisionProjectionDTO> validDivisionIds;
         try {
-            zoneDivisionIds = zoneDivisionService.getDivisionsIdsByZoneId(zoneDistribution.getZoneId());
+            validDivisionIds = zoneDivisionService.getDivisionsByZoneId(zoneDistribution.getZoneId());
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid zone ID: " + zoneDistribution.getZoneId(), e);
         }
 
-        // Validate each division in the distribution
+        // Validate division distributions
         List<DivisionDistributionDto> divisionDistributions = zoneDistribution.getDivisionDistributions();
         if (divisionDistributions == null || divisionDistributions.isEmpty()) {
             throw new IllegalArgumentException(
                     "Division distributions are required when isDivisionDistribution is true");
         }
 
+        // Validate each division ID belongs to the zone
         for (DivisionDistributionDto divisionDto : divisionDistributions) {
-            if (!zoneDivisionIds.contains(divisionDto.getDivisionId())) {
+            if (divisionDto.getDivisionId() == null) {
+                throw new IllegalArgumentException("Division ID cannot be null");
+            }
+            List<Integer>ids=new ArrayList<>();
+            for(DivisionProjectionDTO dto :validDivisionIds)
+            {
+                ids.add(dto.getDivisionId());
+            }
+
+            if (!ids.contains(divisionDto.getDivisionId().intValue())) {
                 throw new IllegalArgumentException(
-                        String.format("Division with ID %d is not part of the selected zone (Zone ID: %d)",
+                        String.format("Division ID %d is not associated with Zone ID %d",
                                 divisionDto.getDivisionId(), zoneDistribution.getZoneId()));
             }
         }
+
     }
 
     private void validateZonesDistribution(List<ZoneDistributionDto> zoneDistributions, Long postTotalVacancies) {
@@ -3032,7 +3050,10 @@ public class ProductService {
         if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()) ) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
@@ -3047,7 +3068,10 @@ public class ProductService {
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
         }
-        if (postDto.getGenderWiseDistribution() != null ) {
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
+        }
+        if (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution())) {
             throw new IllegalArgumentException("You cannot distribute vacancies Gender wise");
         }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
@@ -3062,6 +3086,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         // Additional validation for category distributions when type is 3
         List<CategoryDistributionDto> categoryDtos = genderDto.getCategoryDistributionDtos();
@@ -3087,6 +3114,9 @@ public class ProductService {
         }
         if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
             throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot give other distributions");
         }
         Long postTotalVacancies = postDto.getPostTotalVacancies();
         boolean isGenderWise = Boolean.TRUE.equals(genderDto.getIsGenderWise());
@@ -3120,38 +3150,44 @@ public class ProductService {
         }
     }
 
-    public OtherItem validateOtherVacancyDistribution(PostDto postDto, Integer roleId,Long userId)
-    {
-        if(postDto.getStateDistributions()!=null && !postDto.getStateDistributions().isEmpty())
+    public void validateOtherVacancyDistribution(PostDto postDto) {
+        if (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies Zone wise");
+        }
+        if (postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) {
+            throw new IllegalArgumentException("You cannot distribute vacancies State wise");
+        }
+        if(postDto.getGenderWiseDistribution()!=null&& !isDtoEmpty(postDto.getGenderWiseDistribution()))
         {
-            throw new IllegalArgumentException("State distribution cannot be given if the vacancy distribution type is OTHERS");
+            throw new IllegalArgumentException("You cannot distribute vacancies category wise");
+        }
+        List<OtherDistribution> otherDistributions = postDto.getOtherDistributions();
+
+        // Check if the list is empty
+        if (otherDistributions == null || otherDistributions.isEmpty()) {
+            throw new IllegalArgumentException("OtherDistribution list cannot be empty for VacancyTypeId 4.");
         }
 
-        if(postDto.getZoneDistributions()!=null && !postDto.getZoneDistributions().isEmpty())
-        {
-            throw new IllegalArgumentException("Zone distribution cannot be given if the vacancy distribution type is OTHERS");
+        long totalVacanciesSum = 0L;
+
+        // Validate each OtherDistribution in the list
+        for (OtherDistribution distribution : otherDistributions) {
+            if (distribution.getOtherDistributionValue() == null || distribution.getOtherDistributionValue().trim().isEmpty()) {
+                throw new IllegalArgumentException("OtherDistributionValue cannot be null or empty.");
+            }
+
+            if (distribution.getTotalVacancy() == null) {
+                throw new IllegalArgumentException("TotalVacancy cannot be null.");
+            }
+
+            // Add the totalVacancy to the sum
+            totalVacanciesSum += distribution.getTotalVacancy();
         }
 
-        if(postDto.getGenderWiseDistribution()!=null && !isDtoEmpty(postDto.getGenderWiseDistribution()))
-        {
-            throw new IllegalArgumentException("Category distribution cannot be given if the vacancy distribution type is OTHERS");
+        // Check if the sum matches postTotalVacancies
+        if (totalVacanciesSum != postDto.getPostTotalVacancies()) {
+            throw new IllegalArgumentException("The sum of total vacancies in OtherDistributions must equal PostTotalVacancies.");
         }
-        if(postDto.getOtherVacancyDistribution()==null)
-        {
-            throw new IllegalArgumentException("You have to enter a text field for other vacancy distribution in post with name "+ postDto.getPostName());
-        }
-        if(postDto.getOtherVacancyDistribution().trim().isEmpty())
-        {
-            throw new IllegalArgumentException("The text field cannot be empty for adding other vacancy distribution in post with name "+ postDto.getPostName());
-        }
-        OtherItem otherItem =new OtherItem();
-        otherItem.setTyped_text(postDto.getOtherVacancyDistribution());
-        otherItem.setField_name("vacancy_distribution");
-        otherItem.setSource_name("add_product");
-        otherItem.setRole_id(roleId);
-        otherItem.setUser_id(userId);
-        entityManager.persist(otherItem);
-        return otherItem;
     }
 
     private boolean isDtoEmpty(Object dto) {

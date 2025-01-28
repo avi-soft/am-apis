@@ -12,6 +12,7 @@ import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
+import com.community.api.entity.Post;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -20,6 +21,8 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderAttribute;
+import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
@@ -34,14 +37,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
@@ -54,6 +61,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import static com.community.api.component.Constant.ORDER_STATE_NEW;
 
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
@@ -82,6 +91,8 @@ public class CartEndPoint extends BaseEndpoint {
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
     @Autowired
     public void setGenderService(GenderService genderService) {
         this.genderService = genderService;
@@ -201,7 +212,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
-    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId) {
+    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId,@RequestBody Map<String,Object>map) {
         try {
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
@@ -227,6 +238,9 @@ public class CartEndPoint extends BaseEndpoint {
                         HttpStatus.BAD_REQUEST
                 );
             }
+            List<Long>postPreference=getLongList(map,"postPreference");
+            if(postPreference.isEmpty())
+                return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null) {
                 cart = orderService.createNewCartForCustomer(customer);
@@ -262,6 +276,34 @@ public class CartEndPoint extends BaseEndpoint {
             orderItemRequest.setItemName(product.getName());
             Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
             atrtributes.put("productId", product.getId().toString());
+            List<Long>actualPostIds=new ArrayList<>();
+            for(Post post:customProduct.getPosts())
+            {
+                actualPostIds.add(post.getPostId());
+            }
+            if(customProduct.getPosts().size()>=2)
+            {
+                for(Long pId:postPreference)
+                {
+                    if(!actualPostIds.contains(pId))
+                        return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+                }
+                if(postPreference.size()<1)
+                    return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
+                if(postPreference.size()>customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
+                String postPreferenceString = postPreference.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                atrtributes.put("postPreference", postPreferenceString);
+            } else {
+                postPreference.removeAll(postPreference);
+                postPreference.add(customProduct.getPosts().get(0).getPostId());
+                String postPreferenceString = postPreference.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                atrtributes.put("postPreference",postPreferenceString);
+            }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
             List<OrderItem> items = cart.getOrderItems();
@@ -319,7 +361,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId) {
+    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall",required = false,defaultValue = "false")boolean inFunctionCall) {
         try {
             Customer customer = customerService.readCustomerById(customerId);
             Order cart = orderService.findCartForCustomer(customer);
@@ -379,7 +421,10 @@ public class CartEndPoint extends BaseEndpoint {
                     cart.getOrderItems().remove(orderItem);
                 }
                 archievedItems.clear();
-                return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                if(!inFunctionCall)
+                    return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
+                else
+                    return ResponseService.generateSuccessResponse("Cart items after modifying post preference", response, HttpStatus.OK);
             } else
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
@@ -535,6 +580,12 @@ public class CartEndPoint extends BaseEndpoint {
                     Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
                     individualOrder.setSubmitDate(date);
                     individualOrder.setSubmitDate(date);
+                    String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    OrderAttributeImpl orderAttribute=new OrderAttributeImpl();
+                    orderAttribute.setOrder(individualOrder);
+                    orderAttribute.setName("postPreference");
+                    orderAttribute.setValue(retrievedPostPreferenceString);
+                    individualOrder.getOrderAttributes().put("sorted",orderAttribute);
                     entityManager.merge(individualOrder);
                     CustomOrderState orderState=new CustomOrderState();
                     orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
@@ -545,7 +596,6 @@ public class CartEndPoint extends BaseEndpoint {
                     entityManager.persist(orderState);
                     customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
                     individualOrders.add(individualOrder);
-            
                 }
             }
                 responseMap.put("Orders", individualOrders);
@@ -614,7 +664,49 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error fetching recovery log", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Transactional
+    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
+    public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
+        try {
+            List<Long> postPreference = getLongList(map, "postPreference");
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            if (customProduct == null)
+                return ResponseService.generateErrorResponse("Invalid product id provided", HttpStatus.NOT_FOUND);
+            List<Long>actualPostIds=new ArrayList<>();
+            for(Post post:customProduct.getPosts())
+            {
+                actualPostIds.add(post.getPostId());
+            }
+            for(Long pId:postPreference)
+            {
+                if(!actualPostIds.contains(pId))
+                    return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+            }
+            if(postPreference.size()<1)
+                return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
+            if(postPreference.size()>customProduct.getPosts().size())
+                return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
+            String postPreferenceString = postPreference.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            String sql = "UPDATE blc_order_item_attribute " +
+                    "SET value = ? " +
+                    "WHERE order_item_id = ? " +
+                    "AND name = 'postPreference' " +
+                    "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
+            int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
+            if (rowsUpdated >= 0) {
+                return retrieveCartItems(customerId, true);
+            }
+        }catch (PersistenceException persistenceException)
+        {
+            exceptionHandling.handleException(persistenceException);
+        } catch(Exception exception)
+        {
+            exceptionHandling.handleException(exception);
+        }
+        return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
+}
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;
     }

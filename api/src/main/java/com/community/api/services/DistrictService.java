@@ -92,6 +92,7 @@ public class DistrictService {
         try{
             Query query = entityManager.createQuery(Constant.FIND_DISTRICT_BY_NAME, Districts.class);
             query.setParameter("district", district);
+            System.out.println("District:"+district);
 
             List<Districts> districts = query.getResultList();
             if(districts.size() ==0 || districts == null){
