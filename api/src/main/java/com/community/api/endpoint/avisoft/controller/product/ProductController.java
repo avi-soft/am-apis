@@ -89,7 +89,7 @@ import static com.community.api.component.Constant.*;
 public class ProductController extends CatalogEndpoint {
 
     public static final String TENTATIVEDATEAFTERACTIVEENDDATE = "Both tentative examination data must be after active end date.";
-    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date to must be either equal or before of tentative exam date from.";
+    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date from must be before of tentative exam date to.";
     public static final String TENTATIVEEXAMDATEAFTERACTIVEENDDATE = "Tentative examination date must be after active end date.";
     public static final String POSTLESSTHANORZERO = "Number of post cannot be less than or equal to zero.";
     public static final String PRODUCTNOTFOUND = "Product not found.";
