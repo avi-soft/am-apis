@@ -61,6 +61,8 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     protected Integer minimumAge;
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
+    @Column(name = "as_of_date")
+    java.sql.Date asOfDate;
 
     @JsonIgnore
     @ManyToOne(cascade = CascadeType.ALL)

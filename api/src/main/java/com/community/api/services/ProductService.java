@@ -772,27 +772,38 @@ public class ProductService {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
             } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            } else if (addProductDto.getGoLiveDate().before(new Date())) {
+            }else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
 
-            if (addProductDto.getExamDateFrom() == null && addProductDto.getExamDateTo() == null) {
-                throw new IllegalArgumentException("Both tentative examination date from-to cannot be null.");
-            }
-            if (addProductDto.getExamDateFrom() != null && addProductDto.getExamDateTo() == null) {
-                addProductDto.setExamDateTo(addProductDto.getExamDateFrom());
-            }
-            if (addProductDto.getExamDateTo() != null && addProductDto.getExamDateFrom() == null) {
-                addProductDto.setExamDateFrom(addProductDto.getExamDateTo());
-            }
+            if(addProductDto.getExamDateFrom()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
 
-            dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
-            dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                if (!examDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Tentative examination date from must be after active end date.");
+                }
+            }
+            if(addProductDto.getExamDateTo()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
 
-            if (!addProductDto.getExamDateFrom().after(addProductDto.getActiveEndDate()) || !addProductDto.getExamDateTo().after(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException(TENTATIVEDATEAFTERACTIVEENDDATE);
-            } else if (addProductDto.getExamDateTo().before(addProductDto.getExamDateFrom())) {
-                throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
+                if (!examDateTo.after(activeEndDate))
+                {
+                    throw new IllegalArgumentException("tentative examination date to must be after active end date");
+                }
+            }
+            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateTo()!=null )
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                    if (!examDateTo.after(examDateFrom)){
+                    throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
+                }
             }
 
             if(addProductDto.getAdvertisement() == null || addProductDto.getAdvertisement() <= 0) {
@@ -932,14 +943,8 @@ public class ProductService {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
             } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            } else if (addProductDto.getGoLiveDate().before(new Date())) {
+            } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
-            }
-            if (addProductDto.getExamDateFrom() != null && addProductDto.getExamDateTo() == null) {
-                addProductDto.setExamDateTo(addProductDto.getExamDateFrom());
-            }
-            if (addProductDto.getExamDateTo() != null && addProductDto.getExamDateFrom() == null) {
-                addProductDto.setExamDateFrom(addProductDto.getExamDateTo());
             }
             if(addProductDto.getExamDateFrom()!=null)
             {
@@ -950,11 +955,30 @@ public class ProductService {
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
             }
 
-            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateFrom()!=null)
+            if(addProductDto.getExamDateFrom()!=null)
             {
-                if (!addProductDto.getExamDateFrom().after(addProductDto.getActiveEndDate()) || !addProductDto.getExamDateTo().after(addProductDto.getActiveEndDate())) {
-                    throw new IllegalArgumentException(TENTATIVEDATEAFTERACTIVEENDDATE);
-                } else if (addProductDto.getExamDateTo().before(addProductDto.getExamDateFrom())) {
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!examDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Tentative examination date from must be after active end date.");
+                }
+            }
+            if(addProductDto.getExamDateTo()!=null)
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!examDateTo.after(activeEndDate))
+                {
+                    throw new IllegalArgumentException("tentative examination date to must be after active end date");
+                }
+            }
+            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateTo()!=null )
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                if (!examDateTo.after(examDateFrom)){
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
@@ -1051,7 +1075,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, CustomProductWrapper wrapper) throws Exception {
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, CustomProductWrapper wrapper) throws Exception {
         try{
             validateUpdateFields(customProduct);
             CustomProductState customProductState=null;
@@ -1061,7 +1085,6 @@ public class ProductService {
             }
             customProduct.setProductState(customProductState);
             List<Post>postList= customProduct.getPosts();
-            List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
             wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
@@ -2668,8 +2691,8 @@ public class ProductService {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
         }
-        if (!postDto.getPostName().matches("^[a-zA-Z][a-zA-Z ]*$")) {
-            throw new IllegalArgumentException("Post name cannot contain numeric values, special characters, or leading spaces");
+        if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
+            throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }
         if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
             throw new IllegalArgumentException("Invalid Post Total Vacancies");
@@ -3269,5 +3292,33 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
+    }
+
+    private boolean isSameOrFutureDate(Date dateToValidate) {
+        // Strip time from both dates
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(dateToValidate);
+        cal1.set(Calendar.HOUR_OF_DAY, 0);
+        cal1.set(Calendar.MINUTE, 0);
+        cal1.set(Calendar.SECOND, 0);
+        cal1.set(Calendar.MILLISECOND, 0);
+
+        Calendar cal2 = Calendar.getInstance();
+        cal2.set(Calendar.HOUR_OF_DAY, 0);
+        cal2.set(Calendar.MINUTE, 0);
+        cal2.set(Calendar.SECOND, 0);
+        cal2.set(Calendar.MILLISECOND, 0);
+
+        // Compare only the date parts
+        return !cal1.before(cal2);
+    }
+    private Date stripTime(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 }

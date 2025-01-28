@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToSQLDate;
+
 @Service
 public class ProductReserveCategoryBornBeforeAfterRefService {
 
@@ -67,14 +69,26 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 Date bornBefore = addReserveCategoryDto.getBornBefore();
                 CustomGender gender = genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 CustomProductReserveCategoryBornBeforeAfterRef ref = new CustomProductReserveCategoryBornBeforeAfterRef();
-                ref.setBornBefore(bornBefore);
-                ref.setBornAfter(bornAfter);
+                if(addReserveCategoryDto.getBornBeofreAfter().equals(true))
+                {
+                    ref.setBornBefore(bornBefore);
+                    ref.setBornAfter(bornAfter);
+                    ref.setMaximumAge(null);
+                    ref.setMinimumAge(null);
+                    ref.setAsOfDate(null);
+                }
+                else{
+                    ref.setBornBefore(null);
+                    ref.setBornAfter(null);
+                    ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
+                    ref.setMinimumAge(addReserveCategoryDto.getMinAge());
+                    ref.setAsOfDate(convertStringToSQLDate(addReserveCategoryDto.getAsOfDate(), "yyyy-MM-dd"));
+                }
+
                 ref.setCustomReserveCategory(reserveCategory);
                 ref.setCustomProduct(product);
                 ref.setGender(gender);
                 ref.setBornBeforeAfter(addReserveCategoryDto.getBornBeofreAfter());
-                ref.setMaximumAge(addReserveCategoryDto.getMaxAge());
-                ref.setMinimumAge(addReserveCategoryDto.getMinAge());
                 ref.setProductReservedCategoryId(addReserveCategoryDto.getReserveCategory());
                 ref.setPost(post);
                 // Use merge instead of persist

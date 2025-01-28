@@ -494,7 +494,7 @@ public class QualificationDetailsService {
         }
 
         if (Objects.nonNull(qualification.getDate_of_passing())) {
-            validateDate(qualification.getDate_of_passing());
+            validateDate(qualification.getDate_of_passing(),"date of passing");
             qualificationDetailsToUpdate.setDate_of_passing(convertStringToDate(qualification.getDate_of_passing(),"yyyy-MM-dd"));
         }
 
@@ -1238,24 +1238,31 @@ public class QualificationDetailsService {
         }
         return null;
     }
-    public Boolean validateDate(String dateOfPassing) throws Exception {
+    public Boolean validateDate(String dateOfPassing,String dateType) throws Exception {
+        String dateToBevalidate=dateOfPassing.substring(0,10);
+        System.out.println(dateToBevalidate);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false);
 
         try {
             // Validate format
-            if (!isValidDateFormat(dateOfPassing, dateFormat)) {
-                throw new IllegalArgumentException("Date of Passing must be in yyyy-MM-dd format");
+            if (!dateToBevalidate.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                throw new IllegalArgumentException(dateType+" must be in yyyy-MM-dd format");
             }
 
-            Date dateOfIssue = dateFormat.parse(dateOfPassing);
+            String[] dateParts = dateToBevalidate.split("-");
+            int month = Integer.parseInt(dateParts[1]);
+            if (month < 1 || month > 12) {
+                throw new IllegalArgumentException("Invalid "+dateType+": Month should be between 1 and 12");
+            }
+            Date parsedDate = dateFormat.parse(dateToBevalidate);
             return true;
-        } catch (IllegalArgumentException ex) {
+        }
+        catch (ParseException e) {// Invalid date (correct format but invalid value)
+            throw new IllegalArgumentException("Invalid "+dateType+": Day is not valid");
+        }catch (IllegalArgumentException ex) {
             exceptionHandlingService.handleException(ex);
-            throw ex; // Rethrow with meaningful context
-        } catch (ParseException ex) {
-            exceptionHandlingService.handleException(ex);
-            throw new IllegalArgumentException("Invalid date format", ex);
+            throw new IllegalArgumentException(ex.getMessage()); // Rethrow with meaningful context
         }
     }
 
@@ -1268,7 +1275,7 @@ public class QualificationDetailsService {
         }
     }
 
-    private void dateValidations()
+    public void dateValidations()
     {
         if(validationState==0)
         {

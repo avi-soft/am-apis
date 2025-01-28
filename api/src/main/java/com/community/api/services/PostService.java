@@ -29,17 +29,19 @@ public class PostService {
     private final ExceptionHandlingService exceptionHandlingService;
     private final ReserveCategoryService reserveCategoryService;
     private final GenderService genderService;
+    private final QualificationDetailsService qualificationDetailsService;
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService reserveCategoryBornBeforeAfterRefService;
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
-    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService) {
+    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService,QualificationDetailsService qualificationDetailsService) {
         this.entityManager = entityManager;
         this.exceptionHandlingService = exceptionHandlingService;
         this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
+        this.qualificationDetailsService=qualificationDetailsService;
     }
 
 
@@ -90,9 +92,6 @@ public class PostService {
                 {
                     if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
                         throw new IllegalArgumentException("Both minimum and maximum age re required");
-                    Map<String,Date> dates=calculateDateRange(addProductAgeDTO.getAsOfDate(),addProductAgeDTO.getMinAge(),addProductAgeDTO.getMaxAge());
-                    addProductAgeDTO.setBornBefore(dates.get("bornBeforeDate"));
-                    addProductAgeDTO.setBornAfter(dates.get("bornAfterDate"));
                 }
                 else
                 {
@@ -149,6 +148,10 @@ public class PostService {
                 }
                 if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
                     throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
+                }
+                if(addProductAgeDTO.getAsOfDate()!=null)
+                {
+                    qualificationDetailsService.validateDate(addProductAgeDTO.getAsOfDate(),"As of Date");
                 }
             }
             return true;

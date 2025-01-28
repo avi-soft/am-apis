@@ -21,6 +21,7 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.common.persistence.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToDate;
 import static com.community.api.endpoint.avisoft.controller.product.ProductController.getPosts;
 
 
@@ -132,7 +133,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long totalVacanciesInProduct;
 
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList, Long totalVacanciesInProduct) throws Exception {
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -173,6 +174,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         }
         if(!postList.isEmpty())
         {
+            int postDtoIndex=0;
             for(Post post:postList)
             {
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
@@ -188,22 +190,44 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
 
-                Query query =entityManager.createNativeQuery("SELECT age_requirement_id from post_age_requirement where post_id = :postId");
-                query.setParameter("postId",post.getPostId());
-                List<BigInteger>resultList=query.getResultList();
                 List<ReserveCategoryAgeDto>listD=new ArrayList<>();
-                for(BigInteger bigInteger:resultList)
+                for(AddProductAgeDTO ageRequirement:postDtos.get(postDtoIndex).getReserveCategoryAge())
                 {
-                    System.out.println(resultList.size());
-                    System.out.println("PID"+bigInteger);
-                    CustomProductReserveCategoryBornBeforeAfterRef refDetails=refService.getCustomProductReserveCategoryBornBeforeAfterRefByUId(bigInteger.longValue());
+                    System.out.println("PID"+ageRequirement);
+                    AddProductAgeDTO refDetails=ageRequirement;
                     ReserveCategoryAgeDto reserveCategoryAgeDto=new ReserveCategoryAgeDto();
-                    reserveCategoryAgeDto.setProductId(refDetails.getCustomProduct().getId());
-                    reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
+                    if(refDetails.getBornBeofreAfter().equals(true))
+                    {
+                        reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
+                        reserveCategoryAgeDto.setBornAfter(refDetails.getBornAfter());
+                    }
+                    else {
+                        reserveCategoryAgeDto.setAsOfDate(convertStringToDate(refDetails.getAsOfDate(),"yyyy-MM-dd"));
+                        reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
+                        reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
+                    }
+                    reserveCategoryAgeDto.setReserveCategoryId(refDetails.getReserveCategory());
+                    reserveCategoryAgeDto.setBornBeforeAfter(refDetails.getBornBeofreAfter());
+                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,refDetails.getReserveCategory());
+                    if(customReserveCategory==null)
+                    {
+                        throw new IllegalArgumentException("Reserve category with id "+ refDetails.getReserveCategory()+ " does not exists");
+                    }
+                    reserveCategoryAgeDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                    reserveCategoryAgeDto.setGenderId(refDetails.getGender());
+                    CustomGender gender= entityManager.find(CustomGender.class,refDetails.getGender());
+                    if(gender==null)
+                    {
+                        throw new IllegalArgumentException("Gender with id "+ refDetails.getGender()+ " does not exists");
+                    }
+                    reserveCategoryAgeDto.setGenderName(gender.getGenderName());
+                    reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
+
                     listD.add(reserveCategoryAgeDto);
                 }
                 postProjectionDTO.setReserveCategoryAge(listD);
                 postDTOList.add(postProjectionDTO);
+                postDtoIndex++;
             }
         }
         this.platformFee = addProductDto.getPlatformFee();
@@ -416,7 +440,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
         this.isMultiplePostSameFee=customProduct.getIsMultiplePostSameFee();
-        List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+        List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
         if(postProjectionDTOS!=null )
         {
             if(!postProjectionDTOS.isEmpty())

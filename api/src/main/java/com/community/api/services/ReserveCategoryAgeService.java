@@ -61,7 +61,6 @@ public class ReserveCategoryAgeService {
            for(CustomProductReserveCategoryBornBeforeAfterRef ref:customProductReserveCategoryBornBeforeAfterRefList)
            {
                ReserveCategoryAgeDto dto=new ReserveCategoryAgeDto();
-               dto.setProductId(ref.getCustomProduct().getId());
                dto.setReserveCategory(ref.getCustomReserveCategory().getReserveCategoryName());
                dto.setGenderId(ref.getGender().getGenderId());
                dto.setBornBefore(ref.getBornBefore());
