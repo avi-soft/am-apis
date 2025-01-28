@@ -90,8 +90,14 @@ public class PostService {
                 }
                 if(!addProductAgeDTO.getBornBeofreAfter())
                 {
+                    if(addProductAgeDTO.getAsOfDate()==null)
+                    {
+                        throw new IllegalArgumentException("As of date cannot be null");
+                    }
                     if(addProductAgeDTO.getMaxAge()==null||addProductAgeDTO.getMinAge()==null)
                         throw new IllegalArgumentException("Both minimum and maximum age re required");
+
+                    qualificationDetailsService.validateDate(addProductAgeDTO.getAsOfDate(),"As of Date");
                 }
                 else
                 {
@@ -131,28 +137,28 @@ public class PostService {
                     throw new IllegalArgumentException(POSTLESSTHANORZERO);
                 }*/
 
-                if (addProductAgeDTO.getBornBefore() == null || addProductAgeDTO.getBornAfter() == null) {
-                    throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
-                }
-                dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornAfter()));
-                dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornBefore()));
-
-                if (!addProductAgeDTO.getBornBefore().before(new Date()) || !addProductAgeDTO.getBornAfter().before(new Date())) {
-                    throw new IllegalArgumentException("Born before date and born after date must be of past.");
-                } else if (!addProductAgeDTO.getBornAfter().before(addProductAgeDTO.getBornBefore())) {
-                    throw new IllegalArgumentException("Born after date must be past of born before date.");
-                }
-
-                if (addProductAgeDTO.getBornAfter().before(minBornAfterDate)) {
-                    throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
-                }
-                if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
-                    throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
-                }
-                if(addProductAgeDTO.getAsOfDate()!=null)
+                if(addProductAgeDTO.getBornBeofreAfter().equals(true))
                 {
-                    qualificationDetailsService.validateDate(addProductAgeDTO.getAsOfDate(),"As of Date");
+                    if (addProductAgeDTO.getBornBefore() == null || addProductAgeDTO.getBornAfter() == null) {
+                        throw new IllegalArgumentException("Born before date and born after date cannot be empty.");
+                    }
+                    dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornAfter()));
+                    dateFormat.parse(dateFormat.format(addProductAgeDTO.getBornBefore()));
+
+                    if (!addProductAgeDTO.getBornBefore().before(new Date()) || !addProductAgeDTO.getBornAfter().before(new Date())) {
+                        throw new IllegalArgumentException("Born before date and born after date must be of past.");
+                    } else if (!addProductAgeDTO.getBornAfter().before(addProductAgeDTO.getBornBefore())) {
+                        throw new IllegalArgumentException("Born after date must be past of born before date.");
+                    }
+
+                    if (addProductAgeDTO.getBornAfter().before(minBornAfterDate)) {
+                        throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
+                    }
+                    if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
+                        throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
+                    }
                 }
+
             }
             return true;
         } catch (NotFoundException | IllegalArgumentException notFoundException) {
