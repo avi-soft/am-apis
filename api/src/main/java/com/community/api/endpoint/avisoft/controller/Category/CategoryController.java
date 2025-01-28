@@ -140,7 +140,6 @@ public class CategoryController extends CatalogEndpoint {
 
                 if(category.getDefaultParentCategory() == null) {
                     if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
-
                         CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
                         wrapper.wrapDetailsCategory(category, null, request);
                         activeCategories.add(wrapper);
