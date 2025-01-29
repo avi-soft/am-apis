@@ -1,6 +1,6 @@
---<<<<<<< HEAD
---DO $$
---BEGIN
+
+DO $$
+BEGIN
 --    -- SIMRAN - 7 JAN 2025
 --    IF EXISTS (
 --        SELECT 1
@@ -201,5 +201,20 @@ END
 --    END;
 
     -- RAMAN - 9 JAN 2025
-END $$;
+--END $$;
+--
+--    -- RAMAN - 9 JAN 2025
 
+ IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'blc_product'
+          AND column_name = 'meta_desc'
+    ) THEN
+        -- Alter the column if it exists
+        ALTER TABLE public.blc_product
+        ALTER COLUMN meta_desc TYPE TEXT;
+    END IF;
+-- SIMRAN - 23-JAN-2025
+END $$;

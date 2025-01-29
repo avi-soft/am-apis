@@ -301,7 +301,7 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BankDetails> bankDetails = new ArrayList<>();
 
-    @Column(name = "order_count")
+    @Column(name = "order_count",columnDefinition = "BIGINT DEFAULT 0")
     private Integer numberOfOrders;
 
     @Column(name = "registered_by_sp", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")

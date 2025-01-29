@@ -590,7 +590,7 @@ public class ProductService {
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && ((customProduct.getArchived().equals('N'))) && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+            if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
             {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 wrapper.wrapDetails(customProduct);
@@ -612,9 +612,11 @@ public class ProductService {
     }
 
     public long countTotalProducts(Integer roleId, Long userId, boolean showDraftProducts) {
+        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
         StringBuilder countJpql = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
+        Map<String, Object> queryParamsForJpql = new HashMap<>();
 
         if (roleId != null) {
             Role role = entityManager.find(Role.class, roleId);
@@ -624,23 +626,42 @@ public class ProductService {
 
             if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
                 countJpql.append("WHERE r.role_id = :roleId ");
+                jpql.append("WHERE r.role_id = :roleId ");
                 queryParams.put("roleId", roleId);
+                queryParamsForJpql.put("roleId", roleId);
 
                 if (userId != null) {
                     countJpql.append("AND p.userId = :userId ");
+                    jpql.append("AND p.userId = :userId ");
                     queryParams.put("userId", userId);
+                    queryParamsForJpql.put("userId", userId);
                 }
             } else {
                 countJpql.append("WHERE 1=1 ");
+                jpql.append("WHERE 1=1 ");
             }
             if (showDraftProducts) {
                 countJpql.append("AND p.productState.productState = :draftState ");
+                jpql.append("AND p.productState.productState = :draftState ");
                 queryParams.put("draftState", "DRAFT");
+                queryParamsForJpql.put("draftState", "DRAFT");
             }
         }
         TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
         queryParams.forEach(countQuery::setParameter);
-        return countQuery.getSingleResult();
+        long totalCount= countQuery.getSingleResult();
+        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+        queryParamsForJpql.forEach(query::setParameter);
+        queryParamsForJpql.forEach(countQuery::setParameter);
+        List<CustomProduct> products=new ArrayList<>();
+        products= query.getResultList();
+        for (CustomProduct customProduct : products) {
+            if(customProduct!=null && ((((Status) customProduct).getArchived() == 'Y')))
+            {
+                totalCount-=1;
+            }
+        }
+        return totalCount;
     }
 
     public boolean addProductAccessAuthorisation(String authHeader) throws Exception {
@@ -751,27 +772,38 @@ public class ProductService {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
             } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            } else if (addProductDto.getGoLiveDate().before(new Date())) {
+            }else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
 
-            if (addProductDto.getExamDateFrom() == null && addProductDto.getExamDateTo() == null) {
-                throw new IllegalArgumentException("Both tentative examination date from-to cannot be null.");
-            }
-            if (addProductDto.getExamDateFrom() != null && addProductDto.getExamDateTo() == null) {
-                addProductDto.setExamDateTo(addProductDto.getExamDateFrom());
-            }
-            if (addProductDto.getExamDateTo() != null && addProductDto.getExamDateFrom() == null) {
-                addProductDto.setExamDateFrom(addProductDto.getExamDateTo());
-            }
+            if(addProductDto.getExamDateFrom()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
 
-            dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
-            dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                if (!examDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Tentative examination date from must be after active end date.");
+                }
+            }
+            if(addProductDto.getExamDateTo()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
 
-            if (!addProductDto.getExamDateFrom().after(addProductDto.getActiveEndDate()) || !addProductDto.getExamDateTo().after(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException(TENTATIVEDATEAFTERACTIVEENDDATE);
-            } else if (addProductDto.getExamDateTo().before(addProductDto.getExamDateFrom())) {
-                throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
+                if (!examDateTo.after(activeEndDate))
+                {
+                    throw new IllegalArgumentException("tentative examination date to must be after active end date");
+                }
+            }
+            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateTo()!=null )
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                    if (!examDateTo.after(examDateFrom)){
+                    throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
+                }
             }
 
             if(addProductDto.getAdvertisement() == null || addProductDto.getAdvertisement() <= 0) {
@@ -911,14 +943,8 @@ public class ProductService {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
             } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            } else if (addProductDto.getGoLiveDate().before(new Date())) {
+            } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
-            }
-            if (addProductDto.getExamDateFrom() != null && addProductDto.getExamDateTo() == null) {
-                addProductDto.setExamDateTo(addProductDto.getExamDateFrom());
-            }
-            if (addProductDto.getExamDateTo() != null && addProductDto.getExamDateFrom() == null) {
-                addProductDto.setExamDateFrom(addProductDto.getExamDateTo());
             }
             if(addProductDto.getExamDateFrom()!=null)
             {
@@ -929,11 +955,30 @@ public class ProductService {
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
             }
 
-            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateFrom()!=null)
+            if(addProductDto.getExamDateFrom()!=null)
             {
-                if (!addProductDto.getExamDateFrom().after(addProductDto.getActiveEndDate()) || !addProductDto.getExamDateTo().after(addProductDto.getActiveEndDate())) {
-                    throw new IllegalArgumentException(TENTATIVEDATEAFTERACTIVEENDDATE);
-                } else if (addProductDto.getExamDateTo().before(addProductDto.getExamDateFrom())) {
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!examDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Tentative examination date from must be after active end date.");
+                }
+            }
+            if(addProductDto.getExamDateTo()!=null)
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!examDateTo.after(activeEndDate))
+                {
+                    throw new IllegalArgumentException("tentative examination date to must be after active end date");
+                }
+            }
+            if(addProductDto.getExamDateFrom()!=null && addProductDto.getExamDateTo()!=null )
+            {
+                Date examDateTo = stripTime(addProductDto.getExamDateTo());
+                Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
+                if (!examDateTo.after(examDateFrom)){
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
@@ -1030,7 +1075,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList, CustomProductWrapper wrapper) throws Exception {
+    public ResponseEntity<?> changeStateProductFromDraftToNew(CustomProduct customProduct, CustomProductWrapper wrapper) throws Exception {
         try{
             validateUpdateFields(customProduct);
             CustomProductState customProductState=null;
@@ -1040,7 +1085,6 @@ public class ProductService {
             }
             customProduct.setProductState(customProductState);
             List<Post>postList= customProduct.getPosts();
-            List<ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(customProduct.getId());
             wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
             return ResponseService.generateSuccessResponse("Product is saved as NEW Product",wrapper,HttpStatus.OK);
         }
@@ -1436,9 +1480,6 @@ public class ProductService {
             }
 
             if (addProductDto.getSelectionCriteria() != null) {
-                if (addProductDto.getSelectionCriteria().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Selection criteria cannot be empty");
-                }
                 customProduct.setSelectionCriteria(addProductDto.getSelectionCriteria());
             }
 
@@ -1448,17 +1489,11 @@ public class ProductService {
             }
 
             if (addProductDto.getDownloadNotificationLink() != null) {
-                if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Download notification link cannot be empty");
-                }
                 addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                 customProduct.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink());
             }
 
             if (addProductDto.getDownloadSyllabusLink() != null) {
-                if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Download syllabus link cannot be empty");
-                }
                 addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                 customProduct.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink());
             }
@@ -2370,16 +2405,10 @@ public class ProductService {
     public boolean validateLinks(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getDownloadNotificationLink() != null) {
-                if (addProductDto.getDownloadNotificationLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Notification download link cannot be empty");
-                }
                 addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
             }
 
             if (addProductDto.getDownloadSyllabusLink() != null) {
-                if (addProductDto.getDownloadSyllabusLink().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Syllabus download link cannot be empty.");
-                }
                 addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
             }
             return true;
@@ -2662,8 +2691,8 @@ public class ProductService {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
         }
-        if (!postDto.getPostName().matches("^[a-zA-Z][a-zA-Z ]*$")) {
-            throw new IllegalArgumentException("Post name cannot contain numeric values, special characters, or leading spaces");
+        if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
+            throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }
         if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
             throw new IllegalArgumentException("Invalid Post Total Vacancies");
@@ -2677,7 +2706,7 @@ public class ProductService {
 
         // Case: No distribution type selected (empty or null list)
         if (vacancyDistributionTypeIds == null || vacancyDistributionTypeIds.isEmpty()) {
-            if (postDto.getStateDistributions() != null || postDto.getZoneDistributions() != null || postDto.getGenderWiseDistribution() != null) {
+            if ((postDto.getStateDistributions() != null && !postDto.getStateDistributions().isEmpty()) || (postDto.getZoneDistributions() != null && !postDto.getZoneDistributions().isEmpty()) || (postDto.getGenderWiseDistribution() != null && !isDtoEmpty(postDto.getGenderWiseDistribution()))) {
                 throw new IllegalArgumentException("No any distribution can be given if vacancy Distribution Type Id is null or empty");
             }
         }
@@ -3224,9 +3253,6 @@ public class ProductService {
     public Boolean validateSelectionCriteria(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getSelectionCriteria() != null) {
-                if (addProductDto.getSelectionCriteria().trim().isEmpty()) {
-                    throw new IllegalArgumentException("Selection criteria cannot be emptyse");
-                }
                 addProductDto.setSelectionCriteria(addProductDto.getSelectionCriteria().trim());
             }
             return true;
@@ -3266,5 +3292,33 @@ public class ProductService {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Some exception occured while fetching product w.r.t advertisement: " + exception.getMessage() + "\n");
         }
+    }
+
+    private boolean isSameOrFutureDate(Date dateToValidate) {
+        // Strip time from both dates
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(dateToValidate);
+        cal1.set(Calendar.HOUR_OF_DAY, 0);
+        cal1.set(Calendar.MINUTE, 0);
+        cal1.set(Calendar.SECOND, 0);
+        cal1.set(Calendar.MILLISECOND, 0);
+
+        Calendar cal2 = Calendar.getInstance();
+        cal2.set(Calendar.HOUR_OF_DAY, 0);
+        cal2.set(Calendar.MINUTE, 0);
+        cal2.set(Calendar.SECOND, 0);
+        cal2.set(Calendar.MILLISECOND, 0);
+
+        // Compare only the date parts
+        return !cal1.before(cal2);
+    }
+    private Date stripTime(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 }

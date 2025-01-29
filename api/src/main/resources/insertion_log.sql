@@ -166,15 +166,15 @@ IF (SELECT COUNT(*) FROM custom_application_scope) = 0 THEN
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_reserve_category) = 0 THEN
-    INSERT INTO custom_reserve_category (reserve_category_id, reserve_category_name, reserve_category_description, is_default_category)
+    INSERT INTO custom_reserve_category (reserve_category_id, reserve_category_name, reserve_category_description, is_default_category,sort_order)
     VALUES
-        (1, 'GEN', 'General', true),
-        (2, 'SC', 'Schedule Caste', false),
-        (3, 'ST', 'Schedule Tribe', false),
-        (4, 'OBC', 'Other Backward Caste', false),
-        (5, 'OTHERS', 'Others', false),
-        (6, 'EWS', 'Economically Weaker Section', false),
-		(7, 'N/A', 'None of the above', false);
+        (1, 'GEN', 'General', true,0),
+        (2, 'SC', 'Schedule Caste', false,1),
+        (3, 'ST', 'Schedule Tribe', false,2),
+        (4, 'OBC', 'Other Backward Caste', false,3),
+        (5, 'OTHERS', 'Others', false,1000),
+        (6, 'EWS', 'Economically Weaker Section', false,4),
+		(7, 'N/A', 'None of the above', false,999);
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_product_rejection_status) = 0 THEN
@@ -1212,7 +1212,7 @@ END IF;
             (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, TRUE, FALSE, 9),
             (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities; "person with a disability" is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10),
             (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25),
-            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '200KB', '100KB', FALSE, FALSE, FALSE, 100),
+            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '200KB', '100KB', FALSE, FALSE, FALSE, 1000),
             (14, 'C-Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24),
             (15, 'Ex-Service_Men', 'Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11),
             (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23),
@@ -1229,7 +1229,7 @@ END IF;
             (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22),
             (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
             (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
-            (30, 'Other_Or_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7);
+            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7);
             (31, 'Minority_Certificate', 'Minority Certificate ', '300KB', '200KB', FALSE, FALSE, FALSE,8);
     END IF;
 

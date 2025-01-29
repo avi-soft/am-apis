@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -117,32 +118,32 @@ public class SharedUtilityService {
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
-        String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
-        if(retrievedPostPreferenceString!=null) {
-            if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
-                preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
-                        .map(Long::parseLong)
-                        .collect(Collectors.toList());
-            }
-            for (Long id : preferenceOrder) {
-                Post post = entityManager.find(Post.class, id);
-                if (post != null) {
-                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                    detailsDTO.setPostId(post.getPostId());
-                    detailsDTO.setPostName(post.getPostName());
-                    detailsDTO.setPostCode(post.getPostCode());
-                    postPreferenceOrder.add(detailsDTO);
+        if(customProduct.getPosts().size()>=1) {
+            String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
+            if (retrievedPostPreferenceString != null) {
+                if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                    preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                            .map(Long::parseLong)
+                            .collect(Collectors.toList());
                 }
-            }
-            for (Post post:customProduct.getPosts())
-            {
-                if(!preferenceOrder.contains(post.getPostId()))
-                {
-                    PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                    detailsDTO.setPostId(post.getPostId());
-                    detailsDTO.setPostName(post.getPostName());
-                    detailsDTO.setPostCode(post.getPostCode());
-                    availablePosts.add(detailsDTO);
+                for (Long id : preferenceOrder) {
+                    Post post = entityManager.find(Post.class, id);
+                    if (post != null) {
+                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                        detailsDTO.setPostId(post.getPostId());
+                        detailsDTO.setPostName(post.getPostName());
+                        detailsDTO.setPostCode(post.getPostCode());
+                        postPreferenceOrder.add(detailsDTO);
+                    }
+                }
+                for (Post post : customProduct.getPosts()) {
+                    if (!preferenceOrder.contains(post.getPostId())) {
+                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                        detailsDTO.setPostId(post.getPostId());
+                        detailsDTO.setPostName(post.getPostName());
+                        detailsDTO.setPostCode(post.getPostCode());
+                        availablePosts.add(detailsDTO);
+                    }
                 }
             }
         }
@@ -953,5 +954,30 @@ public class SharedUtilityService {
             throw new IllegalArgumentException("Value is neither a valid String nor a Number");
         }
     }
+    public int[] calculateAgeRange(Date bornBeforeDate, Date bornAfterDate) {
+        // Convert Date to ZonedDateTime in the IST (India Standard Time) time zone
+        ZoneId indiaZone = ZoneId.of("Asia/Kolkata");
+        ZonedDateTime bornBeforeZoned = bornBeforeDate.toInstant().atZone(indiaZone);
+        ZonedDateTime bornAfterZoned = bornAfterDate.toInstant().atZone(indiaZone);
 
+        // Get today's date in the same time zone (IST)
+        ZonedDateTime today = ZonedDateTime.now(indiaZone);
+
+        // Calculate max age (from bornBeforeDate)
+        int maxAge = calculateAge(bornBeforeZoned, today);
+
+        // Calculate min age (from bornAfterDate)
+        int minAge = calculateAge(bornAfterZoned, today);
+
+        // Return the result as an array [minAge, maxAge]
+        return new int[] { minAge, maxAge };
+    }
+
+    public  int calculateAge(ZonedDateTime birthDate, ZonedDateTime currentDate) {
+        // Calculate the years difference between birthDate and currentDate
+        Period period = Period.between(birthDate.toLocalDate(), currentDate.toLocalDate());
+        return period.getYears();
+    }
 }
+
+
