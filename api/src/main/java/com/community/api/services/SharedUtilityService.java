@@ -977,6 +977,19 @@ public class SharedUtilityService {
         Period period = Period.between(birthDate.toLocalDate(), currentDate.toLocalDate());
         return period.getYears();
     }
+    public String[] separateName(String fullName) {
+        // Find the last space in the full name
+        int lastSpaceIndex = fullName.lastIndexOf(" ");
+        // If there's no space, it means there's only one name
+        if (lastSpaceIndex == -1) {
+            return new String[]{fullName, ""}; // Only a first name
+        }
+        // First name is everything before the last space
+        String firstName = fullName.substring(0, lastSpaceIndex);
+        // Last name is everything after the last space
+        String lastName = fullName.substring(lastSpaceIndex + 1);
+        return new String[]{firstName, lastName};
+    }
 }
 
 

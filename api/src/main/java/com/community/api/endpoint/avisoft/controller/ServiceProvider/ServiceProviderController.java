@@ -341,7 +341,7 @@ public class ServiceProviderController {
             }
 
             if(full_name!=null) {
-                String[] name = separateName(full_name.trim());
+                String[] name = sharedUtilityService.separateName(full_name.trim());
                 if (!name[0].equals(""))
                     first_name = name[0];
                 if (!name[1].equals(""))
@@ -372,19 +372,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-    public static String[] separateName(String fullName) {
-        // Find the last space in the full name
-        int lastSpaceIndex = fullName.lastIndexOf(" ");
-        // If there's no space, it means there's only one name
-        if (lastSpaceIndex == -1) {
-            return new String[]{fullName, ""}; // Only a first name
-        }
-        // First name is everything before the last space
-        String firstName = fullName.substring(0, lastSpaceIndex);
-        // Last name is everything after the last space
-        String lastName = fullName.substring(lastSpaceIndex + 1);
-        return new String[]{firstName, lastName};
-    }
+
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")

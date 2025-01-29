@@ -20,6 +20,7 @@ import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
+import com.community.api.services.QualificationService;
 import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -120,6 +121,8 @@ public class CustomerEndpoint {
 
     @Autowired
     private ResponseService responseService;
+    @Autowired
+    QualificationService qualificationService;
     @Autowired
     private DocumentStorageService fileUploadService;
     @Autowired
@@ -2440,6 +2443,36 @@ public class CustomerEndpoint {
         entityManager.persist(customCustomer);
         Long id = customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully", customCustomer, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) Long refereeId,@RequestParam(required = false) String name,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
+        String stateName=null,districtName=null,qualificationName=null,firstName=null,lastName=null;
+        String[]names=null;
+        if(stateId!=null)
+            stateName=districtService.findStateById(stateId);
+        if(districtId!=null)
+            districtName=districtService.findDistrictById(districtId);
+        if(qualificationType!=null)
+            qualificationName=qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
+        if(name!=null&&!name.isEmpty()) {
+            sharedUtilityService.separateName(name);
+            if (names[0] != null)
+                firstName = names[0];
+            if (names[1] != null)
+                lastName = names[1];
+        }
+        List<BigInteger>resultSet1=customCustomerService.filterCustomer(refereeId,firstName,lastName,stateName,districtName,qualificationName,authHeader);
+        List<BigInteger>resultSet2=customCustomerService.filterCustomer(refereeId,lastName,firstName,stateName,districtName,qualificationName,authHeader);
+        Set<BigInteger> uniqueResults = new HashSet<>();
+
+// Add all elements from both result sets
+        uniqueResults.addAll(resultSet1);
+        uniqueResults.addAll(resultSet2);
+
+// Convert the Set back to a List
+        List<BigInteger> resultList1 = new ArrayList<>(uniqueResults);
+        return ResponseService.generateSuccessResponse("Success",resultList1,HttpStatus.OK);
     }
 
 }
