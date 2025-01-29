@@ -357,6 +357,6 @@ public class CustomCustomer extends CustomerImpl {
     @JoinColumn(name = "domicile_state")
     protected StateCode domicileState;
 
-    @OneToMany(mappedBy = "customCustomer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ActionLog> actionLogs;
+/*    @OneToMany(mappedBy = "customCustomer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ActionLog> actionLogs;*/
 }

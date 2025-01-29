@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,9 +36,13 @@ public class ActionLog {
     @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = false)
     private ServiceProviderEntity serviceProvider;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", nullable = false)
-    private CustomCustomer customCustomer;
+    @ManyToMany
+    @JoinTable(
+            name = "action_log_customers",
+            joinColumns = @JoinColumn(name = "action_log_id"),
+            inverseJoinColumns = @JoinColumn(name = "customer_id")
+    )
+    private List<CustomCustomer> customCustomers;
 
     @ManyToMany
     @JoinTable(
@@ -53,5 +58,8 @@ public class ActionLog {
 
     @Column(name = "delivery_status")
     private String deliveryStatus;
+
+    @Column(name = "action_timestamp", nullable = false)
+    private LocalDateTime actionTimestamp;
 
 }

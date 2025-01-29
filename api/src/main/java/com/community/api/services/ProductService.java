@@ -2380,14 +2380,16 @@ public class ProductService {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to admit card date from.");
                 }
             } else {
-                if (addProductDto.getLastDateToPayFee().after(addProductDto.getExamDateFrom())) {
-                    throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to exam date from.");
+                if(addProductDto.getExamDateFrom()!=null)
+                {
+                    if (addProductDto.getLastDateToPayFee().after(addProductDto.getExamDateFrom())) {
+                        throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to exam date from.");
+                    }
                 }
             }
-
-            if (!addProductDto.getLastDateToPayFee().after(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Last date to pay application fee has to future of active end date");
-            }
+                if (!addProductDto.getLastDateToPayFee().after(addProductDto.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Last date to pay application fee has to future of active end date");
+                }
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
