@@ -359,10 +359,6 @@ public class ProductController extends CatalogEndpoint {
             }
 
 //            // Validations and checks.
-            if (addProductDto.getReservedCategory() != null) {
-                productService.validateReserveCategory(addProductDto);
-                productService.deleteOldReserveCategoryMapping(customProduct);
-            }
             productService.updateProductValidation(addProductDto, customProduct);
 
             // Validation of getActiveEndDate and getGoLiveDate.
@@ -389,9 +385,6 @@ public class ProductController extends CatalogEndpoint {
             customProduct.setModifierUserId(jwtTokenUtil.extractId(authHeader.substring(7)));
 
 
-            if (addProductDto.getReservedCategory() != null) {
-                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-            }
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
@@ -489,7 +482,11 @@ public class ProductController extends CatalogEndpoint {
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
-
+            if (addProductDto.getReservedCategory() != null) {
+                productService.validateReserveCategory(addProductDto);
+                productService.deleteOldReserveCategoryMapping(customProduct);
+                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
