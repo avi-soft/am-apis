@@ -1349,5 +1349,13 @@ END IF;
             (4, 'Others');
     END IF;
 
+     IF NOT EXISTS (SELECT 1 FROM custom_mode) THEN
+            INSERT INTO custom_mode (custom_mode_id, custom_mode_name)
+            VALUES
+                (1, 'Email'),
+                (2, 'Whatsapp'),
+                (3, 'SMS');
+    END IF;
+
 END $$;
 
