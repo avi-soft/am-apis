@@ -57,6 +57,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -2496,5 +2497,53 @@ public class CustomerEndpoint {
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }
+    }
+    @PutMapping("{customerId}/manage-user")
+    public ResponseEntity<?>activateOrSuspendUser(@PathVariable Long customerId,@RequestParam String action,@RequestHeader(name = "Authorization")String authHeader) throws Exception {
+        //extracting info from jwt token
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+        //checking permissions
+        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser))
+            return ResponseService.generateErrorResponse("Action not Authorized",HttpStatus.UNAUTHORIZED);
+        if(customCustomer==null)
+            return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)||(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleAdminServiceProvider)))
+        {
+            //query to check mapping
+            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,tokenUserId);
+            Query query=entityManager.createNativeQuery("Select count(*) from customer_referrer where service_provider_id =:spId and customer_id = :customerId");
+            query.setParameter("spId",tokenUserId);
+            query.setParameter("customerId",customerId);
+            BigInteger count = (BigInteger) query.getSingleResult();
+            if(count.intValue()==0)
+                return ResponseService.generateErrorResponse("Not authorized to take action on selected user",HttpStatus.UNAUTHORIZED);
+        }
+        //checking valid permissions
+        if(!action.equals(Constant.ACTION_SUSPEND)&&!action.equals(Constant.ACTION_ACTIVATE))
+        {
+            return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
+        }
+        String actionReq=null;
+        if(action.equals(Constant.ACTION_SUSPEND))
+        {
+            if(customCustomer.getArchived().equals(true))
+                return ResponseService.generateErrorResponse("User already suspended",HttpStatus.BAD_REQUEST);
+            customCustomer.setArchived(true);
+            actionReq=action+"ed";
+        }
+        else
+        {
+            if(customCustomer.getArchived().equals(false))
+                return ResponseService.generateErrorResponse("User already active",HttpStatus.BAD_REQUEST);
+            customCustomer.setArchived(false);
+            actionReq=action+"d";
+        }
+        customCustomer.setArchivedByRole(roleId);
+        customCustomer.setArchivedById(tokenUserId);
+        System.out.println("hiiiiiiiiiiiii");
+        return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
     }
 }
