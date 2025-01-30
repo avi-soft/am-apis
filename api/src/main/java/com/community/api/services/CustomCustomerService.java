@@ -1,5 +1,6 @@
 package com.community.api.services;
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ServiceProviderTestStatus;
@@ -28,6 +29,8 @@ public class CustomCustomerService {
     private EntityManager em;
     @Autowired
     SharedUtilityService sharedUtilityService;
+    @Autowired
+    JwtUtil jwtTokenUtil;
     public CustomCustomerService(EntityManager em)
     {
         this.em= em;
@@ -123,8 +126,12 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
-    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,String authHeader)  {
+    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,String authHeader,int page,int limit)  {
             List<Map<String, Object>> response = new ArrayList<>();
+        int startPosition = page * limit;
+        String jwtToken = authHeader.substring(7);
+        /*Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);*/
         if(username!=null&&!username.isEmpty())
         {
             Query query=em.createNativeQuery("SELECT customer_id FROM blc_customer WHERE user_name = :username");
@@ -132,6 +139,7 @@ public class CustomCustomerService {
             return query.getResultList();
         }
         Map<String, String> alias = new HashMap<>();
+        Map<String,String>aliasQuery=new HashMap<>();
         if (first_name != null) {
             first_name = first_name.trim();
             first_name = first_name.toLowerCase();
@@ -140,14 +148,30 @@ public class CustomCustomerService {
             last_name = last_name.trim();
             last_name = last_name.toLowerCase();
         }
+
+        aliasQuery.put("sub_state_prov_reg","JOIN blc_customer_address cust_addr ON cust.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id ");
+        aliasQuery.put("qualification_name","JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id ");
+        aliasQuery.put("service_provider_id","JOIN customer_referrer referrer ON cust.customer_id = referrer.customer_id ");
         alias.put("sub_state_prov_reg", "addr");
         alias.put("county", "addr");
         alias.put("first_name", "cust");
         alias.put("last_name", "cust");
         alias.put("service_provider_id", "referrer");
         alias.put("qualification_name","qual");
-        String generalizedQuery = Constant.CUSTOMER_FILTER+ " AND ";
-
+        String generalizedQuery=null;
+            generalizedQuery = Constant.CUSTOMER_FILTER;
+            if ((county != null &&!county.isEmpty()) || (sub_state_prov_reg != null && !sub_state_prov_reg.isEmpty())) {
+            generalizedQuery=generalizedQuery+aliasQuery.get("sub_state_prov_reg");
+            }
+            if(qualification_name!=null&&!qualification_name.isEmpty())
+            {
+                generalizedQuery=generalizedQuery+aliasQuery.get("qualification_name");
+            }
+            if(service_provider_id!=null)
+            {
+                generalizedQuery=generalizedQuery+aliasQuery.get("service_provider_id");
+            }
+        generalizedQuery=generalizedQuery+"WHERE ";
         String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","qualification_name"};
         Object[] fields = {sub_state_prov_reg, county, first_name, last_name, service_provider_id,qualification_name};
         for (int i = 0; i < fields.length; i++) {
@@ -180,6 +204,8 @@ public class CustomCustomerService {
                 query.setParameter(fieldsNames[i], fields[i]);
             }
         }
+        query.setFirstResult(startPosition);
+        query.setMaxResults(limit);
         List<BigInteger>resultList=query.getResultList();
         return resultList;
     }
