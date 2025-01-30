@@ -86,6 +86,8 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
     Double fee;
     @JsonProperty("age_limit")
     String ageLimit;
+    @JsonProperty("number_of_posts")
+    Integer numberOfPosts;
 
     public void wrapDetails(CustomProduct product, HttpServletRequest httpServletRequest) {
         this.id = product.getId();
@@ -162,6 +164,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacancies = product.getTotalVacanciesInProduct();
+        this.numberOfPosts=product.getPosts().size();
         var genderId=0L;
         var categoryId=0L;
         try {

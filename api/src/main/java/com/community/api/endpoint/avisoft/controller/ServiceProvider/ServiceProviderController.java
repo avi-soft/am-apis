@@ -1,7 +1,9 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
 import com.community.api.entity.CustomerReferrer;
@@ -15,6 +17,7 @@ import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
@@ -79,6 +82,10 @@ public class ServiceProviderController {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private JwtUtil jwtTokenUtil;
+    @Autowired
+    private RoleService roleService;
     /*@Autowired
     private DummyAssignerService dummyAssignerService;*/
 
@@ -341,7 +348,7 @@ public class ServiceProviderController {
             }
 
             if(full_name!=null) {
-                String[] name = separateName(full_name.trim());
+                String[] name = sharedUtilityService.separateName(full_name.trim());
                 if (!name[0].equals(""))
                     first_name = name[0];
                 if (!name[1].equals(""))
@@ -372,19 +379,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-    public static String[] separateName(String fullName) {
-        // Find the last space in the full name
-        int lastSpaceIndex = fullName.lastIndexOf(" ");
-        // If there's no space, it means there's only one name
-        if (lastSpaceIndex == -1) {
-            return new String[]{fullName, ""}; // Only a first name
-        }
-        // First name is everything before the last space
-        String firstName = fullName.substring(0, lastSpaceIndex);
-        // Last name is everything after the last space
-        String lastName = fullName.substring(lastSpaceIndex + 1);
-        return new String[]{firstName, lastName};
-    }
+
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
@@ -595,6 +590,4 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 }
