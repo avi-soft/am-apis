@@ -2,6 +2,7 @@ package com.community.api.entity;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ import org.ehcache.spi.service.ServiceProvider;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -38,13 +40,13 @@ public class CommunicationContent {
     @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = false)
     private ServiceProviderEntity serviceProvider;
 
-    @Column(name = "content_text", nullable = false)
+    @Column(name = "content_text", columnDefinition = "text", nullable = true)
     private String contentText;
 
-    @Column(name = "subject", columnDefinition = "text", nullable = false)
+    @Column(name = "subject", columnDefinition = "text", nullable = true)
     private String subject;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id")
     private List<ContentFile> contentFiles;
 

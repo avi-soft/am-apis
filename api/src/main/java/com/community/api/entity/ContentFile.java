@@ -26,6 +26,8 @@ public class ContentFile {
     private String fileName;
 
     @Column(name = "file_path")
+    @Lob    // Add this annotation
+    @Basic(fetch = FetchType.LAZY)
     private String filePath;
 
     @ManyToMany

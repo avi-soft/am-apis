@@ -10,6 +10,7 @@ import com.community.api.services.EmailService;
 import com.community.api.services.FileService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,12 +18,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.hibernate.Hibernate;
+import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.jpa.QueryHints;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
-import javax.transaction.Transactional;
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,9 +38,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/service-provider-actions")
 public class ServiceProviderActionController {
-
-    @Value("${file.max.size:5MB}")
-    private String maxFileSize;
 
     @Autowired
     private DocumentStorageService fileUploadService;
@@ -42,19 +47,24 @@ public class ServiceProviderActionController {
     ExceptionHandlingService exceptionHandlingService;
 
     @Autowired
-    private EmailService emailService; // You'll need to implement this
+    private EmailService emailService;
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    HttpServletRequest request;
 
 //    @Autowired
-//    private WhatsappService whatsappService; // You'll need to implement this
+//    private WhatsappService whatsappService; //  need to implement this later
 
-    @PostMapping("/communicate/{serviceProviderId}")
+    @PostMapping("/communicate")
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
             @RequestParam Long serviceProviderId,
             @RequestParam List<Long> customerIds,
             @RequestParam List<Integer> modes,
-            @RequestParam String contentText,
-            @RequestParam String subject,
+            @RequestParam (required = false) String contentText,
+            @RequestParam (required = false)String subject,
             @RequestParam(required = false) List<MultipartFile> files){
         try {
             // Validate service provider
@@ -76,19 +86,29 @@ public class ServiceProviderActionController {
                 }
             }
 
-            if(subject==null)
+           /* if(subject==null)
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be null",HttpStatus.BAD_REQUEST);
             }
             if(subject.trim().isEmpty())
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
-            }
+            }*/
             if(contentText==null && (files==null || files.isEmpty()))
             {
                 return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null",HttpStatus.BAD_REQUEST);
             }
-            if ((contentText == null || contentText.isEmpty()) &&
+            String contentTextTrimmed=null;
+            if(contentText!=null)
+            {
+                contentTextTrimmed=contentText.trim();
+            }
+            String subjectTrimmed=null;
+            if(subject!=null)
+            {
+                subjectTrimmed=subject.trim();
+            }
+            if ((contentText == null || (contentTextTrimmed.isEmpty())) &&
                     (files == null || files.isEmpty())) {
                 return ResponseService.generateErrorResponse(
                         "Either you have to provide text or any file. Both cannot be empty",
@@ -99,13 +119,38 @@ public class ServiceProviderActionController {
             // Create communication content
             CommunicationContent content = new CommunicationContent();
             content.setServiceProvider(serviceProvider);
-            content.setContentText(contentText.trim());
-            content.setSubject(subject.trim());
+            if(contentTextTrimmed!=null)
+            {
+                content.setContentText(contentTextTrimmed);
+            }
+            else{
+                content.setContentText(null);
+            }
+            if(subjectTrimmed!=null )
+            {
+                content.setSubject(subjectTrimmed);
+            }
+            else{
+                content.setSubject(null);
+            }
 
-            // Handle file attachments if any
+            List<ContentFile> contentFiles = new ArrayList<>();
             if (files != null && !files.isEmpty()) {
-                List<ContentFile> contentFiles = processFiles(files, content);
-                content.setContentFiles(contentFiles);
+                if(files.size()==1)
+                {
+                    if( files.get(0).getContentType()!=null)
+                    {
+                        contentFiles = processFiles(files, content);
+                        content.setContentFiles(contentFiles);
+                    }
+                }
+
+               else if(files.size()>1)
+               {
+                   contentFiles = processFiles(files, content);
+                   content.setContentFiles(contentFiles);
+               }
+
             }
 
             entityManager.persist(content);
@@ -138,25 +183,58 @@ public class ServiceProviderActionController {
             actionLog.setActionTimestamp(LocalDateTime.now());
 
             // Send communications based on selected modes
-            StringBuilder deliveryStatus = new StringBuilder();
-            for (CustomMode mode : modeList) {
-                for (CustomCustomer customer : customers) {
-                    try {
-                        if (mode.getCustomModeId().equals(1)) { // Assuming 1 corresponds to "email"
-                            emailService.sendEmail(customer.getEmailAddress(), content);
-                        }
-                        //        else if (mode.getCustomModeId() == 2) { // Assuming 2 corresponds to "whatsapp"
-                        //            whatsappService.sendMessage(customer.getPhone(), content);
-                        //        }
-                    } catch (Exception e) {
-                        deliveryStatus.append(String.format("Failed for customer %d via mode %d: %s; ",
-                                customer.getId(), mode.getCustomModeId(), e.getMessage()));
+            List<File> tempFiles = new ArrayList<>();
+            if (files != null && !files.isEmpty()) {
+                if(files.size()==1)
+                {
+                    if( files.get(0).getContentType()!=null)
+                    {
+                        tempFiles = createTemporaryFiles(files);
                     }
                 }
+
+                else if(files.size()>1)
+                {
+                    tempFiles = createTemporaryFiles(files);
+                }
+
             }
 
-            actionLog.setDeliveryStatus(deliveryStatus.length() > 0 ?
-                    "PARTIALLY_FAILED: " + deliveryStatus.toString() : "SUCCESS");
+            try {
+                // Send communications based on selected modes
+                StringBuilder deliveryStatus = new StringBuilder();
+                for (CustomMode mode : modeList) {
+                    try {
+                        if (mode.getCustomModeId().equals(1)) { // Email mode
+                            // Collect all email addresses for this mode
+                            List<String> emailAddresses = customers.stream()
+                                    .map(CustomCustomer::getEmailAddress)
+                                    .collect(Collectors.toList());
+
+                            // Send to all recipients
+                            emailService.sendEmailWithAttachments(
+                                    emailAddresses,
+                                    content.getSubject(),
+                                    content.getContentText(),
+                                    tempFiles
+                            );
+                        }
+                        // Add other communication modes here...
+                    } catch (Exception e) {
+                        // Add mode-specific failure to delivery status
+                        deliveryStatus.append(String.format("Failed for mode %d: %s; ",
+                                mode.getCustomModeId(), e.getMessage()));
+                    }
+                }
+
+                actionLog.setDeliveryStatus(deliveryStatus.length() > 0 ?
+                        "PARTIALLY_FAILED: " + deliveryStatus.toString() : "SUCCESS");
+
+            } finally {
+                // Clean up temporary files after all communications are done
+                cleanupTemporaryFiles(tempFiles);
+            }
+
 
             entityManager.persist(actionLog);
             entityManager.flush();
@@ -187,15 +265,18 @@ public class ServiceProviderActionController {
 
         for (MultipartFile file : files) {
             try {
-                ContentFile contentFile = saveFile(file, "content_" + content.getContentId());
+                ContentFile contentFile = saveFile(file, "");
                 contentFile.setCommunicationContent(content);
+                fileUploadService.uploadFileOnFileServer(file, "Communications", "", "SERVICE_PROVIDER");
                 contentFiles.add(contentFile);
             }
             catch (IllegalArgumentException e)
             {
+                exceptionHandlingService.handleException(e);
                 throw new IllegalArgumentException(e.getMessage());
             }
             catch (Exception e) {
+                exceptionHandlingService.handleException(e);
                 throw new RuntimeException("Failed to process file: " + file.getOriginalFilename(), e);
             }
         }
@@ -211,10 +292,9 @@ public class ServiceProviderActionController {
         if (!isValidFileType(file)) {
             throw new IllegalArgumentException("Invalid file type. Only supported files are allowed.");
         }
-        long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxFileSize);
-        if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
-            String minFileSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
-            throw new IllegalArgumentException("File size should be between " + minFileSize + " and " + maxFileSize);
+        if (file.getSize() > Constant.MAX_REFERRER_FILE_SIZE) {
+            String maxFileSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_REFERRER_FILE_SIZE);
+            throw new IllegalArgumentException("File size should be below "+ maxFileSize);
         }
         // Construct the file path
         String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications/" + purpose;
@@ -238,12 +318,7 @@ public class ServiceProviderActionController {
         String contentType = file.getContentType();
         if (contentType == null) return false;
 
-        // Add all allowed content types
-        return contentType.startsWith("image/") ||
-                contentType.startsWith("application/pdf") ||
-                contentType.equals("application/msword") ||
-                contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
-                contentType.equals("text/plain");
+        return true;
     }
 
     private List<FileType> determineFileTypes(String contentType) {
@@ -266,6 +341,36 @@ public class ServiceProviderActionController {
 
         return fileTypes;
     }
+
+    private List<File> createTemporaryFiles(List<MultipartFile> files) throws IOException {
+        List<File> tempFiles = new ArrayList<>();
+
+        for (MultipartFile multipartFile : files) {
+            File tempFile = File.createTempFile(
+                    FilenameUtils.getBaseName(multipartFile.getOriginalFilename()),
+                    "." + FilenameUtils.getExtension(multipartFile.getOriginalFilename())
+            );
+
+            multipartFile.transferTo(tempFile);
+            tempFiles.add(tempFile);
+        }
+
+        return tempFiles;
+    }
+
+    private void cleanupTemporaryFiles(List<File> tempFiles) {
+        for (File file : tempFiles) {
+            try {
+                if (file.exists()) {
+                    file.delete();
+                }
+            } catch (Exception e) {
+                // Log error but don't throw - this is cleanup
+                exceptionHandlingService.handleException(e);
+            }
+        }
+    }
+
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
@@ -278,183 +383,117 @@ public class ServiceProviderActionController {
         return dto;
     }
 
-    @GetMapping("/logs")
-    public ResponseEntity<?> getActionLogs(
-            @RequestParam(required = false) Long spId,
-            @RequestParam(required = false) Long customerId,
-            @RequestParam(required = false) Integer modeId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(required = false) String deliveryStatus,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    @GetMapping("/communications/{serviceProviderId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getCommunicationHistory(@PathVariable Long serviceProviderId) {
         try {
-            // First get the IDs of matching action logs
-            StringBuilder idQueryBuilder = new StringBuilder(
-                    "SELECT DISTINCT al.actionLogId FROM ActionLog al " +
-                            "WHERE 1=1");
-
-            Map<String, Object> parameters = new HashMap<>();
-
-            if (spId != null) {
-                idQueryBuilder.append(" AND al.serviceProvider.service_provider_id = :spId");
-                parameters.put("spId", spId);
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if (serviceProvider == null) {
+                return ResponseService.generateErrorResponse(
+                        "Service Provider not found",
+                        HttpStatus.NOT_FOUND
+                );
             }
 
-            if (customerId != null) {
-                idQueryBuilder.append(" AND :customerId IN (SELECT cc.id FROM al.customCustomers cc)");
-                parameters.put("customerId", customerId);
-            }
+            // JPQL Query with Sorting
+            String jpql = """
+            SELECT DISTINCT al FROM ActionLog al
+            LEFT JOIN FETCH al.content c
+            WHERE al.serviceProvider.service_provider_id = :serviceProviderId
+            ORDER BY al.actionTimestamp DESC
+            """;
 
-            if (modeId != null) {
-                idQueryBuilder.append(" AND :modeId IN (SELECT cm.customModeId FROM al.customModes cm)");
-                parameters.put("modeId", modeId);
-            }
+            List<ActionLog> actionLogs = entityManager.createQuery(jpql, ActionLog.class)
+                    .setParameter("serviceProviderId", serviceProviderId)
+                    .setHint(QueryHints.HINT_FETCH_SIZE, 50)  // Optimize performance
+                    .setHint(QueryHints.HINT_READONLY, true)  // Optimize performance
+                    .getResultList();
 
-            if (startDate != null) {
-                idQueryBuilder.append(" AND al.actionTimestamp >= :startDate");
-                parameters.put("startDate", startDate);
-            }
+            // Initialize customCustomers and customModes separately
+            actionLogs.forEach(log -> {
+                Hibernate.initialize(log.getCustomCustomers());  // Fetch separately
+                Hibernate.initialize(log.getCustomModes());  // Fetch separately
+            });
 
-            if (endDate != null) {
-                idQueryBuilder.append(" AND al.actionTimestamp <= :endDate");
-                parameters.put("endDate", endDate);
-            }
+            // Ensure sorting (if DB sorting fails)
+            actionLogs.sort(Comparator.comparing(ActionLog::getActionTimestamp).reversed());
 
-            if (deliveryStatus != null) {
-                idQueryBuilder.append(" AND al.deliveryStatus LIKE :deliveryStatus");
-                parameters.put("deliveryStatus", "%" + deliveryStatus + "%");
-            }
-
-            idQueryBuilder.append(" ORDER BY al.actionTimestamp DESC");
-
-            // Get paginated IDs
-            TypedQuery<Long> idQuery = entityManager.createQuery(idQueryBuilder.toString(), Long.class);
-            parameters.forEach(idQuery::setParameter);
-            idQuery.setFirstResult(page * size);
-            idQuery.setMaxResults(size);
-            List<Long> actionLogIds = idQuery.getResultList();
-
-            List<ActionLog> actionLogs = new ArrayList<>();
-            if (!actionLogIds.isEmpty()) {
-                // Get full action logs with base data
-                actionLogs = entityManager.createQuery(
-                                "SELECT DISTINCT al FROM ActionLog al " +
-                                        "LEFT JOIN FETCH al.serviceProvider " +
-                                        "LEFT JOIN FETCH al.content c " +
-                                        "LEFT JOIN FETCH c.contentFiles " +
-                                        "WHERE al.actionLogId IN :ids " +
-                                        "ORDER BY al.actionTimestamp DESC", ActionLog.class)
-                        .setParameter("ids", actionLogIds)
-                        .getResultList();
-
-                // Fetch customers separately
-                entityManager.createQuery(
-                                "SELECT DISTINCT al FROM ActionLog al " +
-                                        "LEFT JOIN FETCH al.customCustomers " +
-                                        "WHERE al.actionLogId IN :ids")
-                        .setParameter("ids", actionLogIds)
-                        .getResultList();
-
-                // Fetch modes separately
-                entityManager.createQuery(
-                                "SELECT DISTINCT al FROM ActionLog al " +
-                                        "LEFT JOIN FETCH al.customModes " +
-                                        "WHERE al.actionLogId IN :ids")
-                        .setParameter("ids", actionLogIds)
-                        .getResultList();
-            }
-
-            // Count total results
-            String countQueryString = "SELECT COUNT(DISTINCT al.actionLogId) FROM ActionLog al WHERE 1=1";
-            if (!parameters.isEmpty()) {
-                countQueryString = idQueryBuilder.toString()
-                        .replace("SELECT DISTINCT al.actionLogId", "SELECT COUNT(DISTINCT al.actionLogId)")
-                        .substring(0, idQueryBuilder.toString().indexOf(" ORDER BY"));
-            }
-            TypedQuery<Long> countQuery = entityManager.createQuery(countQueryString, Long.class);
-            parameters.forEach(countQuery::setParameter);
-            Long totalElements = countQuery.getSingleResult();
-
-            // Convert to DTOs
-            List<Map<String, Object>> dtos = actionLogs.stream()
-                    .map(this::convertToDetailedDTO)
+            // Convert to DTO
+            List<Map<String, Object>> communicationHistory = actionLogs.stream()
+                    .map(this::convertToCommunicationDTO)
                     .collect(Collectors.toList());
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("content", dtos);
-            response.put("totalElements", totalElements);
-            response.put("currentPage", page);
-            response.put("pageSize", size);
-            response.put("totalPages", (int) Math.ceil((double) totalElements / size));
-
             return ResponseService.generateSuccessResponse(
-                    "Action logs retrieved successfully",
-                    response,
+                    "Communication history retrieved successfully",
+                    communicationHistory,
                     HttpStatus.OK
             );
 
         } catch (Exception e) {
-            exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse(
-                    "Failed to retrieve action logs: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            // **Throw RuntimeException to Let Spring Manage Rollback**
+            throw new RuntimeException("Failed to retrieve communication history", e);
         }
     }
 
-    private Map<String, Object> convertToDetailedDTO(ActionLog actionLog) {
+
+    private Map<String, Object> convertToCommunicationDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
+
         dto.put("actionLogId", actionLog.getActionLogId());
         dto.put("timestamp", actionLog.getActionTimestamp());
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
 
-        // Service Provider details
-        Map<String, Object> spDetails = new HashMap<>();
-        spDetails.put("id", actionLog.getServiceProvider().getService_provider_id());
-        dto.put("serviceProvider", spDetails);
-
-        // Customer details
-        List<Map<String, Object>> customerDetails = actionLog.getCustomCustomers().stream()
-                .map(customer -> {
-                    Map<String, Object> customerMap = new HashMap<>();
-                    customerMap.put("id", customer.getId());
-                    customerMap.put("emailAddress", customer.getEmailAddress());
-                    return customerMap;
-                })
-                .collect(Collectors.toList());
-        dto.put("customers", customerDetails);
-
-        // Communication modes
-        List<Map<String, Object>> modeDetails = actionLog.getCustomModes().stream()
-                .map(mode -> {
-                    Map<String, Object> modeMap = new HashMap<>();
-                    modeMap.put("id", mode.getCustomModeId());
-                    return modeMap;
-                })
-                .collect(Collectors.toList());
-        dto.put("communicationModes", modeDetails);
-
-        // Content details
+        // Handle null content
+        CommunicationContent content = actionLog.getContent();
         Map<String, Object> contentDetails = new HashMap<>();
-        contentDetails.put("id", actionLog.getContent().getContentId());
-        contentDetails.put("subject", actionLog.getContent().getSubject());
-        contentDetails.put("contentText", actionLog.getContent().getContentText());
+        contentDetails.put("subject", content != null ? content.getSubject() : null);
+        contentDetails.put("contentText", content != null ? content.getContentText() : null);
 
-        if (actionLog.getContent().getContentFiles() != null) {
-            List<Map<String, Object>> fileDetails = actionLog.getContent().getContentFiles().stream()
+        // Handle file attachments safely
+        if (content != null && content.getContentFiles() != null && !content.getContentFiles().isEmpty()) {
+            List<Map<String, Object>> files = content.getContentFiles().stream()
                     .map(file -> {
-                        Map<String, Object> fileMap = new HashMap<>();
-                        fileMap.put("fileName", file.getFileName());
-                        fileMap.put("filePath", file.getFilePath());
-                        return fileMap;
+                        Map<String, Object> fileInfo = new HashMap<>();
+                        fileInfo.put("fileName", file.getFileName());
+                        fileInfo.put("size", formatFileSize(file.getSize()));
+                        fileInfo.put("fileUrl",fileService.getFileUrl(file.getFilePath(),request));
+                        fileInfo.put("fileTypes", file.getFileTypes().stream()
+                                .map(FileType::getFile_type_name)
+                                .collect(Collectors.toList()));
+                        return fileInfo;
                     })
                     .collect(Collectors.toList());
-            contentDetails.put("files", fileDetails);
+            contentDetails.put("files", files);
         }
 
         dto.put("content", contentDetails);
 
+        // Recipients
+        List<Map<String, Object>> customCustomers = actionLog.getCustomCustomers().stream()
+                .map(customer -> {
+                    Map<String, Object> recipientInfo = new HashMap<>();
+                    recipientInfo.put("customerId", customer.getId());
+                    recipientInfo.put("emailAddress", customer.getEmailAddress());
+                    recipientInfo.put("name", customer.getFirstName() + " " + customer.getLastName());
+                    return recipientInfo;
+                })
+                .collect(Collectors.toList());
+        dto.put("customCustomers", customCustomers);
+
+        // Communication modes
+        List<String> modes = actionLog.getCustomModes().stream()
+                .map(CustomMode::getCustomModeName)
+                .collect(Collectors.toList());
+        dto.put("customModes", modes);
+
         return dto;
+    }
+
+
+    private String formatFileSize(Long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.2f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.2f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 }

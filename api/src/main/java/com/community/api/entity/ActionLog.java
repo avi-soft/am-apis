@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -52,11 +53,11 @@ public class ActionLog {
     )
     private List<CustomMode> customModes;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "content_id", referencedColumnName = "content_id", nullable = false)
     private CommunicationContent content;
 
-    @Column(name = "delivery_status")
+    @Column(name = "delivery_status", columnDefinition = "text")
     private String deliveryStatus;
 
     @Column(name = "action_timestamp", nullable = false)
