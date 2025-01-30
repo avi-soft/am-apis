@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,6 +36,7 @@ public class ContentFile {
     )
     private List<FileType> fileTypes;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "content_id", referencedColumnName = "content_id", nullable = false)
     private CommunicationContent communicationContent;

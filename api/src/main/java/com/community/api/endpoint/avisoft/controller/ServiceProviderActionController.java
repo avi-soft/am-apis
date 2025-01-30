@@ -1,12 +1,17 @@
 package com.community.api.endpoint.avisoft.controller;
 
+import com.community.api.component.Constant;
+import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
+import com.community.api.services.DocumentStorageService;
 import com.community.api.services.EmailService;
+import com.community.api.services.FileService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +22,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +31,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/service-provider-actions")
 public class ServiceProviderActionController {
 
+    @Value("${file.max.size:5MB}")
+    private String maxFileSize;
+
+    @Autowired
+    private DocumentStorageService fileUploadService;
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
@@ -39,8 +50,12 @@ public class ServiceProviderActionController {
     @PostMapping("/communicate/{serviceProviderId}")
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
-            @RequestBody CommunicationRequest request,
-            @PathVariable Long serviceProviderId) {
+            @RequestParam Long serviceProviderId,
+            @RequestParam List<Long> customerIds,
+            @RequestParam List<Integer> modes,
+            @RequestParam String contentText,
+            @RequestParam String subject,
+            @RequestParam(required = false) List<MultipartFile> files){
         try {
             // Validate service provider
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
@@ -48,20 +63,33 @@ public class ServiceProviderActionController {
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             }
 
-            if(request.getSubject()==null)
+            if(customerIds==null || customerIds.isEmpty())
+            {
+                return ResponseService.generateErrorResponse("You have to select atleast one customer to communicate with", HttpStatus.BAD_REQUEST);
+            }
+            for(Long customerId: customerIds)
+            {
+                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+                if(customCustomer==null)
+                {
+                    return ResponseService.generateErrorResponse("Customer with id "+ customerId +" does not exist",HttpStatus.NOT_FOUND);
+                }
+            }
+
+            if(subject==null)
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be null",HttpStatus.BAD_REQUEST);
             }
-            if(request.getSubject().trim().isEmpty())
+            if(subject.trim().isEmpty())
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
             }
-            if(request.getContentText()==null && (request.getFiles()==null || request.getFiles().isEmpty()))
+            if(contentText==null && (files==null || files.isEmpty()))
             {
                 return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null",HttpStatus.BAD_REQUEST);
             }
-            if ((request.getContentText() == null || request.getContentText().isEmpty()) &&
-                    (request.getFiles() == null || request.getFiles().isEmpty())) {
+            if ((contentText == null || contentText.isEmpty()) &&
+                    (files == null || files.isEmpty())) {
                 return ResponseService.generateErrorResponse(
                         "Either you have to provide text or any file. Both cannot be empty",
                         HttpStatus.BAD_REQUEST
@@ -71,12 +99,12 @@ public class ServiceProviderActionController {
             // Create communication content
             CommunicationContent content = new CommunicationContent();
             content.setServiceProvider(serviceProvider);
-            content.setContentText(request.getContentText().trim());
-            content.setSubject(request.getSubject().trim());
+            content.setContentText(contentText.trim());
+            content.setSubject(subject.trim());
 
             // Handle file attachments if any
-            if (request.getFiles() != null && !request.getFiles().isEmpty()) {
-                List<ContentFile> contentFiles = processFiles(request.getFiles(), content);
+            if (files != null && !files.isEmpty()) {
+                List<ContentFile> contentFiles = processFiles(files, content);
                 content.setContentFiles(contentFiles);
             }
 
@@ -88,30 +116,30 @@ public class ServiceProviderActionController {
             actionLog.setContent(content);
 
             // Fetch and set all customers
-            List<CustomCustomer> customers = request.getCustomerIds().stream()
+            List<CustomCustomer> customers = customerIds.stream()
                     .map(id -> entityManager.find(CustomCustomer.class, id))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             actionLog.setCustomCustomers(customers);
 
             // Validate and set custom modes
-            for (Integer customModeId : request.getModes()) {
+            for (Integer customModeId : modes) {
                 CustomMode customMode = entityManager.find(CustomMode.class, customModeId);
                 if (customMode == null) {
                     throw new IllegalArgumentException("Custom mode with id " + customModeId + " does not exist");
                 }
             }
 
-            List<CustomMode> modes = request.getModes().stream()
+            List<CustomMode> modeList = modes.stream()
                     .map(modeId -> entityManager.find(CustomMode.class, modeId))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            actionLog.setCustomModes(modes);
+            actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
 
             // Send communications based on selected modes
             StringBuilder deliveryStatus = new StringBuilder();
-            for (CustomMode mode : modes) {
+            for (CustomMode mode : modeList) {
                 for (CustomCustomer customer : customers) {
                     try {
                         if (mode.getCustomModeId().equals(1)) { // Assuming 1 corresponds to "email"
@@ -155,29 +183,89 @@ public class ServiceProviderActionController {
     }
 
     private List<ContentFile> processFiles(List<MultipartFile> files, CommunicationContent content) {
-        return files.stream().map(file -> {
-            ContentFile contentFile = new ContentFile();
-            contentFile.setFileName(file.getOriginalFilename());
-            contentFile.setSize(file.getSize());
-            contentFile.setCommunicationContent(content);
-            // Set file path after saving file to your storage
-            contentFile.setFilePath(saveFile(file));
-            // Set appropriate file types
-            contentFile.setFileTypes(determineFileTypes(file.getContentType()));
-            return contentFile;
-        }).collect(Collectors.toList());
+        List<ContentFile> contentFiles = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            try {
+                ContentFile contentFile = saveFile(file, "content_" + content.getContentId());
+                contentFile.setCommunicationContent(content);
+                contentFiles.add(contentFile);
+            }
+            catch (IllegalArgumentException e)
+            {
+                throw new IllegalArgumentException(e.getMessage());
+            }
+            catch (Exception e) {
+                throw new RuntimeException("Failed to process file: " + file.getOriginalFilename(), e);
+            }
+        }
+
+        return contentFiles;
     }
 
-    private String saveFile(MultipartFile file) {
-        // Implement file saving logic
-        return "path/to/saved/file";
+    public ContentFile saveFile(MultipartFile file, String purpose) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalStateException("File is missing or empty");
+        }
+        // Validate file type and size
+        if (!isValidFileType(file)) {
+            throw new IllegalArgumentException("Invalid file type. Only supported files are allowed.");
+        }
+        long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxFileSize);
+        if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
+            String minFileSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
+            throw new IllegalArgumentException("File size should be between " + minFileSize + " and " + maxFileSize);
+        }
+        // Construct the file path
+        String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications/" + purpose;
+        String filePath = dbPath + File.separator + file.getOriginalFilename();
+
+
+        // Upload file to file server
+        fileUploadService.uploadFileOnFileServer(file, "Communications", purpose, "SERVICE_PROVIDER");
+
+        // Create and populate the ContentFile entity
+        ContentFile contentFile = new ContentFile();
+        contentFile.setFileName(file.getOriginalFilename());
+        contentFile.setFilePath(filePath);
+        contentFile.setSize(file.getSize());
+        contentFile.setFileTypes(determineFileTypes(file.getContentType()));
+
+        return contentFile;
+    }
+
+    private boolean isValidFileType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null) return false;
+
+        // Add all allowed content types
+        return contentType.startsWith("image/") ||
+                contentType.startsWith("application/pdf") ||
+                contentType.equals("application/msword") ||
+                contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+                contentType.equals("text/plain");
     }
 
     private List<FileType> determineFileTypes(String contentType) {
-        // Implement file type determination logic
-        return new ArrayList<>();
-    }
+        // Query for the appropriate FileType from the database
+        String fileTypeName = contentType.split("/")[1].toUpperCase();
+        TypedQuery<FileType> query = entityManager.createQuery(
+                "SELECT ft FROM FileType ft WHERE ft.file_type_name = :typeName",
+                FileType.class
+        );
+        query.setParameter("typeName", fileTypeName);
 
+        List<FileType> fileTypes = query.getResultList();
+        if (fileTypes.isEmpty()) {
+            // If file type doesn't exist, create a default one
+            FileType fileType = new FileType();
+            fileType.setFile_type_name(fileTypeName);
+            entityManager.persist(fileType);
+            fileTypes = Collections.singletonList(fileType);
+        }
+
+        return fileTypes;
+    }
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
