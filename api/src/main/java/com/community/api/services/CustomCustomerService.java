@@ -123,13 +123,14 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
-    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String authHeader) throws Exception {
+    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,String authHeader)  {
             List<Map<String, Object>> response = new ArrayList<>();
-
-        if ((sub_state_prov_reg != null && !isAlphabetOnly(sub_state_prov_reg)) || (county != null && !isAlphabetOnly(county)) || (first_name != null && !isAlphabetOnly(first_name)) || (last_name != null && !isAlphabetOnly(last_name))||(qualification_name != null && !isAlphabetOnly(qualification_name))) {
-            throw new IllegalArgumentException("String values are not in right format.");
+        if(username!=null&&!username.isEmpty())
+        {
+            Query query=em.createNativeQuery("SELECT customer_id FROM blc_customer WHERE user_name = :username");
+            query.setParameter("username",username);
+            return query.getResultList();
         }
-
         Map<String, String> alias = new HashMap<>();
         if (first_name != null) {
             first_name = first_name.trim();
@@ -145,7 +146,7 @@ public class CustomCustomerService {
         alias.put("last_name", "cust");
         alias.put("service_provider_id", "referrer");
         alias.put("qualification_name","qual");
-        String generalizedQuery = Constant.CUSTOMER_FILTER+ " WHERE ";
+        String generalizedQuery = Constant.CUSTOMER_FILTER+ " AND ";
 
         String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","qualification_name"};
         Object[] fields = {sub_state_prov_reg, county, first_name, last_name, service_provider_id,qualification_name};
@@ -171,11 +172,13 @@ public class CustomCustomerService {
         generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
         System.out.println(generalizedQuery);
         Query query;
-        query = em.createNativeQuery(generalizedQuery, ServiceProviderEntity.class);
+        query = em.createNativeQuery(generalizedQuery);
         for (int i = 0; i < fields.length; i++) {
-            if (fields[i] != null)
+            if (fields[i] != null) {
                 System.out.println(fieldsNames[i]);
+                System.out.println(fields[i]);
                 query.setParameter(fieldsNames[i], fields[i]);
+            }
         }
         List<BigInteger>resultList=query.getResultList();
         return resultList;

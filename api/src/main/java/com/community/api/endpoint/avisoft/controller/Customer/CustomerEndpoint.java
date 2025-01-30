@@ -41,6 +41,7 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import io.swagger.models.auth.In;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -66,6 +67,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Query;
@@ -2446,33 +2448,53 @@ public class CustomerEndpoint {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) Long refereeId,@RequestParam(required = false) String name,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
-        String stateName=null,districtName=null,qualificationName=null,firstName=null,lastName=null;
-        String[]names=null;
-        if(stateId!=null)
-            stateName=districtService.findStateById(stateId);
-        if(districtId!=null)
-            districtName=districtService.findDistrictById(districtId);
-        if(qualificationType!=null)
-            qualificationName=qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
-        if(name!=null&&!name.isEmpty()) {
-            sharedUtilityService.separateName(name);
-            if (names[0] != null)
-                firstName = names[0];
-            if (names[1] != null)
-                lastName = names[1];
-        }
-        List<BigInteger>resultSet1=customCustomerService.filterCustomer(refereeId,firstName,lastName,stateName,districtName,qualificationName,authHeader);
-        List<BigInteger>resultSet2=customCustomerService.filterCustomer(refereeId,lastName,firstName,stateName,districtName,qualificationName,authHeader);
-        Set<BigInteger> uniqueResults = new HashSet<>();
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) Long refereeId,@RequestParam(required = false) String name,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
+
+        try {
+            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
+                return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);
+            String stateName = null, districtName = null, qualificationName = null, firstName = null, lastName = null;
+            String[] names = null;
+            if (stateId != null) {
+                stateName = districtService.findStateById(stateId);
+                if (stateName == null)
+                    return ResponseService.generateErrorResponse("Invalid state Id", HttpStatus.BAD_REQUEST);
+            }
+            if (districtId != null) {
+                districtName = districtService.findDistrictById(districtId);
+                if (districtName == null)
+                    return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
+            }
+            if (qualificationType != null) {
+                qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
+                if (qualificationName == null)
+                    return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+            }
+            if (name != null && !name.isEmpty()) {
+                names = sharedUtilityService.separateName(name);
+                if (names[0] != null)
+                    firstName = names[0];
+                if (names[1] != null)
+                    lastName = names[1];
+            }
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,authHeader);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
+            Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
-        uniqueResults.addAll(resultSet1);
-        uniqueResults.addAll(resultSet2);
+            uniqueResults.addAll(resultSet1);
+            uniqueResults.addAll(resultSet2);
 
 // Convert the Set back to a List
-        List<BigInteger> resultList1 = new ArrayList<>(uniqueResults);
-        return ResponseService.generateSuccessResponse("Success",resultList1,HttpStatus.OK);
+            List<BigInteger> resultList1 = new ArrayList<>(uniqueResults);
+            List<Map<String, Object>> customerList = new ArrayList<>();
+            for (BigInteger id : resultList1) {
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
+                customerList.add(sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader));
+            }
+            return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
+        } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
+            return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
+        }
     }
-
 }
