@@ -2543,7 +2543,6 @@ public class CustomerEndpoint {
         }
         customCustomer.setArchivedByRole(roleId);
         customCustomer.setArchivedById(tokenUserId);
-        System.out.println("hiiiiiiiiiiiii");
         return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
     }
 }

@@ -322,6 +322,9 @@ public class SharedUtilityService {
         customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
         customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
         customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+        customerDetails.put("archived",customCustomer.getArchived());
+        customerDetails.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
+        customerDetails.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
