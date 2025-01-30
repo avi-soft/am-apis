@@ -362,5 +362,6 @@ public class CustomCustomer extends CustomerImpl {
     private Integer archivedByRole;
     @Column(name = "archived_by_id",columnDefinition = "BIGINT DEFAULT 0")
     private Long archivedById;
-
+    @Column(name = "external_auth_token",columnDefinition ="VARCHAR DEFAULT ''")
+    private String tempToken=null;
 }

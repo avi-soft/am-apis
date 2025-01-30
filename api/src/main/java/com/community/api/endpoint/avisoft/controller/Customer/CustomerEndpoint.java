@@ -255,17 +255,16 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser, Constant.roleServiceProvider})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestParam(name = "authToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Boolean externalUpdate=false;
             Boolean isValidDate=null;
             Boolean isValidDateDomicile=null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             List<String> errorMessages = new ArrayList<>();
 
             details = sanitizerService.sanitizeInputMap(details);
@@ -286,8 +285,18 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId)))
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3) {
+                if(authToken!=null&&!authToken.isEmpty())
+                {
+                    Integer roleUpdating=jwtTokenUtil.extractRoleId(authToken);
+                    Long userId=jwtTokenUtil.extractId(authToken);
+                    if(roleUpdating!=5 ||!userId.equals(customerId))
+                        return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+                else {
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+            }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -2543,7 +2552,6 @@ public class CustomerEndpoint {
         }
         customCustomer.setArchivedByRole(roleId);
         customCustomer.setArchivedById(tokenUserId);
-        System.out.println("hiiiiiiiiiiiii");
         return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
     }
 }
