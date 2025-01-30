@@ -1,7 +1,9 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
 import com.community.api.entity.CustomerReferrer;
@@ -15,6 +17,7 @@ import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
@@ -79,6 +82,10 @@ public class ServiceProviderController {
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
+    @Autowired
+    private JwtUtil jwtTokenUtil;
+    @Autowired
+    private RoleService roleService;
     /*@Autowired
     private DummyAssignerService dummyAssignerService;*/
 
@@ -583,6 +590,4 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 }
