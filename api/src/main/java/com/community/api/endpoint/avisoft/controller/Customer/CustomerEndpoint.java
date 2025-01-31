@@ -20,6 +20,7 @@ import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.FileDownloadService;
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
+import com.community.api.services.QualificationService;
 import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SanitizerService;
@@ -40,6 +41,7 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import io.swagger.models.auth.In;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -55,6 +57,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -65,6 +68,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Query;
@@ -120,6 +124,8 @@ public class CustomerEndpoint {
 
     @Autowired
     private ResponseService responseService;
+    @Autowired
+    QualificationService qualificationService;
     @Autowired
     private DocumentStorageService fileUploadService;
     @Autowired
@@ -249,17 +255,16 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser, Constant.roleServiceProvider})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestParam(name = "authToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Boolean externalUpdate=false;
             Boolean isValidDate=null;
             Boolean isValidDateDomicile=null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             List<String> errorMessages = new ArrayList<>();
 
             details = sanitizerService.sanitizeInputMap(details);
@@ -280,8 +285,18 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId)))
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3) {
+                if(authToken!=null&&!authToken.isEmpty())
+                {
+                    Integer roleUpdating=jwtTokenUtil.extractRoleId(authToken);
+                    Long userId=jwtTokenUtil.extractId(authToken);
+                    if(roleUpdating!=5 ||!userId.equals(customerId))
+                        return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+                else {
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+            }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -2441,5 +2456,110 @@ public class CustomerEndpoint {
         Long id = customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully", customCustomer, HttpStatus.CREATED);
     }
+    @Authorize(value = {Constant.roleAdmin,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin,Constant.roleServiceProvider})
+    @GetMapping("/filter")
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestHeader(name = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) throws Exception {
 
+        try {
+            Long refereeId=null;
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider))
+            {
+                refereeId=tokenUserId;
+            }
+/*            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
+                return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
+            String stateName = null, districtName = null, qualificationName = null, firstName = null, lastName = null;
+            String[] names = null;
+            if (stateId != null) {
+                stateName = districtService.findStateById(stateId);
+                if (stateName == null)
+                    return ResponseService.generateErrorResponse("Invalid state Id", HttpStatus.BAD_REQUEST);
+            }
+            if (districtId != null) {
+                districtName = districtService.findDistrictById(districtId);
+                if (districtName == null)
+                    return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
+            }
+            if (qualificationType != null) {
+                qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
+                if (qualificationName == null)
+                    return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+            }
+            if (name != null && !name.isEmpty()) {
+                names = sharedUtilityService.separateName(name);
+                if (names[0] != null)
+                    firstName = names[0];
+                if (names[1] != null)
+                    lastName = names[1];
+            }
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,authHeader,page,limit);
+            //List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
+           /* Set<BigInteger> uniqueResults = new HashSet<>();
+
+// Add all elements from both result sets
+            uniqueResults.addAll(resultSet1);
+            uniqueResults.addAll(resultSet2);*/
+
+// Convert the Set back to a List
+            List<Map<String, Object>> customerList = new ArrayList<>();
+            for (BigInteger id : resultSet1) {
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
+                if(customCustomer!=null)
+                    customerList.add(sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader));
+            }
+            return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
+        } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
+            return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PutMapping("{customerId}/manage-user")
+    public ResponseEntity<?>activateOrSuspendUser(@PathVariable Long customerId,@RequestParam String action,@RequestHeader(name = "Authorization")String authHeader) throws Exception {
+        //extracting info from jwt token
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+        //checking permissions
+        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser))
+            return ResponseService.generateErrorResponse("Action not Authorized",HttpStatus.UNAUTHORIZED);
+        if(customCustomer==null)
+            return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)||(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleAdminServiceProvider)))
+        {
+            //query to check mapping
+            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,tokenUserId);
+            Query query=entityManager.createNativeQuery("Select count(*) from customer_referrer where service_provider_id =:spId and customer_id = :customerId");
+            query.setParameter("spId",tokenUserId);
+            query.setParameter("customerId",customerId);
+            BigInteger count = (BigInteger) query.getSingleResult();
+            if(count.intValue()==0)
+                return ResponseService.generateErrorResponse("Not authorized to take action on selected user",HttpStatus.UNAUTHORIZED);
+        }
+        //checking valid permissions
+        if(!action.equals(Constant.ACTION_SUSPEND)&&!action.equals(Constant.ACTION_ACTIVATE))
+        {
+            return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
+        }
+        String actionReq=null;
+        if(action.equals(Constant.ACTION_SUSPEND))
+        {
+            if(customCustomer.getArchived().equals(true))
+                return ResponseService.generateErrorResponse("User already suspended",HttpStatus.BAD_REQUEST);
+            customCustomer.setArchived(true);
+            actionReq=action+"ed";
+        }
+        else
+        {
+            if(customCustomer.getArchived().equals(false))
+                return ResponseService.generateErrorResponse("User already active",HttpStatus.BAD_REQUEST);
+            customCustomer.setArchived(false);
+            actionReq=action+"d";
+        }
+        customCustomer.setArchivedByRole(roleId);
+        customCustomer.setArchivedById(tokenUserId);
+        return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
+    }
 }

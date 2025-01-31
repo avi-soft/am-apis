@@ -357,6 +357,12 @@ public class CustomCustomer extends CustomerImpl {
     @JoinColumn(name = "domicile_state")
     protected StateCode domicileState;
 
-/*    @OneToMany(mappedBy = "customCustomer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ActionLog> actionLogs;*/
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
+    @Column(name = "archived_by_role_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Integer archivedByRole;
+    @Column(name = "archived_by_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Long archivedById;
+    @Column(name = "external_auth_token",columnDefinition ="VARCHAR DEFAULT ''")
+    private String tempToken=null;
 }

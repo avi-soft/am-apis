@@ -225,4 +225,9 @@ public class Constant {
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
     public static final String NO_CATEGORY="N/A";
     public static final String NO_GENDER="N/A";
+
+    //public static final String CUSTOMER_FILTER_REFERRER= "SELECT DISTINCT cust.customer_id FROM customer_referrer referrer JOIN blc_customer cust ON referrer.customer_id = cust.customer_id JOIN blc_customer_address cust_addr ON referrer.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id AND qual_details.date_of_passing = (SELECT MAX(date_of_passing) FROM qualification_details WHERE custom_customer_id = cust.customer_id) WHERE addr.country ='ADD-P'";
+    public static final String ACTION_ACTIVATE="activate";
+    public static final String ACTION_SUSPEND="suspend";
+    public static final String CUSTOMER_FILTER= "SELECT DISTINCT cust.customer_id FROM blc_customer cust ";
 }

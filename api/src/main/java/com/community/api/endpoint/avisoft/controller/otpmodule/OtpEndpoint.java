@@ -31,7 +31,9 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -63,7 +65,8 @@ public class OtpEndpoint {
 
     @Autowired
     private CustomerService customerService;
-
+    @Autowired
+    private JwtUtil jwtTokenUtil;
 
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
@@ -151,9 +154,9 @@ public class OtpEndpoint {
 
     @Transactional
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, HttpServletRequest request) {
+    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session,@RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth,HttpServletRequest request,@RequestHeader(name = "Authorization",required = false)String authHeadReq) {
         try {
-            String authHeader=Constant.BEARER_CONST;;
+            String authHeader=Constant.BEARER_CONST;
             loginDetails=sanitizerService.sanitizeInputMap(loginDetails);
 
             if (loginDetails == null) {
@@ -211,7 +214,16 @@ public class OtpEndpoint {
                     existingCustomer.setOtp(null);
                     em.persist(existingCustomer);
 
-
+                    if(tempAuth.equals(true))
+                    {
+                        String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
+                        session.setAttribute(tokenKey, newToken);
+                        authHeader = authHeadReq;
+                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        return ResponseEntity.ok(response);
+                    }
+                    else
+                    {
                     String existingToken = existingCustomer.getToken();
                     if (existingToken!= null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                         authHeader=authHeader+existingToken;
@@ -222,13 +234,12 @@ public class OtpEndpoint {
                         String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                         session.setAttribute(tokenKey, newToken);
                         existingCustomer.setToken(newToken);
-                        authHeader=authHeader+newToken;
+                        authHeader = authHeader + newToken;
                         em.persist(existingCustomer);
                         ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
-
                     }
-                } else {
+                }} else {
                     return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
                 }
             } else if (roleService.findRoleName(role).equals(Constant.roleServiceProvider)) {

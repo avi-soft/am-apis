@@ -765,14 +765,15 @@ public class ProductService {
             dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
-
+            Date activeDateStart = stripTime(addProductDto.getActiveStartDate());
+            Date activeDateEnd = stripTime(addProductDto.getActiveEndDate());
             if (!addProductDto.getActiveEndDate().after(activeStartDate)) {
                 throw new IllegalArgumentException("Expiration date cannot be before or equal of current date.");
             } else if (!addProductDto.getGoLiveDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
-            } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            }else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
+            } else if (activeDateStart.after(activeDateEnd)) {
+                throw new IllegalArgumentException("Active start date cannot be after active end date.");
+            } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
 
@@ -936,13 +937,15 @@ public class ProductService {
             dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
+            Date activeDateStart = stripTime(addProductDto.getActiveStartDate());
+            Date activeDateEnd = stripTime(addProductDto.getActiveEndDate());
 
             if (!addProductDto.getActiveEndDate().after(activeStartDate)) {
                 throw new IllegalArgumentException("Expiration date cannot be before or equal of current date.");
             } else if (!addProductDto.getGoLiveDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
-            } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
+            }else if (activeDateStart.after(activeDateEnd)) {
+                throw new IllegalArgumentException("Active start date cannot be after active end date.");
             } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
@@ -1515,12 +1518,16 @@ public class ProductService {
 
                 if (addProductDto.getActiveEndDate() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
-                    if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Active start date must be before active end date.");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 } else {
-                    if (!addProductDto.getActiveStartDate().before(customProduct.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Active start date must be before active end date.");
+                    Date activeDateEnd= stripTime(customProduct.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 }
                 customProduct.setActiveStartDate(addProductDto.getActiveStartDate());
@@ -1543,8 +1550,12 @@ public class ProductService {
             if (addProductDto.getGoLiveDate() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
 
-                if (addProductDto.getGoLiveDate().before(createdDate)) {
-                    throw new IllegalArgumentException("Go live date must be after current date.");
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getGoLiveDate()))
+                    {
+                        throw new IllegalArgumentException("Go live date cannot be past of current date.");
+                    }
                 }
 
                 if (addProductDto.getActiveEndDate() != null) {
@@ -1589,12 +1600,16 @@ public class ProductService {
                 }
                 if(addProductDto.getActiveStartDate() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
-                    if(!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())){
-                        throw new IllegalArgumentException("Active end date has be future of active start Date");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 } else {
-                    if(!customProduct.getActiveStartDate().before(addProductDto.getActiveEndDate())){
-                        throw new IllegalArgumentException("Active end date has be future of active start Date");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(customProduct.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 }
 
@@ -1744,7 +1759,7 @@ public class ProductService {
                         throw new IllegalArgumentException("Modified date from must be after active end date.");
                     }
                 } else if (customProduct.getActiveEndDate() != null) {
-                    if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
+                    if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
                         throw new IllegalArgumentException("Modified date from must be after active end date.");
                     }
                 }
@@ -1759,7 +1774,7 @@ public class ProductService {
                     }
                 }
                 if (addProductDto.getExamDateFrom() != null) {
-                    dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                    dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
                     if (!addProductDto.getModificationDateTo().before(addProductDto.getExamDateFrom())) {
                         throw new IllegalArgumentException("Modified date to must be before or equal of exam date from.");
                     }
