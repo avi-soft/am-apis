@@ -5,6 +5,8 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -76,6 +78,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.Column;
+import javax.persistence.Transient;
 import javax.persistence.TypedQuery;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
@@ -285,7 +288,7 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3) {
+            if (roleId!=5&&!tokenUserId.equals(customerId)/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
                 if(authToken!=null&&!authToken.isEmpty())
                 {
                     Integer roleUpdating=jwtTokenUtil.extractRoleId(authToken);
@@ -2356,7 +2359,10 @@ public class CustomerEndpoint {
                 primaryRef.setPrimaryRef(false);
                 entityManager.merge(primaryRef);
             }
-
+            if(customCustomer.getPrimaryRef()==0||(customCustomer.getRegisteredBySp()&&customCustomer.getCreatedByRole()!=4)||(customCustomer.getCreatedByRole())==5)
+            {
+                customCustomer.setPrimaryRef(service_provider_id);
+            }
             CustomerReferrer customerReferrer = new CustomerReferrer();
             customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
             customerReferrer.setCustomer(customCustomer);
@@ -2458,9 +2464,12 @@ public class CustomerEndpoint {
     }
     @Authorize(value = {Constant.roleAdmin,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin,Constant.roleServiceProvider})
     @GetMapping("/filter")
-    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestParam(required = false)Boolean completed,@RequestHeader(name = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) throws Exception {
+    @Transactional
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestParam(required = false)Boolean completed,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit,@RequestParam(required = false,defaultValue = "ASC")String sort) throws Exception {
 
         try {
+            if(!sort.equals("DESC")&&!sort.equals("ASC"))
+                return ResponseService.generateErrorResponse("Invalid sort filter",HttpStatus.BAD_REQUEST);
             Long refereeId=null;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2495,20 +2504,53 @@ public class CustomerEndpoint {
                 if (names[1] != null)
                     lastName = names[1];
             }
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit);
-            //List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
-           /* Set<BigInteger> uniqueResults = new HashSet<>();
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit,sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit,sort);
+           Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
             uniqueResults.addAll(resultSet1);
-            uniqueResults.addAll(resultSet2);*/
-
+            uniqueResults.addAll(resultSet2);
+            List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
 // Convert the Set back to a List
-            List<Map<String, Object>> customerList = new ArrayList<>();
-            for (BigInteger id : resultSet1) {
+            List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
+            for (BigInteger id : sharedUtilityService.getPaginatedList(uniqueResultList,page,limit)) {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
-                if(customCustomer!=null)
-                    customerList.add(sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader));
+                Customer customer =customerService.readCustomerById(id.longValue());
+                String state=null;
+                String primaryRefName=null;
+                Long primaryRefId=null;
+                if(customCustomer!=null) {
+                    CustomerBasicDetailsDto customerBasicDetailsDto=new CustomerBasicDetailsDto();
+                    if(stateName!=null)
+                        customerBasicDetailsDto.setState(stateName);
+                    else {
+
+                        for(CustomerAddress customerAddress:customer.getCustomerAddresses())
+                        {
+                            if(customerAddress.getAddressName().equals("PERMANENT_ADDRESS"))
+                                state=customerAddress.getAddress().getStateProvinceRegion();
+                        }
+                        customerBasicDetailsDto.setState(state);
+                    }
+                    customerBasicDetailsDto.setCustomerId(id.longValue());
+                    customerBasicDetailsDto.setEmail(customer.getEmailAddress());
+                    customerBasicDetailsDto.setFullName(customer.getFirstName()+" "+customer.getLastName());
+                    customerBasicDetailsDto.setGender(customCustomer.getGender());
+                    customerBasicDetailsDto.setUsername(customer.getUsername());
+                    if(customCustomer.getPrimaryRef()!=0)
+                    {
+                        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,customCustomer.getPrimaryRef());
+                        if(serviceProvider!=null)
+                        {
+                            primaryRefName=serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
+                            primaryRefId=serviceProvider.getService_provider_id();
+                        }
+                    }
+                    customerBasicDetailsDto.setPrimaryRef(primaryRefName);
+                    customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
+                    customerList.add(customerBasicDetailsDto);
+                }
             }
             return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
