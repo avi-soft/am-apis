@@ -2476,7 +2476,10 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider))
             {
-                refereeId=tokenUserId;
+                if(refereeId==null)
+                    refereeId=tokenUserId;
+                else
+                    return ResponseService.generateErrorResponse("Invalid search filter selected",HttpStatus.BAD_REQUEST);
             }
 /*            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
                 return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
@@ -2549,6 +2552,10 @@ public class CustomerEndpoint {
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
+                    if(!customCustomer.getHidePhoneNumber())
+                        customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
+                    else
+                        customerBasicDetailsDto.setPhone(null);
                     customerList.add(customerBasicDetailsDto);
                 }
             }
