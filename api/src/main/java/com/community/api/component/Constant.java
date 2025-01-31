@@ -109,6 +109,7 @@ public class Constant {
     public static String SERVICE_PROVIDER_PRIVILEGE = "SELECT privilege_id FROM service_provider_privileges WHERE service_provider_id = :serviceProviderId";
     public static String GET_ROLE_BY_ROLE_ID = "SELECT r FROM Role r WHERE r.role_id = :roleId";
     public static String PRIVILEGE_ADD_PRODUCT = "ADD_PRODUCT";
+    public static String PRIVILEGE_COMMUNICATION_WITH_CUSTOMERS = "COMMUNICATE_WITH_CUSTOMERS";
     public static String PRIVILEGE_ADD_DOCUMENT_TYPE = "ADD_DOCUMENT_TYPE";
     public static String PRIVILEGE_TICKET = "PRIVILEGE_TICKET";
     public static String GET_PRODUCT_RESERVECATEGORY_BORNBEFORE_BORNAFTER = "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct";

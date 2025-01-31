@@ -34,16 +34,32 @@ public class ActionLog {
     private Long actionLogId;
 
     @ManyToOne
-    @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = false)
+    @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = true)
     private ServiceProviderEntity serviceProvider;
+
+    @ManyToOne
+    @JoinColumn(name = "admin_id", referencedColumnName = "admin_id", nullable = true)
+    private CustomAdmin admin;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = true)
+    private Role role;
 
     @ManyToMany
     @JoinTable(
-            name = "action_log_customers",
+            name = "action_log_customers_with_email",
             joinColumns = @JoinColumn(name = "action_log_id"),
             inverseJoinColumns = @JoinColumn(name = "customer_id")
     )
-    private List<CustomCustomer> customCustomers;
+    private List<CustomCustomer> customersWithEmail;
+
+    @ManyToMany
+    @JoinTable(
+            name = "action_log_customers_without_email",
+            joinColumns = @JoinColumn(name = "action_log_id"),
+            inverseJoinColumns = @JoinColumn(name = "customer_id")
+    )
+    private List<CustomCustomer> customersWithoutEmail;
 
     @ManyToMany
     @JoinTable(
@@ -62,5 +78,4 @@ public class ActionLog {
 
     @Column(name = "action_timestamp", nullable = false)
     private LocalDateTime actionTimestamp;
-
 }
