@@ -305,7 +305,7 @@ public class ServiceProviderActionController {
             throw new IllegalArgumentException("File size should be below "+ maxFileSize);
         }
         // Construct the file path
-        String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications/" + purpose;
+        String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications" + purpose;
         String filePath = dbPath + File.separator + file.getOriginalFilename();
 
 
