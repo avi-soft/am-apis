@@ -190,66 +190,93 @@ public class ServiceProviderActionController {
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
 
+            List<CustomCustomer> customersWithoutEmail = new ArrayList<>();
+            List<CustomCustomer> customersWithEmail = new ArrayList<>();
+
+            // Categorize customers based on email availability
+            for (CustomCustomer customer : customers) {
+                if (customer.getEmailAddress() == null || customer.getEmailAddress().trim().isEmpty()) {
+                    customersWithoutEmail.add(customer);
+                } else {
+                    customersWithEmail.add(customer);
+                }
+            }
+
+            // Prepare response data
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("customersWithoutEmail", customersWithoutEmail.stream()
+                    .map(customer -> Map.of(
+                            "id", customer.getId(),
+                            "name", customer.getFirstName()+" "+customer.getLastName()
+                    ))
+                    .collect(Collectors.toList()));
+
+            StringBuilder deliveryStatus = new StringBuilder();
+
             // Send communications based on selected modes
             List<File> tempFiles = new ArrayList<>();
             if (files != null && !files.isEmpty()) {
-                if(files.size()==1)
-                {
-                    if( files.get(0).getContentType()!=null)
-                    {
+                if (files.size() == 1) {
+                    if (files.get(0).getContentType() != null) {
                         tempFiles = createTemporaryFiles(files);
                     }
-                }
-
-                else if(files.size()>1)
-                {
+                } else if (files.size() > 1) {
                     tempFiles = createTemporaryFiles(files);
                 }
-
             }
 
             try {
-                // Send communications based on selected modes
-                StringBuilder deliveryStatus = new StringBuilder();
                 for (CustomMode mode : modeList) {
                     try {
                         if (mode.getCustomModeId().equals(1)) { // Email mode
-                            // Collect all email addresses for this mode
-                            List<String> emailAddresses = customers.stream()
-                                    .map(CustomCustomer::getEmailAddress)
-                                    .collect(Collectors.toList());
+                            if (!customersWithEmail.isEmpty()) {
+                                // Collect valid email addresses
+                                List<String> emailAddresses = customersWithEmail.stream()
+                                        .map(CustomCustomer::getEmailAddress)
+                                        .collect(Collectors.toList());
 
-                            // Send to all recipients
-                            emailService.sendEmailWithAttachments(
-                                    emailAddresses,
-                                    content.getSubject(),
-                                    content.getContentText(),
-                                    tempFiles
-                            );
+                                // Send to recipients with valid emails
+                                emailService.sendEmailWithAttachments(
+                                        emailAddresses,
+                                        content.getSubject(),
+                                        content.getContentText(),
+                                        tempFiles
+                                );
+                            }
+
+                            // Update delivery status based on email availability
+                            if (!customersWithoutEmail.isEmpty()) {
+                                deliveryStatus.append("PARTIALLY_FAILED: Some customers don't have email addresses; ");
+                            }
                         }
                         // Add other communication modes here...
                     } catch (Exception e) {
-                        // Add mode-specific failure to delivery status
                         deliveryStatus.append(String.format("Failed for mode %d: %s; ",
                                 mode.getCustomModeId(), e.getMessage()));
                     }
                 }
 
-                actionLog.setDeliveryStatus(deliveryStatus.length() > 0 ?
-                        "PARTIALLY_FAILED: " + deliveryStatus.toString() : "SUCCESS");
+                // Set final delivery status
+                String finalStatus = deliveryStatus.length() > 0 ?
+                        deliveryStatus.toString() :
+                        (customersWithoutEmail.isEmpty() ? "SUCCESS" : "PARTIALLY_FAILED: Some customers don't have email addresses");
+
+                actionLog.setDeliveryStatus(finalStatus);
 
             } finally {
-                // Clean up temporary files after all communications are done
                 cleanupTemporaryFiles(tempFiles);
             }
-
 
             entityManager.persist(actionLog);
             entityManager.flush();
 
+            // Add action log to response data
+            responseData.put("actionLog", convertToDTO(actionLog));
+            responseData.put("totalCustomersEmailed", customersWithEmail.size());
+
             return ResponseService.generateSuccessResponse(
-                    "Communication sent successfully",
-                    convertToDTO(actionLog),
+                    "Communication processed",
+                    responseData,
                     HttpStatus.OK
             );
 
