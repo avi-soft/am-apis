@@ -189,7 +189,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
                 ? ageLimitResult.getMinimumAge().toString() + "-" + ageLimitResult.getMaximumAge().toString()
                 : (ageLimits != null && ageLimits.length >= 2)
                 ? ageLimits[0] + "-" + ageLimits[1]
-                : "No age Limit";
+                : "N/A";
     }
 
     @Override

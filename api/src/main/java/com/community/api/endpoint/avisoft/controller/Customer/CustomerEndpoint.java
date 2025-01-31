@@ -255,17 +255,16 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser, Constant.roleServiceProvider})
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestParam(name = "authToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Boolean externalUpdate=false;
             Boolean isValidDate=null;
             Boolean isValidDateDomicile=null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
             List<String> errorMessages = new ArrayList<>();
 
             details = sanitizerService.sanitizeInputMap(details);
@@ -286,8 +285,18 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
-            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId)))
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            if ((roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3) {
+                if(authToken!=null&&!authToken.isEmpty())
+                {
+                    Integer roleUpdating=jwtTokenUtil.extractRoleId(authToken);
+                    Long userId=jwtTokenUtil.extractId(authToken);
+                    if(roleUpdating!=5 ||!userId.equals(customerId))
+                        return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+                else {
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                }
+            }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
@@ -2447,13 +2456,21 @@ public class CustomerEndpoint {
         Long id = customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully", customCustomer, HttpStatus.CREATED);
     }
-
+    @Authorize(value = {Constant.roleAdmin,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin,Constant.roleServiceProvider})
     @GetMapping("/filter")
-    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) Long refereeId,@RequestParam(required = false) String name,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestHeader(name = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) throws Exception {
 
         try {
-            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
-                return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);
+            Long refereeId=null;
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider))
+            {
+                refereeId=tokenUserId;
+            }
+/*            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
+                return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
             String stateName = null, districtName = null, qualificationName = null, firstName = null, lastName = null;
             String[] names = null;
             if (stateId != null) {
@@ -2478,20 +2495,20 @@ public class CustomerEndpoint {
                 if (names[1] != null)
                     lastName = names[1];
             }
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,authHeader);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
-            Set<BigInteger> uniqueResults = new HashSet<>();
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,authHeader,page,limit);
+            //List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
+           /* Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
             uniqueResults.addAll(resultSet1);
-            uniqueResults.addAll(resultSet2);
+            uniqueResults.addAll(resultSet2);*/
 
 // Convert the Set back to a List
-            List<BigInteger> resultList1 = new ArrayList<>(uniqueResults);
             List<Map<String, Object>> customerList = new ArrayList<>();
-            for (BigInteger id : resultList1) {
+            for (BigInteger id : resultSet1) {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
-                customerList.add(sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader));
+                if(customCustomer!=null)
+                    customerList.add(sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader));
             }
             return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
@@ -2543,7 +2560,6 @@ public class CustomerEndpoint {
         }
         customCustomer.setArchivedByRole(roleId);
         customCustomer.setArchivedById(tokenUserId);
-        System.out.println("hiiiiiiiiiiiii");
         return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
     }
 }
