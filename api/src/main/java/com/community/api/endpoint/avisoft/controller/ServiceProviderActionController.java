@@ -2,7 +2,6 @@ package com.community.api.endpoint.avisoft.controller;
 
 import com.community.api.component.Constant;
 import com.community.api.configuration.ImageSizeConfig;
-import com.community.api.dto.CommunicationRequest;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.DocumentStorageService;
@@ -12,8 +11,6 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
 import org.hibernate.jpa.QueryHints;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
@@ -108,14 +102,28 @@ public class ServiceProviderActionController {
             {
                 subjectTrimmed=subject.trim();
             }
-            if ((contentText == null || (contentTextTrimmed.isEmpty())) &&
-                    (files == null || files.isEmpty())) {
+
+            boolean hasValidContent = contentTextTrimmed != null && !contentTextTrimmed.isEmpty();
+            boolean hasValidFiles = false;
+
+            // Check if files are effectively non-empty
+            if (files != null && !files.isEmpty()) {
+                if (files.size() == 1) {
+                    // Single file case
+                    hasValidFiles = files.get(0).getContentType() != null;
+                } else {
+                    // Multiple files case
+                    hasValidFiles = files.stream()
+                            .anyMatch(file -> file.getContentType() != null);
+                }
+            }
+
+            if (!hasValidContent && !hasValidFiles) {
                 return ResponseService.generateErrorResponse(
-                        "Either you have to provide text or any file. Both cannot be empty",
+                        "Either you have to provide text or valid files. Both cannot be empty",
                         HttpStatus.BAD_REQUEST
                 );
             }
-
             // Create communication content
             CommunicationContent content = new CommunicationContent();
             content.setServiceProvider(serviceProvider);
@@ -383,7 +391,7 @@ public class ServiceProviderActionController {
         return dto;
     }
 
-    @GetMapping("/communications/{serviceProviderId}")
+    @GetMapping("/get-communications/{serviceProviderId}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getCommunicationHistory(@PathVariable Long serviceProviderId) {
         try {
@@ -429,8 +437,14 @@ public class ServiceProviderActionController {
                     HttpStatus.OK
             );
 
-        } catch (Exception e) {
-            // **Throw RuntimeException to Let Spring Manage Rollback**
+        }
+        catch (IllegalArgumentException e)
+        {
+            exceptionHandlingService.handleException(e);
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        catch (Exception e) {
+            exceptionHandlingService.handleException(e);
             throw new RuntimeException("Failed to retrieve communication history", e);
         }
     }
