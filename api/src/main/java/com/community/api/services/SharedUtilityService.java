@@ -325,6 +325,7 @@ public class SharedUtilityService {
         customerDetails.put("archived",customCustomer.getArchived());
         customerDetails.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
         customerDetails.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
+        customerDetails.put("profileCompleted",customCustomer.getComplete());
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
         for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
