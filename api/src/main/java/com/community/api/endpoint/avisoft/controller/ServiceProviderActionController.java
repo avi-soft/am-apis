@@ -86,7 +86,7 @@ public class ServiceProviderActionController {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
             if (!actionAccess(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD PRODUCT", HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO COMMUNICATE WITH CUSTOMER", HttpStatus.FORBIDDEN);
             }
             ServiceProviderEntity serviceProvider=null;
             CustomAdmin customAdmin=null;
@@ -267,15 +267,6 @@ public class ServiceProviderActionController {
             actionLog.setCustomersWithEmail(customersWithEmail);
             actionLog.setCustomersWithoutEmail(customersWithoutEmail);
 
-           /* // Categorize customers based on email availability
-            for (CustomCustomer customer : customers) {
-                if (customer.getEmailAddress() == null || customer.getEmailAddress().trim().isEmpty()) {
-                    customersWithoutEmail.add(customer);
-                } else {
-                    customersWithEmail.add(customer);
-                }
-            }*/
-
             StringBuilder deliveryStatus = new StringBuilder();
 
             // Send communications based on selected modes
@@ -335,15 +326,19 @@ public class ServiceProviderActionController {
             responseData.put("customersWithEmail", customersWithEmail.stream()
                     .map(customer -> Map.of(
                             "id", customer.getId(),
-                            "name", customer.getFirstName() + " " + customer.getLastName(),
-                            "emailAddress", customer.getEmailAddress()
+                            "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
+                                    + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                            "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
                     ))
                     .collect(Collectors.toList()));
+
             responseData.put("customersWithoutEmail", customersWithoutEmail.stream()
                     .map(customer -> Map.of(
                             "id", customer.getId(),
-                            "name", customer.getFirstName() + " " + customer.getLastName(),
-                            "emailAddress", customer.getEmailAddress()
+                            // Safely handle first and last name concatenation
+                            "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
+                                    + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                            "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
                     ))
                     .collect(Collectors.toList()));
             responseData.put("actionLog", convertToDTO(actionLog));
@@ -606,80 +601,6 @@ public class ServiceProviderActionController {
         }
     }
 
-//    @GetMapping("/get-communications/{serviceProviderId}")
-//    @Transactional(readOnly = true)
-//    public ResponseEntity<?> getCommunicationHistory(@RequestHeader(value = "Authorization") String authHeader) {
-//        try {
-//            String jwtToken = authHeader.substring(7);
-//            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-//            Long userId = jwtTokenUtil.extractId(jwtToken);
-//            if (!actionAccess(authHeader)) {
-//                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO VIEW THE COMMUNICATION", HttpStatus.FORBIDDEN);
-//            }
-//            ServiceProviderEntity serviceProvider=null;
-//            CustomAdmin customAdmin=null;
-//            if(roleService.getRoleByRoleId(roleId).equals(Constant.SERVICE_PROVIDER))
-//            {
-//                serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
-//                if (serviceProvider == null) {
-//                    return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
-//                }
-//            }
-//            if(roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider))
-//            {
-//                customAdmin=entityManager.find(CustomAdmin.class,userId);
-//                if(customAdmin==null)
-//                {
-//                    return ResponseService.generateErrorResponse("Custom Admin with id" + userId+ " does not exist",HttpStatus.NOT_FOUND);
-//                }
-//            }
-//            // JPQL Query with Sorting
-//            String jpql = """
-//            SELECT DISTINCT al FROM ActionLog al
-//            LEFT JOIN FETCH al.content c
-//            WHERE al.serviceProvider.service_provider_id = :serviceProviderId
-//            ORDER BY al.actionTimestamp DESC
-//            """;
-//
-//            List<ActionLog> actionLogs = entityManager.createQuery(jpql, ActionLog.class)
-//                    .setParameter("serviceProviderId", serviceProviderId)
-//                    .setHint(QueryHints.HINT_FETCH_SIZE, 50)  // Optimize performance
-//                    .setHint(QueryHints.HINT_READONLY, true)  // Optimize performance
-//                    .getResultList();
-//
-//            // Initialize customCustomers and customModes separately
-//            actionLogs.forEach(log -> {
-//                Hibernate.initialize(log.getCustomersWithEmail());  // Fetch separately
-//                Hibernate.initialize(log.getCustomModes());  // Fetch separately
-//            });
-//
-//            // Ensure sorting (if DB sorting fails)
-//            actionLogs.sort(Comparator.comparing(ActionLog::getActionTimestamp).reversed());
-//
-//            // Convert to DTO
-//            List<Map<String, Object>> communicationHistory = actionLogs.stream()
-//                    .map(this::convertToCommunicationDTO)
-//                    .collect(Collectors.toList());
-//
-//            return ResponseService.generateSuccessResponse(
-//                    "Communication history retrieved successfully",
-//                    communicationHistory,
-//                    HttpStatus.OK
-//            );
-//
-//        }
-//        catch (IllegalArgumentException e)
-//        {
-//            exceptionHandlingService.handleException(e);
-//            throw new IllegalArgumentException(e.getMessage());
-//        }
-//        catch (Exception e) {
-//            exceptionHandlingService.handleException(e);
-//            throw new RuntimeException("Failed to retrieve communication history", e);
-//        }
-//    }
-
-
     private Map<String, Object> convertToCommunicationDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
 
@@ -688,22 +609,23 @@ public class ServiceProviderActionController {
         Map<String, Object> contentDetails = new HashMap<>();
         contentDetails.put("subject", content != null ? content.getSubject() : null);
         contentDetails.put("contentText", content != null ? content.getContentText() : null);
-        // Handle file attachments
-        if (content != null && content.getContentFiles() != null && !content.getContentFiles().isEmpty()) {
-            List<Map<String, Object>> files = content.getContentFiles().stream()
-                    .map(file -> {
-                        Map<String, Object> fileInfo = new HashMap<>();
-                        fileInfo.put("fileName", file.getFileName());
-                        fileInfo.put("size", formatFileSize(file.getSize()));
-                        fileInfo.put("fileUrl", fileService.getFileUrl(file.getFilePath(), request));
-                        fileInfo.put("fileTypes", file.getFileTypes().stream()
-                                .map(FileType::getFile_type_name)
-                                .collect(Collectors.toList()));
-                        return fileInfo;
-                    })
-                    .collect(Collectors.toList());
-            contentDetails.put("files", files);
-        }
+        List<Map<String, Object>> files = Optional.ofNullable(content.getContentFiles())
+                .filter(f -> !f.isEmpty())
+                .map(f -> f.stream()
+                        .map(file -> {
+                            Map<String, Object> fileInfo = new HashMap<>();
+                            fileInfo.put("fileName", file.getFileName());
+                            fileInfo.put("size", formatFileSize(file.getSize()));
+                            fileInfo.put("fileUrl", fileService.getFileUrl(file.getFilePath(), request));
+                            fileInfo.put("fileTypes", file.getFileTypes().stream()
+                                    .map(FileType::getFile_type_name)
+                                    .collect(Collectors.toList()));
+                            return fileInfo;
+                        })
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
+
+        contentDetails.put("files", files);
         dto.put("content", contentDetails);
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
         // Recipients without emails
@@ -711,17 +633,22 @@ public class ServiceProviderActionController {
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
                     recipientInfo.put("customerId", customer.getId());
-                    recipientInfo.put("name", customer.getFirstName() + " " + customer.getLastName());
+                    String name = (customer.getFirstName() != null ? customer.getFirstName() : "")
+                            + " " + (customer.getLastName() != null ? customer.getLastName() : "");
+                    recipientInfo.put("name", name.trim()); // Remove unnecessary whitespace
+                    recipientInfo.put("emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : "");
                     return recipientInfo;
                 })
                 .collect(Collectors.toList());
+
         // Recipients with emails
         List<Map<String, Object>> customersWithEmail = actionLog.getCustomersWithEmail().stream()
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
                     recipientInfo.put("customerId", customer.getId());
-                    recipientInfo.put("emailAddress", customer.getEmailAddress());
-                    recipientInfo.put("name", customer.getFirstName() + " " + customer.getLastName());
+                    String name=(customer.getFirstName()!=null ?customer.getFirstName() : "") + " " + (customer.getLastName()!=null ? customer.getLastName():"");
+                    recipientInfo.put("name",name.trim());
+                    recipientInfo.put("emailAddress", customer.getEmailAddress()!=null ? customer.getEmailAddress():"");
                     return recipientInfo;
                 })
                 .collect(Collectors.toList());
@@ -729,12 +656,7 @@ public class ServiceProviderActionController {
         dto.put("customersWithoutEmail", customersWithoutEmail);
         dto.put("timestamp", actionLog.getActionTimestamp());
         dto.put("actionLogId", actionLog.getActionLogId());
-        // Communication modes
-        List<Integer> modes = actionLog.getCustomModes().stream()
-                .map(CustomMode::getCustomModeId)
-                .collect(Collectors.toList());
-        dto.put("customModes", modes);
-
+        dto.put("modes", actionLog.getCustomModes().stream().map(CustomMode::getCustomModeId).collect(Collectors.toList()));
         return dto;
     }
 
