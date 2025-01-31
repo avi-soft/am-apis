@@ -256,7 +256,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestParam(name = "authToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "extAuthToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
         try {
             Boolean externalUpdate=false;
             Boolean isValidDate=null;
@@ -2458,7 +2458,7 @@ public class CustomerEndpoint {
     }
     @Authorize(value = {Constant.roleAdmin,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin,Constant.roleServiceProvider})
     @GetMapping("/filter")
-    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestHeader(name = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) throws Exception {
+    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestParam(required = false)Boolean completed,@RequestHeader(name = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) throws Exception {
 
         try {
             Long refereeId=null;
@@ -2495,7 +2495,7 @@ public class CustomerEndpoint {
                 if (names[1] != null)
                     lastName = names[1];
             }
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,authHeader,page,limit);
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit);
             //List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,authHeader);
            /* Set<BigInteger> uniqueResults = new HashSet<>();
 
