@@ -126,7 +126,7 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
-    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,Boolean completed,String authHeader,int page,int limit)  {
+    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,Boolean completed,String authHeader,int page,int limit,String sort)  {
             List<Map<String, Object>> response = new ArrayList<>();
         int startPosition = page * limit;
         String jwtToken = authHeader.substring(7);
@@ -199,7 +199,7 @@ public class CustomCustomerService {
         System.out.println(generalizedQuery);
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
-        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
+        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex)+" ORDER by cust.date_created "+sort;
         System.out.println(generalizedQuery);
         Query query;
         query = em.createNativeQuery(generalizedQuery);
