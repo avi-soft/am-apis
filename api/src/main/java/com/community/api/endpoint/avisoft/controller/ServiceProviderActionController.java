@@ -272,7 +272,7 @@ public class ServiceProviderActionController {
 
             // Add action log to response data
             responseData.put("actionLog", convertToDTO(actionLog));
-            responseData.put("emailsSentTo", customersWithEmail.size());
+            responseData.put("totalCustomersEmailed", customersWithEmail.size());
 
             return ResponseService.generateSuccessResponse(
                     "Communication processed",
