@@ -34,6 +34,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.Period;
@@ -992,6 +993,16 @@ public class SharedUtilityService {
         // Last name is everything after the last space
         String lastName = fullName.substring(lastSpaceIndex + 1);
         return new String[]{firstName, lastName};
+    }
+    public  List<BigInteger> getPaginatedList(List<BigInteger> fullList, int page, int pageSize) {
+        int fromIndex = (page) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, fullList.size());
+
+        if (fromIndex >= fullList.size()) {
+            return List.of(); // Return empty list if page is out of bounds
+        }
+
+        return fullList.subList(fromIndex, toIndex);
     }
 }
 

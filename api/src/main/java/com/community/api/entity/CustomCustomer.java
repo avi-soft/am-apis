@@ -365,4 +365,6 @@ public class CustomCustomer extends CustomerImpl {
     private Long archivedById;
     @Column(name = "completed",columnDefinition ="BOOLEAN DEFAULT FALSE")
     private Boolean complete;
+    @Column(name = "primary_referrer_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Long primaryRef;
 }
