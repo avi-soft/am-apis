@@ -356,6 +356,7 @@ public class CustomCustomer extends CustomerImpl {
     @ManyToOne
     @JoinColumn(name = "domicile_state")
     protected StateCode domicileState;
+
     @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean archived;
     @Column(name = "archived_by_role_id",columnDefinition = "BIGINT DEFAULT 0")
