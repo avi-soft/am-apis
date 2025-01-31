@@ -19,4 +19,5 @@ public class CustomerBasicDetailsDto {
     String username;
     String primaryRef;
     Long primaryRefId;
+    String phoneNumber;
 }
