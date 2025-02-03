@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -995,9 +996,9 @@ public class SharedUtilityService {
         String lastName = fullName.substring(lastSpaceIndex + 1);
         return new String[]{firstName, lastName};
     }
-    public  List<BigInteger> getPaginatedList(List<BigInteger> fullList, int page, int pageSize) {
+    public  List<CustomerBasicDetailsDto> getPaginatedList(List<CustomerBasicDetailsDto> fullList, int page, int pageSize) {
         int fromIndex = (page) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, fullList.size());
+        int toIndex = Math.min(fromIndex + pageSize,fullList.size());
 
         if (fromIndex >= fullList.size()) {
             return List.of(); // Return empty list if page is out of bounds
