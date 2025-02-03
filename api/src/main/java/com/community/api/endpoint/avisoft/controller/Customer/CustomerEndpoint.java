@@ -2543,7 +2543,7 @@ public class CustomerEndpoint {
             Qualificationorder.put(3, 5);
             Qualificationorder.put(4, 6);
             Qualificationorder.put(5, 7);
-            for (BigInteger id : sharedUtilityService.getPaginatedList(uniqueResultList,page,limit)) {
+            for (BigInteger id : uniqueResultList) {
                 Customer customer=null;
                 try {
                      customer= customerService.readCustomerById(id.longValue());
@@ -2618,7 +2618,7 @@ public class CustomerEndpoint {
                     customerList.add(customerBasicDetailsDto);
                 }}
             }
-            return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList,page,limit), HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }
