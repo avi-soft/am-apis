@@ -41,6 +41,7 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -1005,6 +1006,23 @@ public class SharedUtilityService {
 
         return fullList.subList(fromIndex, toIndex);
     }
+    public int calculateAge(String birthDateString) {
+        if (birthDateString == null || birthDateString.isEmpty()) {
+            return -1;  // Handle null/empty case
+        }
+
+        try {
+            // Attempt to parse the date using the given format
+            LocalDate birthDate = LocalDate.parse(birthDateString, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+
+            // Return age in years
+            return Period.between(birthDate, LocalDate.now()).getYears();
+        } catch (DateTimeParseException e) {
+            // If the format is incorrect or parsing fails, return -1
+            return -1;
+        }
+    }
+
 }
 
 
