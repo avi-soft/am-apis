@@ -177,7 +177,7 @@ public class CustomCustomerService {
         {
             generalizedQuery=generalizedQuery+aliasQuery.get("completed");
         }
-        generalizedQuery=generalizedQuery+"WHERE ";
+        generalizedQuery=generalizedQuery+" WHERE ";
         String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","qualification_name","completed"};
         Object[] fields = {sub_state_prov_reg, county, first_name, last_name, service_provider_id,qualification_name,completed};
         for (int i = 0; i < fields.length; i++) {
@@ -210,8 +210,8 @@ public class CustomCustomerService {
                 query.setParameter(fieldsNames[i], fields[i]);
             }
         }
-        query.setFirstResult(startPosition);
-        query.setMaxResults(2*limit);
+     /*   query.setFirstResult(startPosition);
+        query.setMaxResults(limit);*/
         List<BigInteger>resultList=query.getResultList();
         return resultList;
     }
