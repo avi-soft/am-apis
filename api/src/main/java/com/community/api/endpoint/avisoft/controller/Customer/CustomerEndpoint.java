@@ -2485,7 +2485,7 @@ public class CustomerEndpoint {
         try {
             if(!sort.equals("DESC")&&!sort.equals("ASC"))
                 return ResponseService.generateErrorResponse("Invalid sort filter",HttpStatus.BAD_REQUEST);
-            Long refereeId=null;
+            Long refereeId=refreeId;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -2493,7 +2493,7 @@ public class CustomerEndpoint {
             {
                 if(refereeId==null)
                     refereeId=tokenUserId;
-                else
+                else if(refreeId!=null)
                     return ResponseService.generateErrorResponse("Invalid search filter selected",HttpStatus.BAD_REQUEST);
             }
 /*            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
@@ -2530,11 +2530,21 @@ public class CustomerEndpoint {
             uniqueResults.addAll(resultSet1);
             uniqueResults.addAll(resultSet2);
             List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
+           System.out.println(uniqueResultList.size());
 // Convert the Set back to a List
             List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
             for (BigInteger id : sharedUtilityService.getPaginatedList(uniqueResultList,page,limit)) {
+                Customer customer=null;
+                try {
+                     customer= customerService.readCustomerById(id.longValue());
+                }catch (Exception e)
+                {
+                    continue;
+                }
+                if(customer!=null)
+                {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
-                Customer customer =customerService.readCustomerById(id.longValue());
+
                 String state=null;
                 String primaryRefName=null;
                 Long primaryRefId=null;
@@ -2556,14 +2566,18 @@ public class CustomerEndpoint {
                     customerBasicDetailsDto.setFullName(customer.getFirstName()+" "+customer.getLastName());
                     customerBasicDetailsDto.setGender(customCustomer.getGender());
                     customerBasicDetailsDto.setUsername(customer.getUsername());
-                    if(customCustomer.getPrimaryRef()!=0)
+
+                    if(refereeId!=null)
                     {
-                        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,customCustomer.getPrimaryRef());
-                        if(serviceProvider!=null)
-                        {
-                            primaryRefName=serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
-                            primaryRefId=serviceProvider.getService_provider_id();
+                        if(customCustomer.getPrimaryRef()!=0&&customCustomer.getPrimaryRef().equals(refereeId)) {
+                            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
+                            if (serviceProvider != null) {
+                                primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
+                                primaryRefId = serviceProvider.getService_provider_id();
+                            }
                         }
+                        else
+                            continue;
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
@@ -2572,7 +2586,7 @@ public class CustomerEndpoint {
                     else
                         customerBasicDetailsDto.setPhone(null);
                     customerList.add(customerBasicDetailsDto);
-                }
+                }}
             }
             return ResponseService.generateSuccessResponse("Fetched Customers", customerList, HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
