@@ -106,6 +106,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import static com.community.api.component.Constant.request;
+import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @RestController
 @RequestMapping(value = "/customer",
@@ -288,6 +289,7 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+
             if (roleId!=5&&!tokenUserId.equals(customerId)/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
                 if(authToken!=null&&!authToken.isEmpty())
                 {
@@ -302,6 +304,10 @@ public class CustomerEndpoint {
             }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
+            }
+            if(customCustomer.getArchived().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
             }
             String secondaryMobileNumber = (String) details.get("secondaryMobileNumber");
             String mobileNumber = (String) details.get("mobileNumber");
@@ -1232,6 +1238,10 @@ public class CustomerEndpoint {
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+            }
+            if(customCustomer.getArchived().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
             Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader);
@@ -2323,7 +2333,8 @@ public class CustomerEndpoint {
             List<Map> results = new ArrayList<>();
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
-                results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader));
+                if(customer.getArchived().equals(false))
+                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -2343,6 +2354,10 @@ public class CustomerEndpoint {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+            if(customCustomer.getArchived().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
+            }
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
@@ -2564,18 +2579,38 @@ public class CustomerEndpoint {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }
     }
-    @PutMapping("{customerId}/manage-user")
-    public ResponseEntity<?>activateOrSuspendUser(@PathVariable Long customerId,@RequestParam String action,@RequestHeader(name = "Authorization")String authHeader) throws Exception {
+    @Transactional
+    @PutMapping("manage-user")
+    public ResponseEntity<?>activateOrSuspendUser(@RequestBody Map<String,Object>map,@RequestParam String action,@RequestHeader(name = "Authorization")String authHeader) throws Exception {
         //extracting info from jwt token
+        int actionCount=0,successCount=0;
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        List<Long>ids=getLongList(map,"customerIds");
+        Map<Long,String>skippedIds=new HashMap<>();
+        List<Long>actionedIds=new ArrayList<>();
+        String actionReq=null;
+        if(!action.equals(Constant.ACTION_SUSPEND)&&!action.equals(Constant.ACTION_ACTIVATE))
+        {
+            return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
+        }
+        if(action.equals("suspend"))
+            actionReq=action+"ed";
+        else
+            actionReq=action+"d";
+        for(Long customerId:ids)
+        {
         CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
         //checking permissions
-        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser))
-            return ResponseService.generateErrorResponse("Action not Authorized",HttpStatus.UNAUTHORIZED);
-        if(customCustomer==null)
-            return ResponseService.generateErrorResponse("Customer not found",HttpStatus.NOT_FOUND);
+        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)) {
+            skippedIds.put(customerId, "Action not Authorized");
+            continue;
+        }
+        if(customCustomer==null) {
+            skippedIds.put(customerId, "Customer Not Found");
+            continue;
+        }
         if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)||(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleAdminServiceProvider)))
         {
             //query to check mapping
@@ -2584,31 +2619,53 @@ public class CustomerEndpoint {
             query.setParameter("spId",tokenUserId);
             query.setParameter("customerId",customerId);
             BigInteger count = (BigInteger) query.getSingleResult();
-            if(count.intValue()==0)
-                return ResponseService.generateErrorResponse("Not authorized to take action on selected user",HttpStatus.UNAUTHORIZED);
+            if(count.intValue()==0) {
+                skippedIds.put(customerId, "Unauthorized to suspend users not referred by you");
+                continue;
+            }
         }
         //checking valid permissions
-        if(!action.equals(Constant.ACTION_SUSPEND)&&!action.equals(Constant.ACTION_ACTIVATE))
-        {
-            return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
-        }
-        String actionReq=null;
         if(action.equals(Constant.ACTION_SUSPEND))
         {
-            if(customCustomer.getArchived().equals(true))
-                return ResponseService.generateErrorResponse("User already suspended",HttpStatus.BAD_REQUEST);
+            if(customCustomer.getArchived().equals(true)) {
+                skippedIds.put(customerId, "User Already Suspended");
+                ++actionCount;
+                continue;
+            }
             customCustomer.setArchived(true);
-            actionReq=action+"ed";
         }
         else
         {
-            if(customCustomer.getArchived().equals(false))
-                return ResponseService.generateErrorResponse("User already active",HttpStatus.BAD_REQUEST);
+            if(customCustomer.getArchived().equals(false)) {
+                skippedIds.put(customerId, "User Already Activate");
+                ++actionCount;
+                continue;
+            }
             customCustomer.setArchived(false);
-            actionReq=action+"d";
         }
         customCustomer.setArchivedByRole(roleId);
         customCustomer.setArchivedById(tokenUserId);
-        return ResponseService.generateSuccessResponse("User with ID : "+customerId+" "+actionReq,sharedUtilityService.breakReferenceForCustomer(customCustomer,authHeader),HttpStatus.OK);
+        actionedIds.add(customerId);
+        ++successCount;
+        entityManager.merge(customCustomer);
     }
+        Map<String,Object>response=new HashMap<>();
+        if(skippedIds.isEmpty())
+        {
+            response.put(actionReq +"Ids",actionedIds);
+            return ResponseService.generateSuccessResponse("Selected Accounts "+actionReq+" successfully",response,HttpStatus.OK);
+        }
+        else if(actionedIds.isEmpty())
+        {
+            response.put(actionReq+" Ids:",actionedIds);
+            response.put("Skipped Ids:", skippedIds);
+            return ResponseService.generateSuccessResponse("Unable to "+action, response, HttpStatus.OK);
+        }
+        else
+        {
+                response.put(actionReq + " Ids:", actionedIds);
+                response.put("Skipped Ids:", skippedIds);
+                return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
+            }
+        }
 }

@@ -211,7 +211,7 @@ public class CustomCustomerService {
             }
         }
         query.setFirstResult(startPosition);
-        query.setMaxResults(limit);
+        query.setMaxResults(2*limit);
         List<BigInteger>resultList=query.getResultList();
         return resultList;
     }
