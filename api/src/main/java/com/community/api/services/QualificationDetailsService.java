@@ -30,6 +30,7 @@ import javax.persistence.TypedQuery;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -91,9 +92,15 @@ public class QualificationDetailsService {
                 throw new IllegalArgumentException("Subject_name cannot be null");
             }
             validateQualificationDetail(qualificationDetails);
-            List<CustomStream> streams = streamService.getAllStream();
-            Long streamToAdd = findStreamId(qualificationDetails.getStream_id(), streams);
-            qualificationDetails.setStream_id(streamToAdd);
+            if(qualificationDetails.getQualification_id().equals(1))
+            {
+                qualificationDetails.setStream_id(0L);
+            }
+            else {
+                List<CustomStream> streams = streamService.getStreamByQualificationId(qualificationDetails.getQualification_id());
+                Long streamToAdd = findStreamId(qualificationDetails.getStream_id(), streams);
+                qualificationDetails.setStream_id(streamToAdd);
+            }
             qualificationDetails.setService_provider(serviceProviderEntity);
             if (serviceProviderEntity.getQualificationDetailsList().isEmpty()) {
                 serviceProviderEntity.getQualificationDetailsList().add(qualificationDetails);
@@ -103,9 +110,12 @@ public class QualificationDetailsService {
                 serviceProviderEntity.getQualificationDetailsList().forEach(detail -> {
                     if (detail.getServiceProviderDocument() != null) {
                         ServiceProviderDocument serviceProviderDocument=detail.getServiceProviderDocument();
-                        serviceProviderDocument.setQualificationDetails(null);
-                        serviceProviderDocument.setIsArchived(true);
-                        entityManager.merge(serviceProviderDocument);
+                        if(serviceProviderDocument.getQualificationDetails().getQualification_id().equals(detail.getQualification_id()))
+                        {
+                            serviceProviderDocument.setQualificationDetails(null);
+                            serviceProviderDocument.setIsArchived(true);
+                            entityManager.merge(serviceProviderDocument);
+                        }
                     }
                 });
                 serviceProviderEntity.getQualificationDetailsList().clear();
@@ -140,6 +150,15 @@ public class QualificationDetailsService {
         Long boardUniversityToAdd = findBoardUniversityById(qualificationDetails.getBoard_university_id(), boardUniversities);
         OtherItem boardUniversityOtherItemToAdd=handleOtherCaseForBoardUniversity(boardUniversityToAdd,boardUniversityOthers,roleId,userId,sourceName);
         qualificationDetails.setBoard_university_id(boardUniversityToAdd);
+        if(qualificationDetails.getQualification_id().equals(1))
+        {
+            qualificationDetails.setStream_id(0L);
+        }
+        else {
+            List<CustomStream> streams = streamService.getStreamByQualificationId(qualificationDetails.getQualification_id());
+            Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
+            qualificationDetails.setStream_id(streamToAdd);
+        }
         Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
         Boolean subjectValidationCheck= null;
         if(qualificationToSearch!=null)
@@ -153,15 +172,20 @@ public class QualificationDetailsService {
         }
         if(!(qualificationDetails.getSubject_ids()==null|| qualificationDetails.getSubject_ids().isEmpty()))
         {
-            List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids());
-            qualificationDetails.setSubject_ids(subjects);
+            if(qualificationDetails.getQualification_id().equals(1))
+            {
+                List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids(),0L);
+                qualificationDetails.setSubject_ids(subjects);
+            }
+            else {
+                List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids(),qualificationDetails.getStream_id());
+                qualificationDetails.setSubject_ids(subjects);
+            }
             createSubjectDetails(qualificationDetails);
             validateSubjectSizeForCustomer(qualificationDetails);
         }
         validateQualificationDetail(qualificationDetails);
-        List<CustomStream> streams= streamService.getAllStream();
-        Long streamToAdd= findStreamId(qualificationDetails.getStream_id(),streams);
-        qualificationDetails.setStream_id(streamToAdd);
+
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         entityManager.persist(qualificationDetails);
@@ -216,9 +240,12 @@ public class QualificationDetailsService {
             customCustomer.getQualificationDetailsList().forEach(detail -> {
                 if (detail.getQualificationDocument() != null) {
                     Document customerDocument=detail.getQualificationDocument();
-                    customerDocument.setQualificationDetails(null);
-                    customerDocument.setIsArchived(true);
-                    entityManager.merge(customerDocument);
+                    if(customerDocument.getQualificationDetails().getQualification_id().equals(detail.getQualification_id()))
+                    {
+                        customerDocument.setQualificationDetails(null);
+                        customerDocument.setIsArchived(true);
+                        entityManager.merge(customerDocument);
+                    }
                 }
             });
         }
@@ -226,10 +253,13 @@ public class QualificationDetailsService {
         {
             serviceProviderEntity.getQualificationDetailsList().forEach(detail -> {
                 if (detail.getServiceProviderDocument() != null) {
-                    ServiceProviderDocument serviceProviderDocument = detail.getServiceProviderDocument();
-                    serviceProviderDocument.setQualificationDetails(null); // Detach reference
-                    serviceProviderDocument.setIsArchived(true);           // Update field
-                    entityManager.merge(serviceProviderDocument);          // Merge immediately
+                    ServiceProviderDocument serviceProviderDocument=detail.getServiceProviderDocument();
+                    if(serviceProviderDocument.getQualificationDetails().getQualification_id().equals(detail.getQualification_id()))
+                    {
+                        serviceProviderDocument.setQualificationDetails(null);
+                        serviceProviderDocument.setIsArchived(true);
+                        entityManager.merge(serviceProviderDocument);
+                    }
                 }
             });
         }
@@ -249,6 +279,7 @@ public class QualificationDetailsService {
         String marksObtained=null;
         String totalMarks=null;
         Integer qualificationIdToUpdate=null;
+        Long streamId=null;
         List<QualificationDetails> qualificationDetails;
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
@@ -285,25 +316,13 @@ public class QualificationDetailsService {
         query.setParameter("qualification_id", qualification.getQualification_id());
 
         // Execute the query and check if qualification already exists
-        if("CUSTOMER".equalsIgnoreCase(roleName))
-        {
+        if("CUSTOMER".equalsIgnoreCase(roleName)) {
             QualificationDetails existingQualificationDetails = query.getResultStream().findFirst().orElse(null);
 
             if (existingQualificationDetails != null && !qualificationId.equals(existingQualificationDetails.getQualification_detail_id())) {
                 throw new EntityAlreadyExistsException("Qualification details with id " + qualification.getQualification_id() + " already exists");
             }
-            if (Objects.nonNull(qualification.getSubject_ids())) {
-                List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids());
-                qualificationDetailsToUpdate.setSubject_ids(subjects);
-            }
         }
-        else if("SERVICE_PROVIDER".equalsIgnoreCase(roleName))
-        {
-            if (Objects.nonNull(qualification.getSubject_name())) {
-                qualificationDetailsToUpdate.setSubject_name(qualification.getSubject_name());
-            }
-        }
-
         if (Objects.nonNull(qualification.getQualification_id())) {
             List<Qualification> qualificationDetailsList = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualification.getQualification_id(), qualificationDetailsList);
@@ -318,6 +337,42 @@ public class QualificationDetailsService {
         }
         else {
             qualificationIdToUpdate=qualificationDetailsToUpdate.getQualification_id();
+        }
+
+        if(qualificationIdToUpdate.equals(1))
+        {
+            qualificationDetailsToUpdate.setStream_id(0L);
+        }
+        else {
+            if (Objects.nonNull(qualification.getStream_id())) {
+                List<CustomStream> streams = streamService.getStreamByQualificationId(qualificationIdToUpdate);
+                Long streamToAdd = findStreamId(qualification.getStream_id(), streams);
+                qualificationDetailsToUpdate.setStream_id(streamToAdd);
+                streamId = qualification.getStream_id();
+            } else {
+                streamId = qualificationDetailsToUpdate.getStream_id();
+            }
+        }
+
+        if("CUSTOMER".equalsIgnoreCase(roleName)) {
+            if (Objects.nonNull(qualification.getSubject_ids())) {
+                if(qualificationIdToUpdate.equals(1))
+                {
+                    List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),0L);
+                    qualificationDetailsToUpdate.setSubject_ids(subjects);
+                }
+                else {
+                    List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),streamId);
+                    qualificationDetailsToUpdate.setSubject_ids(subjects);
+
+                }
+            }
+        }
+        else if("SERVICE_PROVIDER".equalsIgnoreCase(roleName))
+        {
+            if (Objects.nonNull(qualification.getSubject_name())) {
+                qualificationDetailsToUpdate.setSubject_name(qualification.getSubject_name());
+            }
         }
 
         if(Objects.nonNull(qualification.getBoard_university_id())) {
@@ -481,12 +536,6 @@ public class QualificationDetailsService {
         {
             Double percentage= (Double.parseDouble(marksObtained)/Double.parseDouble(totalMarks))*100;
             qualificationDetailsToUpdate.setCumulative_percentage_value(percentage);
-        }
-
-        if (Objects.nonNull(qualification.getStream_id())) {
-            List<CustomStream> streams = streamService.getAllStream();
-            Long streamToAdd= findStreamId(qualification.getStream_id(),streams);
-            qualificationDetailsToUpdate.setStream_id(streamToAdd);
         }
 
         if (Objects.nonNull(qualification.getCumulative_percentage_value())) {
@@ -815,7 +864,41 @@ public class QualificationDetailsService {
                 return customStream.getStreamId();
             }
         }
-        throw new IllegalArgumentException("Stream with id "+ streamId+ " does not exist");
+        throw new IllegalArgumentException("Stream with id "+ streamId+ " does not exist for specified Qualification");
+    }
+    public List<Long> validateAndGetSubjectIds(List<Long> subjectIds, Long streamId) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        // Ensure there are no duplicate IDs
+        Set<Long> uniqueSubjectIds = new HashSet<>(subjectIds);
+        if (uniqueSubjectIds.size() != subjectIds.size()) {
+            throw new IllegalArgumentException("Duplicate subject IDs are not allowed.");
+        }
+
+        // Query to get valid subject IDs associated with the given stream
+        List<Long> validSubjectIds = entityManager.createQuery(
+                        "SELECT s.subjectId FROM CustomStream cs " +
+                                "JOIN cs.subjects s " +
+                                "WHERE cs.streamId = :streamId AND s.subjectId IN :subjectIds", Long.class)
+                .setParameter("streamId", streamId)
+                .setParameter("subjectIds", subjectIds)
+                .getResultList();
+
+        // Identify missing subject IDs
+        List<Long> missingSubjectIds = subjectIds.stream()
+                .filter(id -> !validSubjectIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!missingSubjectIds.isEmpty()) {
+            if(streamId.equals(0L))
+            {
+                throw new IllegalArgumentException("The following subject IDs do not exist for 10th/Matriculation qualification: " + missingSubjectIds);
+            }
+            throw new IllegalArgumentException("The following subject IDs do not exist for the specified stream: " + missingSubjectIds);
+        }
+
+        return validSubjectIds;
     }
 
     public List<Long> validateAndGetSubjectIds(List<Long> subjectIds) {

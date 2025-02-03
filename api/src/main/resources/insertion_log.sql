@@ -204,6 +204,7 @@ END IF;
 IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
     INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, updated_at, creator_role)
     VALUES
+        (0,'N','NA','If a qualification does not have any stream',NOW(),NULL,NULL),
         (1, 'N', 'SCIENCE', 'Description of Science', NOW(), NULL, NULL),
         (2, 'N', 'ARTS', 'Description of Arts', NOW(), NULL, NULL),
         (3, 'N', 'COMMERCE', 'Description of Commerce', NOW(), NULL, NULL),

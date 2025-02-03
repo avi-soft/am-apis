@@ -128,4 +128,19 @@ public class StreamController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping("/get-streams-by-qualification-id/{qualificationId}")
+    public ResponseEntity<?> getStreamsByQualification(@PathVariable Integer qualificationId) {
+        try {
+            List<CustomStream> applicationScopeList =streamService.getStreamByQualificationId(qualificationId);
+
+            if (applicationScopeList.isEmpty()) {
+                return ResponseService.generateSuccessResponse("LIST OF STREAMS IS EMPTY IN QUALIFICATION WITH ID "+ qualificationId,qualificationId, HttpStatus.OK);
+            }
+            return ResponseService.generateSuccessResponse("STREAMS FOUND IN QUALIFICATION WITH ID "+ qualificationId, applicationScopeList, HttpStatus.OK);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
