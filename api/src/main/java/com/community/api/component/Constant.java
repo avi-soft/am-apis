@@ -6,6 +6,10 @@ import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminPresentation.FieldOrder.order;
 
 public class Constant {
 
@@ -231,4 +235,5 @@ public class Constant {
     public static final String ACTION_ACTIVATE="activate";
     public static final String ACTION_SUSPEND="suspend";
     public static final String CUSTOMER_FILTER= "SELECT cust.customer_id FROM blc_customer cust ";
+
 }
