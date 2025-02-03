@@ -15,6 +15,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
 import com.community.api.entity.StateCode;
@@ -2511,9 +2512,10 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
             }
             if (qualificationType != null) {
-                qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
-                if (qualificationName == null)
+                if( qualificationService.getQualificationByQualificationId(qualificationType)==null)
                     return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+                qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
+
             }
             if (name != null && !name.isEmpty()) {
                 names = sharedUtilityService.separateName(name);
@@ -2533,6 +2535,14 @@ public class CustomerEndpoint {
            System.out.println(uniqueResultList.size());
 // Convert the Set back to a List
             List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
+            Map<Integer, Integer> Qualificationorder = new HashMap<>();
+            Qualificationorder.put(1, 1);
+            Qualificationorder.put(2, 2);
+            Qualificationorder.put(6, 3);
+            Qualificationorder.put(7, 4);
+            Qualificationorder.put(3, 5);
+            Qualificationorder.put(4, 6);
+            Qualificationorder.put(5, 7);
             for (BigInteger id : sharedUtilityService.getPaginatedList(uniqueResultList,page,limit)) {
                 Customer customer=null;
                 try {
@@ -2578,6 +2588,26 @@ public class CustomerEndpoint {
                         }
                         else
                             continue;
+                    }
+                        Integer age= sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
+                    if(age!=-1)
+                        customerBasicDetailsDto.setAge(age);
+                    List<QualificationDetails>qualifications=customCustomer.getQualificationDetailsList();
+                    int max=0;
+                    if(!qualifications.isEmpty()) {
+                        for (QualificationDetails qualificationDetails : qualifications) {
+                            System.out.println(qualificationDetails.getQualification_id());
+                            if (Qualificationorder.get(qualificationDetails.getQualification_id()) > max) {
+                                customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
+                                max = Qualificationorder.get(qualificationDetails.getQualification_id());
+                            }
+                        }
+                        if(qualificationType!=null&&max!=0&&!qualificationName.equals(customerBasicDetailsDto.getHighestQualification()))
+                        {
+                            continue;
+                        }
+                        if (max == 0)
+                            customerBasicDetailsDto.setHighestQualification(null);
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
