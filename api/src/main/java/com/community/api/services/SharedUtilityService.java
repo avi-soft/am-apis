@@ -170,57 +170,49 @@ public class SharedUtilityService {
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
         Map<String, Object> customerDetails = new HashMap<>();
         customerDetails.put("id", customer.getId());
-        customerDetails.put("dateCreated", customer.getAuditable().getDateCreated());
-        customerDetails.put("createdBy", customer.getAuditable().getCreatedBy());
-        customerDetails.put("dateUpdated", customer.getAuditable().getDateUpdated());
-        customerDetails.put("updatedBy", customer.getAuditable().getUpdatedBy());
+        customerDetails.put("date_created", customer.getAuditable().getDateCreated());
+        customerDetails.put("created_by", customer.getAuditable().getCreatedBy());
+        customerDetails.put("date_updated", customer.getAuditable().getDateUpdated());
+        customerDetails.put("updated_by", customer.getAuditable().getUpdatedBy());
         customerDetails.put("username", customer.getUsername());
         customerDetails.put("password", customer.getPassword());
-        customerDetails.put("emailAddress", customer.getEmailAddress());
-        customerDetails.put("firstName", customer.getFirstName());
-        customerDetails.put("lastName", customer.getLastName());
-        customerDetails.put("fullName", customer.getFirstName() + " " + customer.getLastName());
-        customerDetails.put("externalId", customer.getExternalId());
-        customerDetails.put("challengeQuestion", customer.getChallengeQuestion());
-        customerDetails.put("challengeAnswer", customer.getChallengeAnswer());
-        customerDetails.put("passwordChangeRequired", customer.isPasswordChangeRequired());
-        customerDetails.put("receiveEmail", customer.isReceiveEmail());
+        customerDetails.put("email_address", customer.getEmailAddress());
+        customerDetails.put("first_name", customer.getFirstName());
+        customerDetails.put("last_name", customer.getLastName());
+        customerDetails.put("full_name", customer.getFirstName() + " " + customer.getLastName());
+        customerDetails.put("external_id", customer.getExternalId());
+        customerDetails.put("challenge_question", customer.getChallengeQuestion());
+        customerDetails.put("challenge_answer", customer.getChallengeAnswer());
+        customerDetails.put("password_change_required", customer.isPasswordChangeRequired());
+        customerDetails.put("receive_email", customer.isReceiveEmail());
         customerDetails.put("registered", customer.isRegistered());
-        customerDetails.put("deactivated", customer.isDeactivated());
-        customerDetails.put("customerPayments", customer.getCustomerPayments());
-        customerDetails.put("taxExemptionCode", customer.getTaxExemptionCode());
-        customerDetails.put("unencodedPassword", customer.getUnencodedPassword());
-        customerDetails.put("unencodedChallengeAnswer", customer.getUnencodedChallengeAnswer());
-        customerDetails.put("anonymous", customer.isAnonymous());
-        customerDetails.put("cookied", customer.isCookied());
-        customerDetails.put("loggedIn", customer.isLoggedIn());
-        customerDetails.put("transientProperties", customer.getTransientProperties());
+
 
         CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
         Order cart = orderService.findCartForCustomer(customer);
         if (cart != null)
-            customerDetails.put("cartId", cart.getId());
+            customerDetails.put("cart_id", cart.getId());
         else
-            customerDetails.put("cartId", null);
+            customerDetails.put("cart_id", null);
         if(role.equals(Constant.roleServiceProvider)) {
             if (customCustomer.getHidePhoneNumber().equals(false)) {
-                customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+                customerDetails.put("mobile_number", customCustomer.getMobileNumber());
             }
         }
         else
         {
-            customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+            customerDetails.put("mobile_number", customCustomer.getMobileNumber());
         }
-        customerDetails.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
-        customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
-        customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
+        customerDetails.put("hide_mobile_number", customCustomer.getHidePhoneNumber());
+        customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
+        customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
         // List<ServiceProviderEntity>refSp=new ArrayList<>();
         // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
         // {
         //     refSp.add(customerReferrer.getServiceProvider());
         // }
         // customerDetails.put("referres",refSp);
-        customerDetails.put("countryCode", customCustomer.getCountryCode());
+        customerDetails.put("country_code", customCustomer.getCountryCode());
         List<ReferrerDTO>ref=new ArrayList<>();
         ReferrerDTO primaryRef=new ReferrerDTO();
         for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
@@ -237,18 +229,18 @@ public class SharedUtilityService {
         customerDetails.put("primary_referrer",primaryRef);
         customerDetails.put("referrers",ref);
         customerDetails.put("otp", customCustomer.getOtp());
-        customerDetails.put("fathersName", customCustomer.getFathersName());
-        customerDetails.put("mothersName", customCustomer.getMothersName());
-        customerDetails.put("panNumber", customCustomer.getPanNumber());
+        customerDetails.put("fathers_name", customCustomer.getFathersName());
+        customerDetails.put("mothers_name", customCustomer.getMothersName());
+        customerDetails.put("pan_number", customCustomer.getPanNumber());
         customerDetails.put("nationality", customCustomer.getNationality());
         customerDetails.put("dob", customCustomer.getDob());
         customerDetails.put("gender", customCustomer.getGender());
-        customerDetails.put("adharNumber", customCustomer.getAdharNumber());
+        customerDetails.put("adhar_number", customCustomer.getAdharNumber());
         customerDetails.put("category", customCustomer.getCategory());
-        customerDetails.put("subcategory", customCustomer.getSubcategory());
+        customerDetails.put("sub_category", customCustomer.getSubcategory());
         customerDetails.put("domicile", customCustomer.getDomicile());
-        customerDetails.put("domicileState", customCustomer.getDomicileState());
-        customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
+        customerDetails.put("domicile_state", customCustomer.getDomicileState());
+        customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
         customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
 
         if(customCustomer.getHeightCms() != null) {
@@ -315,46 +307,46 @@ public class SharedUtilityService {
         customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
         customerDetails.put("work_experience", customCustomer.getWorkExperience());
         customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
-        customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
-        customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
-        customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
-        customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
-        customerDetails.put("isMinority",customCustomer.getIsMinority());
-        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
-        customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
-        customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+        customerDetails.put("is_other_or_stateCategory", customCustomer.getIsOtherOrStateCategory());
+        customerDetails.put("other_or_state_category",customCustomer.getOtherOrStateCategory());
+        customerDetails.put("other_category_date_of_issue",customCustomer.getOtherCategoryDateOfIssue());
+        customerDetails.put("other_category_valid_upto",customCustomer.getOtherCategoryValidUpto());
+        customerDetails.put("is_minority",customCustomer.getIsMinority());
+        customerDetails.put("is_sports_certificate",customCustomer.getIsSportsCertificate());
+        customerDetails.put("domicile_issueDate",customCustomer.getDomicileIssueDate());
+        customerDetails.put("domicile_valid_upto",customCustomer.getDomicileValidUpto());
         customerDetails.put("archived",customCustomer.getArchived());
         customerDetails.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
         customerDetails.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
-        customerDetails.put("profileCompleted",customCustomer.getComplete());
+        customerDetails.put("profile_completed",customCustomer.getComplete());
 
         Map<String, String> currentAddress = new HashMap<>();
         Map<String, String> permanentAddress = new HashMap<>();
         for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
             if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
-                currentAddress.put("addressName",customerAddress.getAddressName());
+                currentAddress.put("address_name",customerAddress.getAddressName());
                 currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 currentAddress.put("city", customerAddress.getAddress().getCity());
                 currentAddress.put("district", customerAddress.getAddress().getCounty());
                 currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                currentAddress.put("address_line", customerAddress.getAddress().getAddressLine1());
                 currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
-                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                currentAddress.put("district_id", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
             if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
-                currentAddress.put("addressName",customerAddress.getAddressName());
+                currentAddress.put("address_name",customerAddress.getAddressName());
                 permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
                 permanentAddress.put("city", customerAddress.getAddress().getCity());
                 permanentAddress.put("district", customerAddress.getAddress().getCounty());
                 permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                permanentAddress.put("address_line", customerAddress.getAddress().getAddressLine1());
                 permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
-                permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                permanentAddress.put("district_id", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
             }
 
         }
-        customerDetails.put("currentAddress", currentAddress);
-        customerDetails.put("permanentAddress", permanentAddress);
+        customerDetails.put("current_address", currentAddress);
+        customerDetails.put("permanent_address", permanentAddress);
 
         /*customerDetails.put("current_district_id",
                 districtService.findDistrictByName(currentAddress.get("district")) != null
@@ -402,7 +394,7 @@ public class SharedUtilityService {
 
         List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForCustomer(qualificationDetails);
-        customerDetails.put("qualificationDetails", qualificationsWithNames);
+        customerDetails.put("qualification_details", qualificationsWithNames);
 
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
@@ -411,21 +403,21 @@ public class SharedUtilityService {
             {
                 if (document.getFilePath() != null && document.getDocumentType() != null) {
                     Map<String, Object> documentDetails = new HashMap<>();
-                    documentDetails.put("documentId", document.getDocumentId());
+                    documentDetails.put("document_id", document.getDocumentId());
                     documentDetails.put("name", document.getName());
-                    documentDetails.put("filePath", document.getFilePath());
+                    documentDetails.put("file_path", document.getFilePath());
                     if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
                     {
                         documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
                     }
                     if(document.getDocumentValidity()!=null)
                     {
-                        documentDetails.put("documentValidity",document.getDocumentValidity());
+                        documentDetails.put("document_validity",document.getDocumentValidity());
                     }
                     String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                    documentDetails.put("fileUrl", fileUrl);
+                    documentDetails.put("file_url", fileUrl);
 
-                    documentDetails.put("documentType", document.getDocumentType());
+                    documentDetails.put("document_type", document.getDocumentType());
                     filteredDocuments.add(documentDetails);
                 }
             }
