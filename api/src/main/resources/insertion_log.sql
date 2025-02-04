@@ -204,33 +204,339 @@ END IF;
 IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
     INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, updated_at, creator_role)
     VALUES
-        (0,'N','NA','If a qualification does not have any stream',NOW(),NULL,NULL),
-        (1, 'N', 'SCIENCE', 'Description of Science', NOW(), NULL, NULL),
-        (2, 'N', 'ARTS', 'Description of Arts', NOW(), NULL, NULL),
-        (3, 'N', 'COMMERCE', 'Description of Commerce', NOW(), NULL, NULL),
-        (4, 'N', 'ENGINEERING', 'Description of Engineering', NOW(), NULL, NULL),
-        (5, 'N', 'MEDICINE', 'Description of Medicine', NOW(), NULL, NULL),
-        (6, 'N', 'HUMANITIES', 'Description of Humanities', NOW(), NULL, NULL),
-        (7, 'N', 'SOCIAL SCIENCES', 'Description of Social Sciences', NOW(), NULL, NULL),
-        (8, 'N', 'TECHNOLOGY', 'Description of Technology', NOW(), NULL, NULL),
-        (9, 'N', 'MATHEMATICS', 'Description of Mathematics', NOW(), NULL, NULL),
-        (10, 'N', 'DESIGN', 'Description of Design', NOW(), NULL, NULL);
+        (0, 'N', 'NA', 'If a qualification does not have any stream', NOW(), NULL, NULL),
+
+        -- 12th Streams
+        (1, 'N', 'SCIENCE', 'Science Stream for Higher Secondary Education', NOW(), NULL, NULL),
+        (2, 'N', 'ARTS', 'Arts Stream for Higher Secondary Education', NOW(), NULL, NULL),
+        (3, 'N', 'COMMERCE', 'Commerce Stream for Higher Secondary Education', NOW(), NULL, NULL),
+        (4, 'N', 'ENGINEERING', 'Engineering Stream for Higher Secondary Education', NOW(), NULL, NULL),
+
+        -- Streams for Bachelor's Degrees
+        (5, 'N', 'English Literature', 'Bachelor of Arts in English Literature', NOW(), NULL, NULL),
+        (6, 'N', 'History', 'Bachelor of Arts in History', NOW(), NULL, NULL),
+        (7, 'N', 'Political Science', 'Bachelor of Arts in Political Science', NOW(), NULL, NULL),
+        (8, 'N', 'Sociology', 'Bachelor of Arts in Sociology', NOW(), NULL, NULL),
+        (9, 'N', 'Psychology', 'Bachelor of Arts in Psychology', NOW(), NULL, NULL),
+        (10, 'N', 'Physics', 'Bachelor of Science in Physics', NOW(), NULL, NULL),
+        (11, 'N', 'Chemistry', 'Bachelor of Science in Chemistry', NOW(), NULL, NULL),
+        (12, 'N', 'Biology', 'Bachelor of Science in Biology', NOW(), NULL, NULL),
+        (13, 'N', 'Mathematics', 'Bachelor of Science in Mathematics', NOW(), NULL, NULL),
+        (14, 'N', 'Computer Science', 'Bachelor of Science in Computer Science', NOW(), NULL, NULL),
+        (15, 'N', 'Biotechnology', 'Bachelor of Science in Biotechnology', NOW(), NULL, NULL),
+        (16, 'N', 'Accounting', 'Bachelor of Commerce in Accounting', NOW(), NULL, NULL),
+        (17, 'N', 'Finance', 'Bachelor of Commerce in Finance', NOW(), NULL, NULL),
+        (18, 'N', 'Marketing', 'Bachelor of Commerce in Marketing', NOW(), NULL, NULL),
+        (19, 'N', 'Mechanical Engineering', 'Bachelor of Technology in Mechanical Engineering', NOW(), NULL, NULL),
+        (20, 'N', 'Civil Engineering', 'Bachelor of Technology in Civil Engineering', NOW(), NULL, NULL),
+        (21, 'N', 'Electronics Engineering', 'Bachelor of Technology in Electronics Engineering', NOW(), NULL, NULL),
+        (22, 'N', 'Aerospace Engineering', 'Bachelor of Engineering in Aerospace Engineering', NOW(), NULL, NULL),
+        (23, 'N', 'Business Administration', 'Bachelor of Business Administration', NOW(), NULL, NULL),
+        (24, 'N', 'Computer Applications', 'Bachelor of Computer Applications', NOW(), NULL, NULL),
+        (25, 'N', 'Pharmaceutical Sciences', 'Bachelor of Pharmacy in Pharmaceutical Sciences', NOW(), NULL, NULL),
+        (26, 'N', 'Architecture', 'Bachelor of Architecture in Architectural Design', NOW(), NULL, NULL),
+        (27, 'N', 'Urban Planning', 'Bachelor of Planning in Urban Planning', NOW(), NULL, NULL),
+        (28, 'N', 'Legal Studies', 'Bachelor of Laws in Legal Studies', NOW(), NULL, NULL),
+        (29, 'N', 'Nursing', 'Bachelor of Science in Nursing', NOW(), NULL, NULL),
+        (30, 'N', 'Hotel Management', 'Bachelor of Hotel Management in Hospitality and Tourism', NOW(), NULL, NULL),
+        (31, 'N', 'Medicine and Surgery', 'Bachelor of Medicine, Bachelor of Surgery', NOW(), NULL, NULL),
+        (32, 'N', 'Dentistry', 'Bachelor of Dental Surgery', NOW(), NULL, NULL),
+        (33, 'N', 'Ayurvedic Medicine and Surgery', 'Bachelor of Ayurvedic Medicine and Surgery', NOW(), NULL, NULL),
+        (34, 'N', 'Homeopathic Medicine and Surgery', 'Bachelor of Homeopathic Medicine and Surgery', NOW(), NULL, NULL),
+        (35, 'N', 'Physiotherapy', 'Bachelor of Physiotherapy', NOW(), NULL, NULL),
+        (36, 'N', 'Medical Laboratory Technology', 'Bachelor of Medical Laboratory Technology', NOW(), NULL, NULL),
+        (37, 'N', 'Hospitality and Catering Technology', 'Bachelor of Hotel Management and Catering Technology', NOW(), NULL, NULL),
+        (38, 'N', 'Tourism and Travel Management', 'Bachelor of Tourism and Travel Management', NOW(), NULL, NULL),
+        (39, 'N', 'Vocational Studies', 'Bachelor of Vocation', NOW(), NULL, NULL),
+        (40, 'N', 'Physical Education', 'Bachelor of Physical Education', NOW(), NULL, NULL),
+        (41, 'N', 'Education', 'Bachelor of Education', NOW(), NULL, NULL),
+        (42, 'N', 'Library Science', 'Bachelor of Library Science', NOW(), NULL, NULL),
+
+        -- Streams for Master's Degrees
+        (43, 'N', 'English Literature', 'Master of Arts in English Literature', NOW(), NULL, NULL),
+        (44, 'N', 'History', 'Master of Arts in History', NOW(), NULL, NULL),
+        (45, 'N', 'Political Science', 'Master of Arts in Political Science', NOW(), NULL, NULL),
+        (46, 'N', 'Sociology', 'Master of Arts in Sociology', NOW(), NULL, NULL),
+        (47, 'N', 'Psychology', 'Master of Arts in Psychology', NOW(), NULL, NULL),
+        (48, 'N', 'Physics', 'Master of Science in Physics', NOW(), NULL, NULL),
+        (49, 'N', 'Chemistry', 'Master of Science in Chemistry', NOW(), NULL, NULL),
+        (50, 'N', 'Biology', 'Master of Science in Biology', NOW(), NULL, NULL),
+        (51, 'N', 'Mathematics', 'Master of Science in Mathematics', NOW(), NULL, NULL),
+        (52, 'N', 'Computer Science', 'Master of Science in Computer Science', NOW(), NULL, NULL),
+        (53, 'N', 'Advanced Accounting', 'Master of Commerce in Advanced Accounting', NOW(), NULL, NULL),
+        (54, 'N', 'Advanced Computer Science', 'Master of Technology in Advanced Computer Science', NOW(), NULL, NULL),
+        (55, 'N', 'Business Management', 'Master of Business Administration in Business Management', NOW(), NULL, NULL),
+        (56, 'N', 'Advanced Legal Studies', 'Master of Laws in Advanced Legal Studies', NOW(), NULL, NULL),
+        (57, 'N', 'Education', 'Master of Education in Educational Research', NOW(), NULL, NULL),
+        (58, 'N', 'Library Science', 'Master of Library Science in Information and Library Management', NOW(), NULL, NULL),
+        (59, 'N', 'Electronics Engineering', 'Master of Engineering in Advanced Electronics and Communication Systems', NOW(), NULL, NULL),
+        (60, 'N', 'Mechanical Engineering', 'Master of Engineering in Mechanical Design and Automation', NOW(), NULL, NULL),
+        (61, 'N', 'Civil Engineering', 'Master of Engineering in Structural and Environmental Engineering', NOW(), NULL, NULL),
+        (62, 'N', 'General Medicine', 'Doctor of Medicine in General Medicine and Patient Care', NOW(), NULL, NULL),
+        (63, 'N', 'Pediatrics', 'Doctor of Medicine in Pediatric and Neonatal Care', NOW(), NULL, NULL),
+        (64, 'N', 'Cardiology', 'Doctor of Medicine in Cardiology and Cardiovascular Treatments', NOW(), NULL, NULL),
+        (65, 'N', 'Neurology', 'Doctor of Medicine in Neurology and Brain Disorders', NOW(), NULL, NULL),
+        (66, 'N', 'General Surgery', 'Master of Surgery in General and Minimally Invasive Surgical Techniques', NOW(), NULL, NULL),
+        (67, 'N', 'Orthopedics', 'Master of Surgery in Orthopedic and Musculoskeletal Surgeries', NOW(), NULL, NULL),
+        (68, 'N', 'Ophthalmology', 'Master of Surgery in Ophthalmic Surgery and Vision Sciences', NOW(), NULL, NULL),
+        (69, 'N', 'Pharmaceutical Chemistry', 'Master of Pharmacy in Pharmaceutical Chemistry and Drug Formulation', NOW(), NULL, NULL),
+        (70, 'N', 'Pharmacognosy', 'Master of Pharmacy in Herbal Medicines and Natural Drug Research', NOW(), NULL, NULL),
+        (71, 'N', 'Community Health Nursing', 'Master of Science in Nursing specializing in Community Health and Preventive Care', NOW(), NULL, NULL),
+        (72, 'N', 'Psychiatric Nursing', 'Master of Science in Nursing specializing in Mental Health and Psychiatric Care', NOW(), NULL, NULL),
+        (73, 'N', 'Agronomy', 'Master of Science in Agriculture with a specialization in Agronomy and Crop Production', NOW(), NULL, NULL),
+        (74, 'N', 'Horticulture', 'Master of Science in Agriculture focusing on Advanced Horticulture and Floriculture', NOW(), NULL, NULL),
+        (75, 'N', 'Soil Science', 'Master of Science in Agriculture specializing in Soil Science and Land Management', NOW(), NULL, NULL),
+        (76, 'N', 'Climate Change Studies', 'Master of Science in Environmental Science focusing on Climate Change and Sustainable Development', NOW(), NULL, NULL),
+        (77, 'N', 'Pollution Control', 'Master of Science in Environmental Science with specialization in Industrial and Environmental Pollution Control', NOW(), NULL, NULL),
+        (78, 'N', 'Hospitality Management', 'Master of Hotel Management specializing in Luxury Hospitality and Tourism Operations', NOW(), NULL, NULL),
+        (79, 'N', 'Child Welfare', 'Master of Social Work in Child Welfare and Protection Services', NOW(), NULL, NULL),
+        (80, 'N', 'Community Development', 'Master of Social Work focusing on Community Development and Social Reforms', NOW(), NULL, NULL),
+        (81, 'N', 'Textile and Apparel Design', 'Master of Design in Textile and Apparel Design with emphasis on Sustainable Fashion', NOW(), NULL, NULL),
+        (82, 'N', 'Luxury Fashion Branding', 'Master of Design in Fashion focusing on Luxury Brand Management and Marketing', NOW(), NULL, NULL),
+        (83, 'N', 'Broadcast Journalism', 'Master of Journalism and Mass Communication specializing in Digital and Broadcast Journalism', NOW(), NULL, NULL),
+        (84, 'N', 'Public Relations & Corporate Communication', 'Master of Journalism and Mass Communication with a focus on Public Relations and Corporate Branding', NOW(), NULL, NULL),
+
+        --Streams for Diplomas
+        (85, 'N', 'Science', 'Diploma in Science and Technology', NOW(), NULL, NULL),
+        (86, 'N', 'Engineering & Technology', 'Diploma in Engineering and Applied Technology', NOW(), NULL, NULL),
+        (87, 'N', 'Medical Science & Healthcare', 'Diploma in Medical Science and Healthcare Management', NOW(), NULL, NULL),
+        (88, 'N', 'Business & Management', 'Diploma in Business Administration and Management', NOW(), NULL, NULL),
+        (89, 'N', 'Art, Design & Creative Fields', 'Diploma in Fine Arts and Creative Design', NOW(), NULL, NULL),
+        (90, 'N', 'IT & Computer Science', 'Diploma in Information Technology and Computer Science', NOW(), NULL, NULL),
+        (91, 'N', 'Law & Legal Studies', 'Diploma in Law and Legal Procedures', NOW(), NULL, NULL),
+        (92, 'N', 'Hospitality, Tourism & Travel', 'Diploma in Hospitality, Tourism, and Travel Management', NOW(), NULL, NULL),
+        (93, 'N', 'Fashion & Textile', 'Diploma in Fashion and Textile Designing', NOW(), NULL, NULL),
+        (94, 'N', 'Agriculture & Horticulture', 'Diploma in Agriculture and Horticulture Practices', NOW(), NULL, NULL),
+        (95, 'N', 'Education & Training', 'Diploma in Education and Teacher Training', NOW(), NULL, NULL),
+        (96, 'N', 'Social Work & Community Development', 'Diploma in Social Work and Community Development', NOW(), NULL, NULL),
+        (97, 'N', 'Finance & Accounting', 'Diploma in Finance and Accounting Management', NOW(), NULL, NULL),
+        (98, 'N', 'Environmental Science', 'Diploma in Environmental Science and Sustainable Practices', NOW(), NULL, NULL),
+        (99, 'N', 'Media, Communication & Journalism', 'Diploma in Media, Communication, and Journalism', NOW(), NULL, NULL),
+        (100, 'N', 'Construction & Architecture', 'Diploma in Construction and Architectural Design', NOW(), NULL, NULL),
+        (101, 'N', 'Automobile & Mechanical Engineering', 'Diploma in Automobile and Mechanical Engineering', NOW(), NULL, NULL),
+        (102, 'N', 'Media & Entertainment', 'Diploma in Media Production and Entertainment Management', NOW(), NULL, NULL),
+        (103, 'N', 'Vocational & Specialized Diplomas', 'Diploma in Vocational and Specialized Trades', NOW(), NULL, NULL),
+
+        --Streams for ITI
+        (104, 'N', 'Electrician', 'ITI in Electrician Training and Electrical Maintenance', NOW(), NULL, NULL),
+        (105, 'N', 'Fitter', 'ITI in Fitting and Mechanical Assembly', NOW(), NULL, NULL),
+        (106, 'N', 'Welder', 'ITI in Welding and Fabrication Techniques', NOW(), NULL, NULL),
+        (107, 'N', 'Plumber', 'ITI in Plumbing and Sanitation Maintenance', NOW(), NULL, NULL),
+        (108, 'N', 'Carpenter', 'ITI in Carpentry and Woodworking', NOW(), NULL, NULL),
+        (109, 'N', 'Mechanic Diesel', 'ITI in Diesel Mechanic and Engine Repair', NOW(), NULL, NULL),
+        (110, 'N', 'Mechanic Motor Vehicle', 'ITI in Motor Vehicle Mechanics and Automobile Engineering', NOW(), NULL, NULL),
+        (111, 'N', 'Turner', 'ITI in Turner and Machining Operations', NOW(), NULL, NULL),
+        (112, 'N', 'Machinist', 'ITI in Machinist and CNC Operations', NOW(), NULL, NULL),
+        (113, 'N', 'Electronics Mechanic', 'ITI in Electronics Mechanic and Circuit Design', NOW(), NULL, NULL),
+        (114, 'N', 'Information Technology', 'ITI in IT and Software Development', NOW(), NULL, NULL),
+        (115, 'N', 'Draughtsman Civil', 'ITI in Civil Draughtsman and Architectural Drawing', NOW(), NULL, NULL),
+        (116, 'N', 'Draughtsman Mechanical', 'ITI in Mechanical Draughtsman and CAD Design', NOW(), NULL, NULL),
+        (117, 'N', 'Refrigeration and AC Mechanic', 'ITI in Refrigeration and Air Conditioning Technology', NOW(), NULL, NULL),
+        (118, 'N', 'Surveyor', 'ITI in Land Surveying and Mapping', NOW(), NULL, NULL),
+        (119, 'N', 'Painter', 'ITI in Painting and Surface Coating', NOW(), NULL, NULL),
+        (120, 'N', 'Tool and Die Maker', 'ITI in Tool and Die Making Techniques', NOW(), NULL, NULL),
+        (121, 'N', 'Stenography & Secretarial Practice', 'ITI in Stenography and Office Administration', NOW(), NULL, NULL),
+
+        --Streams for Doctorate
+        (122, 'N', 'PhD in English Literature', 'Doctorate in English Literature and Linguistics', NOW(), NULL, NULL),
+        (123, 'N', 'PhD in History', 'Doctorate in Historical Studies and Research', NOW(), NULL, NULL),
+        (124, 'N', 'PhD in Political Science', 'Doctorate in Political Science and Public Administration', NOW(), NULL, NULL),
+        (125, 'N', 'PhD in Sociology', 'Doctorate in Sociology and Social Research', NOW(), NULL, NULL),
+        (126, 'N', 'PhD in Psychology', 'Doctorate in Psychology and Behavioral Sciences', NOW(), NULL, NULL),
+        (127, 'N', 'PhD in Physics', 'Doctorate in Theoretical and Applied Physics', NOW(), NULL, NULL),
+        (128, 'N', 'PhD in Chemistry', 'Doctorate in Chemistry and Molecular Science', NOW(), NULL, NULL),
+        (129, 'N', 'PhD in Biology', 'Doctorate in Biological and Life Sciences', NOW(), NULL, NULL),
+        (130, 'N', 'PhD in Mathematics', 'Doctorate in Mathematics and Computational Research', NOW(), NULL, NULL),
+        (131, 'N', 'PhD in Computer Science', 'Doctorate in Computer Science and Artificial Intelligence', NOW(), NULL, NULL),
+        (132, 'N', 'PhD in Business Management', 'Doctorate in Business Administration and Strategic Management', NOW(), NULL, NULL),
+        (133, 'N', 'PhD in Law', 'Doctorate in Law and Legal Studies', NOW(), NULL, NULL),
+        (134, 'N', 'PhD in Education', 'Doctorate in Education and Pedagogical Studies', NOW(), NULL, NULL),
+        (135, 'N', 'PhD in Environmental Science', 'Doctorate in Environmental Science and Sustainability', NOW(), NULL, NULL),
+        (136, 'N', 'PhD in Media & Journalism', 'Doctorate in Media, Communication, and Journalism', NOW(), NULL, NULL),
+        (137, 'N', 'PhD in Civil Engineering', 'Doctorate in Civil Engineering and Infrastructure Development', NOW(), NULL, NULL),
+        (138, 'N', 'PhD in Mechanical Engineering', 'Doctorate in Mechanical Engineering and Robotics', NOW(), NULL, NULL),
+        (139, 'N', 'PhD in Electrical Engineering', 'Doctorate in Electrical and Electronics Engineering', NOW(), NULL, NULL),
+        (140, 'N', 'PhD in Medical Science', 'Doctorate in Medical Science and Clinical Research', NOW(), NULL, NULL),
+        (141, 'N', 'PhD in Agriculture', 'Doctorate in Agricultural Science and Rural Development', NOW(), NULL, NULL);
+
 END IF;
+
 
 -- Insert into custom_subject table if empty
 IF (SELECT COUNT(*) FROM custom_subject) = 0 THEN
     INSERT INTO custom_subject (subject_id, archived, subject_name, subject_description, created_at, updated_at, creator_role)
     VALUES
+    --Core subjects for 10th
         (1, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
-        (2, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
-        (3, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
-        (4, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
-        (5, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
-        (6, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
-        (7, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
-        (8, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
-        (9, 'N', 'Art', 'Description of Art', NOW(), NULL, NULL),
-        (10, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL);
+        (2, 'N', 'Science', 'Description of Science', NOW(), NULL, NULL),
+        (3, 'N', 'Social Science', 'Description of Social Science', NOW(), NULL, NULL),
+        (4, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+        (5, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
+
+        -- Science Breakdown for 10th
+        (6, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
+        (7, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
+        (8, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
+
+        -- Social Science Breakdown for 10th
+        (9, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
+        (10, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
+        (11, 'N', 'Civics', 'Description of Civics', NOW(), NULL, NULL),
+        (12, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+
+        -- Additional Languages for 10th
+        (13, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
+        (14, 'N', 'French', 'Description of French', NOW(), NULL, NULL),
+        (15, 'N', 'German', 'Description of German', NOW(), NULL, NULL),
+        (16, 'N', 'Punjabi', 'Description of Punjabi', NOW(), NULL, NULL),
+        (17, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
+
+        -- Additional Subjects for 10th
+        (18, 'N', 'Environmental Science', 'Description of Environmental Science', NOW(), NULL, NULL),
+        (19, 'N', 'Home Science', 'Description of Home Science', NOW(), NULL, NULL),
+
+        -- Vocational & Skill-Based Subjects for 10th
+        (20, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+        (21, 'N', 'Information Technology', 'Description of Information Technology', NOW(), NULL, NULL),
+        (22, 'N', 'Artificial Intelligence', 'Description of Artificial Intelligence', NOW(), NULL, NULL),
+        (23, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
+        (24, 'N', 'Financial Literacy', 'Description of Financial Literacy', NOW(), NULL, NULL),
+        (25, 'N', 'Agriculture', 'Description of Agriculture', NOW(), NULL, NULL),
+
+        -- Co-curricular Subjects for 10th
+        (26, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+        (27, 'N', 'Yoga', 'Description of Yoga', NOW(), NULL, NULL),
+        (28, 'N', 'Music', 'Description of Music', NOW(), NULL, NULL),
+        (29, 'N', 'Dance', 'Description of Dance', NOW(), NULL, NULL),
+        (30, 'N', 'Art & Design', 'Description of Art & Design', NOW(), NULL, NULL),
+        (31, 'N', 'Work Education', 'Description of Work Education', NOW(), NULL, NULL),
+        (32, 'N', 'Moral Science', 'Description of Moral Science', NOW(), NULL, NULL);
+
+          -- Science Stream Subjects (Starting from 33)
+        (33, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+        (34, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
+        (35, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
+        (36, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
+        (37, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
+        (38, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+        (39, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
+        (40, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+        (41, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
+        (42, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
+        (43, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
+        (44, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
+        (45, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
+        (46, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+        (47, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
+        (48, 'N', 'Biotechnology', 'Description of Biotechnology', NOW(), NULL, NULL),
+        (49, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL),
+
+        -- Arts/Humanities Stream Subjects (Starting from 50)
+        (50, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+        (51, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+        (52, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
+        (53, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
+        (54, 'N', 'Sociology', 'Description of Sociology', NOW(), NULL, NULL),
+        (55, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
+        (56, 'N', 'Political Science', 'Description of Political Science', NOW(), NULL, NULL),
+        (57, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
+        (58, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
+        (59, 'N', 'Geology', 'Description of Geology', NOW(), NULL, NULL),
+        (60, 'N', 'Anthropology', 'Description of Anthropology', NOW(), NULL, NULL),
+        (61, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+        (62, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+        (63, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
+        (64, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
+        (65, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
+        (66, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
+        (67, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
+        (68, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
+        (69, 'N', 'Philosophy', 'Description of Philosophy', NOW(), NULL, NULL),
+        (70, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
+        (71, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
+        (72, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
+        (73, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
+        (74, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL),
+        (75, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
+        (76, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
+        (77, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
+
+        -- Commerce Stream Subjects (Starting from 78)
+        (78, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+        (79, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL),
+        (80, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
+        (81, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
+        (82, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+        (83, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+        (84, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
+        (85, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+        (86, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
+        (87, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
+        (88, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
+        (89, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
+        (90, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
+        (91, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
+        (92, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
+        (93, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
+        (94, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
+        (95, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL);
+
+
+--        (1, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
+--          (2, 'N', 'Science', 'Description of Science', NOW(), NULL, NULL),
+--          (3, 'N', 'Social Science', 'Description of Social Science', NOW(), NULL, NULL),
+--          (4, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+--          (5, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
+--          (6, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
+--          (7, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
+--          (8, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
+--          (9, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
+--          (10, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
+--          (11, 'N', 'Civics', 'Description of Civics', NOW(), NULL, NULL),
+--          (12, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+--          (13, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
+--          (14, 'N', 'French', 'Description of French', NOW(), NULL, NULL),
+--          (15, 'N', 'German', 'Description of German', NOW(), NULL, NULL),
+--          (16, 'N', 'Punjabi', 'Description of Punjabi', NOW(), NULL, NULL),
+--          (17, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
+--          (18, 'N', 'Environmental Science', 'Description of Environmental Science', NOW(), NULL, NULL),
+--          (19, 'N', 'Home Science', 'Description of Home Science', NOW(), NULL, NULL),
+--          (20, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+--          (21, 'N', 'Information Technology', 'Description of Information Technology', NOW(), NULL, NULL),
+--          (22, 'N', 'Artificial Intelligence', 'Description of Artificial Intelligence', NOW(), NULL, NULL),
+--          (23, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
+--          (24, 'N', 'Financial Literacy', 'Description of Financial Literacy', NOW(), NULL, NULL),
+--          (25, 'N', 'Agriculture', 'Description of Agriculture', NOW(), NULL, NULL),
+--          (26, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+--          (27, 'N', 'Yoga', 'Description of Yoga', NOW(), NULL, NULL),
+--          (28, 'N', 'Music', 'Description of Music', NOW(), NULL, NULL),
+--          (29, 'N', 'Dance', 'Description of Dance', NOW(), NULL, NULL),
+--          (30, 'N', 'Art & Design', 'Description of Art & Design', NOW(), NULL, NULL),
+--          (31, 'N', 'Work Education', 'Description of Work Education', NOW(), NULL, NULL),
+--          (32, 'N', 'Moral Science', 'Description of Moral Science', NOW(), NULL, NULL),
+--          (33, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
+--          (34, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
+--          (35, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
+--          (36, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
+--          (37, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
+--          (38, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
+--          (39, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
+--          (40, 'N', 'Biotechnology', 'Description of Biotechnology', NOW(), NULL, NULL),
+--          (41, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL),
+--          (42, 'N', 'Sociology', 'Description of Sociology', NOW(), NULL, NULL),
+--          (43, 'N', 'Political Science', 'Description of Political Science', NOW(), NULL, NULL),
+--          (44, 'N', 'Geology', 'Description of Geology', NOW(), NULL, NULL),
+--          (45, 'N', 'Anthropology', 'Description of Anthropology', NOW(), NULL, NULL),
+--          (46, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
+--          (47, 'N', 'Philosophy', 'Description of Philosophy', NOW(), NULL, NULL),
+--          (48, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
+--          (49, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
+--          (50, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
+--          (51, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
+--          (52, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL),
+--          (53, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL);
+
+
 END IF;
 
 -- Insert into custom_role_table if empty
@@ -1103,8 +1409,186 @@ IF NOT EXISTS (SELECT 1 FROM qualification) THEN
         (4, 'MASTERS', 'Completed postgraduate degree program', FALSE, TRUE),
         (5, 'DOCTORATE', 'Completed doctoral degree program', FALSE, TRUE),
         (6, 'DIPLOMA', 'Completed a diploma program', FALSE, TRUE),
-        (7, 'ITI', 'Completed an ITI (Industrial Training Institute) program', FALSE, TRUE);
+        (7, 'ITI', 'Completed an ITI (Industrial Training Institute) program', FALSE, TRUE),
+
+-- Bachelors Degrees
+        (8, 'B.A.', 'Bachelor of Arts', FALSE, TRUE),
+        (9, 'B.Sc.', 'Bachelor of Science', FALSE, TRUE),
+        (10, 'B.Com.', 'Bachelor of Commerce', FALSE, TRUE),
+        (11, 'B.Tech.', 'Bachelor of Technology', FALSE, TRUE),
+        (12, 'B.E.', 'Bachelor of Engineering', FALSE, TRUE),
+        (13, 'MBBS', 'Bachelor of Medicine, Bachelor of Surgery', FALSE, TRUE),
+        (14, 'BDS', 'Bachelor of Dental Surgery', FALSE, TRUE),
+        (15, 'BBA', 'Bachelor of Business Administration', FALSE, TRUE),
+        (16, 'BCA', 'Bachelor of Computer Applications', FALSE, TRUE),
+        (17, 'B.Pharm', 'Bachelor of Pharmacy', FALSE, TRUE),
+        (18, 'B.Arch', 'Bachelor of Architecture', FALSE, TRUE),
+        (19, 'B.Planning', 'Bachelor of Planning', FALSE, TRUE),
+        (20, 'LLB', 'Bachelor of Laws', FALSE, TRUE),
+        (21, 'B.A. (Honours)', 'Bachelor of Arts (Honours)', FALSE, TRUE),
+        (22, 'B.Sc. (Honours)', 'Bachelor of Science (Honours)', FALSE, TRUE),
+        (23, 'B.Com. (Honours)', 'Bachelor of Commerce (Honours)', FALSE, TRUE),
+        (24, 'BAMS', 'Bachelor of Ayurvedic Medicine and Surgery', FALSE, TRUE),
+        (25, 'B.Sc. (Nursing)', 'Bachelor of Science in Nursing', FALSE, TRUE),
+        (26, 'BPT', 'Bachelor of Physiotherapy', FALSE, TRUE),
+        (27, 'BHMS', 'Bachelor of Homeopathic Medicine and Surgery', FALSE, TRUE),
+        (28, 'BMLT', 'Bachelor of Medical Laboratory Technology', FALSE, TRUE),
+        (29, 'BHMCT', 'Bachelor of Hotel Management and Catering Technology', FALSE, TRUE),
+        (30, 'BTTM', 'Bachelor of Tourism and Travel Management', FALSE, TRUE),
+        (31, 'B.Voc', 'Bachelor of Vocation', FALSE, TRUE),
+        (32, 'B.P.Ed', 'Bachelor of Physical Education', FALSE, TRUE),
+        (33, 'B.Ed', 'Bachelor of Education', FALSE, TRUE),
+        (34, 'B.Li.Sc', 'Bachelor of Library Science', FALSE, TRUE),
+
+-- Masters Degrees
+        (35, 'M.A.', 'Master of Arts', FALSE, TRUE),
+        (36, 'M.Sc.', 'Master of Science', FALSE, TRUE),
+        (37, 'M.Com.', 'Master of Commerce', FALSE, TRUE),
+        (38, 'M.Tech.', 'Master of Technology', FALSE, TRUE),
+        (39, 'M.E.', 'Master of Engineering', FALSE, TRUE),
+        (40, 'MD', 'Doctor of Medicine', FALSE, TRUE),
+        (41, 'MS', 'Master of Surgery', FALSE, TRUE),
+        (42, 'MBA', 'Master of Business Administration', FALSE, TRUE),
+        (43, 'MCA', 'Master of Computer Applications', FALSE, TRUE),
+        (44, 'M.Pharm', 'Master of Pharmacy', FALSE, TRUE),
+        (45, 'M.Arch', 'Master of Architecture', FALSE, TRUE),
+        (46, 'M.Planning', 'Master of Planning', FALSE, TRUE),
+        (47, 'LLM', 'Master of Laws', FALSE, TRUE),
+        (48, 'M.Ed', 'Master of Education', FALSE, TRUE),
+        (49, 'M.Lib.Sc.', 'Master of Library Science', FALSE, TRUE),
+        (50, 'MDS', 'Master of Dental Surgery', FALSE, TRUE),
+        (51, 'MPT', 'Master of Physiotherapy', FALSE, TRUE),
+        (52, 'M.Sc. (Nursing)', 'Master of Science in Nursing', FALSE, TRUE),
+        (53, 'M.Sc. (Agriculture)', 'Master of Science in Agriculture', FALSE, TRUE),
+        (54, 'M.Sc. (Environmental Science)', 'Master of Science in Environmental Science', FALSE, TRUE),
+        (55, 'M.P.Ed', 'Master of Physical Education', FALSE, TRUE),
+        (56, 'MHMCT', 'Master of Hotel Management and Catering Technology', FALSE, TRUE),
+        (57, 'MSW', 'Master of Social Work', FALSE, TRUE),
+        (58, 'M.Des', 'Master of Design in Fashion', FALSE, TRUE),
+        (59, 'MJMC', 'Master of Journalism and Mass Communication', FALSE, TRUE);
 END IF;
+
+    -- Mapping for INTERMEDIATE/12th (qualification_id: 2)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 2, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (1, 2, 3, 4);  -- Science, Arts, Commerce, Engineering
+
+    -- Mapping for Bachelor's Degrees
+    -- B.A. (qualification_id: 8)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 8, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (5, 6, 7, 8, 9);  -- English Literature, History, Political Science, Sociology, Psychology
+
+    -- B.Sc. (qualification_id: 9)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 9, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (10, 11, 12, 13, 14, 15);  -- Physics, Chemistry, Biology, Mathematics, Computer Science, Biotechnology
+
+    -- B.Com. (qualification_id: 10)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 10, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (16, 17, 18);  -- Accounting, Finance, Marketing
+
+    -- B.Tech. (qualification_id: 11)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 11, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (19, 20, 21);  -- Mechanical, Civil, Electronics Engineering
+
+    -- B.E. (qualification_id: 12)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 12, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (19, 20, 21, 22);  -- Mechanical, Civil, Electronics, Aerospace Engineering
+
+    -- BBA (qualification_id: 15)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 15, stream_id
+    FROM custom_stream
+    WHERE stream_id = 23;  -- Business Administration
+
+    -- BCA (qualification_id: 16)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 16, stream_id
+    FROM custom_stream
+    WHERE stream_id = 24;  -- Computer Applications
+
+    -- B.Pharm (qualification_id: 17)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 17, stream_id
+    FROM custom_stream
+    WHERE stream_id = 25;  -- Pharmaceutical Sciences
+
+    -- B.Arch (qualification_id: 18)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 18, stream_id
+    FROM custom_stream
+    WHERE stream_id = 26;  -- Architecture
+
+    -- B.Planning (qualification_id: 19)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 19, stream_id
+    FROM custom_stream
+    WHERE stream_id = 27;  -- Urban Planning
+
+    -- LLB (qualification_id: 20)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 20, stream_id
+    FROM custom_stream
+    WHERE stream_id = 28;  -- Legal Studies
+
+    -- Mapping for Master's Degrees
+    -- M.A. (qualification_id: 35)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 35, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (43, 44, 45, 46, 47);  -- English Literature, History, Political Science, Sociology, Psychology
+
+    -- M.Sc. (qualification_id: 36)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 36, stream_id
+    FROM custom_stream
+    WHERE stream_id IN (48, 49, 50, 51, 52);  -- Physics, Chemistry, Biology, Mathematics, Computer Science
+
+    -- M.Com. (qualification_id: 37)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 37, stream_id
+    FROM custom_stream
+    WHERE stream_id = 53;  -- Advanced Accounting
+
+    -- M.Tech. (qualification_id: 38)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 38, stream_id
+    FROM custom_stream
+    WHERE stream_id = 54;  -- Advanced Computer Science
+
+    -- MBA (qualification_id: 42)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 42, stream_id
+    FROM custom_stream
+    WHERE stream_id = 55;  -- Business Management
+
+    -- Mapping for Diploma (qualification_id: 6)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 6, stream_id
+    FROM custom_stream
+    WHERE stream_id BETWEEN 85 AND 103;  -- All diploma streams
+
+    -- Mapping for ITI (qualification_id: 7)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 7, stream_id
+    FROM custom_stream
+    WHERE stream_id BETWEEN 104 AND 121;  -- All ITI streams
+
+    -- Mapping for Doctorate (qualification_id: 5)
+    INSERT INTO qualification_stream (qualification_id, stream_id)
+    SELECT 5, stream_id
+    FROM custom_stream
+    WHERE stream_id BETWEEN 122 AND 141;  -- All doctorate streams
 
 -- Insert into typing_text if empty
 IF NOT EXISTS (SELECT 1 FROM typing_text) THEN
