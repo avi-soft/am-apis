@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,6 +35,7 @@ public class Qualification
     @Column(name = "is_stream_required", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean is_stream_required;
 
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
             name = "qualification_stream",

@@ -169,7 +169,7 @@ IF (SELECT COUNT(*) FROM custom_reserve_category) = 0 THEN
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_product_rejection_status) = 0 THEN
-    INSERT INTO custom_product_rejection_status (rejection_status_id, rejection_status, rejection_status_descriptio)
+    INSERT INTO custom_product_rejection_status (rejection_status_id, rejection_status, rejection_status_description)
     VALUES
         (1, 'TO-BE-MODIFIED', 'Product needs modification to get approved.'),
         (2, 'DUPLICATE', 'There is already a product present with these details.'),
@@ -202,9 +202,9 @@ IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
 END IF;
 -- Insert into custom_stream table if empty
 IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
-    INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, updated_at, creator_role)
+    INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, created_by, creator_role)
     VALUES
-        (0, 'N', 'NA', 'If a qualification does not have any stream', NOW(), NULL, NULL),
+        (0, 'N', '10th Stream', 'Used map 10th subjects', NOW(), NULL, NULL),
 
         -- 12th Streams
         (1, 'N', 'SCIENCE', 'Science Stream for Higher Secondary Education', NOW(), NULL, NULL),
@@ -213,24 +213,28 @@ IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
         (4, 'N', 'ENGINEERING', 'Engineering Stream for Higher Secondary Education', NOW(), NULL, NULL),
 
         -- Streams for Bachelor's Degrees
-        (5, 'N', 'English Literature', 'Bachelor of Arts in English Literature', NOW(), NULL, NULL),
-        (6, 'N', 'History', 'Bachelor of Arts in History', NOW(), NULL, NULL),
-        (7, 'N', 'Political Science', 'Bachelor of Arts in Political Science', NOW(), NULL, NULL),
-        (8, 'N', 'Sociology', 'Bachelor of Arts in Sociology', NOW(), NULL, NULL),
-        (9, 'N', 'Psychology', 'Bachelor of Arts in Psychology', NOW(), NULL, NULL),
-        (10, 'N', 'Physics', 'Bachelor of Science in Physics', NOW(), NULL, NULL),
-        (11, 'N', 'Chemistry', 'Bachelor of Science in Chemistry', NOW(), NULL, NULL),
-        (12, 'N', 'Biology', 'Bachelor of Science in Biology', NOW(), NULL, NULL),
-        (13, 'N', 'Mathematics', 'Bachelor of Science in Mathematics', NOW(), NULL, NULL),
-        (14, 'N', 'Computer Science', 'Bachelor of Science in Computer Science', NOW(), NULL, NULL),
-        (15, 'N', 'Biotechnology', 'Bachelor of Science in Biotechnology', NOW(), NULL, NULL),
-        (16, 'N', 'Accounting', 'Bachelor of Commerce in Accounting', NOW(), NULL, NULL),
-        (17, 'N', 'Finance', 'Bachelor of Commerce in Finance', NOW(), NULL, NULL),
-        (18, 'N', 'Marketing', 'Bachelor of Commerce in Marketing', NOW(), NULL, NULL),
+        (5, 'N', 'English Literature', 'Bachelor of Arts or Bachelor of Arts(Honours) in English Literature ', NOW(), NULL, NULL),
+        (6, 'N', 'History', 'Bachelor of Arts  or Bachelor of Arts(Honours) in History', NOW(), NULL, NULL),
+        (7, 'N', 'Political Science', 'Bachelor of Arts or Bachelor of Arts(Honours) in Political Science', NOW(), NULL, NULL),
+        (8, 'N', 'Sociology', 'Bachelor of Arts or Bachelor of Arts(Honours) in Sociology', NOW(), NULL, NULL),
+        (9, 'N', 'Psychology', 'Bachelor of Arts or Bachelor of Arts(Honours) in Psychology', NOW(), NULL, NULL),
+
+        (10, 'N', 'Physics', 'Bachelor of Science or Bachelor of Science(Honours) in Physics', NOW(), NULL, NULL),
+        (11, 'N', 'Chemistry', 'Bachelor of Science or Bachelor of Science(Honours) in Chemistry', NOW(), NULL, NULL),
+        (12, 'N', 'Biology', 'Bachelor of Science or Bachelor of Science(Honours) in Biology', NOW(), NULL, NULL),
+        (13, 'N', 'Mathematics', 'Bachelor of Science or Bachelor of Science(Honours) in Mathematics', NOW(), NULL, NULL),
+        (14, 'N', 'Computer Science', 'Bachelor of Science or Bachelor of Science(Honours) in Computer Science', NOW(), NULL, NULL),
+        (15, 'N', 'Biotechnology', 'Bachelor of Science or Bachelor of Science(Honours) in Biotechnology', NOW(), NULL, NULL),
+
+        (16, 'N', 'Accounting', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in Accounting', NOW(), NULL, NULL),
+        (17, 'N', 'Finance', 'Bachelor of Commerce or Bachelor of Commerce(Honours) in Finance', NOW(), NULL, NULL),
+        (18, 'N', 'Marketing', 'Bachelor of Commerce or Bachelor of Commerce(Honours) in Marketing', NOW(), NULL, NULL),
+
         (19, 'N', 'Mechanical Engineering', 'Bachelor of Technology in Mechanical Engineering', NOW(), NULL, NULL),
         (20, 'N', 'Civil Engineering', 'Bachelor of Technology in Civil Engineering', NOW(), NULL, NULL),
         (21, 'N', 'Electronics Engineering', 'Bachelor of Technology in Electronics Engineering', NOW(), NULL, NULL),
         (22, 'N', 'Aerospace Engineering', 'Bachelor of Engineering in Aerospace Engineering', NOW(), NULL, NULL),
+
         (23, 'N', 'Business Administration', 'Bachelor of Business Administration', NOW(), NULL, NULL),
         (24, 'N', 'Computer Applications', 'Bachelor of Computer Applications', NOW(), NULL, NULL),
         (25, 'N', 'Pharmaceutical Sciences', 'Bachelor of Pharmacy in Pharmaceutical Sciences', NOW(), NULL, NULL),
@@ -357,184 +361,174 @@ IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
         (138, 'N', 'PhD in Mechanical Engineering', 'Doctorate in Mechanical Engineering and Robotics', NOW(), NULL, NULL),
         (139, 'N', 'PhD in Electrical Engineering', 'Doctorate in Electrical and Electronics Engineering', NOW(), NULL, NULL),
         (140, 'N', 'PhD in Medical Science', 'Doctorate in Medical Science and Clinical Research', NOW(), NULL, NULL),
-        (141, 'N', 'PhD in Agriculture', 'Doctorate in Agricultural Science and Rural Development', NOW(), NULL, NULL);
+        (141, 'N', 'PhD in Agriculture', 'Doctorate in Agricultural Science and Rural Development', NOW(), NULL, NULL),
+
+        --More streams related to Bachelors
+        --BA and BA(HONours)
+
+        (142, 'N', 'Economics', 'Bachelor of Arts or Bachelor of Arts(Honours) in Economics', NOW(), NULL, NULL),
+        (143, 'N', 'Philosophy', 'Bachelor of Arts or Bachelor of Arts(Honours) in Philosophy', NOW(), NULL, NULL),
+        (144, 'N', 'Geography', 'Bachelor of Arts or Bachelor of Arts(Honours) in Geography', NOW(), NULL, NULL),
+        (145, 'N', 'Journalism & Mass Communication', 'Bachelor of Arts or Bachelor of Arts(Honours) in Journalism & Mass Communication', NOW(), NULL, NULL),
+        (146, 'N', 'Public Administration', 'Bachelor of Arts or Bachelor of Arts(Honours) in Public Administration', NOW(), NULL, NULL),
+        (147, 'N', 'Fine Arts', 'Bachelor of Arts or Bachelor of Arts(Honours) in Fine Arts', NOW(), NULL, NULL),
+
+--BSC and BSC(Honours)
+        (148, 'N', 'Microbiology', 'Bachelor of Science or Bachelor of Science(Honours) in Microbiology ', NOW(), NULL, NULL),
+        (149, 'N', 'Environmental Science', 'Bachelor of Science or Bachelor of Science(Honours) in Environmental Science ', NOW(), NULL, NULL),
+        (150, 'N', 'Computer Science', 'Bachelor of Science or Bachelor of Science(Honours) in Computer Science ', NOW(), NULL, NULL),
+        (151, 'N', 'Agriculture', 'Bachelor of Science or Bachelor of Science(Honours) in Agriculture ', NOW(), NULL, NULL),
+        (152, 'N', 'Statistics', 'Bachelor of Science or Bachelor of Science(Honours) in Statistics ', NOW(), NULL, NULL),
+--BCOM and BCOM(HONS)
+        (153, 'N', 'Banking and Insurance', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in Banking and Insurance', NOW(), NULL, NULL),
+        (154, 'N', 'Taxation', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in Taxation', NOW(), NULL, NULL),
+        (155, 'N', 'International Business', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in International Business', NOW(), NULL, NULL),
+        (156, 'N', 'Business Analytics', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in Business Analytics', NOW(), NULL, NULL),
+        (157, 'N', 'Corporate Law', 'Bachelor of Commerce or Bachelor of Commerce(Honours)  in Corporate Law', NOW(), NULL, NULL),
+        --BTECh
+        (158, 'N', 'Computer Science Engineering', 'Bachelor of Technology in Computer Science', NOW(), NULL, NULL),
+        (159, 'N', 'Information Technology', 'Bachelor of Technology in Information Technology', NOW(), NULL, NULL),
+
+        -- Bachelor of Ayurvedic Medicine and Surgery (BAMS)
+        (160, 'N', 'Kayachikitsa', 'Bachelor of Ayurvedic Medicine and Surgery in General Medicine', NOW(), NULL, NULL),
+        (161, 'N', 'Shalya Tantra', 'Bachelor of Ayurvedic Medicine and Surgery in Surgery', NOW(), NULL, NULL),
+        (162, 'N', 'Shalakya Tantra', 'Bachelor of Ayurvedic Medicine and Surgery in ENT & Ophthalmology', NOW(), NULL, NULL),
+        (163, 'N', 'Prasuti Tantra & Stri Roga', 'Bachelor of Ayurvedic Medicine and Surgery in Gynecology & Obstetrics', NOW(), NULL, NULL),
+        (164, 'N', 'Kaumarbhritya', 'Bachelor of Ayurvedic Medicine and Surgery in Pediatrics', NOW(), NULL, NULL),
+        (165, 'N', 'Panchakarma', 'Bachelor of Ayurvedic Medicine and Surgery in Detoxification Therapies', NOW(), NULL, NULL),
+
+        -- Bachelor of Science in Nursing (B.Sc. Nursing)
+        (166, 'N', 'Medical-Surgical Nursing', 'Bachelor of Science in Nursing in Medical-Surgical Nursing', NOW(), NULL, NULL),
+        (167, 'N', 'Obstetrics & Gynecological Nursing', 'Bachelor of Science in Nursing in Obstetrics & Gynecological Nursing', NOW(), NULL, NULL),
+        (168, 'N', 'Pediatric Nursing', 'Bachelor of Science in Nursing in Pediatric Nursing', NOW(), NULL, NULL),
+        (169, 'N', 'Psychiatric Nursing', 'Bachelor of Science in Nursing in Psychiatric Nursing', NOW(), NULL, NULL),
+        (170, 'N', 'Community Health Nursing', 'Bachelor of Science in Nursing in Community Health Nursing', NOW(), NULL, NULL),
+        (171, 'N', 'Critical Care Nursing', 'Bachelor of Science in Nursing in Critical Care Nursing', NOW(), NULL, NULL),
+
+        -- Bachelor of Physiotherapy (BPT)
+        (172, 'N', 'Orthopedic Physiotherapy', 'Bachelor of Physiotherapy in Orthopedic Physiotherapy', NOW(), NULL, NULL),
+        (173, 'N', 'Neurological Physiotherapy', 'Bachelor of Physiotherapy in Neurological Physiotherapy', NOW(), NULL, NULL),
+        (174, 'N', 'Cardiopulmonary Physiotherapy', 'Bachelor of Physiotherapy in Cardiopulmonary Physiotherapy', NOW(), NULL, NULL),
+        (175, 'N', 'Sports Physiotherapy', 'Bachelor of Physiotherapy in Sports Physiotherapy', NOW(), NULL, NULL),
+        (176, 'N', 'Pediatric Physiotherapy', 'Bachelor of Physiotherapy in Pediatric Physiotherapy', NOW(), NULL, NULL),
+
+        -- Bachelor of Homeopathic Medicine and Surgery (BHMS)
+        (177, 'N', 'Homeopathic Pharmacy', 'Bachelor of Homeopathic Medicine and Surgery in Homeopathic Pharmacy', NOW(), NULL, NULL),
+        (178, 'N', 'Homeopathic Materia Medica', 'Bachelor of Homeopathic Medicine and Surgery in Homeopathic Materia Medica', NOW(), NULL, NULL),
+        (179, 'N', 'Pediatrics', 'Bachelor of Homeopathic Medicine and Surgery in Pediatrics', NOW(), NULL, NULL),
+        (180, 'N', 'Psychiatry', 'Bachelor of Homeopathic Medicine and Surgery in Psychiatry', NOW(), NULL, NULL),
+        (181, 'N', 'Dermatology', 'Bachelor of Homeopathic Medicine and Surgery in Dermatology', NOW(), NULL, NULL),
+        (182, 'N', 'Homeopathic Repertory', 'Bachelor of Homeopathic Medicine and Surgery in Homeopathic Repertory', NOW(), NULL, NULL),
+
+        -- Bachelor of Medical Laboratory Technology (BMLT)
+        (183, 'N', 'Clinical Chemistry', 'Bachelor of Medical Laboratory Technology in Clinical Chemistry', NOW(), NULL, NULL),
+        (184, 'N', 'Hematology', 'Bachelor of Medical Laboratory Technology in Hematology', NOW(), NULL, NULL),
+        (185, 'N', 'Microbiology', 'Bachelor of Medical Laboratory Technology in Microbiology', NOW(), NULL, NULL),
+        (186, 'N', 'Immunology', 'Bachelor of Medical Laboratory Technology in Immunology', NOW(), NULL, NULL),
+        (187, 'N', 'Blood Banking & Transfusion Technology', 'Bachelor of Medical Laboratory Technology in Blood Banking & Transfusion Technology', NOW(), NULL, NULL),
+
+        -- Bachelor of Hotel Management and Catering Technology (BHMCT)
+        (188, 'N', 'Hotel Operations', 'Bachelor of Hotel Management and Catering Technology in Hotel Operations', NOW(), NULL, NULL),
+        (189, 'N', 'Food & Beverage Management', 'Bachelor of Hotel Management and Catering Technology in Food & Beverage Management', NOW(), NULL, NULL),
+        (190, 'N', 'Hospitality & Tourism Management', 'Bachelor of Hotel Management and Catering Technology in Hospitality & Tourism Management', NOW(), NULL, NULL),
+        (191, 'N', 'Event Management', 'Bachelor of Hotel Management and Catering Technology in Event Management', NOW(), NULL, NULL),
+
+        -- Bachelor of Tourism and Travel Management (BTTM)
+        (192, 'N', 'Travel Agency Management', 'Bachelor of Tourism and Travel Management in Travel Agency Management', NOW(), NULL, NULL),
+        (193, 'N', 'Hospitality Management', 'Bachelor of Tourism and Travel Management in Hospitality Management', NOW(), NULL, NULL),
+        (194, 'N', 'Eco-Tourism', 'Bachelor of Tourism and Travel Management in Eco-Tourism', NOW(), NULL, NULL),
+        (195, 'N', 'Aviation & Airline Management', 'Bachelor of Tourism and Travel Management in Aviation & Airline Management', NOW(), NULL, NULL),
+
+        -- Bachelor of Vocation (B.Voc)
+        (196, 'N', 'Software Development', 'Bachelor of Vocation in Software Development', NOW(), NULL, NULL),
+        (197, 'N', 'Banking & Finance', 'Bachelor of Vocation in Banking & Finance', NOW(), NULL, NULL),
+        (198, 'N', 'Retail Management', 'Bachelor of Vocation in Retail Management', NOW(), NULL, NULL),
+        (199, 'N', 'Healthcare Technology', 'Bachelor of Vocation in Healthcare Technology', NOW(), NULL, NULL),
+        (200, 'N', 'Hospitality & Tourism', 'Bachelor of Vocation in Hospitality & Tourism', NOW(), NULL, NULL),
+        (201, 'N', 'Food Processing', 'Bachelor of Vocation in Food Processing', NOW(), NULL, NULL),
+
+        -- Bachelor of Physical Education (B.P.Ed)
+        (202, 'N', 'Sports Coaching', 'Bachelor of Physical Education in Sports Coaching', NOW(), NULL, NULL),
+        (203, 'N', 'Kinesiology', 'Bachelor of Physical Education in Kinesiology', NOW(), NULL, NULL),
+        (204, 'N', 'Exercise Physiology', 'Bachelor of Physical Education in Exercise Physiology', NOW(), NULL, NULL),
+        (205, 'N', 'Sports Psychology', 'Bachelor of Physical Education in Sports Psychology', NOW(), NULL, NULL),
+
+        -- Bachelor of Education (B.Ed)
+        (206, 'N', 'Special Education', 'Bachelor of Education in Special Education', NOW(), NULL, NULL),
+        (207, 'N', 'Early Childhood Education', 'Bachelor of Education in Early Childhood Education', NOW(), NULL, NULL),
+        (208, 'N', 'Science & Mathematics Education', 'Bachelor of Education in Science & Mathematics Education', NOW(), NULL, NULL),
+        (209, 'N', 'Social Science Education', 'Bachelor of Education in Social Science Education', NOW(), NULL, NULL),
+        (210, 'N', 'Physical Education', 'Bachelor of Education in Physical Education', NOW(), NULL, NULL),
+
+        -- Bachelor of Library Science (B.Li.Sc)
+        (211, 'N', 'Digital Libraries', 'Bachelor of Library Science in Digital Libraries', NOW(), NULL, NULL),
+        (212, 'N', 'Information Management', 'Bachelor of Library Science in Information Management', NOW(), NULL, NULL),
+        (213, 'N', 'Archival Studies', 'Bachelor of Library Science in Archival Studies', NOW(), NULL, NULL),
+        (214, 'N', 'Library Automation', 'Bachelor of Library Science in Library Automation', NOW(), NULL, NULL),
+        (215, 'N', 'Others', 'Others', NOW(), NULL, NULL),
+        (216, 'N', 'NA', 'NA', NOW(), NULL, NULL);
 
 END IF;
 
 
 -- Insert into custom_subject table if empty
 IF (SELECT COUNT(*) FROM custom_subject) = 0 THEN
-    INSERT INTO custom_subject (subject_id, archived, subject_name, subject_description, created_at, updated_at, creator_role)
+    INSERT INTO custom_subject (subject_id, archived, subject_name, subject_description, created_at, created_by, creator_role)
     VALUES
-    --Core subjects for 10th
         (1, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
-        (2, 'N', 'Science', 'Description of Science', NOW(), NULL, NULL),
-        (3, 'N', 'Social Science', 'Description of Social Science', NOW(), NULL, NULL),
-        (4, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
-        (5, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
-
-        -- Science Breakdown for 10th
-        (6, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
-        (7, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
-        (8, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
-
-        -- Social Science Breakdown for 10th
-        (9, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
-        (10, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
-        (11, 'N', 'Civics', 'Description of Civics', NOW(), NULL, NULL),
-        (12, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
-
-        -- Additional Languages for 10th
-        (13, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
-        (14, 'N', 'French', 'Description of French', NOW(), NULL, NULL),
-        (15, 'N', 'German', 'Description of German', NOW(), NULL, NULL),
-        (16, 'N', 'Punjabi', 'Description of Punjabi', NOW(), NULL, NULL),
-        (17, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
-
-        -- Additional Subjects for 10th
-        (18, 'N', 'Environmental Science', 'Description of Environmental Science', NOW(), NULL, NULL),
-        (19, 'N', 'Home Science', 'Description of Home Science', NOW(), NULL, NULL),
-
-        -- Vocational & Skill-Based Subjects for 10th
-        (20, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
-        (21, 'N', 'Information Technology', 'Description of Information Technology', NOW(), NULL, NULL),
-        (22, 'N', 'Artificial Intelligence', 'Description of Artificial Intelligence', NOW(), NULL, NULL),
-        (23, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
-        (24, 'N', 'Financial Literacy', 'Description of Financial Literacy', NOW(), NULL, NULL),
-        (25, 'N', 'Agriculture', 'Description of Agriculture', NOW(), NULL, NULL),
-
-        -- Co-curricular Subjects for 10th
-        (26, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
-        (27, 'N', 'Yoga', 'Description of Yoga', NOW(), NULL, NULL),
-        (28, 'N', 'Music', 'Description of Music', NOW(), NULL, NULL),
-        (29, 'N', 'Dance', 'Description of Dance', NOW(), NULL, NULL),
-        (30, 'N', 'Art & Design', 'Description of Art & Design', NOW(), NULL, NULL),
-        (31, 'N', 'Work Education', 'Description of Work Education', NOW(), NULL, NULL),
-        (32, 'N', 'Moral Science', 'Description of Moral Science', NOW(), NULL, NULL);
-
-          -- Science Stream Subjects (Starting from 33)
-        (33, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
-        (34, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
-        (35, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
-        (36, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
-        (37, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
-        (38, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
-        (39, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
-        (40, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
-        (41, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
-        (42, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
-        (43, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
-        (44, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
-        (45, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
-        (46, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
-        (47, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
-        (48, 'N', 'Biotechnology', 'Description of Biotechnology', NOW(), NULL, NULL),
-        (49, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL),
-
-        -- Arts/Humanities Stream Subjects (Starting from 50)
-        (50, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
-        (51, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
-        (52, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
-        (53, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
-        (54, 'N', 'Sociology', 'Description of Sociology', NOW(), NULL, NULL),
-        (55, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
-        (56, 'N', 'Political Science', 'Description of Political Science', NOW(), NULL, NULL),
-        (57, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
-        (58, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
-        (59, 'N', 'Geology', 'Description of Geology', NOW(), NULL, NULL),
-        (60, 'N', 'Anthropology', 'Description of Anthropology', NOW(), NULL, NULL),
-        (61, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
-        (62, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
-        (63, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
-        (64, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
-        (65, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
-        (66, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
-        (67, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
-        (68, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
-        (69, 'N', 'Philosophy', 'Description of Philosophy', NOW(), NULL, NULL),
-        (70, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
-        (71, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
-        (72, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
-        (73, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
-        (74, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL),
-        (75, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
-        (76, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
-        (77, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
-
-        -- Commerce Stream Subjects (Starting from 78)
-        (78, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
-        (79, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL),
-        (80, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
-        (81, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
-        (82, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
-        (83, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
-        (84, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
-        (85, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
-        (86, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
-        (87, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
-        (88, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
-        (89, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
-        (90, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
-        (91, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
-        (92, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
-        (93, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
-        (94, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
-        (95, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL);
-
-
---        (1, 'N', 'Mathematics', 'Description of Mathematics', NOW(), NULL, NULL),
---          (2, 'N', 'Science', 'Description of Science', NOW(), NULL, NULL),
---          (3, 'N', 'Social Science', 'Description of Social Science', NOW(), NULL, NULL),
---          (4, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
---          (5, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
---          (6, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
---          (7, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
---          (8, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
---          (9, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
---          (10, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
---          (11, 'N', 'Civics', 'Description of Civics', NOW(), NULL, NULL),
---          (12, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
---          (13, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
---          (14, 'N', 'French', 'Description of French', NOW(), NULL, NULL),
---          (15, 'N', 'German', 'Description of German', NOW(), NULL, NULL),
---          (16, 'N', 'Punjabi', 'Description of Punjabi', NOW(), NULL, NULL),
---          (17, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
---          (18, 'N', 'Environmental Science', 'Description of Environmental Science', NOW(), NULL, NULL),
---          (19, 'N', 'Home Science', 'Description of Home Science', NOW(), NULL, NULL),
---          (20, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
---          (21, 'N', 'Information Technology', 'Description of Information Technology', NOW(), NULL, NULL),
---          (22, 'N', 'Artificial Intelligence', 'Description of Artificial Intelligence', NOW(), NULL, NULL),
---          (23, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
---          (24, 'N', 'Financial Literacy', 'Description of Financial Literacy', NOW(), NULL, NULL),
---          (25, 'N', 'Agriculture', 'Description of Agriculture', NOW(), NULL, NULL),
---          (26, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
---          (27, 'N', 'Yoga', 'Description of Yoga', NOW(), NULL, NULL),
---          (28, 'N', 'Music', 'Description of Music', NOW(), NULL, NULL),
---          (29, 'N', 'Dance', 'Description of Dance', NOW(), NULL, NULL),
---          (30, 'N', 'Art & Design', 'Description of Art & Design', NOW(), NULL, NULL),
---          (31, 'N', 'Work Education', 'Description of Work Education', NOW(), NULL, NULL),
---          (32, 'N', 'Moral Science', 'Description of Moral Science', NOW(), NULL, NULL),
---          (33, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
---          (34, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
---          (35, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
---          (36, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
---          (37, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
---          (38, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
---          (39, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
---          (40, 'N', 'Biotechnology', 'Description of Biotechnology', NOW(), NULL, NULL),
---          (41, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL),
---          (42, 'N', 'Sociology', 'Description of Sociology', NOW(), NULL, NULL),
---          (43, 'N', 'Political Science', 'Description of Political Science', NOW(), NULL, NULL),
---          (44, 'N', 'Geology', 'Description of Geology', NOW(), NULL, NULL),
---          (45, 'N', 'Anthropology', 'Description of Anthropology', NOW(), NULL, NULL),
---          (46, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
---          (47, 'N', 'Philosophy', 'Description of Philosophy', NOW(), NULL, NULL),
---          (48, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
---          (49, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
---          (50, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
---          (51, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
---          (52, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL),
---          (53, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL);
+          (2, 'N', 'Science', 'Description of Science', NOW(), NULL, NULL),
+          (3, 'N', 'Social Science', 'Description of Social Science', NOW(), NULL, NULL),
+          (4, 'N', 'English', 'Description of English', NOW(), NULL, NULL),
+          (5, 'N', 'Hindi', 'Description of Hindi', NOW(), NULL, NULL),
+          (6, 'N', 'Physics', 'Description of Physics', NOW(), NULL, NULL),
+          (7, 'N', 'Chemistry', 'Description of Chemistry', NOW(), NULL, NULL),
+          (8, 'N', 'Biology', 'Description of Biology', NOW(), NULL, NULL),
+          (9, 'N', 'History', 'Description of History', NOW(), NULL, NULL),
+          (10, 'N', 'Geography', 'Description of Geography', NOW(), NULL, NULL),
+          (11, 'N', 'Civics', 'Description of Civics', NOW(), NULL, NULL),
+          (12, 'N', 'Economics', 'Description of Economics', NOW(), NULL, NULL),
+          (13, 'N', 'Sanskrit', 'Description of Sanskrit', NOW(), NULL, NULL),
+          (14, 'N', 'French', 'Description of French', NOW(), NULL, NULL),
+          (15, 'N', 'German', 'Description of German', NOW(), NULL, NULL),
+          (16, 'N', 'Punjabi', 'Description of Punjabi', NOW(), NULL, NULL),
+          (17, 'N', 'Urdu', 'Description of Urdu', NOW(), NULL, NULL),
+          (18, 'N', 'Environmental Science', 'Description of Environmental Science', NOW(), NULL, NULL),
+          (19, 'N', 'Home Science', 'Description of Home Science', NOW(), NULL, NULL),
+          (20, 'N', 'Computer Science', 'Description of Computer Science', NOW(), NULL, NULL),
+          (21, 'N', 'Information Technology', 'Description of Information Technology', NOW(), NULL, NULL),
+          (22, 'N', 'Artificial Intelligence', 'Description of Artificial Intelligence', NOW(), NULL, NULL),
+          (23, 'N', 'Business Studies', 'Description of Business Studies', NOW(), NULL, NULL),
+          (24, 'N', 'Financial Literacy', 'Description of Financial Literacy', NOW(), NULL, NULL),
+          (25, 'N', 'Agriculture', 'Description of Agriculture', NOW(), NULL, NULL),
+          (26, 'N', 'Physical Education', 'Description of Physical Education', NOW(), NULL, NULL),
+          (27, 'N', 'Yoga', 'Description of Yoga', NOW(), NULL, NULL),
+          (28, 'N', 'Music', 'Description of Music', NOW(), NULL, NULL),
+          (29, 'N', 'Dance', 'Description of Dance', NOW(), NULL, NULL),
+          (30, 'N', 'Art & Design', 'Description of Art & Design', NOW(), NULL, NULL),
+          (31, 'N', 'Work Education', 'Description of Work Education', NOW(), NULL, NULL),
+          (32, 'N', 'Moral Science', 'Description of Moral Science', NOW(), NULL, NULL),
+          (33, 'N', 'EVS', 'Description of Environmental Science', NOW(), NULL, NULL),
+          (34, 'N', 'Painting', 'Description of Painting', NOW(), NULL, NULL),
+          (35, 'N', 'IP', 'Description of Informatics Practices', NOW(), NULL, NULL),
+          (36, 'N', 'Fine Arts', 'Description of Fine Arts', NOW(), NULL, NULL),
+          (37, 'N', 'Health Care', 'Description of Health Care', NOW(), NULL, NULL),
+          (38, 'N', 'Psychology', 'Description of Psychology', NOW(), NULL, NULL),
+          (39, 'N', 'Media Studies', 'Description of Media Studies', NOW(), NULL, NULL),
+          (40, 'N', 'Biotechnology', 'Description of Biotechnology', NOW(), NULL, NULL),
+          (41, 'N', 'Statistics', 'Description of Statistics', NOW(), NULL, NULL),
+          (42, 'N', 'Sociology', 'Description of Sociology', NOW(), NULL, NULL),
+          (43, 'N', 'Political Science', 'Description of Political Science', NOW(), NULL, NULL),
+          (44, 'N', 'Geology', 'Description of Geology', NOW(), NULL, NULL),
+          (45, 'N', 'Anthropology', 'Description of Anthropology', NOW(), NULL, NULL),
+          (46, 'N', 'Law', 'Description of Law', NOW(), NULL, NULL),
+          (47, 'N', 'Philosophy', 'Description of Philosophy', NOW(), NULL, NULL),
+          (48, 'N', 'Fashion Design', 'Description of Fashion Design', NOW(), NULL, NULL),
+          (49, 'N', 'Informatics', 'Description of Informatics', NOW(), NULL, NULL),
+          (50, 'N', 'Literature', 'Description of Literature', NOW(), NULL, NULL),
+          (51, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL),
+          (52, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL),
+          (53, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL),
+          (54, 'N', 'Others', 'Others', NOW(), NULL, NULL);
 
 
 END IF;
@@ -1405,8 +1399,8 @@ IF NOT EXISTS (SELECT 1 FROM qualification) THEN
     VALUES
         (1, 'MATRICULATION/10th', 'Completed secondary education or equivalent', TRUE, FALSE),
         (2, 'INTERMEDIATE/12th', 'Completed higher secondary education or equivalent', TRUE, TRUE),
-        (3, 'BACHELORS', 'Completed undergraduate degree program', FALSE, TRUE),
-        (4, 'MASTERS', 'Completed postgraduate degree program', FALSE, TRUE),
+        (3, 'BACHELORS/GRADUATION', 'Completed undergraduate degree program', FALSE, TRUE),
+        (4, 'MASTERS/POST_GRADUATION', 'Completed postgraduate degree program', FALSE, TRUE),
         (5, 'DOCTORATE', 'Completed doctoral degree program', FALSE, TRUE),
         (6, 'DIPLOMA', 'Completed a diploma program', FALSE, TRUE),
         (7, 'ITI', 'Completed an ITI (Industrial Training Institute) program', FALSE, TRUE),
@@ -1469,176 +1463,249 @@ IF NOT EXISTS (SELECT 1 FROM qualification) THEN
 END IF;
 
     -- Mapping for INTERMEDIATE/12th (qualification_id: 2)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 2, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (1, 2, 3, 4);  -- Science, Arts, Commerce, Engineering
+  -- 12th Standard Streams (qualification_id = 2)
+IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
 
-    -- Mapping for Bachelor's Degrees
-    -- B.A. (qualification_id: 8)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 8, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (5, 6, 7, 8, 9);  -- English Literature, History, Political Science, Sociology, Psychology
+        -- Insert values if the table is empty
 
-    -- B.Sc. (qualification_id: 9)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 9, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (10, 11, 12, 13, 14, 15);  -- Physics, Chemistry, Biology, Mathematics, Computer Science, Biotechnology
+        -- 12th Stream
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 2, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (1, 2, 3, 4);
 
-    -- B.Com. (qualification_id: 10)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 10, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (16, 17, 18);  -- Accounting, Finance, Marketing
+        -- Bachelor of Arts and BA Honours (qualification_id = 8, 21)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (8, 21)
+        AND stream_id IN (5, 6, 7, 8, 9, 142, 143, 144, 145, 146, 147);
 
-    -- B.Tech. (qualification_id: 11)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 11, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (19, 20, 21);  -- Mechanical, Civil, Electronics Engineering
+        -- Bachelor of Science and BSc Honours (qualification_id = 9, 22)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (9, 22)
+        AND stream_id IN (10, 11, 12, 13, 14, 15, 148, 149, 150, 151, 152);
 
-    -- B.E. (qualification_id: 12)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 12, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (19, 20, 21, 22);  -- Mechanical, Civil, Electronics, Aerospace Engineering
+        -- Bachelor of Commerce and BCom Honours (qualification_id = 10, 23)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (10, 23)
+        AND stream_id IN (16, 17, 18, 153, 154, 155, 156, 157);
 
-    -- BBA (qualification_id: 15)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 15, stream_id
-    FROM custom_stream
-    WHERE stream_id = 23;  -- Business Administration
+        -- BTech/BE (qualification_id = 11, 12)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (11, 12)
+        AND stream_id IN (19, 20, 21, 22, 158, 159);
 
-    -- BCA (qualification_id: 16)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 16, stream_id
-    FROM custom_stream
-    WHERE stream_id = 24;  -- Computer Applications
+        -- BAMS (qualification_id = 24)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 24, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 160 AND 165;
 
-    -- B.Pharm (qualification_id: 17)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 17, stream_id
-    FROM custom_stream
-    WHERE stream_id = 25;  -- Pharmaceutical Sciences
+        -- BSc Nursing (qualification_id = 25)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 25, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 166 AND 171;
 
-    -- B.Arch (qualification_id: 18)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 18, stream_id
-    FROM custom_stream
-    WHERE stream_id = 26;  -- Architecture
+        -- BPT (qualification_id = 26)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 26, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 172 AND 176;
 
-    -- B.Planning (qualification_id: 19)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 19, stream_id
-    FROM custom_stream
-    WHERE stream_id = 27;  -- Urban Planning
+        -- BHMS (qualification_id = 27)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 27, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 177 AND 182;
 
-    -- LLB (qualification_id: 20)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 20, stream_id
-    FROM custom_stream
-    WHERE stream_id = 28;  -- Legal Studies
+        -- BMLT (qualification_id = 28)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 28, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 183 AND 187;
 
-    -- Mapping for Master's Degrees
-    -- M.A. (qualification_id: 35)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 35, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (43, 44, 45, 46, 47);  -- English Literature, History, Political Science, Sociology, Psychology
+        -- BHMCT (qualification_id = 29)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 29, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 188 AND 191;
 
-    -- M.Sc. (qualification_id: 36)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 36, stream_id
-    FROM custom_stream
-    WHERE stream_id IN (48, 49, 50, 51, 52);  -- Physics, Chemistry, Biology, Mathematics, Computer Science
+        -- BTTM (qualification_id = 30)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 30, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 192 AND 195;
 
-    -- M.Com. (qualification_id: 37)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 37, stream_id
-    FROM custom_stream
-    WHERE stream_id = 53;  -- Advanced Accounting
+        -- B.Voc (qualification_id = 31)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 31, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 196 AND 201;
 
-    -- M.Tech. (qualification_id: 38)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 38, stream_id
-    FROM custom_stream
-    WHERE stream_id = 54;  -- Advanced Computer Science
+        -- B.P.Ed (qualification_id = 32)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 32, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 202 AND 205;
 
-    -- MBA (qualification_id: 42)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 42, stream_id
-    FROM custom_stream
-    WHERE stream_id = 55;  -- Business Management
+        -- B.Ed (qualification_id = 33)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 33, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 206 AND 210;
 
-    -- Mapping for Diploma (qualification_id: 6)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 6, stream_id
-    FROM custom_stream
-    WHERE stream_id BETWEEN 85 AND 103;  -- All diploma streams
+        -- B.Li.Sc (qualification_id = 34)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 34, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 211 AND 214;
 
-    -- Mapping for ITI (qualification_id: 7)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 7, stream_id
-    FROM custom_stream
-    WHERE stream_id BETWEEN 104 AND 121;  -- All ITI streams
+        -- Masters Degrees
+        -- MA (qualification_id = 35)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 35, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (43, 44, 45, 46, 47);
 
-    -- Mapping for Doctorate (qualification_id: 5)
-    INSERT INTO qualification_stream (qualification_id, stream_id)
-    SELECT 5, stream_id
-    FROM custom_stream
-    WHERE stream_id BETWEEN 122 AND 141;  -- All doctorate streams
+        -- MSc (qualification_id = 36)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 36, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (48, 49, 50, 51, 52);
 
--- Insert into typing_text if empty
-IF NOT EXISTS (SELECT 1 FROM typing_text) THEN
-    INSERT INTO typing_text (id, text)
-    VALUES
-        (1, 'The quick brown fox jumps over the lazy dog near the quiet river, while the bright sun sets in the horizon, casting beautiful hues of orange.'),
-        (2, 'A curious cat chased a butterfly through the green meadows, unaware of the gentle breeze swirling around.'),
-        (3, 'In the silent night, a lone owl hooted softly as the stars twinkled brightly above the peaceful forest.'),
-        (4, 'Beneath the tall mountains, a small village thrived with joy, laughter, and the warmth of togetherness.'),
-        (5, 'The adventure begins with a journey through unknown lands, filled with unexpected challenges and thrilling discoveries along the way.');
-END IF;
+        -- MTech/ME (qualification_id = 38, 39)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (38, 39)
+        AND stream_id IN (54, 59, 60, 61);
 
--- Insert into service_provider_test_status if empty
-IF NOT EXISTS (SELECT 1 FROM service_provider_test_status) THEN
-    INSERT INTO service_provider_test_status (test_status_id, test_status_name, test_status_description, created_at, updated_at, created_by)
-    VALUES
-        (1, 'New', 'The service provider has registered but has not yet completed the test.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
-        (2, 'Completed Test', 'The service provider has completed the required skill tests.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
-        (3, 'Approved', 'The service provider submission has been reviewed and approved.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
-        (4, 'Rejected', 'The service provider submission was rejected due to not meeting the criteria.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
-        (5, 'Suspended', 'The service provider account is currently suspended due to policy violations.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN');
-END IF;
+        -- MD (qualification_id = 40)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 40, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (62, 63, 64, 65);
 
--- Insert into service_provider_rank if empty
-IF NOT EXISTS (SELECT 1 FROM service_provider_rank) THEN
-    INSERT INTO service_provider_rank (rank_id, rank_name, rank_description, created_at, updated_at, created_by, maximum_ticket_size, maximum_binding_size)
-    VALUES
-        (1, '1a', 'The PROFESSIONAL service provider score is between 75-100 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 12, 50),
-        (2, '1b', 'The PROFESSIONAL service provider score is between 50-75 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 6, 25),
-        (3, '1c', 'The PROFESSIONAL service provider score is between 25-50 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 4, 17),
-        (4, '1d', 'The PROFESSIONAL service provider score is between 0-25 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 3, 13),
-        (5, '2a', 'The INDIVIDUAL service provider score is between 75-100 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 6, 25),
-        (6, '2b', 'The INDIVIDUAL service provider score is between 50-75 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 3, 13),
-        (7, '2c', 'The INDIVIDUAL service provider score is between 25-50 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 2, 8),
-        (8, '2d', 'The INDIVIDUAL service provider score is between 0-25 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 2, 6);
-END IF;
+        -- MS (qualification_id = 41)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 41, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (66, 67, 68);
 
-    IF NOT EXISTS (SELECT 1 FROM custom_admin LIMIT 1) THEN
-	    CREATE EXTENSION IF NOT EXISTS pgcrypto;
-        INSERT INTO custom_admin (admin_id, role, password, user_name, mobilenumber, country_code, signedup, created_at, created_by)
-            VALUES
-                (1, 2, crypt('Admin#01'::text, gen_salt('bf', 8)::text), 'admin', '7740066387', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN'),
-                (2, 1, crypt('SuperAdmin#1357'::text, gen_salt('bf', 8)::text), 'superadmin', '9872548680', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN'),
-                (3, 3, crypt('AdminServiceProvider#02'::text, gen_salt('bf', 8)::text), 'adminserviceprovider', '7710393096', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN');
+        -- Diplomas (qualification_id = 6)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 6, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 85 AND 103;
+
+        -- ITI (qualification_id = 7)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 7, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 104 AND 121;
+
+        -- PhD (qualification_id = 5)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 5, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 122 AND 141;
+
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT q.qualification_id, cs.stream_id
+        FROM qualification q
+        CROSS JOIN custom_stream cs
+        WHERE cs.stream_id IN (215, 216)  -- 215 for 'NA' and 216 for 'Others'
+        AND q.qualification_id BETWEEN 1 AND 59;
+
     END IF;
 
-	 IF NOT EXISTS (SELECT 1 FROM scoring_criteria) THEN
-        INSERT INTO scoring_criteria (id, attribute_name,condition,score)
+      INSERT INTO stream_subject (stream_id, subject_id)
+      SELECT * FROM (VALUES
+          -- Mapping for 10th Stream
+          (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10),
+          (0, 11), (0, 12), (0, 13), (0, 14), (0, 15), (0, 16), (0, 17), (0, 18), (0, 19),
+          (0, 20), (0, 21), (0, 22), (0, 23), (0, 24), (0, 25), (0, 26), (0, 27), (0, 28),
+          (0, 29), (0, 30), (0, 31), (0, 32), (0, 33), (0, 34),
+
+          -- Mapping for 12th Science
+          (1, 4), (1, 6), (1, 7), (1, 8), (1, 26), (1, 33), (1, 20), (1, 34), (1, 35),
+          (1, 36), (1, 37), (1, 38), (1, 12), (1, 39), (1, 40), (1, 41), (1, 52), (1, 1),
+
+          -- Mapping for 12th Arts
+          (2, 4), (2, 12), (2, 38), (2, 9), (2, 42), (2, 10), (2, 43), (2, 5), (2, 17),
+          (2, 44), (2, 45), (2, 20), (2, 26), (2, 33), (2, 34), (2, 35), (2, 36), (2, 41),
+          (2, 46), (2, 47), (2, 48), (2, 49), (2, 50), (2, 51), (2, 52), (2, 53), (2, 1),
+          (2, 37), (2, 13), (2, 39),
+
+          -- Mapping for 12th Commerce
+          (3, 4), (3, 53), (3, 23), (3, 51), (3, 12), (3, 26), (3, 35), (3, 20), (3, 1),
+          (3, 34), (3, 36), (3, 46), (3, 48), (3, 49), (3, 50), (3, 37), (3, 41), (3, 39),
+
+          -- Others with all
+          (0, 54), (1, 54), (2, 54), (3, 54)
+      ) AS tmp(stream_id, subject_id)
+      WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
+      ON CONFLICT DO NOTHING;
+
+
+ IF NOT EXISTS (SELECT 1 FROM typing_text LIMIT 1) THEN
+        INSERT INTO typing_text (id, text)
         VALUES
-            (1, 'Business Unit / Infrastructure', 'If its a Business Unit: 20 points', 20),
+            (1, 'The quick brown fox jumps over the lazy dog near the quiet river, while the bright sun sets in the horizon, casting beautiful hues of orange.'),
+            (2, 'A curious cat chased a butterfly through the green meadows, unaware of the gentle breeze swirling around.'),
+            (3, 'In the silent night, a lone owl hooted softly as the stars twinkled brightly above the peaceful forest.'),
+            (4, 'Beneath the tall mountains, a small village thrived with joy, laughter, and the warmth of togetherness.'),
+            (5, 'The adventure begins with a journey through unknown lands, filled with unexpected challenges and thrilling discoveries along the way.');
+    END IF;
+--
+    -- Insert into service_provider_test_status if empty
+    IF NOT EXISTS (SELECT 1 FROM service_provider_test_status LIMIT 1) THEN
+        INSERT INTO service_provider_test_status (test_status_id, test_status_name, test_status_description, created_at, updated_at, created_by)
+        VALUES
+            (1, 'New', 'The service provider has registered but has not yet completed the test.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
+            (2, 'Completed Test', 'The service provider has completed the required skill tests.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
+            (3, 'Approved', 'The service provider submission has been reviewed and approved.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
+            (4, 'Rejected', 'The service provider submission was rejected due to not meeting the criteria.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN'),
+            (5, 'Suspended', 'The service provider account is currently suspended due to policy violations.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN');
+    END IF;
+
+    -- Insert into service_provider_rank if empty
+    IF NOT EXISTS (SELECT 1 FROM service_provider_rank LIMIT 1) THEN
+        INSERT INTO service_provider_rank (rank_id, rank_name, rank_description, created_at, updated_at, created_by, maximum_ticket_size, maximum_binding_size)
+        VALUES
+            (1, '1a', 'The PROFESSIONAL service provider score is between 75-100 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 12, 50),
+            (2, '1b', 'The PROFESSIONAL service provider score is between 50-75 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 6, 25),
+            (3, '1c', 'The PROFESSIONAL service provider score is between 25-50 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 4, 17),
+            (4, '1d', 'The PROFESSIONAL service provider score is between 0-25 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 3, 13),
+            (5, '2a', 'The INDIVIDUAL service provider score is between 75-100 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 6, 25),
+            (6, '2b', 'The INDIVIDUAL service provider score is between 50-75 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 3, 13),
+            (7, '2c', 'The INDIVIDUAL service provider score is between 25-50 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 2, 8),
+            (8, '2d', 'The INDIVIDUAL service provider score is between 0-25 points', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'SUPER_ADMIN', 2, 6);
+    END IF;
+
+    -- Insert into custom_admin if empty
+    IF NOT EXISTS (SELECT 1 FROM custom_admin LIMIT 1) THEN
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        INSERT INTO custom_admin (admin_id, role, password, user_name, mobilenumber, country_code, signedup, created_at, created_by)
+        VALUES
+            (1, 2, crypt('Admin#01', gen_salt('bf', 8)), 'admin', '7740066387', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN'),
+            (2, 1, crypt('SuperAdmin#1357', gen_salt('bf', 8)), 'superadmin', '9872548680', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN'),
+            (3, 3, crypt('AdminServiceProvider#02', gen_salt('bf', 8)), 'adminserviceprovider', '7710393096', '+91', 0, CURRENT_DATE, 'SUPER_ADMIN');
+    END IF;
+
+    -- Insert into scoring_criteria if empty
+    IF NOT EXISTS (SELECT 1 FROM scoring_criteria LIMIT 1) THEN
+        INSERT INTO scoring_criteria (id, attribute_name, condition, score)
+        VALUES
+            (1, 'Business Unit / Infrastructure', 'If it is a Business Unit: 20 points', 20),
             (2, 'Work Experience', '1 year work experience', 5),
             (3, 'Work Experience', '2 years work experience', 10),
             (4, 'Work Experience', '3 years work experience', 15),
@@ -1649,17 +1716,11 @@ END IF;
             (9, 'Technical Expertise', 'Service Provider having equal to or more than 5 skills', 10),
             (10, 'Staff', 'More than 4 staff members', 10),
             (11, 'Staff', '2 staff members', 5),
-            (12, 'Staff', 'Individual (no staff)', 0),
-            (13, 'Infrastructure', 'Service Provider having Equal to 5 or more than 5 infrastructures', 20),
-            (14, 'Infrastructure', 'Service Provider having between 2 and 4 infrastructures', 10),
-            (15, 'Infrastructure', 'Service Provider having 1 infrastructure', 5),
-            (16, 'Infrastructure', 'Service Provider having 0 infrastructure', 0),
-            (17, 'PartTimeOrFullTime', 'Service Provider who is Full time', 10),
-            (18, 'PartTimeOrFullTime', 'Service Provider who is Part time', 0);
+            (12, 'Staff', 'Individual (no staff)', 0);
     END IF;
-
-    -- Check and insert into order_state_ref table
-    IF NOT EXISTS (SELECT 1 FROM order_state_ref) THEN
+--
+    -- Insert into order_state_ref if empty
+    IF NOT EXISTS (SELECT 1 FROM order_state_ref LIMIT 1) THEN
         INSERT INTO order_state_ref (order_state_id, order_state_name, order_state_description)
         VALUES
             (1, 'NEW', 'Order is generated'),
@@ -1673,42 +1734,41 @@ END IF;
     END IF;
 
     -- Check and insert into custom_document table
-    IF NOT EXISTS (SELECT 1 FROM custom_document) THEN
-        INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,  is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order )
-        VALUES
-            (1, 'Aadhaar_Card_Front', 'Front side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 2),
-            (2, 'Pan_Card', 'A permanent account number card for tax purposes in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 4),
-            (3, 'Live_Passport_Size_Photo', 'A live photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 5),
-            (4, 'Signature', 'A handwritten sign used to authenticate documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 1),
-            (5, 'Ews_Certificate', 'Certificate for individuals and families below a certain income threshold to access various benefits and concessions.', '300KB', '200KB', FALSE, TRUE, FALSE, 29),
-            (6, 'Caste_Certificate', 'Certifies an individual’s caste for reservations and benefits in education and employment.', '300KB', '200KB', FALSE, TRUE, FALSE, 6),
-            (7, 'Address_Certificate', 'Verifies an individual’s residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26),
-            (8, 'Income_Certificate', 'Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27),
-            (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28),
-            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, TRUE, FALSE, 9),
-            (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities; "person with a disability" is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10),
-            (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25),
-            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '200KB', '100KB', FALSE, FALSE, FALSE, 1000),
-            (14, 'C-Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24),
-            (15, 'Ex-Service_Men', 'Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11),
-            (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23),
-            (17, 'Personal_Photo', 'A Personal Photograph of SP.', '200KB', '100KB', FALSE, FALSE, FALSE, 0),
-            (18, 'NCC_Certificate_A', 'NCC CERTIFICATE A.', '500KB', '100KB', FALSE, FALSE, FALSE, 12),
-            (19, 'NCC_Certificate_B', 'NCC CERTIFICATE B.', '500KB', '100KB', FALSE, FALSE, FALSE, 13,
-            (20, 'NCC_Certificate_C', 'NCC CERTIFICATE C.', '500KB', '100KB', FALSE, FALSE, FALSE, 14),
-            (21, 'NSS_Certificate_A', 'NSS CERTIFICATE A.', '500KB', '100KB', FALSE, FALSE, FALSE, 15),
-            (22, 'Sports_Certificate-State', 'SPORTS CERTIFICATE FOR STATE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 18),
-            (23, 'Sports_Certificate-Centre', 'SPORTS CERTIFICATE FOR CENTRE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 19),
-            (24, 'Aadhaar_Card_Backside', 'Back side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 3),
-            (25, 'Left_Thumb_Impression', 'The left thumb impression of the individual, typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 20),
-            (26, 'Right_Thumb_Impression', 'The right thumb impression of the individual, typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 21),
-            (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22),
-            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
-            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
-            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7);
-            (31, 'Minority_Certificate', 'Minority Certificate ', '300KB', '200KB', FALSE, FALSE, FALSE,8);
-    END IF;
-
+--    IF NOT EXISTS (SELECT 1 FROM custom_document) THEN
+--        INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,  is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order )
+--        VALUES
+--            (1, 'Aadhaar_Card_Front', 'Front side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 2),
+--            (2, 'Pan_Card', 'A permanent account number card for tax purposes in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 4),
+--            (3, 'Live_Passport_Size_Photo', 'A live photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 5),
+--            (4, 'Signature', 'A handwritten sign used to authenticate documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 1),
+--            (5, 'Ews_Certificate', 'Certificate for individuals and families below a certain income threshold to access various benefits and concessions.', '300KB', '200KB', FALSE, TRUE, FALSE, 29),
+--            (6, 'Caste_Certificate', 'Certifies an individual’s caste for reservations and benefits in education and employment.', '300KB', '200KB', FALSE, TRUE, FALSE, 6),
+--            (7, 'Address_Certificate', 'Verifies an individual’s residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26),
+--            (8, 'Income_Certificate', 'Confirms an individual’s or family’s annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27),
+--            (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28),
+--            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, TRUE, FALSE, 9),
+--            (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities; "person with a disability" is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10),
+--            (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25),
+--            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '200KB', '100KB', FALSE, FALSE, FALSE, 1000),
+--            (14, 'C-Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24),
+--            (15, 'Ex-Service_Men', 'Ex-Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11),
+--            (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23),
+--            (17, 'Personal_Photo', 'A Personal Photograph of SP.', '200KB', '100KB', FALSE, FALSE, FALSE, 0),
+--            (18, 'NCC_Certificate_A', 'NCC CERTIFICATE A.', '500KB', '100KB', FALSE, FALSE, FALSE, 12),
+--            (19, 'NCC_Certificate_B', 'NCC CERTIFICATE B.', '500KB', '100KB', FALSE, FALSE, FALSE, 13,
+--            (20, 'NCC_Certificate_C', 'NCC CERTIFICATE C.', '500KB', '100KB', FALSE, FALSE, FALSE, 14),
+--            (21, 'NSS_Certificate_A', 'NSS CERTIFICATE A.', '500KB', '100KB', FALSE, FALSE, FALSE, 15),
+--            (22, 'Sports_Certificate-State', 'SPORTS CERTIFICATE FOR STATE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 18),
+--            (23, 'Sports_Certificate-Centre', 'SPORTS CERTIFICATE FOR CENTRE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 19),
+--            (24, 'Aadhaar_Card_Backside', 'Back side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 3),
+--            (25, 'Left_Thumb_Impression', 'The left thumb impression of the individual, typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 20),
+--            (26, 'Right_Thumb_Impression', 'The right thumb impression of the individual, typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 21),
+--            (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22),
+--            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
+--            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
+--            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7),
+--            (31, 'Minority_Certificate', 'Minority Certificate ', '300KB', '200KB', FALSE, FALSE, FALSE,8);
+--    END IF;
 
     -- Check and insert into file_type_name table
     IF NOT EXISTS (SELECT 1 FROM filetype) THEN
@@ -1756,11 +1816,11 @@ END IF;
             (30, 1), (30, 2), (30, 4),
             (31, 1), (31, 2), (31, 4);
     END IF;
-
+--
    IF NOT EXISTS (SELECT 1 FROM board_university WHERE board_university_id = 1) THEN
     INSERT INTO board_university (board_university_id, board_university_name, board_university_location, board_university_code, board_university_type, created_date, modified_date, created_by, modified_by)
     VALUES
-        (1, 'Others', 'NA', 'Not Applicable', 'NA', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
+        (1, 'Others', 'Others', 'Others', 'Others', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
         (2, 'Central Board of Secondary Education', 'Delhi', 'CBSE', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
         (3, 'Jawaharlal Nehru University', 'Delhi', 'JNU', 'UNIVERSITY', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
         (4, 'Uttar Pradesh Board', 'Lucknow', 'UPB', 'BOARD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
@@ -1823,7 +1883,7 @@ END IF;
         (35, 'Punjab University', 'Chandigarh', 'PU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
 		(36, 'Jaypee Institute of Information and Technology', 'Noida', 'JIIT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN');
 	END IF;
-
+--
     -- Check and insert into vacancy_distribution_type table
     IF NOT EXISTS (SELECT 1 FROM vacancy_distribution_type) THEN
         INSERT INTO vacancy_distribution_type (vacancydistributiontypeid, vacancyDistributionTypeName)

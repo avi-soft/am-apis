@@ -64,6 +64,9 @@ public class QualificationDetails {
     @Column(name = "examination_role_number",nullable = true)
     private Long examination_role_number;
 
+    @Column(name = "course_duration_in_months",nullable = true)
+    private Long course_duration_in_months;
+
     //    @NotNull(message = "Examination Registration Number is required")
     @Column(name = "examination_registration_number",nullable = true)
     private Long examination_registration_number;
@@ -112,6 +115,12 @@ public class QualificationDetails {
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
     @Column(name = "subject_name")
     private String subject_name;
+
+
+    @ElementCollection
+    @CollectionTable(name = "highest_qualification_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "subject_name")
+    private List<String> highest_qualification_subject_names;
 
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne

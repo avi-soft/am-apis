@@ -135,7 +135,7 @@ public class StreamController {
             List<CustomStream> applicationScopeList =streamService.getStreamByQualificationId(qualificationId);
 
             if (applicationScopeList.isEmpty()) {
-                return ResponseService.generateSuccessResponse("LIST OF STREAMS IS EMPTY IN QUALIFICATION WITH ID "+ qualificationId,qualificationId, HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("LIST OF STREAMS IS EMPTY IN QUALIFICATION WITH ID "+ qualificationId,applicationScopeList, HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("STREAMS FOUND IN QUALIFICATION WITH ID "+ qualificationId, applicationScopeList, HttpStatus.OK);
         } catch (Exception exception) {

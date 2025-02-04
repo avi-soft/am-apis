@@ -79,6 +79,7 @@ public class QualificationDetailsService {
             List<Qualification> qualifications = qualificationService.getAllQualifications();
             Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             qualificationDetails.setQualification_id(qualificationToAdd);
+            validateQualificationDetail(qualificationDetails);
             List<Institution> institutions = institutionService.getAllInstitutions();
             Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
             qualificationDetails.setInstitution(institutionToAdd);
@@ -91,7 +92,7 @@ public class QualificationDetailsService {
             if (qualificationDetails.getSubject_name() == null) {
                 throw new IllegalArgumentException("Subject_name cannot be null");
             }
-            validateQualificationDetail(qualificationDetails);
+
             if(qualificationDetails.getQualification_id().equals(1))
             {
                 qualificationDetails.setStream_id(0L);
@@ -143,6 +144,18 @@ public class QualificationDetailsService {
         List<Qualification> qualifications = qualificationService.getAllQualifications();
         Integer qualificationToAdd = findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         qualificationDetails.setQualification_id(qualificationToAdd);
+        if(qualificationDetails.getQualification_id().equals(6) || qualificationDetails.getQualification_id().equals(7))
+        {
+            if(qualificationDetails.getCourse_duration_in_months()==null)
+            {
+                throw new IllegalArgumentException("Provide the duration of course");
+            }
+            if(qualificationDetails.getCourse_duration_in_months()<1)
+            {
+                throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
+            }
+        }
+        validateQualificationDetail(qualificationDetails);
         List<Institution> institutions = institutionService.getAllInstitutions();
         Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
         qualificationDetails.setInstitution(institutionToAdd);
@@ -169,22 +182,42 @@ public class QualificationDetailsService {
             if (qualificationDetails.getSubject_ids() == null || qualificationDetails.getSubject_ids().isEmpty()) {
                 throw new IllegalArgumentException("Subjects list cannot be empty");
             }
-        }
-        if(!(qualificationDetails.getSubject_ids()==null|| qualificationDetails.getSubject_ids().isEmpty()))
-        {
-            if(qualificationDetails.getQualification_id().equals(1))
+            if(!(qualificationDetails.getSubject_ids()==null|| qualificationDetails.getSubject_ids().isEmpty()))
             {
-                List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids(),0L);
-                qualificationDetails.setSubject_ids(subjects);
+                if(qualificationDetails.getQualification_id().equals(1))
+                {
+                    List<Long> subjects = new ArrayList<>(new HashSet<>(validateAndGetSubjectIds(
+                            qualificationDetails.getSubject_ids(),
+                           0L
+                    )));
+                    qualificationDetails.setSubject_ids(subjects);
+                }
+                else {
+                    List<Long> subjects = new ArrayList<>(new HashSet<>(validateAndGetSubjectIds(
+                            qualificationDetails.getSubject_ids(),
+                            qualificationDetails.getStream_id()
+                    )));
+                    qualificationDetails.setSubject_ids(subjects);
+
+                }
+                createSubjectDetails(qualificationDetails);
+                validateSubjectSizeForCustomer(qualificationDetails);
             }
-            else {
-                List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids(),qualificationDetails.getStream_id());
-                qualificationDetails.setSubject_ids(subjects);
-            }
-            createSubjectDetails(qualificationDetails);
-            validateSubjectSizeForCustomer(qualificationDetails);
         }
-        validateQualificationDetail(qualificationDetails);
+        else if(subjectValidationCheck.equals(false))
+        {
+           List<String> highestQualificationSubjectList = qualificationDetails.getHighest_qualification_subject_names();
+           if(highestQualificationSubjectList!=null && !highestQualificationSubjectList.isEmpty())
+           {
+               for(String subjectName: highestQualificationSubjectList)
+               {
+                   if (!isValidSubjectName(subjectName)) {
+                       throw new IllegalArgumentException("Invalid subject name: " + subjectName);
+                   }
+               }
+           }
+
+        }
 
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
@@ -265,6 +298,11 @@ public class QualificationDetailsService {
         }
         qualificationDetails.remove(qualificationDetailsToDelete);
         entityManager.remove(qualificationDetailsToDelete);
+
+        if (qualificationDetailsToDelete.getHighest_qualification_subject_names() != null) {
+            qualificationDetailsToDelete.getHighest_qualification_subject_names().size();  // This forces Hibernate to initialize the collection
+        }
+
         if(roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER))
         {
             giveQualificationScore(userId);
@@ -351,20 +389,34 @@ public class QualificationDetailsService {
                 streamId = qualification.getStream_id();
             } else {
                 streamId = qualificationDetailsToUpdate.getStream_id();
+                List<CustomStream> streams = streamService.getStreamByQualificationId(qualificationIdToUpdate);
+                findStreamId(streamId, streams);
             }
         }
 
         if("CUSTOMER".equalsIgnoreCase(roleName)) {
-            if (Objects.nonNull(qualification.getSubject_ids())) {
-                if(qualificationIdToUpdate.equals(1))
+            if(Objects.nonNull(qualification.getCourse_duration_in_months()))
+            {
+                if(qualificationIdToUpdate.equals(6) || qualificationIdToUpdate.equals(7))
                 {
-                    List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),0L);
-                    qualificationDetailsToUpdate.setSubject_ids(subjects);
+                    if(qualification.getCourse_duration_in_months()<1)
+                    {
+                        throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
+                    }
+                    qualificationDetailsToUpdate.setCourse_duration_in_months(qualification.getCourse_duration_in_months());
                 }
-                else {
-                    List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),streamId);
-                    qualificationDetailsToUpdate.setSubject_ids(subjects);
-
+            }
+            else {
+                if(qualificationIdToUpdate.equals(6) || qualificationIdToUpdate.equals(7))
+                {
+                    if(qualificationDetailsToUpdate.getCourse_duration_in_months()==null)
+                    {
+                        throw new IllegalArgumentException("Provide the duration of course");
+                    }
+                    if(qualificationDetailsToUpdate.getCourse_duration_in_months()<1)
+                    {
+                        throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
+                    }
                 }
             }
         }
@@ -655,16 +707,25 @@ public class QualificationDetailsService {
             {
                 subjectValidationCheck=qualificationToSearch.getIs_subjects_required();
             }
-            if(Objects.nonNull(qualification.getSubject_ids()))
-            {
+            if (Objects.nonNull(qualification.getSubject_ids())) {
                 if(subjectValidationCheck.equals(true))
                 {
                     if(qualification.getSubject_details().size()<5)
                     {
                         throw new IllegalArgumentException("You have to add at least five subjects");
                     }
+                    if(qualificationIdToUpdate.equals(1))
+                    {
+                        List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),0L);
+                        qualificationDetailsToUpdate.setSubject_ids(subjects);
+                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
+                    }
+                    else {
+                        List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),streamId);
+                        qualificationDetailsToUpdate.setSubject_ids(subjects);
+                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
+                    }
                 }
-                createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
             }
             else
             {
@@ -674,6 +735,24 @@ public class QualificationDetailsService {
                     {
                         throw new IllegalArgumentException("You have to add at least five subjects");
                     }
+                }
+            }
+
+            if(Objects.nonNull(qualification.getHighest_qualification_subject_names()))
+            {
+                if(subjectValidationCheck.equals(false))
+                {
+                    if(qualification.getHighest_qualification_subject_names()!=null && !qualification.getHighest_qualification_subject_names().isEmpty())
+                    {
+                        List<String> highestQualificationSubjectList = qualification.getHighest_qualification_subject_names();
+                        for(String subjectName: highestQualificationSubjectList)
+                        {
+                            if (!isValidSubjectName(subjectName)) {
+                                throw new IllegalArgumentException("Invalid subject name: " + subjectName);
+                            }
+                        }
+                    }
+                    qualificationDetailsToUpdate.setHighest_qualification_subject_names(qualification.getHighest_qualification_subject_names());
                 }
             }
         }
@@ -1014,6 +1093,7 @@ public class QualificationDetailsService {
 
     @Transactional
     public void createSubjectDetails(QualificationDetails qualificationDetail) {
+        boolean setSubjectProcessing =false;
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
         if (subjectIds == null || subjectIds.isEmpty()) {
@@ -1022,6 +1102,13 @@ public class QualificationDetailsService {
         if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
             throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
         }
+
+        // Prevent infinite recursion
+        if (setSubjectProcessing) {
+            return; // Exit condition to avoid infinite loop
+        }
+
+        setSubjectProcessing=true; // Mark as processed
 
         List<SubjectDetail> subjectDetailsList = new ArrayList<>();
 
@@ -1323,7 +1410,6 @@ public class QualificationDetailsService {
     }
     public Boolean validateDate(String dateOfPassing,String dateType) throws Exception {
         String dateToBevalidate=dateOfPassing.substring(0,10);
-        System.out.println(dateToBevalidate);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false);
 
@@ -1372,5 +1458,18 @@ public class QualificationDetailsService {
         {
             throw new IllegalArgumentException("Invalid date: Month should be between 1 and 12");
         }
+    }
+    private boolean isValidSubjectName(String subjectName) {
+        if (subjectName == null || subjectName.trim().isEmpty()) {
+            return true; // Allow empty values
+        }
+
+        // Check if the string contains any forbidden special characters
+        if (subjectName.matches(".*[?!@#*^>].*")) {
+            return false; // Reject if it contains forbidden characters
+        }
+
+        // Ensure it contains at least one letter
+        return subjectName.matches(".*[a-zA-Z].*");
     }
 }
