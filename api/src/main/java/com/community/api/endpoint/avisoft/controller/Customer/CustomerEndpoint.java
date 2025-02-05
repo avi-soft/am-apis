@@ -738,6 +738,12 @@ public class CustomerEndpoint {
                 //if (!dob.before(new Date())) {
                 //errorMessages.add("DOB must be of past.");
                 //}
+                int age= sharedUtilityServiceApi.calculateAge(dob);
+                if(age==-1)
+                    errorMessages.add("Invalid date of birth");
+                else if(age<8)
+                    errorMessages.add("Your age should be greater than equal to 8");
+                else
                 customCustomer.setDob(dob);
             }
             if (details.containsKey("is_ncc_certificate")) {
