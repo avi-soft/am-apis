@@ -199,7 +199,7 @@ public class CustomCustomerService {
         System.out.println(generalizedQuery);
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
-        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex)+" ORDER by cust.date_created "+sort;
+        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex)+" ORDER by cust.customer_id "+sort;
         System.out.println(generalizedQuery);
         Query query;
         query = em.createNativeQuery(generalizedQuery);
