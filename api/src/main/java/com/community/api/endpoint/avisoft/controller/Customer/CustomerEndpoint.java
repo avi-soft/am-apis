@@ -187,6 +187,7 @@ public class CustomerEndpoint {
         dateFormat.setLenient(false);
         return dateFormat.parse(dateStr);
     }
+
     public static java.sql.Date convertStringToSQLDate(String dateStr, String dateFormatInString) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
             throw new IllegalArgumentException("Date string cannot be null or empty");
@@ -261,11 +262,11 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "extAuthToken",required = false)String authToken,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            Boolean externalUpdate=false;
-            Boolean isValidDate=null;
-            Boolean isValidDateDomicile=null;
+            Boolean externalUpdate = false;
+            Boolean isValidDate = null;
+            Boolean isValidDateDomicile = null;
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -291,24 +292,21 @@ public class CustomerEndpoint {
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
 
-            if (roleId!=5&&!tokenUserId.equals(customerId)/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
-                if(authToken!=null&&!authToken.isEmpty())
-                {
-                    Integer roleUpdating=jwtTokenUtil.extractRoleId(authToken);
-                    Long userId=jwtTokenUtil.extractId(authToken);
-                    if(roleUpdating!=5 ||!userId.equals(customerId))
+            if (roleId != 5 && !tokenUserId.equals(customerId)/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
+                if (authToken != null && !authToken.isEmpty()) {
+                    Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
+                    Long userId = jwtTokenUtil.extractId(authToken);
+                    if (roleUpdating != 5 || !userId.equals(customerId))
                         return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
-                }
-                else {
+                } else {
                     return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
                 }
             }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
             }
-            if(customCustomer.getArchived().equals(true))
-            {
-                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
+            if (customCustomer.getArchived().equals(true)) {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
             }
             String secondaryMobileNumber = (String) details.get("secondaryMobileNumber");
             String mobileNumber = (String) details.get("mobileNumber");
@@ -574,60 +572,59 @@ public class CustomerEndpoint {
             String state = (String) details.get("currentState");
             String district = (String) details.get("currentDistrict");
             String pincode = (String) details.get("currentPincode");
-            String addressLine=(String) details.get("currentAddress");
-            String city=(String) details.get("currentCity");
+            String addressLine = (String) details.get("currentAddress");
+            String city = (String) details.get("currentCity");
             boolean flag = true;
             String[] keys = {"currentState", "currentDistrict", "currentPincode", "currentAddress", "currentCity"};
-            int containsCount=0;
+            int containsCount = 0;
             for (String key : keys) {
                 if (details.containsKey(key) && details.get(key) != null)
                     containsCount++;
-                else
-                {
+                else {
                     flag = false;
                     break;  // Exit the loop as we found a missing or null value
                 }
             }
-            if(flag&&containsCount== 5)
-                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
-            if (flag&&containsCount== 5) {
-                boolean updated=false;
+            if (flag && containsCount == 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine, city, pincode));
+            if (flag && containsCount == 5) {
+                boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                         customerAddress.getAddress().setAddressLine1(addressLine);
-                        String stateName=districtService.findStateById(Integer.parseInt(state));
-                        if(stateName==null)
-                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        String stateName = districtService.findStateById(Integer.parseInt(state));
+                        if (stateName == null)
+                            return ResponseService.generateErrorResponse("Invalid State", HttpStatus.BAD_REQUEST);
                         customerAddress.getAddress().setStateProvinceRegion(stateName);
-                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
-                        if(districtName==null)
-                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                        if (districtName == null)
+                            return ResponseService.generateErrorResponse("Invalid district", HttpStatus.BAD_REQUEST);
                         customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
                         customerAddress.getAddress().setCity(city);
-                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
+                        CountryImpl country = (CountryImpl) countryService.findCountryByAbbreviation("ADD-C");
                         customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
                     }
                 }
-                if(!updated) {
+                if (!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("currentAddress"));
-                    String stateName=districtService.findStateById(Integer.parseInt(state));
-                    if(stateName==null)
-                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
-                    addressMap.put("state",stateName);
+                    String stateName = districtService.findStateById(Integer.parseInt(state));
+                    if (stateName == null)
+                        return ResponseService.generateErrorResponse("Invalid State", HttpStatus.BAD_REQUEST);
+                    addressMap.put("state", stateName);
                     addressMap.put("city", details.get("currentCity"));
-                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
-                    if(districtName==null)
-                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                    if (districtName == null)
+                        return ResponseService.generateErrorResponse("Invalid district", HttpStatus.BAD_REQUEST);
                     addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }else if(!flag &&containsCount!=0)
+            } else if (!flag && containsCount != 0)
                 errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Current Address");
             details.remove("currentState");
             details.remove("currentDistrict");
@@ -635,42 +632,42 @@ public class CustomerEndpoint {
             details.remove("currentPincode");
             details.remove("currentCity");
             Boolean flagP = true;
-            containsCount=0;
+            containsCount = 0;
             String[] keysP = {"permanentState", "permanentDistrict", "permanentPincode", "permanentAddress", "permanentCity"};
             for (String key : keysP) {
 
                 if (details.containsKey(key) && details.get(key) != null)
                     containsCount++;
-                else
-                {
+                else {
                     flagP = false;
                     break;  // Exit the loop as we found a missing or null value
                 }
-            } state = (String) details.get("permanentState");
+            }
+            state = (String) details.get("permanentState");
             district = (String) details.get("permanentDistrict");
             pincode = (String) details.get("permanentPincode");
-            addressLine=(String) details.get("permanentAddress");
-            city=(String) details.get("permanentCity");
+            addressLine = (String) details.get("permanentAddress");
+            city = (String) details.get("permanentCity");
 
-            if(flagP&&containsCount== 5)
-                errorMessages.addAll(customCustomerService.validateAddress(addressLine,city,pincode));
-            if (flagP&&containsCount== 5) {
+            if (flagP && containsCount == 5)
+                errorMessages.addAll(customCustomerService.validateAddress(addressLine, city, pincode));
+            if (flagP && containsCount == 5) {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
 
                     if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
                         customerAddress.getAddress().setAddressLine1(addressLine);
-                        String stateName=districtService.findStateById(Integer.parseInt(state));
-                        if(stateName==null)
-                            return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
+                        String stateName = districtService.findStateById(Integer.parseInt(state));
+                        if (stateName == null)
+                            return ResponseService.generateErrorResponse("Invalid State", HttpStatus.BAD_REQUEST);
                         customerAddress.getAddress().setStateProvinceRegion(stateName);
-                        String districtName=districtService.findDistrictById(Integer.parseInt(district));
-                        if(districtName==null)
-                            return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                        String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                        if (districtName == null)
+                            return ResponseService.generateErrorResponse("Invalid district", HttpStatus.BAD_REQUEST);
                         customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
                         customerAddress.getAddress().setCity(city);
-                        CountryImpl country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                        CountryImpl country = (CountryImpl) countryService.findCountryByAbbreviation("ADD-P");
                         customerAddress.getAddress().setCountry(country);
                         updated = true;
                         break;
@@ -679,27 +676,25 @@ public class CustomerEndpoint {
                 if (!updated) {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("permanentAddress"));
-                    String stateName=districtService.findStateById(Integer.parseInt(state));
-                    if(stateName==null)
-                        return ResponseService.generateErrorResponse("Invalid State",HttpStatus.BAD_REQUEST);
-                    addressMap.put("state",stateName);
+                    String stateName = districtService.findStateById(Integer.parseInt(state));
+                    if (stateName == null)
+                        return ResponseService.generateErrorResponse("Invalid State", HttpStatus.BAD_REQUEST);
+                    addressMap.put("state", stateName);
                     addressMap.put("city", details.get("permanentCity"));
-                    String districtName=districtService.findDistrictById(Integer.parseInt(district));
-                    if(districtName==null)
-                        return ResponseService.generateErrorResponse("Invalid district",HttpStatus.BAD_REQUEST);
+                    String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                    if (districtName == null)
+                        return ResponseService.generateErrorResponse("Invalid district", HttpStatus.BAD_REQUEST);
                     addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            }else if(!flagP&&containsCount!=0)
+            } else if (!flagP && containsCount != 0)
                 errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
-            if(details.containsKey("adharNumber"))
-            {
+            if (details.containsKey("adharNumber")) {
                 String adharNumber = (String) details.get("adharNumber");
-                if(customCustomer.getAdharNumber()!=null)
-                {
-                    if(!customCustomer.getAdharNumber().equals(adharNumber)) {
+                if (customCustomer.getAdharNumber() != null) {
+                    if (!customCustomer.getAdharNumber().equals(adharNumber)) {
                         Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
@@ -708,13 +703,11 @@ public class CustomerEndpoint {
                             details.remove("adharNumber");
                         }
                     }
-                }
-                else if(customCustomer.getAdharNumber()==null)
-                {
+                } else if (customCustomer.getAdharNumber() == null) {
                     Query query = entityManager.createNativeQuery("SELECT COUNT(*) FROM custom_customer WHERE adhar_number = :adharNumber");
                     query.setParameter("adharNumber", adharNumber);
                     Integer result = ((Number) query.getSingleResult()).intValue();
-                    System.out.println("result"+result);
+                    System.out.println("result" + result);
                     if (result > 0) {
                         errorMessages.add("Aadhar number already in use!!");
                         details.remove("adharNumber");
@@ -728,7 +721,7 @@ public class CustomerEndpoint {
             details.remove("permanentPincode");
             details.remove("permanentCity");
 
-            String dateFormat= "dd-MM-yyyy";
+            String dateFormat = "dd-MM-yyyy";
             if (details.containsKey("ncc_certificate")) {
                 String nccCertificateValue = (String) details.get("ncc_certificate");
 
@@ -743,9 +736,9 @@ public class CustomerEndpoint {
                 //SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
                 // Parse the string to a Date object
-                String dob = (String)details.get("dob").toString();
+                String dob = (String) details.get("dob").toString();
                 //if (!dob.before(new Date())) {
-                    //errorMessages.add("DOB must be of past.");
+                //errorMessages.add("DOB must be of past.");
                 //}
                 customCustomer.setDob(dob);
             }
@@ -819,53 +812,41 @@ public class CustomerEndpoint {
                     if (!details.containsKey("otherOrStateCategory")) {
                         return ResponseService.generateErrorResponse("You have to enter other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    if(!details.containsKey("otherCategoryDateOfIssue"))
-                    {
+                    if (!details.containsKey("otherCategoryDateOfIssue")) {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for other or State Category", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty())
-                    {
-                        return ResponseService.generateErrorResponse("other or state Category value cannot be empty ",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("other or state Category value cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty())
-                    {
-                        return ResponseService.generateErrorResponse("otherCategory DateOfIssue cannot be empty ",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("otherCategory DateOfIssue cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("otherCategoryValidUpto"))
-                    {
-                        String validUpto= (String) details.get("otherCategoryValidUpto");
-                        if(validUpto.isEmpty())
-                        {
+                    if (details.containsKey("otherCategoryValidUpto")) {
+                        String validUpto = (String) details.get("otherCategoryValidUpto");
+                        if (validUpto.isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            isValidDate=validateDate((String) details.get("otherCategoryDateOfIssue"),null,dateFormat);
-                        }
-                        else if(validUpto.trim().isEmpty())
-                        {
+                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                        } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            validateDate((String) details.get("otherCategoryDateOfIssue"),null,dateFormat);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                        } else {
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
+                            customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"), dateFormat));
                         }
-                        else {
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
-                            customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"),dateFormat));
-                        }
-                    }
-                    else {
-                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"),dateFormat);
+                    } else {
+                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
                     }
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
-                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"),dateFormat));
+                    customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"), dateFormat));
                 } else if (isOtherCategory.equals(false)) {
-                   if(details.containsKey("otherOrStateCategory"))
-                    {
-                        return ResponseService.generateErrorResponse("otherOrStateCategory cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("otherOrStateCategory")) {
+                        return ResponseService.generateErrorResponse("otherOrStateCategory cannot be given if isOtherCategory is false", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("otherCategoryDateOfIssue"))
-                    {
-                        return ResponseService.generateErrorResponse("otherCategoryDateOfIssue key cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("otherCategoryDateOfIssue")) {
+                        return ResponseService.generateErrorResponse("otherCategoryDateOfIssue key cannot be given if isOtherCategory is false", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("otherCategoryValidUpto"))
-                    {
-                        return ResponseService.generateErrorResponse("otherCategoryValidUpto key cannot be given if isOtherCategory is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("otherCategoryValidUpto")) {
+                        return ResponseService.generateErrorResponse("otherCategoryValidUpto key cannot be given if isOtherCategory is false", HttpStatus.BAD_REQUEST);
                     }
                     customCustomer.setOtherOrStateCategory(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -889,48 +870,37 @@ public class CustomerEndpoint {
             if (details.containsKey("domicile")) {
                 Boolean domicile = (Boolean) details.get("domicile");
                 if (domicile.equals(true)) {
-                    if(!details.containsKey("domicileIssueDate"))
-                    {
+                    if (!details.containsKey("domicileIssueDate")) {
                         return ResponseService.generateErrorResponse("You have to enter date of issue for domicile", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("domicileIssueDate") && details.get("domicileIssueDate").toString().trim().isEmpty())
-                    {
-                        return ResponseService.generateErrorResponse("domicile DateOfIssue cannot be empty ",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("domicileIssueDate") && details.get("domicileIssueDate").toString().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("domicile DateOfIssue cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("domicileValidUpto"))
-                    {
-                        String validUpto= (String) details.get("domicileValidUpto");
-                        if(validUpto.isEmpty())
-                        {
+                    if (details.containsKey("domicileValidUpto")) {
+                        String validUpto = (String) details.get("domicileValidUpto");
+                        if (validUpto.isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            isValidDateDomicile=validateDate((String) details.get("domicileIssueDate"),null,dateFormat);
-                        }
-                        else if(validUpto.trim().isEmpty())
-                        {
+                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                        } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            validateDate((String) details.get("domicileIssueDate"),null,dateFormat);
+                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                        } else {
+                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
+                            customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"), dateFormat));
                         }
-                        else {
-                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"),dateFormat);
-                            customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"),dateFormat));
-                        }
+                    } else {
+                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
                     }
-                    else {
-                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"),dateFormat);
-                    }
-                    customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"),dateFormat));
+                    customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"), dateFormat));
                 } else if (domicile.equals(false)) {
-                    if(details.containsKey("domicileIssueDate"))
-                    {
-                        return ResponseService.generateErrorResponse("domicileIssueDate key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("domicileIssueDate")) {
+                        return ResponseService.generateErrorResponse("domicileIssueDate key cannot be given if domicile is false", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("domicileState"))
-                    {
-                        return ResponseService.generateErrorResponse("domicileState key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("domicileState")) {
+                        return ResponseService.generateErrorResponse("domicileState key cannot be given if domicile is false", HttpStatus.BAD_REQUEST);
                     }
-                    if(details.containsKey("domicileValidUpto"))
-                    {
-                        return ResponseService.generateErrorResponse("domicileValidUpto key cannot be given if domicile is false",HttpStatus.BAD_REQUEST);
+                    if (details.containsKey("domicileValidUpto")) {
+                        return ResponseService.generateErrorResponse("domicileValidUpto key cannot be given if domicile is false", HttpStatus.BAD_REQUEST);
                     }
                     customCustomer.setDomicileState(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -1155,13 +1125,11 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
-            if(isValidDate!=null && isValidDate.equals(true))
-            {
-                errorMessages.remove(errorMessages.size()-1);
+            if (isValidDate != null && isValidDate.equals(true)) {
+                errorMessages.remove(errorMessages.size() - 1);
             }
-            if(isValidDateDomicile!=null && isValidDateDomicile.equals(true))
-            {
-                errorMessages.remove(errorMessages.size()-1);
+            if (isValidDateDomicile != null && isValidDateDomicile.equals(true)) {
+                errorMessages.remove(errorMessages.size() - 1);
             }
             if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("List of Failed validations: " + errorMessages.toString(), HttpStatus.BAD_REQUEST);
@@ -1240,9 +1208,8 @@ public class CustomerEndpoint {
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
-            if(customCustomer.getArchived().equals(true))
-            {
-                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
+            if (customCustomer.getArchived().equals(true)) {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
             Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader);
@@ -1268,7 +1235,7 @@ public class CustomerEndpoint {
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            String dateFormat= "yyyy-MM-dd";
+            String dateFormat = "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
@@ -1515,7 +1482,7 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1530,7 +1497,7 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1573,7 +1540,7 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1750,7 +1717,7 @@ public class CustomerEndpoint {
                                 DocumentValidity documentValidity = null;
                                 if (existingDocument.getDocumentValidity() == null) {
                                     documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1765,7 +1732,7 @@ public class CustomerEndpoint {
 
                                 } else if (existingDocument.getDocumentValidity() != null) {
                                     documentValidity = existingDocument.getDocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -1809,7 +1776,7 @@ public class CustomerEndpoint {
                                 }
                                 if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
                                     DocumentValidity documentValidity = new DocumentValidity();
-                                    validateDate(dateOfIssue, validUpto,dateFormat);
+                                    validateDate(dateOfIssue, validUpto, dateFormat);
                                     documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
                                     if (validUpto == null) {
                                         documentValidity.setIs_valid_upto_na(true);
@@ -2010,18 +1977,18 @@ public class CustomerEndpoint {
                 address.setPostalCode((String) addressDetails.get("pinCode"));
                 newAddress.setAddress(address);
                 newAddress.setCustomer(customer);
-                String addressName=(String) addressDetails.get("addressName");
+                String addressName = (String) addressDetails.get("addressName");
                 newAddress.setAddressName(addressName);
-                CountryImpl country=null;
-                if(addressName.equals("CURRENT_ADDRESS"))
-                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-C");
-                else if(addressName.equals("PERMANENT_ADDRESS"))
-                    country=(CountryImpl)countryService.findCountryByAbbreviation("ADD-P");
+                CountryImpl country = null;
+                if (addressName.equals("CURRENT_ADDRESS"))
+                    country = (CountryImpl) countryService.findCountryByAbbreviation("ADD-C");
+                else if (addressName.equals("PERMANENT_ADDRESS"))
+                    country = (CountryImpl) countryService.findCountryByAbbreviation("ADD-P");
                 newAddress.getAddress().setCountry(country);
                 List<CustomerAddress> addressLists = customer.getCustomerAddresses();
                 addressLists.add(newAddress);
                 customer.setCustomerAddresses(addressLists);
-                if(!addressDetails.containsKey("inFunctionCall"))
+                if (!addressDetails.containsKey("inFunctionCall"))
                     em.merge(customer);
                 addressDetails.remove("inFunctionCall");
                 //using reflections
@@ -2049,7 +2016,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("No Records found for this ID", HttpStatus.NOT_FOUND);
 
             }
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -2334,7 +2301,7 @@ public class CustomerEndpoint {
             List<Map> results = new ArrayList<>();
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
-                if(customer.getArchived().equals(false))
+                if (customer.getArchived().equals(false))
                     results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
@@ -2355,9 +2322,8 @@ public class CustomerEndpoint {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
-            if(customCustomer.getArchived().equals(true))
-            {
-                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.",HttpStatus.FORBIDDEN);
+            if (customCustomer.getArchived().equals(true)) {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
             }
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
@@ -2375,8 +2341,7 @@ public class CustomerEndpoint {
                 primaryRef.setPrimaryRef(false);
                 entityManager.merge(primaryRef);
             }
-            if(customCustomer.getPrimaryRef()==0||(customCustomer.getRegisteredBySp()&&customCustomer.getCreatedByRole()!=4)||(customCustomer.getCreatedByRole())==5)
-            {
+            if (customCustomer.getPrimaryRef() == 0 || (customCustomer.getRegisteredBySp() && customCustomer.getCreatedByRole() != 4) || (customCustomer.getCreatedByRole()) == 5) {
                 customCustomer.setPrimaryRef(service_provider_id);
             }
             CustomerReferrer customerReferrer = new CustomerReferrer();
@@ -2427,21 +2392,21 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr,String dateFormatInString) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString) throws Exception {
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in "+dateFormatInString +" format");
+                throw new IllegalArgumentException("Date of Issue must be in " + dateFormatInString + " format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
             Date validUpto = null;
-            if (validUptoStr != null ) {
+            if (validUptoStr != null) {
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in "+dateFormatInString+" format");
+                    throw new IllegalArgumentException("Valid Upto Date must be in " + dateFormatInString + " format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
@@ -2478,24 +2443,24 @@ public class CustomerEndpoint {
         Long id = customCustomer.getId();
         return ResponseService.generateSuccessResponse("User created successfully", customCustomer, HttpStatus.CREATED);
     }
-    @Authorize(value = {Constant.roleAdmin,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin,Constant.roleServiceProvider})
+
+    @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?>filterCustomer(@RequestParam(required = false) String name,@RequestParam(required = false) Long refreeId,@RequestParam(required = false) Integer stateId ,@RequestParam(required = false) Integer districtId,@RequestParam(required = false) Integer qualificationType,@RequestParam(required = false) String username,@RequestParam(required = false)Boolean completed,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit,@RequestParam(required = false,defaultValue = "ASC")String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
         try {
-            if(!sort.equals("DESC")&&!sort.equals("ASC"))
-                return ResponseService.generateErrorResponse("Invalid sort filter",HttpStatus.BAD_REQUEST);
-            Long refereeId=refreeId;
+            if (!sort.equals("DESC") && !sort.equals("ASC"))
+                return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
+            Long refereeId = ref;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider))
-            {
-                if(refereeId==null)
-                    refereeId=tokenUserId;
-                else if(refreeId!=null)
-                    return ResponseService.generateErrorResponse("Invalid search filter selected",HttpStatus.BAD_REQUEST);
+            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
+                if (refereeId == null)
+                    refereeId = tokenUserId;
+                else if (ref != null)
+                    return ResponseService.generateErrorResponse("Invalid search filter selected", HttpStatus.BAD_REQUEST);
             }
 /*            if(name!=null&&!sharedUtilityService.isAlphabetic(name))
                 return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
@@ -2512,7 +2477,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
             }
             if (qualificationType != null) {
-                if( qualificationService.getQualificationByQualificationId(qualificationType)==null)
+                if (qualificationService.getQualificationByQualificationId(qualificationType) == null)
                     return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
                 qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
 
@@ -2524,15 +2489,15 @@ public class CustomerEndpoint {
                 if (names[1] != null)
                     lastName = names[1];
             }
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit,sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName,username,completed,authHeader,page,limit,sort);
-           Set<BigInteger> uniqueResults = new HashSet<>();
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName, username, completed, authHeader, page, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName, username, completed, authHeader, page, limit, sort);
+            Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
             uniqueResults.addAll(resultSet1);
             uniqueResults.addAll(resultSet2);
             List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
-           System.out.println(uniqueResultList.size());
+            System.out.println(uniqueResultList.size());
 // Convert the Set back to a List
             List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
             Map<Integer, Integer> Qualificationorder = new HashMap<>();
@@ -2544,172 +2509,158 @@ public class CustomerEndpoint {
             Qualificationorder.put(4, 6);
             Qualificationorder.put(5, 7);
             for (BigInteger id : uniqueResultList) {
-                Customer customer=null;
+                Customer customer = null;
                 try {
-                     customer= customerService.readCustomerById(id.longValue());
-                }catch (Exception e)
-                {
+                    customer = customerService.readCustomerById(id.longValue());
+                } catch (Exception e) {
                     continue;
                 }
-                if(customer!=null)
-                {
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
+                if (customer != null) {
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
 
-                String state=null;
-                String primaryRefName=null;
-                Long primaryRefId=null;
-                if(customCustomer!=null) {
-                    CustomerBasicDetailsDto customerBasicDetailsDto=new CustomerBasicDetailsDto();
-                    if(stateName!=null)
-                        customerBasicDetailsDto.setState(stateName);
-                    else {
+                    String state = null;
+                    String primaryRefName = null;
+                    Long primaryRefId = null;
+                    if (customCustomer != null) {
+                        CustomerBasicDetailsDto customerBasicDetailsDto = new CustomerBasicDetailsDto();
+                        if (stateName != null)
+                            customerBasicDetailsDto.setState(stateName);
+                        else {
 
-                        for(CustomerAddress customerAddress:customer.getCustomerAddresses())
-                        {
-                            if(customerAddress.getAddressName().equals("PERMANENT_ADDRESS"))
-                                state=customerAddress.getAddress().getStateProvinceRegion();
-                        }
-                        customerBasicDetailsDto.setState(state);
-                    }
-                    customerBasicDetailsDto.setCustomerId(id.longValue());
-                    customerBasicDetailsDto.setEmail(customer.getEmailAddress());
-                    customerBasicDetailsDto.setFullName(customer.getFirstName()+" "+customer.getLastName());
-                    customerBasicDetailsDto.setGender(customCustomer.getGender());
-                    customerBasicDetailsDto.setUsername(customer.getUsername());
-
-                    if(refereeId!=null)
-                    {
-                        if(customCustomer.getPrimaryRef()!=0&&customCustomer.getPrimaryRef().equals(refereeId)) {
-                            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
-                            if (serviceProvider != null) {
-                                primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
-                                primaryRefId = serviceProvider.getService_provider_id();
+                            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS"))
+                                    state = customerAddress.getAddress().getStateProvinceRegion();
                             }
+                            customerBasicDetailsDto.setState(state);
                         }
+                        customerBasicDetailsDto.setCustomerId(id.longValue());
+                        customerBasicDetailsDto.setEmail(customer.getEmailAddress());
+                        customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
+                        customerBasicDetailsDto.setGender(customCustomer.getGender());
+                        customerBasicDetailsDto.setUsername(customer.getUsername());
+
+                        if (refereeId != null) {
+                            if (customCustomer.getPrimaryRef() != 0 && customCustomer.getPrimaryRef().equals(refereeId)) {
+                                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
+                                if (serviceProvider != null) {
+                                    primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
+                                    primaryRefId = serviceProvider.getService_provider_id();
+                                }
+                            } else
+                                continue;
+                        }
+                        Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
+                        if (age != -1)
+                            customerBasicDetailsDto.setAge(age);
+                        List<QualificationDetails> qualifications = customCustomer.getQualificationDetailsList();
+                        int max = 0;
+                        if (!qualifications.isEmpty()) {
+                            for (QualificationDetails qualificationDetails : qualifications) {
+                                System.out.println(qualificationDetails.getQualification_id());
+                                if (Qualificationorder.get(qualificationDetails.getQualification_id()) > max) {
+                                    customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
+                                    max = Qualificationorder.get(qualificationDetails.getQualification_id());
+                                }
+                            }
+                            if (qualificationType != null && max != 0 && !qualificationName.equals(customerBasicDetailsDto.getHighestQualification())) {
+                                continue;
+                            }
+                            if (max == 0)
+                                customerBasicDetailsDto.setHighestQualification(null);
+                        }
+                        customerBasicDetailsDto.setPrimaryRef(primaryRefName);
+                        customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
+                        if (!customCustomer.getHidePhoneNumber())
+                            customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
                         else
-                            continue;
+                            customerBasicDetailsDto.setPhone(null);
+                        customerList.add(customerBasicDetailsDto);
                     }
-                        Integer age= sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
-                    if(age!=-1)
-                        customerBasicDetailsDto.setAge(age);
-                    List<QualificationDetails>qualifications=customCustomer.getQualificationDetailsList();
-                    int max=0;
-                    if(!qualifications.isEmpty()) {
-                        for (QualificationDetails qualificationDetails : qualifications) {
-                            System.out.println(qualificationDetails.getQualification_id());
-                            if (Qualificationorder.get(qualificationDetails.getQualification_id()) > max) {
-                                customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
-                                max = Qualificationorder.get(qualificationDetails.getQualification_id());
-                            }
-                        }
-                        if(qualificationType!=null&&max!=0&&!qualificationName.equals(customerBasicDetailsDto.getHighestQualification()))
-                        {
-                            continue;
-                        }
-                        if (max == 0)
-                            customerBasicDetailsDto.setHighestQualification(null);
-                    }
-                    customerBasicDetailsDto.setPrimaryRef(primaryRefName);
-                    customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
-                    if(!customCustomer.getHidePhoneNumber())
-                        customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
-                    else
-                        customerBasicDetailsDto.setPhone(null);
-                    customerList.add(customerBasicDetailsDto);
-                }}
+                }
             }
-            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList,page,limit), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }
     }
+
     @Transactional
     @PutMapping("manage-user")
-    public ResponseEntity<?>activateOrSuspendUser(@RequestBody Map<String,Object>map,@RequestParam String action,@RequestHeader(name = "Authorization")String authHeader) throws Exception {
+    public ResponseEntity<?> activateOrSuspendUser(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
         //extracting info from jwt token
-        int actionCount=0,successCount=0;
+        int actionCount = 0, successCount = 0;
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-        List<Long>ids=getLongList(map,"customerIds");
-        Map<Long,String>skippedIds=new HashMap<>();
-        List<Long>actionedIds=new ArrayList<>();
-        String actionReq=null;
-        if(!action.equals(Constant.ACTION_SUSPEND)&&!action.equals(Constant.ACTION_ACTIVATE))
-        {
-            return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
+        List<Long> ids = getLongList(map, "customerIds");
+        Map<Long, String> skippedIds = new HashMap<>();
+        List<Long> actionedIds = new ArrayList<>();
+        String actionReq = null;
+        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
+            return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
-        if(action.equals("suspend"))
-            actionReq=action+"ed";
+        if (action.equals("suspend"))
+            actionReq = action + "ed";
         else
-            actionReq=action+"d";
-        for(Long customerId:ids)
-        {
-        CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-        //checking permissions
-        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)) {
-            skippedIds.put(customerId, "Action not Authorized");
-            continue;
-        }
-        if(customCustomer==null) {
-            skippedIds.put(customerId, "Customer Not Found");
-            continue;
-        }
-        if(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)||(roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleAdminServiceProvider)))
-        {
-            //query to check mapping
-            ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,tokenUserId);
-            Query query=entityManager.createNativeQuery("Select count(*) from customer_referrer where service_provider_id =:spId and customer_id = :customerId");
-            query.setParameter("spId",tokenUserId);
-            query.setParameter("customerId",customerId);
-            BigInteger count = (BigInteger) query.getSingleResult();
-            if(count.intValue()==0) {
-                skippedIds.put(customerId, "Unauthorized to suspend users not referred by you");
+            actionReq = action + "d";
+        for (Long customerId : ids) {
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            //checking permissions
+            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)) {
+                skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
-        }
-        //checking valid permissions
-        if(action.equals(Constant.ACTION_SUSPEND))
-        {
-            if(customCustomer.getArchived().equals(true)) {
-                skippedIds.put(customerId, "User Already Suspended");
-                ++actionCount;
+            if (customCustomer == null) {
+                skippedIds.put(customerId, "Customer Not Found");
                 continue;
             }
-            customCustomer.setArchived(true);
-        }
-        else
-        {
-            if(customCustomer.getArchived().equals(false)) {
-                skippedIds.put(customerId, "User Already Activate");
-                ++actionCount;
-                continue;
+            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider) || (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleAdminServiceProvider))) {
+                //query to check mapping
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
+                Query query = entityManager.createNativeQuery("Select count(*) from customer_referrer where service_provider_id =:spId and customer_id = :customerId");
+                query.setParameter("spId", tokenUserId);
+                query.setParameter("customerId", customerId);
+                BigInteger count = (BigInteger) query.getSingleResult();
+                if (count.intValue() == 0) {
+                    skippedIds.put(customerId, "Unauthorized to suspend users not referred by you");
+                    continue;
+                }
             }
-            customCustomer.setArchived(false);
+            //checking valid permissions
+            if (action.equals(Constant.ACTION_SUSPEND)) {
+                if (customCustomer.getArchived().equals(true)) {
+                    skippedIds.put(customerId, "User Already Suspended");
+                    ++actionCount;
+                    continue;
+                }
+                customCustomer.setArchived(true);
+            } else {
+                if (customCustomer.getArchived().equals(false)) {
+                    skippedIds.put(customerId, "User Already Activate");
+                    ++actionCount;
+                    continue;
+                }
+                customCustomer.setArchived(false);
+            }
+            customCustomer.setArchivedByRole(roleId);
+            customCustomer.setArchivedById(tokenUserId);
+            actionedIds.add(customerId);
+            ++successCount;
+            entityManager.merge(customCustomer);
         }
-        customCustomer.setArchivedByRole(roleId);
-        customCustomer.setArchivedById(tokenUserId);
-        actionedIds.add(customerId);
-        ++successCount;
-        entityManager.merge(customCustomer);
-    }
-        Map<String,Object>response=new HashMap<>();
-        if(skippedIds.isEmpty())
-        {
-            response.put(actionReq +"Ids",actionedIds);
-            return ResponseService.generateSuccessResponse("Selected Accounts "+actionReq+" successfully",response,HttpStatus.OK);
-        }
-        else if(actionedIds.isEmpty())
-        {
-            response.put(actionReq+" Ids:",actionedIds);
+        Map<String, Object> response = new HashMap<>();
+        if (skippedIds.isEmpty()) {
+            response.put(actionReq + "Ids", actionedIds);
+            return ResponseService.generateSuccessResponse("Selected Accounts " + actionReq + " successfully", response, HttpStatus.OK);
+        } else if (actionedIds.isEmpty()) {
+            response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Unable to "+action, response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.OK);
+        } else {
+            response.put(actionReq + " Ids:", actionedIds);
+            response.put("Skipped Ids:", skippedIds);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
-        else
-        {
-                response.put(actionReq + " Ids:", actionedIds);
-                response.put("Skipped Ids:", skippedIds);
-                return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
-            }
-        }
+    }
 }
+
