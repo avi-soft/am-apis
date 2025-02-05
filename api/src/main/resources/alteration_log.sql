@@ -1,4 +1,6 @@
 DO $$
+DECLARE
+    column_type TEXT;
 BEGIN
 --    -- SIMRAN - 7 JAN 2025
 --    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'custom_product' AND COLUMN_NAME = 'qualification_id') THEN
@@ -111,4 +113,45 @@ BEGIN
         ALTER COLUMN meta_desc TYPE TEXT;
     END IF;
 -- SIMRAN - 23-JAN-2025
+
+
+    -- Convert height_cms if necessary
+    SELECT data_type INTO column_type
+    FROM information_schema.columns
+    WHERE table_name = 'custom_customer' AND column_name = 'height_cms';
+    IF column_type IS DISTINCT FROM 'double precision' THEN
+        ALTER TABLE custom_customer ALTER COLUMN height_cms TYPE DOUBLE PRECISION USING height_cms::DOUBLE PRECISION;
+    END IF;
+
+    -- Convert weight_kgs if necessary
+    SELECT data_type INTO column_type
+    FROM information_schema.columns
+    WHERE table_name = 'custom_customer' AND column_name = 'weight_kgs';
+    IF column_type IS DISTINCT FROM 'double precision' THEN
+        ALTER TABLE custom_customer ALTER COLUMN weight_kgs TYPE DOUBLE PRECISION USING weight_kgs::DOUBLE PRECISION;
+    END IF;
+
+    -- Convert chest_size_cms if necessary
+    SELECT data_type INTO column_type
+    FROM information_schema.columns
+    WHERE table_name = 'custom_customer' AND column_name = 'chest_size_cms';
+    IF column_type IS DISTINCT FROM 'double precision' THEN
+        ALTER TABLE custom_customer ALTER COLUMN chest_size_cms TYPE DOUBLE PRECISION USING chest_size_cms::DOUBLE PRECISION;
+    END IF;
+
+    -- Convert shoe_size_inches if necessary
+    SELECT data_type INTO column_type
+    FROM information_schema.columns
+    WHERE table_name = 'custom_customer' AND column_name = 'shoe_size_inches';
+    IF column_type IS DISTINCT FROM 'double precision' THEN
+        ALTER TABLE custom_customer ALTER COLUMN shoe_size_inches TYPE DOUBLE PRECISION USING shoe_size_inches::DOUBLE PRECISION;
+    END IF;
+
+    -- Convert waist_size_cms if necessary
+    SELECT data_type INTO column_type
+    FROM information_schema.columns
+    WHERE table_name = 'custom_customer' AND column_name = 'waist_size_cms';
+    IF column_type IS DISTINCT FROM 'double precision' THEN
+        ALTER TABLE custom_customer ALTER COLUMN waist_size_cms TYPE DOUBLE PRECISION USING waist_size_cms::DOUBLE PRECISION;
+    END IF;
 END $$;
