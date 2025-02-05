@@ -5,7 +5,9 @@ import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -31,6 +33,7 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -39,6 +42,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
+import java.util.Iterator;
 import java.util.List;
 
 @Entity
@@ -163,5 +167,9 @@ public class QualificationDetails {
         this.institution = new Institution();
         this.institution.setInstitution_id(institutionId);
     }
+    @ElementCollection
+    @CollectionTable(name = "other_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "other_subject_name")
+    List<String> otherSubjects=new ArrayList<>();
 
 }
