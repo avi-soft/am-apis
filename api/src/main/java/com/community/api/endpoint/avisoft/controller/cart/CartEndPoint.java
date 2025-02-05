@@ -251,7 +251,7 @@ public class CartEndPoint extends BaseEndpoint {
             }
             CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
             List<Long>postPreference=getLongList(map,"postPreference");
-            if(postPreference.isEmpty()&&customProduct.getPosts().size()>=1)
+            if(postPreference.isEmpty()&&customProduct.getPosts().size()>1)
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
             if(reserveCategoryId==null)
