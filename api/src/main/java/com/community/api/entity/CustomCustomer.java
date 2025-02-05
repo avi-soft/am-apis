@@ -95,23 +95,23 @@ public class CustomCustomer extends CustomerImpl {
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
-    private Integer heightCms; // Integer type for numeric validation
+    private Double heightCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "weight_kgs")
-    private Integer weightKgs; // Integer type for numeric validation
+    private Double weightKgs; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "chest_size_cms")
-    private Integer chestSizeCms; // Integer type for numeric validation
+    private Double chestSizeCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "shoe_size_inches")
-    private Integer shoeSizeInches; // Integer type for numeric validation
+    private Double shoeSizeInches; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "waist_size_cms")
-    private Integer waistSizeCms; // Integer type for numeric validation
+    private Double waistSizeCms; // Integer type for numeric validation
     @Nullable
     @Column(name = "can_swim")
     private Boolean canSwim; // Yes/No
