@@ -96,6 +96,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
@@ -2578,6 +2580,10 @@ public class CustomerEndpoint {
                     }
                 }
             }
+            if(sort.equals("ASC"))
+                customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
+            else
+                customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
             return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
         } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
