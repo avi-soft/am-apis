@@ -1459,7 +1459,9 @@ IF NOT EXISTS (SELECT 1 FROM qualification) THEN
         (56, 'MHMCT', 'Master of Hotel Management and Catering Technology', FALSE, TRUE),
         (57, 'MSW', 'Master of Social Work', FALSE, TRUE),
         (58, 'M.Des', 'Master of Design in Fashion', FALSE, TRUE),
-        (59, 'MJMC', 'Master of Journalism and Mass Communication', FALSE, TRUE);
+        (59, 'MJMC', 'Master of Journalism and Mass Communication', FALSE, TRUE),
+
+        (60, 'Others', 'Others', FALSE, TRUE);
 END IF;
 
     -- Mapping for INTERMEDIATE/12th (qualification_id: 2)
@@ -1618,13 +1620,26 @@ IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
         FROM custom_stream
         WHERE stream_id BETWEEN 122 AND 141;
 
-        INSERT INTO qualification_stream (qualification_id, stream_id)
+--        INSERT INTO qualification_stream (qualification_id, stream_id)
+--        SELECT q.qualification_id, cs.stream_id
+--        FROM qualification q
+--        CROSS JOIN custom_stream cs
+--        WHERE cs.stream_id IN (215, 216)  -- 215 for 'NA' and 216 for 'Others'
+--        AND q.qualification_id BETWEEN 1 AND 60;
+
+INSERT INTO qualification_stream (qualification_id, stream_id)
         SELECT q.qualification_id, cs.stream_id
         FROM qualification q
         CROSS JOIN custom_stream cs
-        WHERE cs.stream_id IN (215, 216)  -- 215 for 'NA' and 216 for 'Others'
-        AND q.qualification_id BETWEEN 1 AND 59;
+        WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
+        AND q.qualification_id BETWEEN 1 AND 60;
 
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT q.qualification_id, cs.stream_id
+                FROM qualification q
+                CROSS JOIN custom_stream cs
+                WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
+                AND q.qualification_id=60;
     END IF;
 
       INSERT INTO stream_subject (stream_id, subject_id)
@@ -1649,8 +1664,14 @@ IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
           (3, 4), (3, 53), (3, 23), (3, 51), (3, 12), (3, 26), (3, 35), (3, 20), (3, 1),
           (3, 34), (3, 36), (3, 46), (3, 48), (3, 49), (3, 50), (3, 37), (3, 41), (3, 39),
 
+--Mapping for Others Streams
+          (215,1),(215,2),(215,3),(215,4),(215,5),(215,6),(215,7),(215,8),(215,9),(215,10),(215,11),(215,12),(215,13),(215,14),(215,15),
+          (215,16),(215,17),(215,18),(215,19),(215,20),(215,21),(215,22),(215,23),(215,24),(215,25),(215,26),(215,27),(215,28),(215,29),(215,30),(215,31)
+          ,(215,32),(215,33),(215,34),(215,35),(215,36),(215,37),(215,38),(215,39),(215,40),(215,41),(215,42),(215,43),(215,44),(215,45),(215,46)
+          ,(215,47),(215,48),(215,49),(215,50),(215,51),(215,52),(215,53),
           -- Others with all
-          (0, 54), (1, 54), (2, 54), (3, 54)
+          (0, 54), (1, 54), (2, 54), (3, 54),(215,54)
+
       ) AS tmp(stream_id, subject_id)
       WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
       ON CONFLICT DO NOTHING;
