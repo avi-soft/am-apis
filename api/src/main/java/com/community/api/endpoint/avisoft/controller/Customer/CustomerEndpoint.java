@@ -2655,7 +2655,7 @@ public class CustomerEndpoint {
             }
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
-            customCustomer.setToken(null);
+            logout(customCustomer.getToken());
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);
