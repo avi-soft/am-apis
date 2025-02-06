@@ -38,4 +38,7 @@ public class CreateTicketDto {
 
     @JsonProperty("comment")
     private String comment;
+
+    @JsonProperty("task")
+    private String task;
 }
