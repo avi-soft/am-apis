@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String requestURI = request.getRequestURI();
 
-            if(!isUnsecuredUri(requestURI)) {
+            if(!isUnsecuredUri(requestURI)&&isApiKeyRequiredUri(request)) {
                 String token = request.getHeader("Authorization");
                 token = token.trim();
                 String jwtToken = token.substring(7);
