@@ -126,7 +126,7 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
-    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,Boolean completed,String authHeader,int page,int limit)  {
+    public List<BigInteger> filterCustomer(Long service_provider_id,String first_name,String last_name,String sub_state_prov_reg,String county,String qualification_name,String username,Boolean completed,String authHeader,int page,int limit,String sort)  {
             List<Map<String, Object>> response = new ArrayList<>();
         int startPosition = page * limit;
         String jwtToken = authHeader.substring(7);
@@ -177,7 +177,7 @@ public class CustomCustomerService {
         {
             generalizedQuery=generalizedQuery+aliasQuery.get("completed");
         }
-        generalizedQuery=generalizedQuery+"WHERE ";
+        generalizedQuery=generalizedQuery+" WHERE ";
         String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","qualification_name","completed"};
         Object[] fields = {sub_state_prov_reg, county, first_name, last_name, service_provider_id,qualification_name,completed};
         for (int i = 0; i < fields.length; i++) {
@@ -199,7 +199,7 @@ public class CustomCustomerService {
         System.out.println(generalizedQuery);
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
-        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
+        generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex)+" ORDER by cust.customer_id "+sort;
         System.out.println(generalizedQuery);
         Query query;
         query = em.createNativeQuery(generalizedQuery);
@@ -210,8 +210,8 @@ public class CustomCustomerService {
                 query.setParameter(fieldsNames[i], fields[i]);
             }
         }
-        query.setFirstResult(startPosition);
-        query.setMaxResults(limit);
+     /*   query.setFirstResult(startPosition);
+        query.setMaxResults(limit);*/
         List<BigInteger>resultList=query.getResultList();
         return resultList;
     }

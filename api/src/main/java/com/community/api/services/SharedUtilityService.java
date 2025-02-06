@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -22,12 +23,23 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -1071,6 +1083,33 @@ public class SharedUtilityService {
         String lastName = fullName.substring(lastSpaceIndex + 1);
         return new String[]{firstName, lastName};
     }
+    public  List<CustomerBasicDetailsDto> getPaginatedList(List<CustomerBasicDetailsDto> fullList, int page, int pageSize) {
+        int fromIndex = (page) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize,fullList.size());
+
+        if (fromIndex >= fullList.size()) {
+            return List.of(); // Return empty list if page is out of bounds
+        }
+
+        return fullList.subList(fromIndex, toIndex);
+    }
+    public int calculateAge(String birthDateString) {
+        if (birthDateString == null || birthDateString.isEmpty()) {
+            return -1;  // Handle null/empty case
+        }
+
+        try {
+            // Attempt to parse the date using the given format
+            LocalDate birthDate = LocalDate.parse(birthDateString, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+
+            // Return age in years
+            return Period.between(birthDate, LocalDate.now()).getYears();
+        } catch (DateTimeParseException e) {
+            // If the format is incorrect or parsing fails, return -1
+            return -1;
+        }
+    }
+
 }
 
 

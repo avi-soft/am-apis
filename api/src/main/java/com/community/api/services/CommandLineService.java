@@ -2,6 +2,8 @@ package com.community.api.services;
 
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
@@ -16,7 +18,7 @@ import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 @Component
-public class CommandLineService implements CommandLineRunner {
+    public class CommandLineService implements ApplicationRunner {
 
     @Autowired
     private EntityManager entityManager;
@@ -38,7 +40,7 @@ public class CommandLineService implements CommandLineRunner {
 
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
+    public void run(ApplicationArguments args) throws Exception {
         try{
             System.out.println("insertion start");
             String scriptPathForInsertion = "insertion_log.sql";
@@ -60,4 +62,5 @@ public class CommandLineService implements CommandLineRunner {
             exceptionHandlingService.handleException(exception);
         }
     }
+
 }
