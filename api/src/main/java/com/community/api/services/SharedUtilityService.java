@@ -1224,6 +1224,7 @@ public class SharedUtilityService {
         boolean isNcc=false;
         boolean isNss=false;
         boolean isSports=false;
+        boolean isQualification=false;
         if(documents==null)
         {
             throw new IllegalArgumentException("Aadhaar card , Photograph, Signature is necessary to upload");
@@ -1309,6 +1310,24 @@ public class SharedUtilityService {
                 {
                     isSports=true;
                 }
+            }
+
+            //get all qualifications of customer
+            List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
+            if(qualificationDetails!=null && !qualificationDetails.isEmpty())
+            {
+                if(customCustomer.getDocuments()==null)
+                {
+                    throw new IllegalArgumentException("Upload all the Qualification documents for Qualification which is filled by you");
+                }
+                if(customCustomer.getDocuments()!=null)
+                {
+                    if(customCustomer.getDocuments().size()<customCustomer.getQualificationDetailsList().size())
+                    {
+                        throw new IllegalArgumentException("Upload all the Qualification documents for Qualification which is filled by you");
+                    }
+                }
+                isQualification=true;
             }
 
         }
@@ -1397,6 +1416,14 @@ public class SharedUtilityService {
                 documentsNotUploaded.add("Sports certificate");
             }
         }
+        if(customCustomer.getQualificationDetailsList()!=null && !customCustomer.getQualificationDetailsList().isEmpty())
+        {
+            if(!isQualification)
+            {
+                documentsNotUploaded.add("Qualification certificates");
+            }
+        }
+
         if(!documentsNotUploaded.isEmpty())
         {
             String ans="";
@@ -1406,6 +1433,7 @@ public class SharedUtilityService {
             }
             throw new IllegalArgumentException("In document upload section, "+ans+ " is not uploaded");
         }
+
 
         return true;
     }
