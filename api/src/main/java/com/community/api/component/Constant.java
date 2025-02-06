@@ -220,10 +220,12 @@ public class Constant {
     public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
     public static final String BEARER_CONST= "Bearer ";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE_FOR_QUALIFICATION = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
+    public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId";
     public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId";
     public static final String GET_ALL_ZONES="SELECT z FROM Zone z";

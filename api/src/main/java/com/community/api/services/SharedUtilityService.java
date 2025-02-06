@@ -1119,10 +1119,12 @@ public class SharedUtilityService {
         List<CustomerAddress> addresses=customCustomer.getCustomerAddresses();
         if(addresses==null || addresses.isEmpty())
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Address cannot be null or empty");
         }
         if(addresses.size()<2)
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("Both current as well as Permanent address should be provided");
         }
        for(CustomerAddress customerAddress: addresses)
@@ -1140,22 +1142,27 @@ public class SharedUtilityService {
                {
                if(customerAddress.getAddress().getAddressLine1()==null || (customerAddress.getAddress().getAddressLine1()!=null && customerAddress.getAddress().getAddressLine1().trim().isEmpty()))
                {
+                   customCustomer.setProfileComplete(false);
                    throw new IllegalArgumentException("In Contact Details, "+ addressName+ " cannot be null or empty");
                }
                if(customerAddress.getAddress().getCity()==null || (customerAddress.getAddress().getCity()!=null && customerAddress.getAddress().getCity().trim().isEmpty()))
                {
+                   customCustomer.setProfileComplete(false);
                    throw new IllegalArgumentException("In Contact Details, City cannot be null or empty in "+ addressName);
                }
                if(customerAddress.getAddress().getCounty()==null || (customerAddress.getAddress().getCounty()!=null && customerAddress.getAddress().getCounty().trim().isEmpty()))
                {
+                   customCustomer.setProfileComplete(false);
                    throw new IllegalArgumentException("In Contact Details, District cannot be null or empty in "+ addressName);
                }
                if(customerAddress.getAddress().getStateProvinceRegion()==null || (customerAddress.getAddress().getStateProvinceRegion()!=null && customerAddress.getAddress().getStateProvinceRegion().trim().isEmpty()))
                {
+                   customCustomer.setProfileComplete(false);
                    throw new IllegalArgumentException("In Contact Details, State cannot be null or empty in "+ addressName);
                }
                if(customerAddress.getAddress().getPostalCode()==null || (customerAddress.getAddress().getPostalCode()!=null && customerAddress.getAddress().getPostalCode().trim().isEmpty()))
                {
+                   customCustomer.setProfileComplete(false);
                    throw new IllegalArgumentException("In Contact Details, Pin code cannot be null or empty in "+ addressName);
                }
            }
@@ -1163,22 +1170,27 @@ public class SharedUtilityService {
        }
         if(customCustomer.getMobileNumber()==null || (customCustomer.getMobileNumber()!=null &&customCustomer.getMobileNumber().trim().isEmpty()))
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Primary mobile number cannot be null or empty");
         }
         if(customCustomer.getSecondaryMobileNumber()==null || (customCustomer.getSecondaryMobileNumber()!=null &&customCustomer.getSecondaryMobileNumber().trim().isEmpty()))
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Secondary mobile number cannot be null or empty");
         }
         if(customCustomer.getWhatsappNumber()==null || (customCustomer.getWhatsappNumber()!=null &&customCustomer.getWhatsappNumber().trim().isEmpty()))
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Whatsapp number cannot be null or empty");
         }
         if(customCustomer.getEmailAddress()==null || (customCustomer.getEmailAddress()!=null &&customCustomer.getEmailAddress().trim().isEmpty()))
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Primary Email address cannot be null or empty");
         }
         if(customCustomer.getSecondaryEmail()==null || (customCustomer.getSecondaryEmail()!=null &&customCustomer.getSecondaryEmail().trim().isEmpty()))
         {
+            customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Secondary Email address cannot be null or empty");
         }
         return true;
@@ -1186,26 +1198,20 @@ public class SharedUtilityService {
 
     public boolean validateCustomerPersonalDetails(CustomCustomer customCustomer)
     {
-        int isAllFieldsAreEmpty=0;
-        String messageString="";
         if(customCustomer.getFirstName()==null || (customCustomer.getFirstName()!=null &&customCustomer.getFirstName().trim().isEmpty()))
         {
-            messageString=messageString+"First Name ,";
             throw new IllegalArgumentException("In Personal Details, First name cannot be null or empty");
         }
         if(customCustomer.getLastName()==null || (customCustomer.getLastName()!=null &&customCustomer.getLastName().trim().isEmpty()))
         {
-            messageString=messageString+"Last Name ,";
             throw new IllegalArgumentException("In Personal Details, Last name cannot be null or empty");
         }
         if(customCustomer.getFathersName()==null || (customCustomer.getFathersName()!=null &&customCustomer.getFathersName().trim().isEmpty()))
         {
-            messageString=messageString+"Father's Name ,";
             throw new IllegalArgumentException("In Personal Details, Father's name cannot be null or empty");
         }
         if(customCustomer.getMothersName()==null || (customCustomer.getMothersName()!=null &&customCustomer.getMothersName().trim().isEmpty()))
         {
-            messageString=messageString+"Mother's Name ,";
             throw new IllegalArgumentException("In Personal Details, Mother's name cannot be null or empty");
         }
         if(customCustomer.getAdharNumber()==null || (customCustomer.getAdharNumber()!=null &&customCustomer.getAdharNumber().trim().isEmpty()))
@@ -1382,14 +1388,17 @@ public class SharedUtilityService {
         boolean isCategoryCertificate=false;
         boolean isPersonalPhoto=false;
         boolean isSignature=false;
+        boolean isRightThumb=false;
+        boolean isLeftThumb=false;
         boolean isNcc=false;
         boolean isNss=false;
         boolean isSports=false;
         boolean isQualification=false;
         if(documents==null)
         {
-            throw new IllegalArgumentException("Aadhaar card , Photograph, Signature is necessary to upload");
+            throw new IllegalArgumentException("Aadhaar card- Front and Back , Personal Photograph, Signature,Live Passport size photograph, left thumb and right thumb impressions is necessary to upload");
         }
+        int countQualificationDocuments=0;
         for(Document document: documents)
         {
             if(document.getDocumentType().getDocument_type_id().equals(3)&& !document.getIsArchived())
@@ -1415,6 +1424,13 @@ public class SharedUtilityService {
             if(document.getDocumentType().getDocument_type_id().equals(4)&& !document.getIsArchived())
             {
                 isSignature=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(25)&& !document.getIsArchived())
+            {
+                isLeftThumb=true;
+            } if(document.getDocumentType().getDocument_type_id().equals(26)&& !document.getIsArchived())
+            {
+                isRightThumb=true;
             }
             if(customCustomer.getBelongsToMinority().equals(true))
             {
@@ -1479,7 +1495,6 @@ public class SharedUtilityService {
             {
                 if(customCustomer.getDocuments()!=null)
                 {
-                    int countQualificationDocuments=0;
                     if(document.getDocumentType().getDocument_type_id().equals(12) && document.getIsArchived().equals(false))
                     {
                         countQualificationDocuments++;
@@ -1515,6 +1530,12 @@ public class SharedUtilityService {
         if(!isAadharCardBackUploaded)
         {
             documentsNotUploaded.add("Back Aadhaar card");
+        } if(!isRightThumb)
+        {
+            documentsNotUploaded.add("Right Thumb impression");
+        } if(!isLeftThumb)
+        {
+            documentsNotUploaded.add("Left Thumb impression");
         }
         if(!isCategoryCertificate)
         {
@@ -1594,8 +1615,6 @@ public class SharedUtilityService {
             }
             throw new IllegalArgumentException("In document upload section, "+ans+ " is not uploaded");
         }
-
-
         return true;
     }
 

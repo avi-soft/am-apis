@@ -2299,11 +2299,27 @@ public class CustomerEndpoint {
             {
                 throw new IllegalArgumentException("Customer with id "+ customerId+ " not found");
             }
-            sharedUtilityService.validateCustomerPersonalDetails(customCustomer);
-            sharedUtilityService.validateCustomerContactDetails(customCustomer);
-            sharedUtilityService.validatePhysicalDetails(customCustomer);
-            sharedUtilityService.validateMiscellaniousDetails(customCustomer);
-            sharedUtilityService.validateDocumentsDetails(customCustomer);
+            if(!sharedUtilityService.validateCustomerPersonalDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateCustomerContactDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validatePhysicalDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateMiscellaniousDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateDocumentsDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            customCustomer.setProfileComplete(true);
             return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader), HttpStatus.OK);
         }
         catch (NumberFormatException e) {
