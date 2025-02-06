@@ -650,6 +650,8 @@ public class SharedUtilityService {
                     qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
                     qualificationInfo.put("is_division",qualificationDetail.getIs_division());
                     qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
+                    qualificationInfo.put("highest_qualification_subject_names",qualificationDetail.getHighest_qualification_subject_names());
+                    qualificationInfo.put("course_duration_in_months",qualificationDetail.getCourse_duration_in_months());
 
                     qualificationInfo.put("qualification_name", qualificationName);
                     qualificationInfo.put("board_university_name", boardUniversityName);
@@ -729,7 +731,7 @@ public class SharedUtilityService {
                     }
 
                     qualificationInfo.put("subject_details", subjectDetails);
-
+                    qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
 
                     Map<String, Object> filteredDocument = null;
                     Document document= qualificationDetail.getQualificationDocument();
@@ -771,7 +773,7 @@ public class SharedUtilityService {
                         Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
                                 .filter(otherItem ->
                                         otherItem.getField_name().equalsIgnoreCase("qualification_name") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
+                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getService_provider().getService_provider_id()))
                                 .findFirst();
                         if (otherItemOpt.isPresent()) {
                             qualificationName = otherItemOpt.get().getTyped_text();
@@ -811,7 +813,7 @@ public class SharedUtilityService {
                         Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
                                 .filter(otherItem ->
                                         otherItem.getField_name().equalsIgnoreCase("stream") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
+                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getService_provider().getService_provider_id()))
                                 .findFirst();
                         if (otherItemOpt.isPresent()) {
                             streamName = otherItemOpt.get().getTyped_text();
@@ -820,7 +822,7 @@ public class SharedUtilityService {
 
                     if (streamName == null) {
                         // Use the stream name if no valid entry in `otherItems` is found
-                        streamName = stream != null ? stream.getStreamName() : "Unknown BoardUniversity";
+                        streamName = stream != null ? stream.getStreamName() : "Unknown Stream";
                     }
 
                     // Populate the map with necessary fields from qualificationDetail
@@ -852,6 +854,9 @@ public class SharedUtilityService {
                     }else {
                         qualificationInfo.put("institution_name", "Unknown Institution");
                     }
+                    qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
+                    qualificationInfo.put("highest_qualification_subject_names",qualificationDetail.getHighest_qualification_subject_names());
+                    qualificationInfo.put("course_duration_in_months",qualificationDetail.getCourse_duration_in_months());
 
                     Map<String, Object> filteredDocument = null;
                     ServiceProviderDocument serviceProviderDocument= qualificationDetail.getServiceProviderDocument();
