@@ -1316,18 +1316,18 @@ public class SharedUtilityService {
             List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
             if(qualificationDetails!=null && !qualificationDetails.isEmpty())
             {
-                if(customCustomer.getDocuments()==null)
-                {
-                    throw new IllegalArgumentException("Upload all the Qualification documents for Qualification which is filled by you");
-                }
                 if(customCustomer.getDocuments()!=null)
                 {
-                    if(customCustomer.getDocuments().size()<customCustomer.getQualificationDetailsList().size())
+                    int countQualificationDocuments=0;
+                    if(document.getDocumentType().getDocument_type_id().equals(12) && document.getIsArchived().equals(false))
                     {
-                        throw new IllegalArgumentException("Upload all the Qualification documents for Qualification which is filled by you");
+                        countQualificationDocuments++;
+                    }
+                    if(countQualificationDocuments==customCustomer.getQualificationDetailsList().size())
+                    {
+                        isQualification=true;
                     }
                 }
-                isQualification=true;
             }
 
         }
