@@ -321,7 +321,6 @@ public class SharedUtilityService {
         customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
         customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
         customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
-        customerDetails.put("isMinority",customCustomer.getIsMinority());
         customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
         customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
         customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
