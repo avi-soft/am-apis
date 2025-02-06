@@ -105,6 +105,7 @@
         <class>com.community.api.entity.ContentFile</class>
         <class>com.community.api.entity.ActionLog</class>
         <class>com.community.api.entity.CustomMode</class>
+        <class>com.community.api.entity.BlackListedTokens</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
