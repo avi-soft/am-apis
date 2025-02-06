@@ -327,7 +327,7 @@ public class OrderController {
                     return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
                 }
             }
-            if(createTicketDto.getTicketType()==3&&createTicketDto.getTask())
+            if(createTicketDto.getTicketType()==3)
             if (role.getRole_name().equals(Constant.roleServiceProvider)) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 if (serviceProvider == null)
