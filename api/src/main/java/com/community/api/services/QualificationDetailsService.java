@@ -224,12 +224,11 @@ public class QualificationDetailsService {
             {
                 if(qualificationDetails.getQualification_id().equals(1))
                 {
-                    List<Long> subjects = validateAndGetSubjectIds(qualificationDetails.getSubject_ids(), 0L);
+                    validateAndGetSubjectIds(qualificationDetails.getSubject_ids(), 0L);
                     qualificationDetails.setSubject_ids(qualificationDetails.getSubject_ids());
                 }
                 else {
-                    List<Long> subjects = new ArrayList<>(validateAndGetSubjectIds(
-                            qualificationDetails.getSubject_ids(), qualificationDetails.getStream_id()));
+                    validateAndGetSubjectIds(qualificationDetails.getSubject_ids(), qualificationDetails.getStream_id());
                     qualificationDetails.setSubject_ids(qualificationDetails.getSubject_ids());
 
                 }
@@ -950,14 +949,14 @@ public class QualificationDetailsService {
                     }
                     if(qualificationIdToUpdate.equals(1))
                     {
-                        List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),0L);
-                        qualificationDetailsToUpdate.setSubject_ids(subjects);
-                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
+                        validateAndGetSubjectIds(qualification.getSubject_ids(),0L);
+                        qualificationDetailsToUpdate.setSubject_ids(qualification.getSubject_ids());
+                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate,roleName,roleId,userId);
                     }
                     else {
-                        List<Long> subjects = validateAndGetSubjectIds(qualification.getSubject_ids(),streamId);
-                        qualificationDetailsToUpdate.setSubject_ids(subjects);
-                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate);
+                        validateAndGetSubjectIds(qualification.getSubject_ids(),streamId);
+                        qualificationDetailsToUpdate.setSubject_ids(qualification.getSubject_ids());
+                        createSubjectDetailsForUpdateQualification(qualification,qualificationDetailsToUpdate,roleName,roleId,userId);
                     }
                 }
                 else if(subjectValidationCheck.equals(false)) {
@@ -1362,27 +1361,39 @@ public class QualificationDetailsService {
 
     @Transactional
     public List<OtherItem> createSubjectDetails(QualificationDetails qualificationDetail,Integer roleId,Long userId,List<OtherItem> allOtherItemsToSave) {
-        List<Long> subjectIds = qualificationDetail.getSubject_ids();
-        int subjectDetailsIndex=0;
-        List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
 
+        List<Long> subjectIds = qualificationDetail.getSubject_ids();
+        List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
         if (subjectIds == null || subjectIds.isEmpty()) {
             throw new IllegalArgumentException("Subject IDs list cannot be empty");
         }
-
-        int countOtherSubjects = 0;
-
-// Count the number of subject IDs excluding 54
-        for (Long subjectId : subjectIds) {
-            if (!subjectId.equals(54L)) {
-                countOtherSubjects++;  // Count only IDs other than 54
-            }
+        if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
+            throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
         }
-
-// Validate that subject details are provided for all non-54 subject IDs
-        if (userProvidedDetails == null || userProvidedDetails.size() != countOtherSubjects) {
-            throw new IllegalArgumentException("Subject details must be provided for all subject IDs except ID 54.");
-        }
+//        List<Long> subjectIds = qualificationDetail.getSubject_ids();
+//        int subjectDetailsIndex=0;
+//        List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
+//
+//        if (subjectIds == null || subjectIds.isEmpty()) {
+//            throw new IllegalArgumentException("Subject IDs list cannot be empty");
+//        }
+//
+//        int countOtherSubjects = 0;
+//
+//// Count the number of subject IDs excluding 54
+//        for (Long subjectId : subjectIds) {
+//            if (!subjectId.equals(54L)) {
+//                countOtherSubjects++;  // Count only IDs other than 54
+//            }
+//        }
+//
+//// Validate that subject details are provided for all non-54 subject IDs
+//        if (userProvidedDetails == null || userProvidedDetails.size() > countOtherSubjects) {
+//            throw new IllegalArgumentException("Subject details must be provided for all subject IDs except ID 54.");
+//        }
+//        if (userProvidedDetails == null || userProvidedDetails.size() < countOtherSubjects) {
+//            throw new IllegalArgumentException("Remove the extra subject details from subject details list");
+//        }
 
 // Validate that "Other Subjects" count matches the number of ID 54 occurrences
         int count54=0;
@@ -1415,64 +1426,95 @@ public class QualificationDetailsService {
                 allOtherItemsToSave.add(subjectOtherItemToAdd);
                 indexForOtherSubjects++;
             }
-            else {
-                SubjectDetail userDetail = userProvidedDetails.get(subjectDetailsIndex);
-                // Create and populate SubjectDetail
-                SubjectDetail subjectDetail = new SubjectDetail();
-                validateSubjectDetails(userDetail,qualificationDetail,customSubject);
-                subjectDetail.setCustomSubject(customSubject);
-                subjectDetail.setQualificationDetails(qualificationDetail);
-                if(userDetail.getSubject_marks_type().equalsIgnoreCase("Percentage") || userDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
-                {
-                    subjectDetail.setSubject_marks_obtained(userDetail.getSubject_marks_obtained());
-                    subjectDetail.setSubject_total_marks(userDetail.getSubject_total_marks());
-                }
-                else if(userDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
-                {
-                    subjectDetail.setSubject_grade(userDetail.getSubject_grade());
-                }
-                subjectDetail.setSubject_marks_type(userDetail.getSubject_marks_type());
-                if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage"))
-                {
-                    subjectDetail.setSubject_equivalent_percentage((Double.parseDouble(userDetail.getSubject_marks_obtained())/Double.parseDouble(userDetail.getSubject_total_marks()))*100);
-                }
-                else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
-                {
-                    subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
-                }
-                subjectDetailsList.add(subjectDetail);
-                subjectDetailsIndex++;
+            SubjectDetail userDetail = userProvidedDetails.get(i);
+            // Create and populate SubjectDetail
+            SubjectDetail subjectDetail = new SubjectDetail();
+            validateSubjectDetails(userDetail,qualificationDetail,customSubject);
+            subjectDetail.setCustomSubject(customSubject);
+            subjectDetail.setQualificationDetails(qualificationDetail);
+            if(userDetail.getSubject_marks_type().equalsIgnoreCase("Percentage") || userDetail.getSubject_marks_type().equalsIgnoreCase("CGPA"))
+            {
+                subjectDetail.setSubject_marks_obtained(userDetail.getSubject_marks_obtained());
+                subjectDetail.setSubject_total_marks(userDetail.getSubject_total_marks());
             }
+            else if(userDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+            {
+                subjectDetail.setSubject_grade(userDetail.getSubject_grade());
+            }
+            subjectDetail.setSubject_marks_type(userDetail.getSubject_marks_type());
+            if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("Percentage"))
+            {
+                subjectDetail.setSubject_equivalent_percentage((Double.parseDouble(userDetail.getSubject_marks_obtained())/Double.parseDouble(userDetail.getSubject_total_marks()))*100);
+            }
+            else if(subjectDetail.getSubject_marks_type().equalsIgnoreCase("CGPA") || subjectDetail.getSubject_marks_type().equalsIgnoreCase("Grade"))
+            {
+                subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
+            }
+            subjectDetailsList.add(subjectDetail);
             qualificationDetail.setSubject_details(subjectDetailsList);
             }
         return allOtherItemsToSave;
     }
 
     @Transactional
-    public void createSubjectDetailsForUpdateQualification(UpdateQualificationDto qualificationDetail, QualificationDetails qualificationDetailsToUpdate) {
+    public void createSubjectDetailsForUpdateQualification(UpdateQualificationDto qualificationDetail, QualificationDetails qualificationDetailsToUpdate,String roleName,Integer roleId, Long userId) {
 
         List<Long> subjectIds = qualificationDetail.getSubject_ids();
         List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
 
         if (! subjectIds.isEmpty()) {
             if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
-            throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
+                throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
             }
+        }
+        int count54=0;
+        for(Long subjectId: subjectIds)
+        {
+            if(subjectId.equals(54L))
+            {
+                count54++;
+            }
+        }
+        if (count54 != qualificationDetail.getOtherSubjects().size()) {
+            throw new IllegalArgumentException("Provide the subject name for all subjects selected as 'Others' (ID 54).");
         }
 
         List<SubjectDetail> subjectDetailsList = new ArrayList<>();
         qualificationDetailsToUpdate.getSubject_details().forEach(detail -> detail.setQualificationDetails(null));
         qualificationDetailsToUpdate.getSubject_details().clear();
+        qualificationDetailsToUpdate.getOtherSubjects().clear();
+        List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
+        if (!currentOtherItems.isEmpty()) {
+            List<OtherItem> itemsToKeep = new ArrayList<>(currentOtherItems);
+            itemsToKeep.removeIf(otherItem ->
+                    roleName.equalsIgnoreCase(Constant.roleUser) &&
+                            qualificationDetailsToUpdate.getCustom_customer().getId().equals(otherItem.getUser_id()) &&
+                            (otherItem.getSource_name().equalsIgnoreCase("add_qualification") ||
+                                    otherItem.getSource_name().equalsIgnoreCase("update_qualification")) &&
+                            otherItem.getField_name().equalsIgnoreCase("subject")
+            );
 
+            qualificationDetailsToUpdate.getOtherItems().clear();
+            qualificationDetailsToUpdate.getOtherItems().addAll(itemsToKeep);
+        }
+        int indexForOtherSubjects =0;
         for (int i = 0; i < subjectIds.size(); i++) {
             Long subjectId = subjectIds.get(i);
-            SubjectDetail userDetail = userProvidedDetails.get(i);
 
+            // Find the subject
             CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
             if (customSubject == null) {
                 throw new IllegalArgumentException("Subject with ID " + subjectId + " not found");
             }
 
+            if(customSubject.getSubjectName().equalsIgnoreCase("Others")) {
+                OtherItem subjectOtherItemToAdd = handleOtherCaseForSubjects(subjectId,
+                        qualificationDetail.getOtherSubjects().get(indexForOtherSubjects),
+                        roleId, userId, "update_qualification");
+                qualificationDetailsToUpdate.getOtherItems().add(subjectOtherItemToAdd);
+                indexForOtherSubjects++;
+            }
+            SubjectDetail userDetail = userProvidedDetails.get(i);
             SubjectDetail subjectDetail = new SubjectDetail();
             validateSubjectDetailsForUpdateQualification(userDetail, customSubject);
             subjectDetail.setCustomSubject(customSubject);
@@ -1495,11 +1537,11 @@ public class QualificationDetailsService {
             {
                 subjectDetail.setSubject_equivalent_percentage(userDetail.getSubject_equivalent_percentage());
             }
-
             subjectDetailsList.add(subjectDetail);
         }
 
         qualificationDetailsToUpdate.getSubject_details().addAll(subjectDetailsList);
+        qualificationDetailsToUpdate.setOtherSubjects(qualificationDetail.getOtherSubjects());
         entityManager.merge(qualificationDetailsToUpdate);
     }
 

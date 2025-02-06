@@ -5,19 +5,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.BoardUniversity;
-import com.community.api.entity.CustomAdmin;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomerAddressDTO;
-import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.Institution;
-import com.community.api.entity.OtherItem;
-import com.community.api.entity.Post;
-import com.community.api.entity.Qualification;
-import com.community.api.entity.QualificationDetails;
+import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
@@ -35,19 +23,11 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -700,8 +680,44 @@ public class SharedUtilityService {
                     }
 
                     qualificationInfo.put("subjects", subjects);
-                    qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
-                    qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
+                    List<SubjectDetail> subjectDetails = new ArrayList<>();
+                    int otherIndex = 0;
+
+                    List<SubjectDetail> sortedSubjectDetails = new ArrayList<>(qualificationDetail.getSubject_details());
+                    sortedSubjectDetails.sort(Comparator.comparing(SubjectDetail::getSubject_detail_id));
+
+                    for (SubjectDetail detail : sortedSubjectDetails) {
+                        // Create a new instance of CustomSubject and copy fields manually
+                        CustomSubject tempSubject = new CustomSubject();
+                        tempSubject.setSubjectId(detail.getCustomSubject().getSubjectId()); // Copy ID
+                        tempSubject.setSubjectName(detail.getCustomSubject().getSubjectName()); // Copy name
+
+                        if (tempSubject.getSubjectName().equalsIgnoreCase("Others")) {
+                            tempSubject.setSubjectName(qualificationDetail.getOtherSubjects().get(otherIndex));
+                            otherIndex++;
+                        }
+
+                        tempSubject.setArchived(detail.getCustomSubject().getArchived());
+                        tempSubject.setCreatedDate(detail.getCustomSubject().getCreatedDate());
+                        tempSubject.setCreatorRole(detail.getCustomSubject().getCreatorRole());
+                        tempSubject.setCreatorUserId(detail.getCustomSubject().getCreatorUserId());
+                        tempSubject.setSubjectDescription(detail.getCustomSubject().getSubjectDescription());
+
+                        // Create a new instance of SubjectDetail and copy fields manually
+                        SubjectDetail tempDetail = new SubjectDetail();
+                        tempDetail.setSubject_detail_id(detail.getSubject_detail_id());
+                        tempDetail.setCustomSubject(tempSubject);
+                        tempDetail.setSubject_marks_obtained(detail.getSubject_marks_obtained());
+                        tempDetail.setSubject_total_marks(detail.getSubject_total_marks());
+                        tempDetail.setSubject_grade(detail.getSubject_grade());
+                        tempDetail.setSubject_equivalent_percentage(detail.getSubject_equivalent_percentage());
+                        tempDetail.setSubject_marks_type(detail.getSubject_marks_type());
+
+                        subjectDetails.add(tempDetail);
+                    }
+
+                    qualificationInfo.put("subject_details", subjectDetails);
+
 
                     Map<String, Object> filteredDocument = null;
                     Document document= qualificationDetail.getQualificationDocument();
