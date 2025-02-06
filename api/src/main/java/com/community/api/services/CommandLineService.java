@@ -42,12 +42,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
         try{
+            System.out.println("insertion start");
             String scriptPathForInsertion = "insertion_log.sql";
             String sqlScript = new BufferedReader(
                     new InputStreamReader(new ClassPathResource(scriptPathForInsertion).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
             zoneDivisionService.populateZoneDivision();
+            System.out.println("insertion end");
             System.out.println("ALTERATION START");
             String scriptPathForAlteration = "alteration_log.sql";
             sqlScript = new BufferedReader(

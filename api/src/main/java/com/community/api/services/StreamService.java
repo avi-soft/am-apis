@@ -5,19 +5,24 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
+import com.community.api.entity.Qualification;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.tomcat.util.bcel.Const;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+
+import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
 @Service
 public class StreamService {
@@ -52,10 +57,34 @@ public class StreamService {
         }
     }
 
+    public void addStreamToQualification(Integer qualificationId, Long streamId) {
+        Qualification qualification = entityManager.find(Qualification.class, qualificationId);
+        CustomStream stream = entityManager.find(CustomStream.class, streamId);
+
+        if (qualification != null && stream != null) {
+            qualification.getStreams().add(stream);
+            entityManager.merge(qualification);
+        }
+    }
+
     public List<CustomStream> getAllStream() {
         try {
 
             List<CustomStream> streamList = entityManager.createQuery(Constant.GET_ALL_STREAM, CustomStream.class).getResultList();
+            return streamList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return Collections.emptyList();
+        }
+    }
+
+    public List<CustomStream> getStreamByQualificationId(Integer qualificationId) {
+        try {
+            List<CustomStream> streamList = entityManager.createQuery(
+                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId",
+                            CustomStream.class)
+                    .setParameter("qualificationId", qualificationId)
+                    .getResultList();
             return streamList;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
