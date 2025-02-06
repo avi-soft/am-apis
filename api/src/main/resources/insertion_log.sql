@@ -1805,7 +1805,13 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
             (9, 'Technical Expertise', 'Service Provider having equal to or more than 5 skills', 10),
             (10, 'Staff', 'More than 4 staff members', 10),
             (11, 'Staff', '2 staff members', 5),
-            (12, 'Staff', 'Individual (no staff)', 0);
+            (12, 'Staff', 'Individual (no staff)', 0),
+            (13, 'Infrastructure', 'Service Provider having Equal to 5 or more than 5 infrastructures', 20),
+            (14, 'Infrastructure', 'Service Provider having between 2 and 4 infrastructures', 10),
+            (15, 'Infrastructure', 'Service Provider having 1 infrastructure', 5),
+            (16, 'Infrastructure', 'Service Provider having 0 infrastructure', 0),
+            (17, 'PartTimeOrFullTime', 'Service Provider who is Full time', 10),
+            (18, 'PartTimeOrFullTime', 'Service Provider who is Part time', 0);
     END IF;
 --
     -- Insert into order_state_ref if empty

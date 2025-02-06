@@ -1370,30 +1370,6 @@ public class QualificationDetailsService {
         if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
             throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
         }
-//        List<Long> subjectIds = qualificationDetail.getSubject_ids();
-//        int subjectDetailsIndex=0;
-//        List<SubjectDetail> userProvidedDetails = qualificationDetail.getSubject_details();
-//
-//        if (subjectIds == null || subjectIds.isEmpty()) {
-//            throw new IllegalArgumentException("Subject IDs list cannot be empty");
-//        }
-//
-//        int countOtherSubjects = 0;
-//
-//// Count the number of subject IDs excluding 54
-//        for (Long subjectId : subjectIds) {
-//            if (!subjectId.equals(54L)) {
-//                countOtherSubjects++;  // Count only IDs other than 54
-//            }
-//        }
-//
-//// Validate that subject details are provided for all non-54 subject IDs
-//        if (userProvidedDetails == null || userProvidedDetails.size() > countOtherSubjects) {
-//            throw new IllegalArgumentException("Subject details must be provided for all subject IDs except ID 54.");
-//        }
-//        if (userProvidedDetails == null || userProvidedDetails.size() < countOtherSubjects) {
-//            throw new IllegalArgumentException("Remove the extra subject details from subject details list");
-//        }
 
 // Validate that "Other Subjects" count matches the number of ID 54 occurrences
         int count54=0;
