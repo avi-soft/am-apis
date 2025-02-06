@@ -9,6 +9,8 @@ import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -50,11 +52,38 @@ public class SubjectService {
         }
     }
 
+    public void addSubjectToStream(Long streamId, Long subjectId) {
+        CustomStream stream = entityManager.find(CustomStream.class, streamId);
+        CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+
+        if (stream != null && subject != null) {
+            stream.getSubjects().add(subject);
+            entityManager.merge(stream);
+        }
+    }
+
     public List<CustomSubject> getAllSubject() {
         try {
 
             List<CustomSubject> subjectList = entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class).getResultList();
             return subjectList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return Collections.emptyList();
+        }
+    }
+    public List<CustomSubject> getSubjectsByStreamIds(Long streamId) {
+        try {
+
+            String jpql = """
+                SELECT s FROM CustomStream cs 
+                JOIN cs.subjects s 
+                WHERE cs.streamId = :streamId""";
+
+            List<CustomSubject> subjects = entityManager.createQuery(jpql, CustomSubject.class)
+                    .setParameter("streamId", streamId)
+                    .getResultList();
+            return subjects;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return Collections.emptyList();

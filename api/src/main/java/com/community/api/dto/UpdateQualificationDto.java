@@ -50,6 +50,9 @@ public class UpdateQualificationDto
     private Boolean is_grade;
 
     private String grade_value;
+    private Long course_duration_in_months;
+    private List<String> highest_qualification_subject_names;
+    List<String> otherSubjects=new ArrayList<>();
 
     private Boolean is_division;
 

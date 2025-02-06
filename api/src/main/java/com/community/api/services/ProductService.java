@@ -2345,8 +2345,11 @@ public class ProductService {
                     throw new IllegalArgumentException("Modification date to cannot be of future of admit card date from.");
                 }
             } else {
-                if (addProductDto.getModificationDateTo().after(addProductDto.getExamDateFrom())) {
-                    throw new IllegalArgumentException("Modification date to cannot be of future of exam date from");
+                if(addProductDto.getExamDateFrom()!=null)
+                {
+                    if (addProductDto.getModificationDateTo().after(addProductDto.getExamDateFrom())) {
+                        throw new IllegalArgumentException("Modification date to cannot be of future of exam date from");
+                    }
                 }
             }
 
