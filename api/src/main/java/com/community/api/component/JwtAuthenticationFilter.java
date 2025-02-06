@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String requestURI = request.getRequestURI();
 
-            if(!isUnsecuredUri(requestURI)) {
+            if(!isUnsecuredUri(requestURI)&&isApiKeyRequiredUri(request)) {
                 String token = request.getHeader("Authorization");
                 token = token.trim();
                 String jwtToken = token.substring(7);
@@ -159,7 +159,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return requestURI.startsWith("/api/v1/account")
                 || requestURI.startsWith("/api/v1/otp")
                 || requestURI.startsWith("/api/v1/test")
-                || requestURI.startsWith("/api/v1/category-custom/get-all-categories")
                 || requestURI.startsWith("/api/v1/files/avisoftdocument/**")
                 || requestURI.startsWith("/api/v1/files/**")
                 || requestURI.startsWith("/api/v1/avisoftdocument/**")
