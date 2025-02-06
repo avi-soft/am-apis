@@ -1141,6 +1141,510 @@ public class SharedUtilityService {
         query.executeUpdate();
     }
 
+    public boolean validateCustomerContactDetails(CustomCustomer customCustomer)
+    {
+        List<CustomerAddress> addresses=customCustomer.getCustomerAddresses();
+        if(addresses==null || addresses.isEmpty())
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Address cannot be null or empty");
+        }
+        if(addresses.size()<2)
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("Both current as well as Permanent address should be provided");
+        }
+       for(CustomerAddress customerAddress: addresses)
+       {
+           String addressName=null;
+           if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
+           {
+               addressName="Present Address";
+           }
+           else if(customerAddress.getAddressName().equalsIgnoreCase("PERMANENT_ADDRESS"))
+           {
+               addressName="Permanent Address";
+           }
+               if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
+               {
+               if(customerAddress.getAddress().getAddressLine1()==null || (customerAddress.getAddress().getAddressLine1()!=null && customerAddress.getAddress().getAddressLine1().trim().isEmpty()))
+               {
+                   customCustomer.setProfileComplete(false);
+                   throw new IllegalArgumentException("In Contact Details, "+ addressName+ " cannot be null or empty");
+               }
+               if(customerAddress.getAddress().getCity()==null || (customerAddress.getAddress().getCity()!=null && customerAddress.getAddress().getCity().trim().isEmpty()))
+               {
+                   customCustomer.setProfileComplete(false);
+                   throw new IllegalArgumentException("In Contact Details, City cannot be null or empty in "+ addressName);
+               }
+               if(customerAddress.getAddress().getCounty()==null || (customerAddress.getAddress().getCounty()!=null && customerAddress.getAddress().getCounty().trim().isEmpty()))
+               {
+                   customCustomer.setProfileComplete(false);
+                   throw new IllegalArgumentException("In Contact Details, District cannot be null or empty in "+ addressName);
+               }
+               if(customerAddress.getAddress().getStateProvinceRegion()==null || (customerAddress.getAddress().getStateProvinceRegion()!=null && customerAddress.getAddress().getStateProvinceRegion().trim().isEmpty()))
+               {
+                   customCustomer.setProfileComplete(false);
+                   throw new IllegalArgumentException("In Contact Details, State cannot be null or empty in "+ addressName);
+               }
+               if(customerAddress.getAddress().getPostalCode()==null || (customerAddress.getAddress().getPostalCode()!=null && customerAddress.getAddress().getPostalCode().trim().isEmpty()))
+               {
+                   customCustomer.setProfileComplete(false);
+                   throw new IllegalArgumentException("In Contact Details, Pin code cannot be null or empty in "+ addressName);
+               }
+           }
+
+       }
+        if(customCustomer.getMobileNumber()==null || (customCustomer.getMobileNumber()!=null &&customCustomer.getMobileNumber().trim().isEmpty()))
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Primary mobile number cannot be null or empty");
+        }
+        if(customCustomer.getSecondaryMobileNumber()==null || (customCustomer.getSecondaryMobileNumber()!=null &&customCustomer.getSecondaryMobileNumber().trim().isEmpty()))
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Secondary mobile number cannot be null or empty");
+        }
+        if(customCustomer.getWhatsappNumber()==null || (customCustomer.getWhatsappNumber()!=null &&customCustomer.getWhatsappNumber().trim().isEmpty()))
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Whatsapp number cannot be null or empty");
+        }
+        if(customCustomer.getEmailAddress()==null || (customCustomer.getEmailAddress()!=null &&customCustomer.getEmailAddress().trim().isEmpty()))
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Primary Email address cannot be null or empty");
+        }
+        if(customCustomer.getSecondaryEmail()==null || (customCustomer.getSecondaryEmail()!=null &&customCustomer.getSecondaryEmail().trim().isEmpty()))
+        {
+            customCustomer.setProfileComplete(false);
+            throw new IllegalArgumentException("In Contact Details, Secondary Email address cannot be null or empty");
+        }
+        return true;
+    }
+
+    public boolean validateCustomerPersonalDetails(CustomCustomer customCustomer)
+    {
+        if(customCustomer.getFirstName()==null || (customCustomer.getFirstName()!=null &&customCustomer.getFirstName().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, First name cannot be null or empty");
+        }
+        if(customCustomer.getLastName()==null || (customCustomer.getLastName()!=null &&customCustomer.getLastName().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Last name cannot be null or empty");
+        }
+        if(customCustomer.getFathersName()==null || (customCustomer.getFathersName()!=null &&customCustomer.getFathersName().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Father's name cannot be null or empty");
+        }
+        if(customCustomer.getMothersName()==null || (customCustomer.getMothersName()!=null &&customCustomer.getMothersName().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Mother's name cannot be null or empty");
+        }
+        if(customCustomer.getAdharNumber()==null || (customCustomer.getAdharNumber()!=null &&customCustomer.getAdharNumber().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Aadhaar number cannot be null or empty");
+        }
+        if(customCustomer.getDob()==null || (customCustomer.getDob()!=null &&customCustomer.getDob().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Date of birth cannot be null or empty");
+        }
+        if(customCustomer.getReligion()==null || (customCustomer.getReligion()!=null &&customCustomer.getReligion().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Religion cannot be null or empty");
+        }
+        if(customCustomer.getGender()==null || (customCustomer.getGender()!=null &&customCustomer.getGender().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Gender cannot be null or empty");
+        }
+        if(customCustomer.getCategory()==null || (customCustomer.getCategory()!=null &&customCustomer.getCategory().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Category cannot be null or empty");
+        }
+        if(customCustomer.getCategoryIssueDate()==null || (customCustomer.getCategoryIssueDate()!=null &&customCustomer.getCategoryIssueDate().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Category issue date cannot be null or empty");
+        }
+        if(customCustomer.getIsOtherOrStateCategory()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether isOtherOrStateCategory is true or false ");
+        }
+        if(customCustomer.getIsOtherOrStateCategory().equals(true))
+        {
+            if(customCustomer.getOtherCategoryDateOfIssue()==null)
+            {
+                throw new IllegalArgumentException("In Personal Details, Other category's issue date cannot be null or empty if getIsOtherOrStateCategory is true");
+            } if(customCustomer.getOtherOrStateCategory()==null || (customCustomer.getOtherOrStateCategory()!=null &&customCustomer.getOtherOrStateCategory().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Other or State category cannot be null or empty if getIsOtherOrStateCategory is true");
+        }
+        }
+
+        if(customCustomer.getBelongsToMinority()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether isMinority is true or false ");
+        }
+
+        if(customCustomer.getDomicile()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether state domicile is true or false ");
+        }
+
+        if(customCustomer.getDomicile().equals(true))
+        {
+            if(customCustomer.getState()==null || (customCustomer.getState()!=null &&customCustomer.getState().trim().isEmpty()))
+            {
+                throw new IllegalArgumentException("In Personal Details, state cannot be null or empty if state domicile is true");
+            }
+            if(customCustomer.getDomicileIssueDate()==null )
+            {
+                throw new IllegalArgumentException("In Personal Details, state cannot be null or empty if domicile date of issue is true");
+            }
+
+        }
+        if(customCustomer.getDisability()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether isDisability is true or false ");
+        }
+        if(customCustomer.getExService()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether ex- service men is true or false ");
+        }
+        if(customCustomer.getIsMarried()==null)
+        {
+            throw new IllegalArgumentException("In Personal Details,You have to select whether you are married or not ");
+        }
+        if(customCustomer.getIdentificationMark1()==null || (customCustomer.getIdentificationMark1()!=null &&customCustomer.getIdentificationMark1().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Identification mark 1 cannot be null or empty");
+        }
+        if(customCustomer.getIdentificationMark2()==null || (customCustomer.getIdentificationMark2()!=null &&customCustomer.getIdentificationMark2().trim().isEmpty()))
+        {
+            throw new IllegalArgumentException("In Personal Details, Identification mark 2 cannot be null or empty");
+        }
+        return true;
+    }
+
+    public boolean validatePhysicalDetails(CustomCustomer customCustomer)
+    {
+
+        if(customCustomer.getInterestedInDefence()==null)
+        {
+            throw new IllegalArgumentException("In Physical Details, You have to select whether you are interested in defence or not");
+        }
+        if(customCustomer.getInterestedInDefence().equals(true))
+        {
+            if(customCustomer.getHeightCms()==null)
+            {
+                throw new IllegalArgumentException("In Physical Details, Height cannot be null or empty");
+            }
+            if(customCustomer.getWeightKgs()==null)
+            {
+                throw new IllegalArgumentException("In Physical Details, Weight cannot be null or empty");
+            }
+            if(customCustomer.getShoeSizeInches()==null)
+            {
+                throw new IllegalArgumentException("In Physical Details, Shoe size cannot be null or empty");
+            }
+            if(customCustomer.getWaistSizeCms()==null)
+            {
+                throw new IllegalArgumentException("In Physical Details, Waist size cannot be null or empty");
+            }
+            if(customCustomer.getGender().equalsIgnoreCase("male"))
+            {
+                if(customCustomer.getChestSizeCms()==null)
+                {
+                    throw new IllegalArgumentException("In Physical Details, Chest size cannot be null or empty");
+                }
+            }
+        }
+        if(customCustomer.getProficiencyInSportsNationalLevel()==null )
+        {
+            throw new IllegalArgumentException("In Physical Details, you have to select whether proficiency in sports at national level or not");
+        }
+        if(customCustomer.getCanSwim()==null )
+        {
+            throw new IllegalArgumentException("In Physical Details, you have to select whether you can swim or not");
+        }
+        if(customCustomer.getIs_ncc_certificate()==null)
+        {
+            throw new IllegalArgumentException("In Physical Details, you have to select whether you have ncc certificate or not");
+        }
+        if(customCustomer.getIs_nss_certificate()==null)
+        {
+            throw new IllegalArgumentException("In Physical Details, you have to select whether you have nss certificate or not");
+        }
+        if(customCustomer.getIsSportsCertificate()==null)
+        {
+            throw new IllegalArgumentException("In Physical Details, you have to select whether you have sports certificate or not");
+        }
+        return true;
+    }
+    public boolean validateMiscellaniousDetails(CustomCustomer customCustomer)
+    {
+        if(customCustomer.getMphilPassed()==null)
+        {
+            throw new IllegalArgumentException("In Miscellaneous Details, you have to select whether you are MPhil passed or not");
+        }
+        if(customCustomer.getPhdPassed()==null)
+        {
+            throw new IllegalArgumentException("In Miscellaneous Details, you have to select whether you are Phd passed or not");
+        }
+        if(customCustomer.getWorkExperience()!=null)
+        {
+            if(customCustomer.getWorkExperienceScopeId()==null)
+            {
+                throw new IllegalArgumentException("In Miscellaneous Details, you have to select work experience scope");
+            }
+        }
+        return true;
+    }
+
+    public boolean validateDocumentsDetails(CustomCustomer customCustomer)
+    {
+        List<Document>documents= customCustomer.getDocuments();
+        List<String> documentsNotUploaded= new ArrayList<>();
+        boolean isLivePhotoCaptured=false;
+        boolean isAadharCardFrontUploaded=false;
+        boolean isAadharCardBackUploaded=false;
+        boolean isMinority=false;
+        boolean isOtherCategory=false;
+        boolean isDomicile=false;
+        boolean isDisability=false;
+        boolean isExService=false;
+        boolean isCategoryCertificate=false;
+        boolean isPersonalPhoto=false;
+        boolean isSignature=false;
+        boolean isRightThumb=false;
+        boolean isLeftThumb=false;
+        boolean isNcc=false;
+        boolean isNss=false;
+        boolean isSports=false;
+        boolean isQualification=false;
+        if(documents==null)
+        {
+            throw new IllegalArgumentException("Aadhaar card- Front and Back , Personal Photograph, Signature,Live Passport size photograph, left thumb and right thumb impressions is necessary to upload");
+        }
+        int countQualificationDocuments=0;
+        for(Document document: documents)
+        {
+            if(document.getDocumentType().getDocument_type_id().equals(3)&& !document.getIsArchived())
+            {
+                isLivePhotoCaptured=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(1)&& !document.getIsArchived())
+            {
+                isAadharCardFrontUploaded=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(24)&& !document.getIsArchived())
+            {
+                isAadharCardBackUploaded=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(6)&& !document.getIsArchived())
+            {
+                isCategoryCertificate=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(17)&& !document.getIsArchived())
+            {
+                isPersonalPhoto=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(4)&& !document.getIsArchived())
+            {
+                isSignature=true;
+            }
+            if(document.getDocumentType().getDocument_type_id().equals(25)&& !document.getIsArchived())
+            {
+                isLeftThumb=true;
+            } if(document.getDocumentType().getDocument_type_id().equals(26)&& !document.getIsArchived())
+            {
+                isRightThumb=true;
+            }
+            if(customCustomer.getBelongsToMinority().equals(true))
+            {
+                if(document.getDocumentType().getDocument_type_id().equals(31)&& !document.getIsArchived())
+                {
+                    isMinority=true;
+                }
+            }
+            if(customCustomer.getIsOtherOrStateCategory().equals(true))
+            {
+                if(document.getDocumentType().getDocument_type_id().equals(30)&& !document.getIsArchived())
+                {
+                    isOtherCategory=true;
+                }
+            }
+            if(customCustomer.getDomicile().equals(true))
+            {
+                if(document.getDocumentType().getDocument_type_id().equals(10)&& !document.getIsArchived())
+                {
+                    isDomicile=true;
+                }
+            }
+            if(customCustomer.getDisability().equals(true))
+            {
+                if(document.getDocumentType().getDocument_type_id().equals(11)&& !document.getIsArchived())
+                {
+                    isDisability=true;
+                }
+            }
+            if(customCustomer.getExService().equals(true))
+            {
+                if(document.getDocumentType().getDocument_type_id().equals(15)&& !document.getIsArchived())
+                {
+                    isExService=true;
+                }
+            }
+            if(customCustomer.getIs_ncc_certificate().equals(true))
+            {
+                if((document.getDocumentType().getDocument_type_id().equals(18) ||document.getDocumentType().getDocument_type_id().equals(19)||document.getDocumentType().getDocument_type_id().equals(20))&& !document.getIsArchived())
+                {
+                    isNcc=true;
+                }
+            }
+            if(customCustomer.getIs_nss_certificate().equals(true))
+            {
+                if((document.getDocumentType().getDocument_type_id().equals(21) ||document.getDocumentType().getDocument_type_id().equals(28)||document.getDocumentType().getDocument_type_id().equals(29)) && !document.getIsArchived())
+                {
+                    isNss=true;
+                }
+            }
+            if(customCustomer.getIs_nss_certificate().equals(true))
+            {
+                if((document.getDocumentType().getDocument_type_id().equals(22) ||document.getDocumentType().getDocument_type_id().equals(23)) && !document.getIsArchived())
+                {
+                    isSports=true;
+                }
+            }
+
+            //get all qualifications of customer
+            List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
+            if(qualificationDetails!=null && !qualificationDetails.isEmpty())
+            {
+                if(customCustomer.getDocuments()!=null)
+                {
+                    if(document.getDocumentType().getDocument_type_id().equals(12) && document.getIsArchived().equals(false))
+                    {
+                        countQualificationDocuments++;
+                    }
+                    if(countQualificationDocuments==customCustomer.getQualificationDetailsList().size())
+                    {
+                        isQualification=true;
+                    }
+                }
+            }
+
+        }
+
+        //Validation for personal Photo
+        if(!isPersonalPhoto)
+        {
+            documentsNotUploaded.add("Personal Photo");
+        }
+        if(!isLivePhotoCaptured)
+        {
+            documentsNotUploaded.add("Live Photograph");
+        }
+
+        if(!isSignature)
+        {
+            documentsNotUploaded.add("Signature");
+        }
+
+        if(!isAadharCardFrontUploaded)
+        {
+            documentsNotUploaded.add("Front Aadhaar card");
+        }
+        if(!isAadharCardBackUploaded)
+        {
+            documentsNotUploaded.add("Back Aadhaar card");
+        } if(!isRightThumb)
+        {
+            documentsNotUploaded.add("Right Thumb impression");
+        } if(!isLeftThumb)
+        {
+            documentsNotUploaded.add("Left Thumb impression");
+        }
+        if(!isCategoryCertificate)
+        {
+            documentsNotUploaded.add("Category Certificate");
+        }
+
+        if(customCustomer.getBelongsToMinority().equals(true))
+        {
+            if(!isMinority)
+            {
+                documentsNotUploaded.add("Minority certificate");
+            }
+        }
+        if(customCustomer.getIsOtherOrStateCategory().equals(true))
+        {
+            if(!isOtherCategory)
+            {
+                documentsNotUploaded.add("Other or State category certificate");
+            }
+        }
+        if(customCustomer.getDomicile().equals(true))
+        {
+            if(!isDomicile)
+            {
+                documentsNotUploaded.add("Domicile certificate");
+            }
+        }
+        if(customCustomer.getDisability().equals(true))
+        {
+            if(!isDisability)
+            {
+                documentsNotUploaded.add("Disability certificate");
+            }
+        }
+        if(customCustomer.getExService().equals(true))
+        {
+            if(!isExService)
+            {
+                documentsNotUploaded.add("Ex service certificate");
+            }
+        }
+        if(customCustomer.getIs_ncc_certificate().equals(true))
+        {
+            if(!isNcc)
+            {
+                documentsNotUploaded.add("NCC certificate");
+            }
+        }
+        if(customCustomer.getIs_nss_certificate().equals(true))
+        {
+            if(!isNss)
+            {
+                documentsNotUploaded.add("NSS certificate");
+            }
+        }
+        if(customCustomer.getIsSportsCertificate().equals(true))
+        {
+            if(!isSports)
+            {
+                documentsNotUploaded.add("Sports certificate");
+            }
+        }
+        if(customCustomer.getQualificationDetailsList()!=null && !customCustomer.getQualificationDetailsList().isEmpty())
+        {
+            if(!isQualification)
+            {
+                documentsNotUploaded.add("Qualification certificates");
+            }
+        }
+
+        if(!documentsNotUploaded.isEmpty())
+        {
+            String ans="";
+            for (int i=0;i<documentsNotUploaded.size();i++)
+            {
+                ans=ans+documentsNotUploaded.get(i)+", ";
+            }
+            throw new IllegalArgumentException("In document upload section, "+ans+ " is not uploaded");
+        }
+        return true;
+    }
+
 }
 
 
