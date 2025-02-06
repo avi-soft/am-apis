@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
@@ -1112,6 +1113,32 @@ public class SharedUtilityService {
             // If the format is incorrect or parsing fails, return -1
             return -1;
         }
+    }
+    @Transactional
+    public void blackListToken(String token,Integer roleId,Long userId)
+    {
+
+        BlackListedTokens blackListedTokens=new BlackListedTokens();
+        blackListedTokens.setBlackListToken(token);
+        blackListedTokens.setBlackListDate(LocalDate.now());
+        blackListedTokens.setRoleId(roleId);
+        blackListedTokens.setUserId(userId);
+        entityManager.persist(blackListedTokens);
+    }
+    public boolean isBlackListed(String token)
+    {
+        Query query=entityManager.createNativeQuery("SELECT count(*) from black_listed_tokens where blacklisttoken = :token");
+        query.setParameter("token",token);
+        if(((BigInteger)query.getSingleResult()).intValue()!=0)
+            return true;
+        return false;
+    }
+    public void removeToken(String token) {
+        Query query = entityManager.createNativeQuery(
+                "DELETE FROM black_listed_tokens WHERE blacklisttoken = CAST(:token AS TEXT)"
+        );
+        query.setParameter("token", token);
+        query.executeUpdate();
     }
 
 }
