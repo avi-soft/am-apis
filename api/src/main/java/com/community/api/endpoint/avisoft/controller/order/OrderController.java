@@ -322,10 +322,12 @@ public class OrderController {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
             ServiceProviderEntity serviceProvider = null;
             CustomAdmin customAdmin = null;
-            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_UNASSIGNED.getOrderStateId()) && !customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
-                return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
+            if(createTicketDto.getTicketType()!=3) {
+                if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_UNASSIGNED.getOrderStateId()) && !customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
+                    return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
-
+            if(createTicketDto.getTicketType()==3&&createTicketDto.getTask())
             if (role.getRole_name().equals(Constant.roleServiceProvider)) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 if (serviceProvider == null)
@@ -347,9 +349,10 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, serviceProvider,roleId,tokenUserId);
 
-            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
-            entityManager.merge(customOrderState);
-
+            if(createTicketDto.getTicketType()!=3) {
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                entityManager.merge(customOrderState);
+            }
             Customer customer = customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());

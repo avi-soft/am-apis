@@ -358,13 +358,13 @@ public class CustomCustomer extends CustomerImpl {
     protected StateCode domicileState;
 
     @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean archived;
+    private Boolean archived =false;
     @Column(name = "archived_by_role_id",columnDefinition = "BIGINT DEFAULT 0")
     private Integer archivedByRole;
     @Column(name = "archived_by_id",columnDefinition = "BIGINT DEFAULT 0")
     private Long archivedById;
     @Column(name = "completed",columnDefinition ="BOOLEAN DEFAULT FALSE")
-    private Boolean complete;
+    private Boolean complete=false;
     @Column(name = "primary_referrer_id",columnDefinition = "BIGINT DEFAULT 0")
-    private Long primaryRef;
+    private Long primaryRef=0L;
 }
