@@ -36,19 +36,22 @@ public class QualificationController {
         this.qualificationService = qualificationService;
     }
 
-
     @GetMapping("/get-all-qualifications")
-
     public ResponseEntity<?> getAllQualifications() {
         TypedQuery<Qualification> query = entityManager.createQuery(FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
         List<Qualification> qualifications = query.getResultList();
-        if(qualifications.isEmpty())
-        {
-            return responseService.generateResponse(HttpStatus.OK,"Qualification List is Empty", qualifications);
-        }
-        return responseService.generateResponse(HttpStatus.OK,"Qualification List Retrieved Successfully", qualifications);
-    }
 
+        // Filter out qualifications safely
+        List<Qualification> filteredQualifications = qualifications.stream()
+                .filter(q -> !q.getQualification_name().equalsIgnoreCase("BACHELORS/GRADUATION") &&
+                        !q.getQualification_name().equalsIgnoreCase("MASTERS/POST_GRADUATION"))
+                .collect(Collectors.toList());
+
+        if (filteredQualifications.isEmpty()) {
+            return responseService.generateResponse(HttpStatus.OK, "Qualification List is Empty", filteredQualifications);
+        }
+        return responseService.generateResponse(HttpStatus.OK, "Qualification List Retrieved Successfully", filteredQualifications);
+    }
 
     @PostMapping("/add")
     public ResponseEntity<?> addQualification(@RequestBody Qualification qualification) throws Exception {

@@ -101,6 +101,10 @@
         <class>com.community.api.entity.GenderWiseDistribution</class>
         <class>com.community.api.entity.QualificationEligibility</class>
         <class>com.community.api.entity.OtherDistribution</class>
+        <class>com.community.api.entity.CommunicationContent</class>
+        <class>com.community.api.entity.ContentFile</class>
+        <class>com.community.api.entity.ActionLog</class>
+        <class>com.community.api.entity.CustomMode</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

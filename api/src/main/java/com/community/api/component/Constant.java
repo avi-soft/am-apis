@@ -6,9 +6,14 @@ import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminPresentation.FieldOrder.order;
 
 public class Constant {
 
+    public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
     public static final long MAX_SIGNATURE_IMAGE_SIZE= 1 * 1024 * 1024;
@@ -108,6 +113,7 @@ public class Constant {
     public static String SERVICE_PROVIDER_PRIVILEGE = "SELECT privilege_id FROM service_provider_privileges WHERE service_provider_id = :serviceProviderId";
     public static String GET_ROLE_BY_ROLE_ID = "SELECT r FROM Role r WHERE r.role_id = :roleId";
     public static String PRIVILEGE_ADD_PRODUCT = "ADD_PRODUCT";
+    public static String PRIVILEGE_COMMUNICATION_WITH_CUSTOMERS = "COMMUNICATE_WITH_CUSTOMERS";
     public static String PRIVILEGE_ADD_DOCUMENT_TYPE = "ADD_DOCUMENT_TYPE";
     public static String PRIVILEGE_TICKET = "PRIVILEGE_TICKET";
     public static String GET_PRODUCT_RESERVECATEGORY_BORNBEFORE_BORNAFTER = "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct";
@@ -224,4 +230,10 @@ public class Constant {
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
     public static final String NO_CATEGORY="N/A";
     public static final String NO_GENDER="N/A";
+
+    //public static final String CUSTOMER_FILTER_REFERRER= "SELECT DISTINCT cust.customer_id FROM customer_referrer referrer JOIN blc_customer cust ON referrer.customer_id = cust.customer_id JOIN blc_customer_address cust_addr ON referrer.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id AND qual_details.date_of_passing = (SELECT MAX(date_of_passing) FROM qualification_details WHERE custom_customer_id = cust.customer_id) WHERE addr.country ='ADD-P'";
+    public static final String ACTION_ACTIVATE="activate";
+    public static final String ACTION_SUSPEND="suspend";
+    public static final String CUSTOMER_FILTER= "SELECT cust.customer_id FROM blc_customer cust ";
+
 }

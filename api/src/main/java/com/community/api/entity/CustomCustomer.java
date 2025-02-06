@@ -95,23 +95,23 @@ public class CustomCustomer extends CustomerImpl {
     private String categoryIssueDate;
     @Nullable
     @Column(name = "height_cms")
-    private Integer heightCms; // Integer type for numeric validation
+    private Double heightCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "weight_kgs")
-    private Integer weightKgs; // Integer type for numeric validation
+    private Double weightKgs; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "chest_size_cms")
-    private Integer chestSizeCms; // Integer type for numeric validation
+    private Double chestSizeCms; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "shoe_size_inches")
-    private Integer shoeSizeInches; // Integer type for numeric validation
+    private Double shoeSizeInches; // Integer type for numeric validation
 
     @Nullable
     @Column(name = "waist_size_cms")
-    private Integer waistSizeCms; // Integer type for numeric validation
+    private Double waistSizeCms; // Integer type for numeric validation
     @Nullable
     @Column(name = "can_swim")
     private Boolean canSwim; // Yes/No
@@ -300,7 +300,7 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BankDetails> bankDetails = new ArrayList<>();
 
-    @Column(name = "order_count")
+    @Column(name = "order_count",columnDefinition = "BIGINT DEFAULT 0")
     private Integer numberOfOrders;
 
     @Column(name = "registered_by_sp", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
@@ -356,4 +356,15 @@ public class CustomCustomer extends CustomerImpl {
     @ManyToOne
     @JoinColumn(name = "domicile_state")
     protected StateCode domicileState;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
+    @Column(name = "archived_by_role_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Integer archivedByRole;
+    @Column(name = "archived_by_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Long archivedById;
+    @Column(name = "completed",columnDefinition ="BOOLEAN DEFAULT FALSE")
+    private Boolean complete;
+    @Column(name = "primary_referrer_id",columnDefinition = "BIGINT DEFAULT 0")
+    private Long primaryRef;
 }

@@ -89,7 +89,7 @@ import static com.community.api.component.Constant.*;
 public class ProductController extends CatalogEndpoint {
 
     public static final String TENTATIVEDATEAFTERACTIVEENDDATE = "Both tentative examination data must be after active end date.";
-    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date to must be either equal or before of tentative exam date from.";
+    public static final String TENTATIVEEXAMDATETOAFTEREXAMDATEFROM = "Tentative exam date from must be before of tentative exam date to.";
     public static final String TENTATIVEEXAMDATEAFTERACTIVEENDDATE = "Tentative examination date must be after active end date.";
     public static final String POSTLESSTHANORZERO = "Number of post cannot be less than or equal to zero.";
     public static final String PRODUCTNOTFOUND = "Product not found.";
@@ -304,9 +304,9 @@ public class ProductController extends CatalogEndpoint {
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
@@ -318,7 +318,7 @@ public class ProductController extends CatalogEndpoint {
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
-            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,totalPostInProduct);
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
              ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
              return response;
 
@@ -359,10 +359,6 @@ public class ProductController extends CatalogEndpoint {
             }
 
 //            // Validations and checks.
-            if (addProductDto.getReservedCategory() != null) {
-                productService.validateReserveCategory(addProductDto);
-                productService.deleteOldReserveCategoryMapping(customProduct);
-            }
             productService.updateProductValidation(addProductDto, customProduct);
 
             // Validation of getActiveEndDate and getGoLiveDate.
@@ -388,9 +384,8 @@ public class ProductController extends CatalogEndpoint {
             customProduct.setModifierRole(roleService.getRoleByRoleId(jwtTokenUtil.extractRoleId(authHeader.substring(7))));
             customProduct.setModifierUserId(jwtTokenUtil.extractId(authHeader.substring(7)));
 
-
             if (addProductDto.getReservedCategory() != null) {
-                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                productService.validateReserveCategory(addProductDto);
             }
             if(addProductDto.getIsReviewRequired()!=null)
             {
@@ -481,17 +476,23 @@ public class ProductController extends CatalogEndpoint {
                     }
                     entityManager.flush();
                 }
+            }
 
-                postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
-                postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+            if (addProductDto.getReservedCategory() != null) {
+                productService.deleteOldReserveCategoryMapping(customProduct);
+                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+            }
+            if(addProductDto.getPosts() != null) {
+                if (!addProductDto.getPosts().isEmpty()) {
+                    postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
+                    postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+                }
             }
            /* if(addProductDto.getReserveCategoryAge()!=null)
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
 
-            List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
@@ -511,11 +512,11 @@ public class ProductController extends CatalogEndpoint {
                 if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
                 {
                     entityManager.merge(customProduct);
-                   return productService.changeStateProductFromDraftToNew(customProduct,reserveCategoryDtoList,wrapper);
+                   return productService.changeStateProductFromDraftToNew(customProduct,wrapper);
                 }
             }
             entityManager.merge(customProduct);
-            List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+            List<PostProjectionDTO> postProjectionDTOS= getPosts(postList);
             wrapper.wrapDetails(customProduct,null,postProjectionDTOS,productReserveCategoryFeePostRefService);
 
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
@@ -545,7 +546,6 @@ public class ProductController extends CatalogEndpoint {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(productId);
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
 
             if (customProduct == null) {
@@ -555,9 +555,8 @@ public class ProductController extends CatalogEndpoint {
             if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
                 CustomProductWrapper wrapper = new CustomProductWrapper();
-                getPosts(customProduct);
                 List<Post> postList= customProduct.getPosts();
-                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct);
+                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
                 wrapper.wrapDetails(customProduct, postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
 
@@ -687,7 +686,6 @@ public class ProductController extends CatalogEndpoint {
             }
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
@@ -840,9 +838,8 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    public static List<PostProjectionDTO> getPosts (CustomProduct customProduct)
+    public static List<PostProjectionDTO> getPosts (List<Post> postList)
     {
-        List<Post> postList= customProduct.getPosts();
         List<PostProjectionDTO> postProjectionDTOS= new ArrayList<>();
         for(Post post:postList)
         {
@@ -862,6 +859,7 @@ public class ProductController extends CatalogEndpoint {
                 ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
                 reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
                 reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
+                reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
                 reserveCategoryAgeDto.setBornAfter(ageRequirementEntity.getBornAfter());
                 reserveCategoryAgeDto.setBornBefore(ageRequirementEntity.getBornBefore());
                 reserveCategoryAgeDto.setBornBeforeAfter(ageRequirementEntity.getBornBeforeAfter());
@@ -869,6 +867,7 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }
             postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
