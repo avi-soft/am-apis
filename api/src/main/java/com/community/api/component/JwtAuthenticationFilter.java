@@ -159,6 +159,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return requestURI.startsWith("/api/v1/account")
                 || requestURI.startsWith("/api/v1/otp")
                 || requestURI.startsWith("/api/v1/test")
+                || requestURI.startsWith("/api/v1/category-custom/get-all-categories")
                 || requestURI.startsWith("/api/v1/files/avisoftdocument/**")
                 || requestURI.startsWith("/api/v1/files/**")
                 || requestURI.startsWith("/api/v1/avisoftdocument/**")
