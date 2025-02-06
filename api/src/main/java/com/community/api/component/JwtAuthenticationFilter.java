@@ -5,6 +5,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.ServiceProviderInfra;
 import com.community.api.services.CustomCustomerService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.RoleService;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -72,6 +73,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private SharedUtilityService sharedUtilityService;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -81,11 +84,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-
-
-
-
             String requestURI = request.getRequestURI();
+
+            if(!isUnsecuredUri(requestURI)) {
+                String token = request.getHeader("Authorization");
+                token = token.trim();
+                String jwtToken = token.substring(7);
+                if (sharedUtilityService.isBlackListed(jwtToken)) {
+                    handleException(response, 403, "Your account is suspended please contact support.");
+                }
+            }
 
             if (isUnsecuredUri(requestURI) || bypassimages(requestURI)) {
                 chain.doFilter(request, response);

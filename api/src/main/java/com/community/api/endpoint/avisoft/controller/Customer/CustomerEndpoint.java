@@ -10,6 +10,7 @@ import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.BlackListedTokens;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
@@ -2655,7 +2656,14 @@ public class CustomerEndpoint {
             }
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
-            logout(customCustomer.getToken());
+            if(action.equals(Constant.ACTION_SUSPEND)) {
+                sharedUtilityService.blackListToken(customCustomer.getToken(),5,customCustomer.getId());
+                logout(customCustomer.getToken());
+            }
+            else
+            {
+                sharedUtilityService.removeToken(customCustomer.getToken());
+            }
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);
