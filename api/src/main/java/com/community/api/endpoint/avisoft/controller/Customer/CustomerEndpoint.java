@@ -2291,6 +2291,50 @@ public class CustomerEndpoint {
         }
     }
 
+    @PostMapping("/submit-customer-details/{customerId}")
+    public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader)
+    {
+        try {
+            CustomCustomer customCustomer= entityManager.find(CustomCustomer.class,customerId);
+            if(customCustomer==null)
+            {
+                throw new IllegalArgumentException("Customer with id "+ customerId+ " not found");
+            }
+            if(!sharedUtilityService.validateCustomerPersonalDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateCustomerContactDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validatePhysicalDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateMiscellaniousDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if(!sharedUtilityService.validateDocumentsDetails(customCustomer));
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            customCustomer.setProfileComplete(true);
+            return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader), HttpStatus.OK);
+        }
+        catch (NumberFormatException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+        }catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Some issue in deleting customer: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @GetMapping("/get-all-customers")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
@@ -2455,7 +2499,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
         try {
             if (!sort.equals("DESC") && !sort.equals("ASC"))
@@ -2530,6 +2574,8 @@ public class CustomerEndpoint {
                     String primaryRefName = null;
                     Long primaryRefId = null;
                     if (customCustomer != null) {
+                        if(!customCustomer.getArchived().equals(suspended))
+                            continue;
                         CustomerBasicDetailsDto customerBasicDetailsDto = new CustomerBasicDetailsDto();
                         if (stateName != null)
                             customerBasicDetailsDto.setState(stateName);

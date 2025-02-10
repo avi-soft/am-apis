@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String requestURI = request.getRequestURI();
 
-            if(!isUnsecuredUri(requestURI)&&isApiKeyRequiredUri(request)) {
+            if(!isUnsecuredUri(requestURI)&&!isApiKeyRequiredUri(request)) {
                 String token = request.getHeader("Authorization");
                 if(token==null)
                     respondWithUnauthorized(response, "JWT token cannot be empty");
