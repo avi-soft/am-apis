@@ -383,7 +383,7 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe) {
+    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe,HttpServletRequest httpServletRequest) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null)
@@ -392,12 +392,12 @@ public class ServiceProviderController {
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
                 if(registeredByMe!=null&&registeredByMe.equals(true)) {
                     if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
-                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                     }
                 }
                 else
                 {
-                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                 }
             }
             return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
