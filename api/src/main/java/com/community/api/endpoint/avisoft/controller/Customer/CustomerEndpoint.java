@@ -318,6 +318,7 @@ public class CustomerEndpoint {
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
             if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
+                System.out.println("hellob");
                 if (customCustomer.getInterestedInDefence()) {
                     // List of required fields
                     final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");

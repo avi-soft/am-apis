@@ -150,6 +150,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
+            System.out.println("size"+customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -194,7 +195,7 @@ public class ServiceProviderTicketService {
     public boolean allocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: " + serviceProvider.getService_provider_id());
-            if ((serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
+            if ((serviceProvider.getMaximumTicketSize() != null &&(serviceProvider.getIsActive().equals(true))&& serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
                 // assign him the ticket
                 // create a entry in serviceProvider ticket table where the info about which serviceProvider is linked with which ticket is stored.
                 CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -324,6 +325,8 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
+            if(createTicketDto.getTicketType()==3)
+                customServiceProviderTicket.setDesc(createTicketDto.getTask());
             if (creatorId != null && creatorRoleId != null) {
                 customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
                 customServiceProviderTicket.setUserId(creatorId);
@@ -354,7 +357,12 @@ public class ServiceProviderTicketService {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-
+            if(createTicketDto.getAssigneeRole()==4)
+            {
+                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                entityManager.merge(serviceProvider);
+            }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
 
