@@ -315,6 +315,29 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedByRole",customCustomer.getArchivedByRole());
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                    customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
+                    customerDetailsForMobile.put("currentState", customerAddress.getAddress().getStateProvinceRegion());
+                    customerDetailsForMobile.put("currentCity", customerAddress.getAddress().getCity());
+                    customerDetailsForMobile.put("currentDistrict", customerAddress.getAddress().getCounty());
+                    customerDetailsForMobile.put("currentPincode", customerAddress.getAddress().getPostalCode());
+                    customerDetailsForMobile.put("currentAddress", customerAddress.getAddress().getAddressLine1());
+                    customerDetailsForMobile.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    customerDetailsForMobile.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                    customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
+                    customerDetailsForMobile.put("permanentState", customerAddress.getAddress().getStateProvinceRegion());
+                    customerDetailsForMobile.put("permanentCity", customerAddress.getAddress().getCity());
+                    customerDetailsForMobile.put("permanentDistrict", customerAddress.getAddress().getCounty());
+                    customerDetailsForMobile.put("permanentPincode", customerAddress.getAddress().getPostalCode());
+                    customerDetailsForMobile.put("permanentAddress", customerAddress.getAddress().getAddressLine1());
+                    customerDetailsForMobile.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    customerDetailsForMobile.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+
+            }
 
             Map<String, String> currentAddress = new HashMap<>();
             Map<String, String> permanentAddress = new HashMap<>();
