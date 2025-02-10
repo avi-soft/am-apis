@@ -96,6 +96,14 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "admit_card_date_to")
     protected Date admitCardDateTo;
 
+    @Nullable
+    @Column(name = "hard_copy_submission_date_from")
+    protected Date hardCopySubmissionDateFrom;
+
+    @Nullable
+    @Column(name = "hard_copy_submission_date_to")
+    protected Date hardCopySubmissionDateTo;
+
     @Column(name = "modification_date_from")
     protected Date modificationDateFrom;
 

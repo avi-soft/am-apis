@@ -17,6 +17,7 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
+import com.community.api.entity.AddProductAgeDTO;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.OtherItem;
 import com.community.api.entity.Qualification;
@@ -711,6 +712,88 @@ public class ProductService {
         }
     }
 
+    public boolean validateScholarshipCategoryProduct(AddProductDto addProductDto) throws ParseException {
+        if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+        {
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether multiple posts have same fee or not ");
+            }
+        }
+
+        return true;
+    }
+    public boolean validateJobsCategoryProduct(AddProductDto addProductDto)
+    {
+        if(addProductDto.getIsMultiplePostSameFee()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether multiple post have same fees");
+        }
+
+        if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+        {
+            throw new IllegalArgumentException("Post cannot be null or empty");
+        }
+        return true;
+    }
+
+    public boolean validateEnteranceCategoryProduct(AddProductDto addProductDto)
+    {
+        if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+        {
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether multiple posts have same fee or not ");
+            }
+        }
+        return true;
+    }
+
+    public boolean validateAdmissionCategoryProduct(AddProductDto addProductDto)
+    {
+        return true;
+    }
+
+    public boolean saveDraftValidateScholarship(AddProductDto addProductDto)
+    {
+        if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+        {
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("For adding post , select whether the multiple post have same fee or not ");
+            }
+        }
+        return true;
+    }
+    public boolean saveDraftValidateEnterance(AddProductDto addProductDto)
+    {
+        if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+        {
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("For adding post , select whether the multiple post have same fee or not ");
+            }
+        }
+        return true;
+    }
+    public boolean saveDraftValidateJobs(AddProductDto addProductDto)
+    {
+        if(addProductDto.getPosts()!=null && !addProductDto.getPosts().isEmpty())
+        {
+            if(addProductDto.getIsMultiplePostSameFee()==null)
+            {
+                throw new IllegalArgumentException("For adding post , select whether the multiple post have same fee or not ");
+            }
+        }
+        if (addProductDto.getIsMultiplePostSameFee() != null) {
+            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+            {
+                throw new IllegalArgumentException("Post cannot be null or empty");
+            }
+        }
+        return true;
+    }
+
     public boolean addProductDtoValidation(AddProductDto addProductDto) throws Exception {
         try {
             if (addProductDto.getQuantity() != null) {
@@ -858,15 +941,34 @@ public class ProductService {
             {
                 addProductDto.setIsReviewRequired(true);
             }
-
-            if(addProductDto.getIsMultiplePostSameFee()==null)
+            if(addProductDto.getHardCopySubmissionDateFrom()!=null)
             {
-                throw new IllegalArgumentException("You have to select whether multiple post have same fees");
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateFrom()));
+                Date submissionDateFrom = stripTime(addProductDto.getHardCopySubmissionDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!submissionDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Hard copy submission date from must be after active end date.");
+                }
             }
-
-            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+            if(addProductDto.getHardCopySubmissionDateTo()!=null)
             {
-                throw new IllegalArgumentException("Post cannot be null or empty");
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateTo()));
+                Date hardCopyDateTo = stripTime(addProductDto.getHardCopySubmissionDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!hardCopyDateTo.after(activeEndDate))
+                {
+                    throw new IllegalArgumentException("Hard copy submission date to must be after active end date");
+                }
+            }
+            if(addProductDto.getHardCopySubmissionDateFrom()!=null && addProductDto.getHardCopySubmissionDateTo()!=null )
+            {
+                Date hardCopyDateTo = stripTime(addProductDto.getHardCopySubmissionDateTo());
+                Date hardCopyDateFrom = stripTime(addProductDto.getHardCopySubmissionDateFrom());
+                if (!hardCopyDateTo.after(hardCopyDateFrom)){
+                    throw new IllegalArgumentException("Hard copy submission date from must be before of Hard copy submission date to.");
+                }
             }
 
             return true;
@@ -1025,10 +1127,33 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }
 
-            if (addProductDto.getIsMultiplePostSameFee() != null) {
-                if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+            if(addProductDto.getHardCopySubmissionDateFrom()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateFrom()));
+                Date submissionDateFrom = stripTime(addProductDto.getHardCopySubmissionDateFrom());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!submissionDateFrom.after(activeEndDate)) {
+                    throw new IllegalArgumentException("Hard copy submission date from must be after active end date.");
+                }
+            }
+            if(addProductDto.getHardCopySubmissionDateTo()!=null)
+            {
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateTo()));
+                Date hardCopyDateTo = stripTime(addProductDto.getHardCopySubmissionDateTo());
+                Date activeEndDate = stripTime(addProductDto.getActiveEndDate());
+
+                if (!hardCopyDateTo.after(activeEndDate))
                 {
-                    throw new IllegalArgumentException("Post cannot be null or empty");
+                    throw new IllegalArgumentException("Hard copy submission date to must be after active end date");
+                }
+            }
+            if(addProductDto.getHardCopySubmissionDateFrom()!=null && addProductDto.getHardCopySubmissionDateTo()!=null )
+            {
+                Date hardCopyDateTo = stripTime(addProductDto.getHardCopySubmissionDateTo());
+                Date hardCopyDateFrom = stripTime(addProductDto.getHardCopySubmissionDateFrom());
+                if (!hardCopyDateTo.after(hardCopyDateFrom)){
+                    throw new IllegalArgumentException("Hard copy submission date from must be before of Hard copy submission date to.");
                 }
             }
 
@@ -1941,6 +2066,77 @@ public class ProductService {
         } catch (ParseException parseException) {
             exceptionHandlingService.handleException(parseException);
             throw new Exception("Parse exception caught while validating exam dates: " + parseException.getMessage() + "\n");
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+    public Boolean validateAndSetHardCopySubmits(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+        try {
+            if (addProductDto.getHardCopySubmissionDateFrom() != null && addProductDto.getHardCopySubmissionDateTo() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateFrom()));
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateTo()));
+            } else if (addProductDto.getHardCopySubmissionDateFrom() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateFrom()));
+                addProductDto.setHardCopySubmissionDateFrom(addProductDto.getHardCopySubmissionDateFrom());
+            } else if(addProductDto.getHardCopySubmissionDateTo() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getHardCopySubmissionDateTo()));
+                if(customProduct.getHardCopySubmissionDateFrom() != null) {
+                    addProductDto.setHardCopySubmissionDateFrom(customProduct.getHardCopySubmissionDateFrom());
+                } else {
+                    addProductDto.setHardCopySubmissionDateTo(addProductDto.getHardCopySubmissionDateTo());
+                }
+            }
+
+            if (addProductDto.getHardCopySubmissionDateFrom() != null && addProductDto.getHardCopySubmissionDateTo() != null) {
+                if (addProductDto.getHardCopySubmissionDateFrom().after(addProductDto.getHardCopySubmissionDateTo())) {
+                    throw new IllegalArgumentException("Hard copy submission date from must be before or equal of Hard copy submission date to.");
+                } else if (addProductDto.getAdmitCardDateTo() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(addProductDto.getAdmitCardDateTo())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of admit card date to.");
+                    }
+                } else if (customProduct.getAdmitCardDateTo() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(customProduct.getAdmitCardDateTo())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of admit card to.");
+                    }
+                }
+                if (addProductDto.getModificationDateTo() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(addProductDto.getModificationDateTo())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of modified date to.");
+                    }
+                } else if (customProduct.getModificationDateTo() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(customProduct.getModificationDateTo())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of modified date to.");
+                    }
+                }
+                if (addProductDto.getLastDateToPayFee() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of last date to pay fee.");
+                    }
+                } else if (customProduct.getLateDateToPayFee() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(customProduct.getLateDateToPayFee())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of last date to pay fee.");
+                    }
+                }
+                if (addProductDto.getActiveEndDate() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(addProductDto.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of active end date.");
+                    }
+                } else if (customProduct.getActiveEndDate() != null) {
+                    if (!addProductDto.getHardCopySubmissionDateFrom().after(customProduct.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Hard copy submission date from must be after of active end date.");
+                    }
+                }
+                customProduct.setHardCopySubmissionDateFrom(addProductDto.getHardCopySubmissionDateFrom());
+                customProduct.setHardCopySubmissionDateTo(addProductDto.getHardCopySubmissionDateTo());
+            }
+            return true;
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage() + "\n");
+        } catch (ParseException parseException) {
+            exceptionHandlingService.handleException(parseException);
+            throw new Exception("Parse exception caught while validating hard copy submission dates: " + parseException.getMessage() + "\n");
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage());

@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
@@ -98,7 +100,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Date examDateFrom;
     @JsonProperty("exam_date_to")
     protected Date examDateTo;
-
+    @JsonProperty("hard_copy_submission_date_from")
+    protected Date hardCopySubmissionDateFrom;
+    @JsonProperty("hard_copy_submission_date_to")
+    protected Date hardCopySubmissionDateTo;
     @JsonProperty("last_date_to_pay_fee")
     Date lateDateToPayFee;
     @JsonProperty("admit_card_date_from")
@@ -259,6 +264,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.selectionCriteria = addProductDto.getSelectionCriteria();
         this.totalVacanciesInProduct=totalVacanciesInProduct;
         this.state = state;
+        this.hardCopySubmissionDateFrom=addProductDto.getHardCopySubmissionDateFrom();
+        this.hardCopySubmissionDateTo=addProductDto.getHardCopySubmissionDateTo();
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
         advertisementWrapper.wrapDetails(advertisement, null);
         this.advertisement = advertisementWrapper;
@@ -300,6 +307,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.domicileRequired = customProduct.getDomicileRequired();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
+        this.hardCopySubmissionDateFrom=customProduct.getHardCopySubmissionDateFrom();
+        this.hardCopySubmissionDateTo=customProduct.getHardCopySubmissionDateTo();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
         this.isReviewRequired=customProduct.getIsReviewRequired();
@@ -359,7 +368,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.domicileRequired = customProduct.getDomicileRequired();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
-
+        this.hardCopySubmissionDateFrom=customProduct.getHardCopySubmissionDateFrom();
+        this.hardCopySubmissionDateTo=customProduct.getHardCopySubmissionDateTo();
         this.lateDateToPayFee = customProduct.getLateDateToPayFee();
         this.admitCardDateFrom = customProduct.getAdmitCardDateFrom();
         this.adminCardDateTo = customProduct.getAdmitCardDateTo();
@@ -421,6 +431,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.creatorRoleId = customProduct.getCreatoRole();
         this.modifierUserId = customProduct.getModifierUserId();
         this.modifierRoleId = customProduct.getModifierRole();
+        this.hardCopySubmissionDateFrom=customProduct.getHardCopySubmissionDateFrom();
+        this.hardCopySubmissionDateTo=customProduct.getHardCopySubmissionDateTo();
 
 
         this.examDateFrom = customProduct.getExamDateFrom();

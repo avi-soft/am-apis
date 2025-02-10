@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 
+import javax.persistence.Column;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
@@ -76,6 +78,12 @@ public class AddProductDto {
     @Temporal(TemporalType.TIMESTAMP)
     @JsonProperty("modification_date_to")
     Date modificationDateTo;
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonProperty("hard_copy_submission_date_from")
+    Date hardCopySubmissionDateFrom;
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonProperty("hard_copy_submission_date_to")
+     Date hardCopySubmissionDateTo;
     @JsonProperty("download_notification_link")
     String downloadNotificationLink;
     @JsonProperty("download_syllabus_link")

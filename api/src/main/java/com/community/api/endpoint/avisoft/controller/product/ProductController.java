@@ -168,15 +168,50 @@ public class ProductController extends CatalogEndpoint {
             }
 
             Advertisement advertisement = productService.validateAdvertisement(addProductDto);
-
             Long categoryId = advertisement.getCategory().getDefaultParentCategory().getId();
             Category category = productService.validateCategory(categoryId);
 
             if (!saveDraft) {
+                if(advertisement.getCategory().getName().equalsIgnoreCase("Scholarship"))
+                {
+                    productService.validateScholarshipCategoryProduct(addProductDto);
+                }
+
+                else if(advertisement.getCategory().getName().equalsIgnoreCase("Job"))
+                {
+                    productService.validateJobsCategoryProduct(addProductDto);
+                }
+
+                else if(advertisement.getCategory().getName().equalsIgnoreCase("Enterance Forms"))
+                {
+                    productService.validateEnteranceCategoryProduct(addProductDto);
+                }
+                else if(advertisement.getCategory().getName().equalsIgnoreCase("Admission Forms"))
+                {
+                    productService.validateAdmissionCategoryProduct(addProductDto);
+                }
                 productService.addProductDtoValidation(addProductDto);
             }
             else
             {
+                if(advertisement.getCategory().getName().equalsIgnoreCase("Scholarship"))
+                {
+                    productService.saveDraftValidateScholarship(addProductDto);
+                }
+
+                else if(advertisement.getCategory().getName().equalsIgnoreCase("Job"))
+                {
+                    productService.saveDraftValidateJobs(addProductDto);
+                }
+
+                else if(advertisement.getCategory().getName().equalsIgnoreCase("Enterance Forms"))
+                {
+                    productService.saveDraftValidateEnterance(addProductDto);
+                }
+               /* else if(advertisement.getCategory().getName().equalsIgnoreCase("Admission Forms"))
+                {
+                    productService.validateAdmissionCategoryProduct(addProductDto);  
+                }*/
                 productService.addProductDtoWithoutValidation(addProductDto);
             }
 
