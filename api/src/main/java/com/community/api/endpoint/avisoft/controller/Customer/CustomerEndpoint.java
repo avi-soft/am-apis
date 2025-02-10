@@ -1066,23 +1066,93 @@ public class CustomerEndpoint {
                     field.set(customCustomer, newValue);
                 }
             }
+            if (details.containsKey("category")) {
+                if (((String) details.get("category")).equalsIgnoreCase("GEN")) {
+                    customCustomer.setCategoryIssueDate(null);
+                    customCustomer.setCategoryValidUpto(null);
+                }
+            }else if(!details.containsKey("category")) {
+                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
+                    customCustomer.setCategoryIssueDate(null);
+                    customCustomer.setCategoryValidUpto(null);
+                }
+            }
             // Update address if needed
             if (details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {
 
                 if (sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryValidUpto"), errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
-                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                    if (details.containsKey("category")) {
+                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                            customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
+                    else if(!details.containsKey("category")) {
+                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                            customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
                 }
 
             } else if (details.containsKey("categoryIssueDate")) {
 
                 if (sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
-                    customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                    if (details.containsKey("category")) {
+                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
+                    else if(!details.containsKey("category")) {
+                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
+
                 }
             } else if (details.containsKey("categoryValidUpto")) {
 
                 if (sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"), customCustomer, errorMessages)) {
-                    customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                    if (details.containsKey("category")) {
+                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
+                    else if(!details.containsKey("category")) {
+                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
+                        {
+                            customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
+                        }
+                        else {
+                            customCustomer.setCategoryIssueDate(null);
+                            customCustomer.setCategoryValidUpto(null);
+                        }
+                    }
                 }
             }
             if (details.containsKey("disability")) {
