@@ -150,6 +150,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
+            System.out.println("size"+customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -356,7 +357,12 @@ public class ServiceProviderTicketService {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-
+            if(createTicketDto.getAssigneeRole()==4)
+            {
+                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                entityManager.merge(serviceProvider);
+            }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
 
