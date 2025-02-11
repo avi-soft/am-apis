@@ -1521,7 +1521,7 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("In Personal Details, Category cannot be null or empty");
         }
-        if(customCustomer.getCategoryIssueDate()==null || (customCustomer.getCategoryIssueDate()!=null &&customCustomer.getCategoryIssueDate().trim().isEmpty()))
+        if(!customCustomer.getCategory().equalsIgnoreCase("GEN") && (customCustomer.getCategoryIssueDate()==null || (customCustomer.getCategoryIssueDate()!=null &&customCustomer.getCategoryIssueDate().trim().isEmpty())))
         {
             throw new IllegalArgumentException("In Personal Details, Category issue date cannot be null or empty");
         }
@@ -1552,7 +1552,7 @@ public class SharedUtilityService {
 
         if(customCustomer.getDomicile().equals(true))
         {
-            if(customCustomer.getState()==null || (customCustomer.getState()!=null &&customCustomer.getState().trim().isEmpty()))
+            if(customCustomer.getDomicileState()==null)
             {
                 throw new IllegalArgumentException("In Personal Details, state cannot be null or empty if state domicile is true");
             }
@@ -1560,7 +1560,6 @@ public class SharedUtilityService {
             {
                 throw new IllegalArgumentException("In Personal Details, state cannot be null or empty if domicile date of issue is true");
             }
-
         }
         if(customCustomer.getDisability()==null)
         {
@@ -1824,11 +1823,13 @@ public class SharedUtilityService {
         {
             documentsNotUploaded.add("Left Thumb impression");
         }
-        if(!isCategoryCertificate)
+        if(customCustomer.getCategory()!=null && !customCustomer.getCategory().equalsIgnoreCase("GEN"))
         {
-            documentsNotUploaded.add("Category Certificate");
+            if(!isCategoryCertificate)
+            {
+                documentsNotUploaded.add("Category Certificate");
+            }
         }
-
         if(customCustomer.getBelongsToMinority().equals(true))
         {
             if(!isMinority)
