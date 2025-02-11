@@ -716,8 +716,8 @@ public class CustomerEndpoint {
             details.remove("permanentCity");
 
             String dateFormat = "dd-MM-yyyy";
-            if (details.containsKey("ncc_certificate")) {
-                String nccCertificateValue = (String) details.get("ncc_certificate");
+            if (details.containsKey("nccCertificate")) {
+                String nccCertificateValue = (String) details.get("nccCertificate");
 
                 if (!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C")) {
                     return ResponseService.generateErrorResponse("You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C", HttpStatus.BAD_REQUEST);
@@ -742,13 +742,13 @@ public class CustomerEndpoint {
                 else
                 customCustomer.setDob(dob);
             }
-            if (details.containsKey("is_ncc_certificate")) {
-                Boolean isNccCertificate = (Boolean) details.get("is_ncc_certificate");
+            if (details.containsKey("isNccCertificate")) {
+                Boolean isNccCertificate = (Boolean) details.get("isNccCertificate");
                 if (isNccCertificate.equals(true)) {
-                    if (!details.containsKey("ncc_certificate")) {
+                    if (!details.containsKey("nccCertificate")) {
                         return ResponseService.generateErrorResponse("You have to select ncc certificate type", HttpStatus.BAD_REQUEST);
                     }
-                    customCustomer.setNccCertificate((String) details.get("ncc_certificate"));
+                    customCustomer.setNccCertificate((String) details.get("nccCertificate"));
                 }
 
                 if (isNccCertificate.equals(false)) {
@@ -769,21 +769,21 @@ public class CustomerEndpoint {
                 customCustomer.setIsNccCertificate(isNccCertificate);
 
             }
-            if (details.containsKey("nss_certificate")) {
-                String nssCertificateValue = (String) details.get("nss_certificate");
+            if (details.containsKey("nssCertificate")) {
+                String nssCertificateValue = (String) details.get("nssCertificate");
                 if (!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C")) {
                     return ResponseService.generateErrorResponse("You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C", HttpStatus.BAD_REQUEST);
                 }
                 customCustomer.setNssCertificate(nssCertificateValue);
                 customCustomer.setIsNssCertificate(true);
             }
-            if (details.containsKey("is_nss_certificate")) {
-                Boolean isNssCertificate = (Boolean) details.get("is_nss_certificate");
+            if (details.containsKey("isNssCertificate")) {
+                Boolean isNssCertificate = (Boolean) details.get("isNssCertificate");
                 if (isNssCertificate.equals(true)) {
-                    if (!details.containsKey("nss_certificate")) {
+                    if (!details.containsKey("nssCertificate")) {
                         return ResponseService.generateErrorResponse("You have to select nss certificate type", HttpStatus.BAD_REQUEST);
                     }
-                    customCustomer.setNssCertificate((String) details.get("nss_certificate"));
+                    customCustomer.setNssCertificate((String) details.get("nssCertificate"));
                 } else if (isNssCertificate.equals(false)) {
                     customCustomer.setNssCertificate(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -801,10 +801,10 @@ public class CustomerEndpoint {
                 customCustomer.setIsNssCertificate(isNssCertificate);
             }
 
-            details.remove("is_ncc_certificate");
-            details.remove("ncc_certificate");
-            details.remove("is_nss_certificate");
-            details.remove("nss_certificate");
+            details.remove("isNccCertificate");
+            details.remove("nccCertificate");
+            details.remove("isNssCertificate");
+            details.remove("nssCertificate");
 
             if (details.containsKey("isOtherOrStateCategory")) {
                 Boolean isOtherCategory = (Boolean) details.get("isOtherOrStateCategory");
