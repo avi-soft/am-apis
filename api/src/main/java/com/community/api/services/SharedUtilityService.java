@@ -60,6 +60,8 @@ public class SharedUtilityService {
     DistrictService districtService;
     @Autowired
     HttpServletRequest request;
+    @Autowired
+    DeviceDetectorService deviceDetectorService;
     private EntityManager entityManager;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
 
@@ -155,219 +157,476 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader) throws Exception {
+    public Map<String, Object> breakReferenceForCustomer(Customer customer,String authHeader,HttpServletRequest httpServletRequest) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        Map<String, Object> customerDetails = new HashMap<>();
-        customerDetails.put("id", customer.getId());
-        customerDetails.put("dateCreated", customer.getAuditable().getDateCreated());
-        customerDetails.put("createdBy", customer.getAuditable().getCreatedBy());
-        customerDetails.put("dateUpdated", customer.getAuditable().getDateUpdated());
-        customerDetails.put("updatedBy", customer.getAuditable().getUpdatedBy());
-        customerDetails.put("username", customer.getUsername());
-        customerDetails.put("password", customer.getPassword());
-        customerDetails.put("emailAddress", customer.getEmailAddress());
-        customerDetails.put("firstName", customer.getFirstName());
-        customerDetails.put("lastName", customer.getLastName());
-        customerDetails.put("fullName", customer.getFirstName() + " " + customer.getLastName());
-        customerDetails.put("externalId", customer.getExternalId());
-        customerDetails.put("challengeQuestion", customer.getChallengeQuestion());
-        customerDetails.put("challengeAnswer", customer.getChallengeAnswer());
-        customerDetails.put("passwordChangeRequired", customer.isPasswordChangeRequired());
-        customerDetails.put("receiveEmail", customer.isReceiveEmail());
-        customerDetails.put("registered", customer.isRegistered());
-        customerDetails.put("deactivated", customer.isDeactivated());
-        customerDetails.put("customerPayments", customer.getCustomerPayments());
-        customerDetails.put("taxExemptionCode", customer.getTaxExemptionCode());
-        customerDetails.put("unencodedPassword", customer.getUnencodedPassword());
-        customerDetails.put("unencodedChallengeAnswer", customer.getUnencodedChallengeAnswer());
-        customerDetails.put("anonymous", customer.isAnonymous());
-        customerDetails.put("cookied", customer.isCookied());
-        customerDetails.put("loggedIn", customer.isLoggedIn());
-        customerDetails.put("transientProperties", customer.getTransientProperties());
+        if (deviceDetectorService.isMobileOrTablet(request)) {
+            Map<String, Object> customerDetailsForMobile = new HashMap<>();
+            customerDetailsForMobile.put("id", customer.getId());
+            customerDetailsForMobile.put("dateCreated", customer.getAuditable().getDateCreated());
+            customerDetailsForMobile.put("createdBy", customer.getAuditable().getCreatedBy());
+            customerDetailsForMobile.put("dateUpdated", customer.getAuditable().getDateUpdated());
+            customerDetailsForMobile.put("updatedBy", customer.getAuditable().getUpdatedBy());
+            customerDetailsForMobile.put("username", customer.getUsername());
+            customerDetailsForMobile.put("password", customer.getPassword());
+            customerDetailsForMobile.put("emailAddress", customer.getEmailAddress());
+            customerDetailsForMobile.put("firstName", customer.getFirstName());
+            customerDetailsForMobile.put("lastName", customer.getLastName());
+            customerDetailsForMobile.put("fullName", customer.getFirstName() + " " + customer.getLastName());
+            customerDetailsForMobile.put("externalId", customer.getExternalId());
+            customerDetailsForMobile.put("challengeQuestion", customer.getChallengeQuestion());
+            customerDetailsForMobile.put("challengeAnswer", customer.getChallengeAnswer());
+            customerDetailsForMobile.put("isPasswordChangeRequired", customer.isPasswordChangeRequired());
+            customerDetailsForMobile.put("isReceiveEmail", customer.isReceiveEmail());
+            customerDetailsForMobile.put("isRegistered", customer.isRegistered());
+            customerDetailsForMobile.put("isDeactivated", customer.isDeactivated());
+            customerDetailsForMobile.put("customerPayments", customer.getCustomerPayments());
+            customerDetailsForMobile.put("taxExemptionCode", customer.getTaxExemptionCode());
+            customerDetailsForMobile.put("unencodedPassword", customer.getUnencodedPassword());
+            customerDetailsForMobile.put("unencodedChallengeAnswer", customer.getUnencodedChallengeAnswer());
+            customerDetailsForMobile.put("isAnonymous", customer.isAnonymous());
+            customerDetailsForMobile.put("isCookied", customer.isCookied());
+            customerDetailsForMobile.put("isLoggedIn", customer.isLoggedIn());
+            customerDetailsForMobile.put("transientProperties", customer.getTransientProperties());
 
-        CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-        Order cart = orderService.findCartForCustomer(customer);
-        if (cart != null)
-            customerDetails.put("cartId", cart.getId());
-        else
-            customerDetails.put("cartId", null);
-        if(role.equals(Constant.roleServiceProvider)) {
-            if (customCustomer.getHidePhoneNumber().equals(false)) {
-                customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+            Order cart = orderService.findCartForCustomer(customer);
+            if (cart != null)
+                customerDetailsForMobile.put("cartId", cart.getId());
+            else
+                customerDetailsForMobile.put("cartId", null);
+            if(role.equals(Constant.roleServiceProvider)) {
+                if (customCustomer.getHidePhoneNumber().equals(false)) {
+                    customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
+                }
             }
-        }
-        else
-        {
-            customerDetails.put("mobileNumber", customCustomer.getMobileNumber());
-        }
-        customerDetails.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
-        customerDetails.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
-        customerDetails.put("whatsappNumber", customCustomer.getWhatsappNumber());
-        // List<ServiceProviderEntity>refSp=new ArrayList<>();
-        // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
-        // {
-        //     refSp.add(customerReferrer.getServiceProvider());
-        // }
-        // customerDetails.put("referres",refSp);
-        customerDetails.put("countryCode", customCustomer.getCountryCode());
-        List<ReferrerDTO>ref=new ArrayList<>();
-        ReferrerDTO primaryRef=new ReferrerDTO();
-        for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
-        {
-            if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
-                primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
-                primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
+            else
+            {
+                customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
             }
-            ReferrerDTO referrerDTO=new ReferrerDTO();
-            referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
-            referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
-            ref.add(referrerDTO);
-        }
-        customerDetails.put("primary_referrer",primaryRef);
-        customerDetails.put("referrers",ref);
-        customerDetails.put("otp", customCustomer.getOtp());
-        customerDetails.put("fathersName", customCustomer.getFathersName());
-        customerDetails.put("mothersName", customCustomer.getMothersName());
-        customerDetails.put("panNumber", customCustomer.getPanNumber());
-        customerDetails.put("nationality", customCustomer.getNationality());
-        customerDetails.put("dob", customCustomer.getDob());
-        customerDetails.put("gender", customCustomer.getGender());
-        customerDetails.put("adharNumber", customCustomer.getAdharNumber());
-        customerDetails.put("category", customCustomer.getCategory());
-        customerDetails.put("subcategory", customCustomer.getSubcategory());
-        customerDetails.put("domicile", customCustomer.getDomicile());
-        customerDetails.put("domicileState", customCustomer.getDomicileState());
-        customerDetails.put("secondaryEmail", customCustomer.getSecondaryEmail());
-        customerDetails.put("category_issue_date", customCustomer.getCategoryIssueDate());
-
-        if(customCustomer.getHeightCms() != null) {
-            customerDetails.put("height_cms", customCustomer.getHeightCms().toString());
-        }else {
-            customerDetails.put("height_cms", customCustomer.getHeightCms());
-        }
-
-        if(customCustomer.getWeightKgs() != null) {
-            customerDetails.put("weight_kgs", customCustomer.getWeightKgs().toString());
-        }else {
-            customerDetails.put("weight_kgs", customCustomer.getWeightKgs());
-        }
-
-        if(customCustomer.getChestSizeCms() != null) {
-            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
-        }else {
-            customerDetails.put("chest_size_cms", customCustomer.getChestSizeCms());
-        }
-
-        if(customCustomer.getShoeSizeInches() != null) {
-            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
-        }else {
-            customerDetails.put("shoe_size_inches", customCustomer.getShoeSizeInches());
-        }
-
-        if(customCustomer.getWaistSizeCms() != null) {
-            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
-        }else {
-            customerDetails.put("waist_size_cms", customCustomer.getWaistSizeCms());
-        }
-
-        customerDetails.put("can_swim", customCustomer.getCanSwim());
-        customerDetails.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
-        customerDetails.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
-        customerDetails.put("second_choice_exam_city", customCustomer.getSecondChoiceExamCity());
-        customerDetails.put("third_choice_exam_city", customCustomer.getThirdChoiceExamCity());
-        customerDetails.put("mphil_passed", customCustomer.getMphilPassed());
-        customerDetails.put("phd_passed", customCustomer.getPhdPassed());
-        customerDetails.put("number_of_attempts", customCustomer.getNumberOfAttempts());
-        customerDetails.put("category_valid_upto", customCustomer.getCategoryValidUpto());
-        customerDetails.put("religion", customCustomer.getReligion());
-        customerDetails.put("belongs_to_minority", customCustomer.getBelongsToMinority());
-        customerDetails.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
-        customerDetails.put("whatsapp_number", customCustomer.getWhatsappNumber());
-        customerDetails.put("secondary_email", customCustomer.getSecondaryEmail());
-        customerDetails.put("disability_handicapped", customCustomer.getDisability());
-        customerDetails.put("disability_type", customCustomer.getDisabilityType());
-        customerDetails.put("disability_percentage", customCustomer.getDisabilityPercentage());
-        customerDetails.put("is_ex_service_man", customCustomer.getExService());
-        customerDetails.put("is_married", customCustomer.getIsMarried());
-        customerDetails.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
-        customerDetails.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
-        customerDetails.put("is_ncc_certificate",customCustomer.getIs_ncc_certificate());
-        customerDetails.put("is_nss_certificate",customCustomer.getIs_nss_certificate());
-        customerDetails.put("ncc_certificate",customCustomer.getNcc_certificate());
-        customerDetails.put("nss_certificate",customCustomer.getNss_certificate());
-        customerDetails.put("created_by_role",customCustomer.getCreatedByRole());
-        customerDetails.put("created_by_id",customCustomer.getCreatedById());
-        customerDetails.put("modified_by_role",customCustomer.getModifiedByRole());
-        customerDetails.put("modified_by_id",customCustomer.getModifiedById());
-        customerDetails.put("registered_by_sp",customCustomer.getRegisteredBySp());
-        customerDetails.put("interested_in_defence", customCustomer.getInterestedInDefence());
-        customerDetails.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
-        customerDetails.put("work_experience", customCustomer.getWorkExperience());
-        customerDetails.put("sport_certificate", customCustomer.getSportCertificateId());
-        customerDetails.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
-        customerDetails.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
-        customerDetails.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
-        customerDetails.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
-        customerDetails.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
-        customerDetails.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
-        customerDetails.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
-        customerDetails.put("archived",customCustomer.getArchived());
-        customerDetails.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
-        customerDetails.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
-        customerDetails.put("profileCompleted",customCustomer.getComplete());
-        Map<String, String> currentAddress = new HashMap<>();
-        Map<String, String> permanentAddress = new HashMap<>();
-        for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
-            if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
-                currentAddress.put("addressName",customerAddress.getAddressName());
-                currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
-                currentAddress.put("city", customerAddress.getAddress().getCity());
-                currentAddress.put("district", customerAddress.getAddress().getCounty());
-                currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
-                currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
-                currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+            customerDetailsForMobile.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
+            customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
+            customerDetailsForMobile.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            customerDetailsForMobile.put("countryCode", customCustomer.getCountryCode());
+            List<ReferrerDTO>ref=new ArrayList<>();
+            ReferrerDTO primaryRef=new ReferrerDTO();
+            for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+            {
+                if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
+                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                    primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
+                }
+                ReferrerDTO referrerDTO=new ReferrerDTO();
+                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
+                ref.add(referrerDTO);
             }
-            if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
-                currentAddress.put("addressName",customerAddress.getAddressName());
-                permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
-                permanentAddress.put("city", customerAddress.getAddress().getCity());
-                permanentAddress.put("district", customerAddress.getAddress().getCounty());
-                permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
-                permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
-                permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
-                permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+            customerDetailsForMobile.put("primaryRef",primaryRef);
+            customerDetailsForMobile.put("referrers",ref);
+            customerDetailsForMobile.put("otp", customCustomer.getOtp());
+            customerDetailsForMobile.put("fathersName", customCustomer.getFathersName());
+            customerDetailsForMobile.put("mothersName", customCustomer.getMothersName());
+            customerDetailsForMobile.put("panNumber", customCustomer.getPanNumber());
+            customerDetailsForMobile.put("nationality", customCustomer.getNationality());
+            customerDetailsForMobile.put("dob", customCustomer.getDob());
+            customerDetailsForMobile.put("gender", customCustomer.getGender());
+            customerDetailsForMobile.put("adharNumber", customCustomer.getAdharNumber());
+            customerDetailsForMobile.put("category", customCustomer.getCategory());
+            customerDetailsForMobile.put("subcategory", customCustomer.getSubcategory());
+            customerDetailsForMobile.put("domicile", customCustomer.getDomicile());
+            customerDetailsForMobile.put("domicileState", customCustomer.getDomicileState());
+            customerDetailsForMobile.put("secondaryEmail", customCustomer.getSecondaryEmail());
+            customerDetailsForMobile.put("categoryIssueDate", customCustomer.getCategoryIssueDate());
+
+            if(customCustomer.getHeightCms() != null) {
+                customerDetailsForMobile.put("heightCms", customCustomer.getHeightCms().toString());
+            }else {
+                customerDetailsForMobile.put("heightCms", customCustomer.getHeightCms());
             }
 
-        }
-        customerDetails.put("currentAddress", currentAddress);
-        customerDetails.put("permanentAddress", permanentAddress);
+            if(customCustomer.getWeightKgs() != null) {
+                customerDetailsForMobile.put("weightKgs", customCustomer.getWeightKgs().toString());
+            }else {
+                customerDetailsForMobile.put("weightKgs", customCustomer.getWeightKgs());
+            }
 
-        /*customerDetails.put("current_district_id",
+            if(customCustomer.getChestSizeCms() != null) {
+                customerDetailsForMobile.put("chestSizeCms", customCustomer.getChestSizeCms().toString());
+            }else {
+                customerDetailsForMobile.put("chestSizeCms", customCustomer.getChestSizeCms());
+            }
+
+            if(customCustomer.getShoeSizeInches() != null) {
+                customerDetailsForMobile.put("shoeSizeInches", customCustomer.getShoeSizeInches().toString());
+            }else {
+                customerDetailsForMobile.put("shoeSizeInches", customCustomer.getShoeSizeInches());
+            }
+
+            if(customCustomer.getWaistSizeCms() != null) {
+                customerDetailsForMobile.put("waistSizeCms", customCustomer.getWaistSizeCms().toString());
+            }else {
+                customerDetailsForMobile.put("waistSizeCms", customCustomer.getWaistSizeCms());
+            }
+
+            customerDetailsForMobile.put("canSwim", customCustomer.getCanSwim());
+            customerDetailsForMobile.put("proficiencyInSportsNationalLevel", customCustomer.getProficiencyInSportsNationalLevel());
+            customerDetailsForMobile.put("firstChoiceExamCity", customCustomer.getFirstChoiceExamCity());
+            customerDetailsForMobile.put("secondChoiceExamCity", customCustomer.getSecondChoiceExamCity());
+            customerDetailsForMobile.put("thirdChoiceExamCity", customCustomer.getThirdChoiceExamCity());
+            customerDetailsForMobile.put("mphilPassed", customCustomer.getMphilPassed());
+            customerDetailsForMobile.put("phdPassed", customCustomer.getPhdPassed());
+            customerDetailsForMobile.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
+            customerDetailsForMobile.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
+            customerDetailsForMobile.put("religion", customCustomer.getReligion());
+            customerDetailsForMobile.put("belongsToMinority", customCustomer.getBelongsToMinority());
+            customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
+            customerDetailsForMobile.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            customerDetailsForMobile.put("secondaryEmail", customCustomer.getSecondaryEmail());
+            customerDetailsForMobile.put("disability", customCustomer.getDisability());
+            customerDetailsForMobile.put("disabilityType", customCustomer.getDisabilityType());
+            customerDetailsForMobile.put("disabilityPercentage", customCustomer.getDisabilityPercentage());
+            customerDetailsForMobile.put("exService", customCustomer.getExService());
+            customerDetailsForMobile.put("isMarried", customCustomer.getIsMarried());
+            customerDetailsForMobile.put("identificationMark1", customCustomer.getIdentificationMark1());
+            customerDetailsForMobile.put("identificationMark2", customCustomer.getIdentificationMark2());
+            customerDetailsForMobile.put("isNccCertificate",customCustomer.getIsNccCertificate());
+            customerDetailsForMobile.put("isNssCertificate",customCustomer.getIsNssCertificate());
+            customerDetailsForMobile.put("nccCertificate",customCustomer.getNccCertificate());
+            customerDetailsForMobile.put("nssCertificate",customCustomer.getNssCertificate());
+            customerDetailsForMobile.put("createdByRole",customCustomer.getCreatedByRole());
+            customerDetailsForMobile.put("createdById",customCustomer.getCreatedById());
+            customerDetailsForMobile.put("modifiedByRole",customCustomer.getModifiedByRole());
+            customerDetailsForMobile.put("modifiedById",customCustomer.getModifiedById());
+            customerDetailsForMobile.put("registeredBySp",customCustomer.getRegisteredBySp());
+            customerDetailsForMobile.put("interestedInDefence", customCustomer.getInterestedInDefence());
+            customerDetailsForMobile.put("workExperienceScopeId", customCustomer.getWorkExperienceScopeId());
+            customerDetailsForMobile.put("workExperience", customCustomer.getWorkExperience());
+            customerDetailsForMobile.put("sportCertificateId", customCustomer.getSportCertificateId());
+            customerDetailsForMobile.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
+            customerDetailsForMobile.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
+            customerDetailsForMobile.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
+            customerDetailsForMobile.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
+            customerDetailsForMobile.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+            customerDetailsForMobile.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
+            customerDetailsForMobile.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+            customerDetailsForMobile.put("archived",customCustomer.getArchived());
+            customerDetailsForMobile.put("archivedByRole",customCustomer.getArchivedByRole());
+            customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
+            customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                    customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
+                    customerDetailsForMobile.put("currentState", customerAddress.getAddress().getStateProvinceRegion());
+                    customerDetailsForMobile.put("currentCity", customerAddress.getAddress().getCity());
+                    customerDetailsForMobile.put("currentDistrict", customerAddress.getAddress().getCounty());
+                    customerDetailsForMobile.put("currentPincode", customerAddress.getAddress().getPostalCode());
+                    customerDetailsForMobile.put("currentAddress", customerAddress.getAddress().getAddressLine1());
+                    customerDetailsForMobile.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    customerDetailsForMobile.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                    customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
+                    customerDetailsForMobile.put("permanentState", customerAddress.getAddress().getStateProvinceRegion());
+                    customerDetailsForMobile.put("permanentCity", customerAddress.getAddress().getCity());
+                    customerDetailsForMobile.put("permanentDistrict", customerAddress.getAddress().getCounty());
+                    customerDetailsForMobile.put("permanentPincode", customerAddress.getAddress().getPostalCode());
+                    customerDetailsForMobile.put("permanentAddress", customerAddress.getAddress().getAddressLine1());
+                    customerDetailsForMobile.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    customerDetailsForMobile.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+
+            }
+
+            Map<String, String> currentAddress = new HashMap<>();
+            Map<String, String> permanentAddress = new HashMap<>();
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                    currentAddress.put("addressName",customerAddress.getAddressName());
+                    currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
+                    currentAddress.put("city", customerAddress.getAddress().getCity());
+                    currentAddress.put("district", customerAddress.getAddress().getCounty());
+                    currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
+                    currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                    currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                    currentAddress.put("addressName",customerAddress.getAddressName());
+                    permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
+                    permanentAddress.put("city", customerAddress.getAddress().getCity());
+                    permanentAddress.put("district", customerAddress.getAddress().getCounty());
+                    permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
+                    permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                    permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+
+            }
+//            customerDetailsForMobile.put("currentAddress", currentAddress);
+//            customerDetailsForMobile.put("permanentAddress", permanentAddress);
+            List<CustomerAddressDTO> addresses = new ArrayList<>();
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                CustomerAddressDTO addressDTO = new CustomerAddressDTO();
+                addressDTO.setAddressId(customerAddress.getId());
+                addressDTO.setAddressName(customerAddress.getAddressName());
+                addressDTO.setAddressLine1(customerAddress.getAddress().getAddressLine1());
+                addressDTO.setState(customerAddress.getAddress().getStateProvinceRegion());
+                addressDTO.setPincode(customerAddress.getAddress().getPostalCode());
+                addressDTO.setDistrict(customerAddress.getAddress().getCounty());
+                addressDTO.setCity(customerAddress.getAddress().getCity());
+                addresses.add(addressDTO);
+            }
+            customerDetailsForMobile.put("addresses", addresses);
+
+            List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
+            List<Map<String, Object>> qualificationsWithNames = mapQualificationsForCustomer(qualificationDetails);
+            customerDetailsForMobile.put("qualificationDetails", qualificationsWithNames);
+
+            List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+
+            for (Document document : customCustomer.getDocuments()) {
+                if(document.getIsArchived().equals(false))
+                {
+                    if (document.getFilePath() != null && document.getDocumentType() != null) {
+                        Map<String, Object> documentDetails = new HashMap<>();
+                        documentDetails.put("documentId", document.getDocumentId());
+                        documentDetails.put("name", document.getName());
+                        documentDetails.put("filePath", document.getFilePath());
+                        if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                        {
+                            documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                        }
+                        if(document.getDocumentValidity()!=null)
+                        {
+                            documentDetails.put("documentValidity",document.getDocumentValidity());
+                        }
+                        String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                        documentDetails.put("fileUrl", fileUrl);
+
+                        documentDetails.put("documentType", document.getDocumentType());
+                        filteredDocuments.add(documentDetails);
+                    }
+                }
+            }
+
+            if (!filteredDocuments.isEmpty()) {
+                customerDetailsForMobile.put("documents", filteredDocuments);
+            }
+
+            return customerDetailsForMobile;
+        }
+        else {
+            Map<String, Object> customerDetailsForDesktop = new HashMap<>();
+            customerDetailsForDesktop.put("id", customer.getId());
+            customerDetailsForDesktop.put("dateCreated", customer.getAuditable().getDateCreated());
+            customerDetailsForDesktop.put("createdBy", customer.getAuditable().getCreatedBy());
+            customerDetailsForDesktop.put("dateUpdated", customer.getAuditable().getDateUpdated());
+            customerDetailsForDesktop.put("updatedBy", customer.getAuditable().getUpdatedBy());
+            customerDetailsForDesktop.put("username", customer.getUsername());
+            customerDetailsForDesktop.put("password", customer.getPassword());
+            customerDetailsForDesktop.put("emailAddress", customer.getEmailAddress());
+            customerDetailsForDesktop.put("firstName", customer.getFirstName());
+            customerDetailsForDesktop.put("lastName", customer.getLastName());
+            customerDetailsForDesktop.put("fullName", customer.getFirstName() + " " + customer.getLastName());
+            customerDetailsForDesktop.put("externalId", customer.getExternalId());
+            customerDetailsForDesktop.put("challengeQuestion", customer.getChallengeQuestion());
+            customerDetailsForDesktop.put("challengeAnswer", customer.getChallengeAnswer());
+            customerDetailsForDesktop.put("passwordChangeRequired", customer.isPasswordChangeRequired());
+            customerDetailsForDesktop.put("receiveEmail", customer.isReceiveEmail());
+            customerDetailsForDesktop.put("registered", customer.isRegistered());
+            customerDetailsForDesktop.put("deactivated", customer.isDeactivated());
+            customerDetailsForDesktop.put("customerPayments", customer.getCustomerPayments());
+            customerDetailsForDesktop.put("taxExemptionCode", customer.getTaxExemptionCode());
+            customerDetailsForDesktop.put("unencodedPassword", customer.getUnencodedPassword());
+            customerDetailsForDesktop.put("unencodedChallengeAnswer", customer.getUnencodedChallengeAnswer());
+            customerDetailsForDesktop.put("anonymous", customer.isAnonymous());
+            customerDetailsForDesktop.put("cookied", customer.isCookied());
+            customerDetailsForDesktop.put("loggedIn", customer.isLoggedIn());
+            customerDetailsForDesktop.put("transientProperties", customer.getTransientProperties());
+
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+            Order cart = orderService.findCartForCustomer(customer);
+            if (cart != null)
+                customerDetailsForDesktop.put("cartId", cart.getId());
+            else
+                customerDetailsForDesktop.put("cartId", null);
+            if(role.equals(Constant.roleServiceProvider)) {
+                if (customCustomer.getHidePhoneNumber().equals(false)) {
+                    customerDetailsForDesktop.put("mobileNumber", customCustomer.getMobileNumber());
+                }
+            }
+            else
+            {
+                customerDetailsForDesktop.put("mobileNumber", customCustomer.getMobileNumber());
+            }
+            customerDetailsForDesktop.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
+            customerDetailsForDesktop.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
+            customerDetailsForDesktop.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            // List<ServiceProviderEntity>refSp=new ArrayList<>();
+            // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+            // {
+            //     refSp.add(customerReferrer.getServiceProvider());
+            // }
+            // customerDetailsForDesktop.put("referres",refSp);
+            customerDetailsForDesktop.put("countryCode", customCustomer.getCountryCode());
+            List<ReferrerDTO>ref=new ArrayList<>();
+            ReferrerDTO primaryRef=new ReferrerDTO();
+            for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
+            {
+                if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
+                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                    primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
+                }
+                ReferrerDTO referrerDTO=new ReferrerDTO();
+                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
+                ref.add(referrerDTO);
+            }
+            customerDetailsForDesktop.put("primary_referrer",primaryRef);
+            customerDetailsForDesktop.put("referrers",ref);
+            customerDetailsForDesktop.put("otp", customCustomer.getOtp());
+            customerDetailsForDesktop.put("fathersName", customCustomer.getFathersName());
+            customerDetailsForDesktop.put("mothersName", customCustomer.getMothersName());
+            customerDetailsForDesktop.put("panNumber", customCustomer.getPanNumber());
+            customerDetailsForDesktop.put("nationality", customCustomer.getNationality());
+            customerDetailsForDesktop.put("dob", customCustomer.getDob());
+            customerDetailsForDesktop.put("gender", customCustomer.getGender());
+            customerDetailsForDesktop.put("adharNumber", customCustomer.getAdharNumber());
+            customerDetailsForDesktop.put("category", customCustomer.getCategory());
+            customerDetailsForDesktop.put("subcategory", customCustomer.getSubcategory());
+            customerDetailsForDesktop.put("domicile", customCustomer.getDomicile());
+            customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
+            customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
+            customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
+
+            if(customCustomer.getHeightCms() != null) {
+                customerDetailsForDesktop.put("height_cms", customCustomer.getHeightCms().toString());
+            }else {
+                customerDetailsForDesktop.put("height_cms", customCustomer.getHeightCms());
+            }
+
+            if(customCustomer.getWeightKgs() != null) {
+                customerDetailsForDesktop.put("weight_kgs", customCustomer.getWeightKgs().toString());
+            }else {
+                customerDetailsForDesktop.put("weight_kgs", customCustomer.getWeightKgs());
+            }
+
+            if(customCustomer.getChestSizeCms() != null) {
+                customerDetailsForDesktop.put("chest_size_cms", customCustomer.getChestSizeCms().toString());
+            }else {
+                customerDetailsForDesktop.put("chest_size_cms", customCustomer.getChestSizeCms());
+            }
+
+            if(customCustomer.getShoeSizeInches() != null) {
+                customerDetailsForDesktop.put("shoe_size_inches", customCustomer.getShoeSizeInches().toString());
+            }else {
+                customerDetailsForDesktop.put("shoe_size_inches", customCustomer.getShoeSizeInches());
+            }
+
+            if(customCustomer.getWaistSizeCms() != null) {
+                customerDetailsForDesktop.put("waist_size_cms", customCustomer.getWaistSizeCms().toString());
+            }else {
+                customerDetailsForDesktop.put("waist_size_cms", customCustomer.getWaistSizeCms());
+            }
+
+            customerDetailsForDesktop.put("can_swim", customCustomer.getCanSwim());
+            customerDetailsForDesktop.put("proficiency_in_sports_national_level", customCustomer.getProficiencyInSportsNationalLevel());
+            customerDetailsForDesktop.put("first_choice_exam_city", customCustomer.getFirstChoiceExamCity());
+            customerDetailsForDesktop.put("second_choice_exam_city", customCustomer.getSecondChoiceExamCity());
+            customerDetailsForDesktop.put("third_choice_exam_city", customCustomer.getThirdChoiceExamCity());
+            customerDetailsForDesktop.put("mphil_passed", customCustomer.getMphilPassed());
+            customerDetailsForDesktop.put("phd_passed", customCustomer.getPhdPassed());
+            customerDetailsForDesktop.put("number_of_attempts", customCustomer.getNumberOfAttempts());
+            customerDetailsForDesktop.put("category_valid_upto", customCustomer.getCategoryValidUpto());
+            customerDetailsForDesktop.put("religion", customCustomer.getReligion());
+            customerDetailsForDesktop.put("belongs_to_minority", customCustomer.getBelongsToMinority());
+            customerDetailsForDesktop.put("secondary_mobile_number", customCustomer.getSecondaryMobileNumber());
+            customerDetailsForDesktop.put("whatsapp_number", customCustomer.getWhatsappNumber());
+            customerDetailsForDesktop.put("secondary_email", customCustomer.getSecondaryEmail());
+            customerDetailsForDesktop.put("disability_handicapped", customCustomer.getDisability());
+            customerDetailsForDesktop.put("disability_type", customCustomer.getDisabilityType());
+            customerDetailsForDesktop.put("disability_percentage", customCustomer.getDisabilityPercentage());
+            customerDetailsForDesktop.put("is_ex_service_man", customCustomer.getExService());
+            customerDetailsForDesktop.put("is_married", customCustomer.getIsMarried());
+            customerDetailsForDesktop.put("visible_identification_mark_1", customCustomer.getIdentificationMark1());
+            customerDetailsForDesktop.put("visible_identification_mark_2", customCustomer.getIdentificationMark2());
+            customerDetailsForDesktop.put("is_ncc_certificate",customCustomer.getIsNccCertificate());
+            customerDetailsForDesktop.put("is_nss_certificate",customCustomer.getIsNssCertificate());
+            customerDetailsForDesktop.put("ncc_certificate",customCustomer.getNccCertificate());
+            customerDetailsForDesktop.put("nss_certificate",customCustomer.getNssCertificate());
+            customerDetailsForDesktop.put("created_by_role",customCustomer.getCreatedByRole());
+            customerDetailsForDesktop.put("created_by_id",customCustomer.getCreatedById());
+            customerDetailsForDesktop.put("modified_by_role",customCustomer.getModifiedByRole());
+            customerDetailsForDesktop.put("modified_by_id",customCustomer.getModifiedById());
+            customerDetailsForDesktop.put("registered_by_sp",customCustomer.getRegisteredBySp());
+            customerDetailsForDesktop.put("interested_in_defence", customCustomer.getInterestedInDefence());
+            customerDetailsForDesktop.put("workExperienceScope", customCustomer.getWorkExperienceScopeId());
+            customerDetailsForDesktop.put("work_experience", customCustomer.getWorkExperience());
+            customerDetailsForDesktop.put("sport_certificate", customCustomer.getSportCertificateId());
+            customerDetailsForDesktop.put("isOtherOrStateCategory", customCustomer.getIsOtherOrStateCategory());
+            customerDetailsForDesktop.put("otherOrStateCategory",customCustomer.getOtherOrStateCategory());
+            customerDetailsForDesktop.put("otherCategoryDateOfIssue",customCustomer.getOtherCategoryDateOfIssue());
+            customerDetailsForDesktop.put("otherCategoryValidUpto",customCustomer.getOtherCategoryValidUpto());
+            customerDetailsForDesktop.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
+            customerDetailsForDesktop.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
+            customerDetailsForDesktop.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+            customerDetailsForDesktop.put("archived",customCustomer.getArchived());
+            customerDetailsForDesktop.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
+            customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
+            customerDetailsForDesktop.put("profileComplete",customCustomer.getProfileComplete());
+
+            Map<String, String> currentAddress = new HashMap<>();
+            Map<String, String> permanentAddress = new HashMap<>();
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                    currentAddress.put("addressName",customerAddress.getAddressName());
+                    currentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
+                    currentAddress.put("city", customerAddress.getAddress().getCity());
+                    currentAddress.put("district", customerAddress.getAddress().getCounty());
+                    currentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
+                    currentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                    currentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    currentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
+                    currentAddress.put("addressName",customerAddress.getAddressName());
+                    permanentAddress.put("state", customerAddress.getAddress().getStateProvinceRegion());
+                    permanentAddress.put("city", customerAddress.getAddress().getCity());
+                    permanentAddress.put("district", customerAddress.getAddress().getCounty());
+                    permanentAddress.put("pincode", customerAddress.getAddress().getPostalCode());
+                    permanentAddress.put("addressLine", customerAddress.getAddress().getAddressLine1());
+                    permanentAddress.put("stateId", String.valueOf(districtService.getStateByStateName(customerAddress.getAddress().getStateProvinceRegion()).getState_id()));
+                    permanentAddress.put("districtId", String.valueOf(districtService.findDistrictByName(customerAddress.getAddress().getCounty()).getDistrict_id()));
+                }
+
+            }
+            customerDetailsForDesktop.put("currentAddress", currentAddress);
+            customerDetailsForDesktop.put("permanentAddress", permanentAddress);
+
+        /*customerDetailsForDesktop.put("current_district_id",
                 districtService.findDistrictByName(currentAddress.get("district")) != null
                         ? districtService.findDistrictByName(currentAddress.get("district"))
                         : null);
 
-        customerDetails.put("current_state_id",
+        customerDetailsForDesktop.put("current_state_id",
                 districtService.getStateByStateName(currentAddress.get("state")) != null
                         ? districtService.getStateByStateName(currentAddress.get("state"))
                         : null);
 
-        customerDetails.put("permanent_district_id",
+        customerDetailsForDesktop.put("permanent_district_id",
                 districtService.findDistrictByName(permanentAddress.get("district")) != null
                         ? districtService.findDistrictByName(permanentAddress.get("district"))
                         : null);
 
-        customerDetails.put("permanent_state_id",
+        customerDetailsForDesktop.put("permanent_state_id",
                 districtService.getStateByStateName(permanentAddress.get("state")) != null
                         ? districtService.getStateByStateName(permanentAddress.get("state"))
                         : null);*/
 
-      /*  customerDetails.put("qualificationDetails",customCustomer.getQualificationDetailsList());
-        customerDetails.put("documentList",customCustomer.getDocumentList());
+      /*  customerDetailsForDesktop.put("qualificationDetails",customCustomer.getQualificationDetailsList());
+        customerDetailsForDesktop.put("documentList",customCustomer.getDocumentList());
         List<Map<String,Object>>listOfSavedProducts=new ArrayList<>();*/
     /*    if(!customCustomer.getSavedForms().isEmpty()) {
             for (Product product : customCustomer.getSavedForms()) {
@@ -375,57 +634,59 @@ public class SharedUtilityService {
             }
         }
 
-        customerDetails.put("savedForms",listOfSavedProducts);*/
-        List<CustomerAddressDTO> addresses = new ArrayList<>();
-        for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
-            CustomerAddressDTO addressDTO = new CustomerAddressDTO();
-            addressDTO.setAddressId(customerAddress.getId());
-            addressDTO.setAddressName(customerAddress.getAddressName());
-            addressDTO.setAddressLine1(customerAddress.getAddress().getAddressLine1());
-            addressDTO.setState(customerAddress.getAddress().getStateProvinceRegion());
-            addressDTO.setPincode(customerAddress.getAddress().getPostalCode());
-            addressDTO.setDistrict(customerAddress.getAddress().getCounty());
-            addressDTO.setCity(customerAddress.getAddress().getCity());
-            addresses.add(addressDTO);
-        }
-        customerDetails.put("addresses", addresses);
+        customerDetailsForDesktop.put("savedForms",listOfSavedProducts);*/
+            List<CustomerAddressDTO> addresses = new ArrayList<>();
+            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                CustomerAddressDTO addressDTO = new CustomerAddressDTO();
+                addressDTO.setAddressId(customerAddress.getId());
+                addressDTO.setAddressName(customerAddress.getAddressName());
+                addressDTO.setAddressLine1(customerAddress.getAddress().getAddressLine1());
+                addressDTO.setState(customerAddress.getAddress().getStateProvinceRegion());
+                addressDTO.setPincode(customerAddress.getAddress().getPostalCode());
+                addressDTO.setDistrict(customerAddress.getAddress().getCounty());
+                addressDTO.setCity(customerAddress.getAddress().getCity());
+                addresses.add(addressDTO);
+            }
+            customerDetailsForDesktop.put("addresses", addresses);
 
-        List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
-        List<Map<String, Object>> qualificationsWithNames = mapQualificationsForCustomer(qualificationDetails);
-        customerDetails.put("qualificationDetails", qualificationsWithNames);
+            List<QualificationDetails> qualificationDetails= customCustomer.getQualificationDetailsList();
+            List<Map<String, Object>> qualificationsWithNames = mapQualificationsForCustomer(qualificationDetails);
+            customerDetailsForDesktop.put("qualificationDetails", qualificationsWithNames);
 
-        List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+            List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
-        for (Document document : customCustomer.getDocuments()) {
-            if(document.getIsArchived().equals(false))
-            {
-                if (document.getFilePath() != null && document.getDocumentType() != null) {
-                    Map<String, Object> documentDetails = new HashMap<>();
-                    documentDetails.put("documentId", document.getDocumentId());
-                    documentDetails.put("name", document.getName());
-                    documentDetails.put("filePath", document.getFilePath());
-                    if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
-                    {
-                        documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+            for (Document document : customCustomer.getDocuments()) {
+                if(document.getIsArchived().equals(false))
+                {
+                    if (document.getFilePath() != null && document.getDocumentType() != null) {
+                        Map<String, Object> documentDetails = new HashMap<>();
+                        documentDetails.put("documentId", document.getDocumentId());
+                        documentDetails.put("name", document.getName());
+                        documentDetails.put("filePath", document.getFilePath());
+                        if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
+                        {
+                            documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+                        }
+                        if(document.getDocumentValidity()!=null)
+                        {
+                            documentDetails.put("documentValidity",document.getDocumentValidity());
+                        }
+                        String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                        documentDetails.put("fileUrl", fileUrl);
+
+                        documentDetails.put("documentType", document.getDocumentType());
+                        filteredDocuments.add(documentDetails);
                     }
-                    if(document.getDocumentValidity()!=null)
-                    {
-                        documentDetails.put("documentValidity",document.getDocumentValidity());
-                    }
-                    String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                    documentDetails.put("fileUrl", fileUrl);
-
-                    documentDetails.put("documentType", document.getDocumentType());
-                    filteredDocuments.add(documentDetails);
                 }
             }
+
+            if (!filteredDocuments.isEmpty()) {
+                customerDetailsForDesktop.put("documents", filteredDocuments);
+            }
+
+            return customerDetailsForDesktop;
         }
 
-        if (!filteredDocuments.isEmpty()) {
-            customerDetails.put("documents", filteredDocuments);
-        }
-
-        return customerDetails;
     }
 
     public ValidationResult validateInputMap(Map<String, Object> inputMap) {
@@ -1365,11 +1626,11 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("In Physical Details, you have to select whether you can swim or not");
         }
-        if(customCustomer.getIs_ncc_certificate()==null)
+        if(customCustomer.getIsNccCertificate()==null)
         {
             throw new IllegalArgumentException("In Physical Details, you have to select whether you have ncc certificate or not");
         }
-        if(customCustomer.getIs_nss_certificate()==null)
+        if(customCustomer.getIsNssCertificate()==null)
         {
             throw new IllegalArgumentException("In Physical Details, you have to select whether you have nss certificate or not");
         }
@@ -1493,21 +1754,21 @@ public class SharedUtilityService {
                     isExService=true;
                 }
             }
-            if(customCustomer.getIs_ncc_certificate().equals(true))
+            if(customCustomer.getIsNccCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(18) ||document.getDocumentType().getDocument_type_id().equals(19)||document.getDocumentType().getDocument_type_id().equals(20))&& !document.getIsArchived())
                 {
                     isNcc=true;
                 }
             }
-            if(customCustomer.getIs_nss_certificate().equals(true))
+            if(customCustomer.getIsNssCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(21) ||document.getDocumentType().getDocument_type_id().equals(28)||document.getDocumentType().getDocument_type_id().equals(29)) && !document.getIsArchived())
                 {
                     isNss=true;
                 }
             }
-            if(customCustomer.getIs_nss_certificate().equals(true))
+            if(customCustomer.getIsNssCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(22) ||document.getDocumentType().getDocument_type_id().equals(23)) && !document.getIsArchived())
                 {
@@ -1603,14 +1864,14 @@ public class SharedUtilityService {
                 documentsNotUploaded.add("Ex service certificate");
             }
         }
-        if(customCustomer.getIs_ncc_certificate().equals(true))
+        if(customCustomer.getIsNccCertificate().equals(true))
         {
             if(!isNcc)
             {
                 documentsNotUploaded.add("NCC certificate");
             }
         }
-        if(customCustomer.getIs_nss_certificate().equals(true))
+        if(customCustomer.getIsNssCertificate().equals(true))
         {
             if(!isNss)
             {
