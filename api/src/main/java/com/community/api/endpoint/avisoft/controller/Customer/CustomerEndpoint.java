@@ -6,7 +6,6 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
-import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -15,7 +14,6 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.DocumentValidity;
-import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
 import com.community.api.entity.StateCode;
@@ -44,7 +42,6 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
-import io.swagger.models.auth.In;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -79,7 +76,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
 import javax.persistence.Column;
-import javax.persistence.Transient;
 import javax.persistence.TypedQuery;
 import javax.persistence.PersistenceContext;
 import javax.servlet.http.HttpServletRequest;
@@ -96,7 +92,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -264,7 +259,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
             Boolean externalUpdate = false;
             Boolean isValidDate = null;
@@ -323,6 +318,7 @@ public class CustomerEndpoint {
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
             if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
+                System.out.println("hellob");
                 if (customCustomer.getInterestedInDefence()) {
                     // List of required fields
                     final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
@@ -726,8 +722,8 @@ public class CustomerEndpoint {
                 if (!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C")) {
                     return ResponseService.generateErrorResponse("You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C", HttpStatus.BAD_REQUEST);
                 }
-                customCustomer.setNcc_certificate(nccCertificateValue);
-                customCustomer.setIs_ncc_certificate(true);
+                customCustomer.setNccCertificate(nccCertificateValue);
+                customCustomer.setIsNccCertificate(true);
 
             }
             if (details.containsKey("dob")) {
@@ -752,11 +748,11 @@ public class CustomerEndpoint {
                     if (!details.containsKey("ncc_certificate")) {
                         return ResponseService.generateErrorResponse("You have to select ncc certificate type", HttpStatus.BAD_REQUEST);
                     }
-                    customCustomer.setNcc_certificate((String) details.get("ncc_certificate"));
+                    customCustomer.setNccCertificate((String) details.get("ncc_certificate"));
                 }
 
                 if (isNccCertificate.equals(false)) {
-                    customCustomer.setNcc_certificate(null);
+                    customCustomer.setNccCertificate(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
                         if (document.getIsArchived().equals(false)) {
@@ -770,7 +766,7 @@ public class CustomerEndpoint {
                     }
 
                 }
-                customCustomer.setIs_ncc_certificate(isNccCertificate);
+                customCustomer.setIsNccCertificate(isNccCertificate);
 
             }
             if (details.containsKey("nss_certificate")) {
@@ -778,8 +774,8 @@ public class CustomerEndpoint {
                 if (!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C")) {
                     return ResponseService.generateErrorResponse("You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C", HttpStatus.BAD_REQUEST);
                 }
-                customCustomer.setNss_certificate(nssCertificateValue);
-                customCustomer.setIs_nss_certificate(true);
+                customCustomer.setNssCertificate(nssCertificateValue);
+                customCustomer.setIsNssCertificate(true);
             }
             if (details.containsKey("is_nss_certificate")) {
                 Boolean isNssCertificate = (Boolean) details.get("is_nss_certificate");
@@ -787,9 +783,9 @@ public class CustomerEndpoint {
                     if (!details.containsKey("nss_certificate")) {
                         return ResponseService.generateErrorResponse("You have to select nss certificate type", HttpStatus.BAD_REQUEST);
                     }
-                    customCustomer.setNss_certificate((String) details.get("nss_certificate"));
+                    customCustomer.setNssCertificate((String) details.get("nss_certificate"));
                 } else if (isNssCertificate.equals(false)) {
-                    customCustomer.setNss_certificate(null);
+                    customCustomer.setNssCertificate(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
                         if (document.getIsArchived().equals(false)) {
@@ -802,7 +798,7 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                customCustomer.setIs_nss_certificate(isNssCertificate);
+                customCustomer.setIsNssCertificate(isNssCertificate);
             }
 
             details.remove("is_ncc_certificate");
@@ -1211,7 +1207,7 @@ public class CustomerEndpoint {
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
             em.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader,httpServletRequest), HttpStatus.OK);
 
         } catch (ClassCastException classCastException) {
             exceptionHandling.handleException(classCastException);
@@ -1269,7 +1265,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser, Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
@@ -1289,7 +1285,7 @@ public class CustomerEndpoint {
                 }
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
-            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader);
+            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest);
 
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
@@ -1927,7 +1923,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
 
             updates = sanitizerService.sanitizeInputMap(updates);
@@ -1959,7 +1955,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
@@ -1972,7 +1968,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1989,13 +1985,13 @@ public class CustomerEndpoint {
                 if (customer.getPassword() == null || customer.getPassword().isEmpty()) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
                 }
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
 
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
-                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
                 } else {
                     return ResponseService.generateErrorResponse("Old Password and new Password cannot be same", HttpStatus.BAD_REQUEST);
                 }
@@ -2175,8 +2171,8 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer, String authHeader) throws Exception {
-        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer, String authHeader,HttpServletRequest httpServletRequest) throws Exception {
+        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
 
@@ -2414,7 +2410,7 @@ public class CustomerEndpoint {
     }
 
     @PostMapping("/submit-customer-details/{customerId}")
-    public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader)
+    public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest)
     {
         try {
             CustomCustomer customCustomer= entityManager.find(CustomCustomer.class,customerId);
@@ -2443,7 +2439,7 @@ public class CustomerEndpoint {
                 customCustomer.setProfileComplete(false);
             }
             customCustomer.setProfileComplete(true);
-            return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
         }
         catch (NumberFormatException e) {
             exceptionHandling.handleException(e);
@@ -2462,7 +2458,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2476,7 +2472,7 @@ public class CustomerEndpoint {
             for (CustomCustomer customer : query.getResultList()) {
                 Customer customerToadd = customerService.readCustomerById(customer.getId());
                 if (customer.getArchived().equals(false))
-                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader));
+                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader,httpServletRequest));
             }
             return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
@@ -2621,7 +2617,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
         try {
             if (!sort.equals("DESC") && !sort.equals("ASC"))
@@ -2696,6 +2692,8 @@ public class CustomerEndpoint {
                     String primaryRefName = null;
                     Long primaryRefId = null;
                     if (customCustomer != null) {
+                        if(!customCustomer.getArchived().equals(suspended))
+                            continue;
                         CustomerBasicDetailsDto customerBasicDetailsDto = new CustomerBasicDetailsDto();
                         if (stateName != null)
                             customerBasicDetailsDto.setState(stateName);
@@ -2822,7 +2820,14 @@ public class CustomerEndpoint {
             }
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
-            logout(customCustomer.getToken());
+            if(action.equals(Constant.ACTION_SUSPEND)) {
+                sharedUtilityService.blackListToken(customCustomer.getToken(),5,customCustomer.getId());
+                logout(customCustomer.getToken());
+            }
+            else
+            {
+                sharedUtilityService.removeToken(customCustomer.getToken());
+            }
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);

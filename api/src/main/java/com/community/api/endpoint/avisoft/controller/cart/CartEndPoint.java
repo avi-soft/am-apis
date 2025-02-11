@@ -668,7 +668,7 @@ public class CartEndPoint extends BaseEndpoint {
         }
     }
     @Transactional
-    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
+    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PUT)
     public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
         try {
             List<Long> postPreference = getLongList(map, "postPreference");

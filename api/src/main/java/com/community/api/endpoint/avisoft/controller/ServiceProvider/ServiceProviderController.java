@@ -414,9 +414,9 @@ public class ServiceProviderController {
             @PathVariable Long service_provider_id,
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(required = false) Boolean registeredByMe,
+            HttpServletRequest httpServletRequest,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size) {
-
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -427,10 +427,10 @@ public class ServiceProviderController {
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
                 if (registeredByMe != null && registeredByMe.equals(true)) {
                     if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
-                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                     }
                 } else {
-                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader));
+                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                 }
             }
 
