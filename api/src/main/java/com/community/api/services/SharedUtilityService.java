@@ -364,8 +364,8 @@ public class SharedUtilityService {
                 }
 
             }
-            customerDetailsForMobile.put("currentAddress", currentAddress);
-            customerDetailsForMobile.put("permanentAddress", permanentAddress);
+//            customerDetailsForMobile.put("currentAddress", currentAddress);
+//            customerDetailsForMobile.put("permanentAddress", permanentAddress);
             List<CustomerAddressDTO> addresses = new ArrayList<>();
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 CustomerAddressDTO addressDTO = new CustomerAddressDTO();
