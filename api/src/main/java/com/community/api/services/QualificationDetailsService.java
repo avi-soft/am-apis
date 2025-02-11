@@ -272,9 +272,12 @@ public class QualificationDetailsService {
         }
 
         boolean isOtherSubjects=false;
-        if(qualificationDetails.getSubject_ids().contains(54L))
+        if(qualificationDetails.getSubject_ids()!=null)
         {
-            isOtherSubjects=true;
+            if(qualificationDetails.getSubject_ids().contains(54L))
+            {
+                isOtherSubjects=true;
+            }
         }
         if((boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))|| (!qualificationDetails.getQualification_id().equals(1) &&
                 streamOthers != null && customStream.getStreamName().equalsIgnoreCase("Others")) || qualificationOthers != null && qualificationToSearch.getQualification_name().equalsIgnoreCase("Others") || isOtherSubjects)

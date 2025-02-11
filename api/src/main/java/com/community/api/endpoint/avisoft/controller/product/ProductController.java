@@ -74,7 +74,9 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.community.api.component.Constant.*;
 
@@ -578,14 +580,16 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @GetMapping("/get-all-products")
-    public ResponseEntity<?> retrieveProducts() {
+    public ResponseEntity<?> retrieveProducts(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
 
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Product> products = catalogService.findAllProducts(); // find all the products.
+            List<Product> products = catalogService.findAllProducts();
 
             if (products.isEmpty()) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
@@ -593,23 +597,24 @@ public class ProductController extends CatalogEndpoint {
 
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-
-                // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
-                if (customProduct != null) {
+                if (customProduct != null &&
+                        (((Status) customProduct).getArchived() != 'Y' &&
+                                customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
-                    if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
-
-                        CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct);
-
-                        responses.add(wrapper);
-                    }
+                    CustomProductWrapper wrapper = new CustomProductWrapper();
+                    wrapper.wrapDetails(customProduct);
+                    responses.add(wrapper);
                 }
             }
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, responses, HttpStatus.OK);
+            // Apply Pagination
+            int start = Math.min(page * size, responses.size());
+            int end = Math.min(start + size, responses.size());
+            List<CustomProductWrapper> paginatedResponses = responses.subList(start, end);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -622,6 +627,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @DeleteMapping("/delete/{productId}")
     @Transactional
@@ -671,10 +677,11 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @GetMapping("/get-all-new-state-products")
-    public ResponseEntity<?> getAllNewStateProducts() {
+    public ResponseEntity<?> getAllNewStateProducts(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
 
         try {
-
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -684,28 +691,39 @@ public class ProductController extends CatalogEndpoint {
             if (products.isEmpty()) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
                 // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
                 if (customProduct != null) {
-
-                    if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date())) && customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW)) {
+                    if ((((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                            customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW)) {
 
                         List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(customProduct.getId());
                         List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(customProduct.getId());
-                        List<Post> postList= customProduct.getPosts();
+                        List<Post> postList = customProduct.getPosts();
                         CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct,postList,null,productReserveCategoryFeePostRefService);
+                        wrapper.wrapDetails(customProduct, postList, null, productReserveCategoryFeePostRefService);
 
                         responses.add(wrapper);
                     }
-
                 }
             }
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, responses, HttpStatus.OK);
+            // Apply pagination
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, responses.size());
+
+            if (fromIndex >= responses.size()) {
+                return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
+            }
+
+            List<CustomProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -714,10 +732,11 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @GetMapping("/get-all-live-state-products")
-    public ResponseEntity<?> getAllLiveStateProducts() {
+    public ResponseEntity<?> getAllLiveStateProducts(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
 
         try {
-
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -730,23 +749,32 @@ public class ProductController extends CatalogEndpoint {
 
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-
                 // finding customProduct that resembles with productId.
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
                 if (customProduct != null) {
-
-                    if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date())) && !customProduct.getGoLiveDate().after(new Date())) {
+                    if ((((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                            !customProduct.getGoLiveDate().after(new Date())) {
 
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct);
-
                         responses.add(wrapper);
                     }
                 }
             }
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, responses, HttpStatus.OK);
+            // Apply pagination
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, responses.size());
+
+            if (fromIndex >= responses.size()) {
+                return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
+            }
+
+            List<CustomProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -764,41 +792,59 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
-            @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories) {
+            @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
         try {
+            // Date formatting
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            if (dateFrom != null) {
+                dateFrom = dateFormat.parse(dateFormat.format(dateFrom));
+            }
+            if (dateTo != null) {
+                dateTo = dateFormat.parse(dateFormat.format(dateTo));
+            }
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
-            if(dateFrom != null) {
-                String formattedDateFrom = dateFormat.format(dateFrom);
-                dateFrom = dateFormat.parse(formattedDateFrom);
-            }
-            if(dateTo != null) {
-                String formattedDateTo = dateFormat.format(dateTo);
-                dateTo = dateFormat.parse(formattedDateTo);
-            }
+            // Fetch filtered products
             List<CustomProduct> products = productService.filterProducts(state, status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
 
             if (products.isEmpty()) {
-                return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", products, HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
 
+            // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-
-                if (customProduct != null) {
-
-                    if ((((Status) customProduct).getArchived() != 'Y')) {
-
-                        CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct);
-
-                        responses.add(wrapper);
-                    }
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+                    CustomProductWrapper wrapper = new CustomProductWrapper();
+                    wrapper.wrapDetails(customProduct);
+                    responses.add(wrapper);
                 }
             }
 
-            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", responses, HttpStatus.OK);
+            // Pagination logic
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalItems);
+
+            // Validate page request
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomProductWrapper> paginatedList = responses.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "PRODUCTS RETRIEVED SUCCESSFULLY");
+            response.put("products", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", page);
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
