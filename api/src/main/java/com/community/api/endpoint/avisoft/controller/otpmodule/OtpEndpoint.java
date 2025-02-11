@@ -219,7 +219,7 @@ public class OtpEndpoint {
                         String newToken = jwtUtil.generateToken(existingCustomer.getId(), role, ipAddress, userAgent);
                         session.setAttribute(tokenKey, newToken);
                         authHeader = authHeadReq;
-                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
                     }
                     else
@@ -227,7 +227,7 @@ public class OtpEndpoint {
                     String existingToken = existingCustomer.getToken();
                     if (existingToken!= null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
                         authHeader=authHeader+existingToken;
-                        ApiResponse response = new ApiResponse(existingToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        ApiResponse response = new ApiResponse(existingToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
 
                     } else {
@@ -236,7 +236,7 @@ public class OtpEndpoint {
                         existingCustomer.setToken(newToken);
                         authHeader = authHeader + newToken;
                         em.persist(existingCustomer);
-                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
+                        ApiResponse response = new ApiResponse(newToken,sharedUtilityService.breakReferenceForCustomer(customer,authHeader,request), HttpStatus.OK.value(), HttpStatus.OK.name(),"User has been logged in");
                         return ResponseEntity.ok(response);
                     }
                 }} else {
