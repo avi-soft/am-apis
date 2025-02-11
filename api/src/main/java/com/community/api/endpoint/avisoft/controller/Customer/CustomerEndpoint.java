@@ -400,7 +400,7 @@ public class CustomerEndpoint {
                             errorMessages.add("Waist size must be valid.");
                         }
                     }
-                }} else {
+                } else {
                     String height = (String) details.get("heightCms");
                     String weightKgs = (String) details.get("weightKgs");
                     String shoeSizeInches = (String) details.get("shoeSizeInches");
@@ -457,7 +457,7 @@ public class CustomerEndpoint {
                             errorMessages.add("Waist size must be valid.");
                         }
                     }
-                }
+                }}
 
 
             if (details.containsKey("workExperienceScopeId")) {
