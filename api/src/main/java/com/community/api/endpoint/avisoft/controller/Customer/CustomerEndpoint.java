@@ -400,7 +400,7 @@ public class CustomerEndpoint {
                             errorMessages.add("Waist size must be valid.");
                         }
                     }
-                }} else {
+                } else {
                     String height = (String) details.get("heightCms");
                     String weightKgs = (String) details.get("weightKgs");
                     String shoeSizeInches = (String) details.get("shoeSizeInches");
@@ -408,7 +408,7 @@ public class CustomerEndpoint {
 
                     if (height != null && !height.isEmpty()) {
                         try {
-                           Double heightValue = Double.parseDouble(height);
+                            Double heightValue = Double.parseDouble(height);
                             if (heightValue < minHeight || heightValue > maxHeight) {
                                 errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
                             } else {
@@ -458,7 +458,7 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-
+            }
 
             if (details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong(details.get("workExperienceScopeId").toString()));
