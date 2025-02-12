@@ -90,7 +90,7 @@ public class ServiceProviderActionController {
             }
             ServiceProviderEntity serviceProvider=null;
             CustomAdmin customAdmin=null;
-            if(roleService.getRoleByRoleId(roleId).equals(Constant.SERVICE_PROVIDER))
+            if(roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER))
             {
                  serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
                 if (serviceProvider == null) {
@@ -125,6 +125,26 @@ public class ServiceProviderActionController {
                 if(customCustomer==null)
                 {
                     return ResponseService.generateErrorResponse("Customer with id "+ customerId +" does not exist",HttpStatus.NOT_FOUND);
+                }
+            }
+            if(roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER))
+            {
+                assert serviceProvider != null;
+                if(!serviceProvider.getMyReferrals().isEmpty())
+                {
+                    List<CustomerReferrer> referrers= serviceProvider.getMyReferrals();
+                    List<Long> referrerIds= new ArrayList<>();
+                    for(CustomerReferrer customerReferrer: referrers)
+                    {
+                        referrerIds.add(customerReferrer.getCustomer().getId());
+                    }
+                    for(Long customerId: customerIds)
+                    {
+                        if(!referrerIds.contains(customerId))
+                        {
+                            return ResponseService.generateErrorResponse("Customer with id " + customerId+ " is not the referrer of Service provider",HttpStatus.BAD_REQUEST);
+                        }
+                    }
                 }
             }
 
@@ -514,7 +534,7 @@ public class ServiceProviderActionController {
 
             // JPQL Query based on role
             String jpql;
-            if (roleService.getRoleByRoleId(roleId).equals(Constant.SERVICE_PROVIDER)) {
+            if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
                 if (serviceProvider == null) {
                     return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
@@ -527,9 +547,9 @@ public class ServiceProviderActionController {
             ORDER BY al.actionTimestamp DESC
             """;
             }
-            else if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) ||
-                    roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) ||
-                    roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
+            else if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdmin) ||
+                    roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleSuperAdmin) ||
+                    roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdminServiceProvider)) {
                 CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, userId);
                 if (customAdmin == null) {
                     return ResponseService.generateErrorResponse("Custom Admin with id " + userId + " does not exist", HttpStatus.NOT_FOUND);
@@ -567,7 +587,7 @@ public class ServiceProviderActionController {
                     .collect(Collectors.toList());
 
             // Count total records for pagination
-            String countJpql = roleService.getRoleByRoleId(roleId).equals(Constant.SERVICE_PROVIDER) ?
+            String countJpql = roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER) ?
                     """
                     SELECT COUNT(DISTINCT al) FROM ActionLog al
                     WHERE al.serviceProvider.service_provider_id = :userId
@@ -676,7 +696,7 @@ public class ServiceProviderActionController {
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
 
             Long userId = null;
-            if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN)) {
+            if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN) || role.equals(Constant.roleAdminServiceProvider)) {
                 return true;
             } else if (role.equals(Constant.SERVICE_PROVIDER)) {
                 return true;
