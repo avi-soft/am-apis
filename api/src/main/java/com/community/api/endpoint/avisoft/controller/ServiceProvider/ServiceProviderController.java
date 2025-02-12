@@ -330,47 +330,74 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/filter-service-provider")
-    public ResponseEntity<?> filterServiceProvider(@RequestParam(required = false) String state,
-                                                   @RequestParam(required = false) String district,
-                                                   @RequestParam(required = false) String full_name,
-                                                   @RequestParam(required = false) String mobileNumber,
-                                                   @RequestParam(required = false) Long test_status_id, HttpServletRequest request) {
+    public ResponseEntity<?> filterServiceProvider(
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String district,
+            @RequestParam(required = false) String full_name,
+            @RequestParam(required = false) String mobileNumber,
+            @RequestParam(required = false) Long test_status_id,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            HttpServletRequest request) {
+
         try {
             Map<String, String[]> uri = request.getParameterMap();
-            if ((uri.containsKey("state") && state == null) || (uri.containsKey("full_name") && full_name == null)|| (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
+
+            // Validate input
+            if ((uri.containsKey("state") && state == null) ||
+                    (uri.containsKey("full_name") && full_name == null) ||
+                    (uri.containsKey("test_status_id") && test_status_id == null) ||
+                    (uri.containsKey("district") && district == null) ||
+                    (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
+            }
+
             String first_name = null;
             String last_name = null;
 
-            if(mobileNumber!=null&&!mobileNumber.isEmpty()&& serviceProviderService.isValidMobileNumber(mobileNumber))
-            {
+            // Handle search by mobile number
+            if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
                 return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
             }
 
-            if(full_name!=null) {
+            // Handle search by full name (split into first and last names)
+            if (full_name != null) {
                 String[] name = sharedUtilityService.separateName(full_name.trim());
-                if (!name[0].equals(""))
-                    first_name = name[0];
-                if (!name[1].equals(""))
-                    last_name = name[1];
+                if (!name[0].equals("")) first_name = name[0];
+                if (!name[1].equals("")) last_name = name[1];
             }
+
             // First call with the provided order of first_name and last_name
-            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
 
             // Second call with swapped order of first_name and last_name
-            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
+            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
 
             // Combine the responses (handling duplicates if necessary)
             List<Map<String, Object>> responseList1 = (List<Map<String, Object>>) response1.getBody().getData();
             List<Map<String, Object>> responseList2 = (List<Map<String, Object>>) response2.getBody().getData();
 
-            // Merging lists and removing duplicates if any
+            // Merging lists and removing duplicates
             Set<Map<String, Object>> mergedResponse = new HashSet<>();
             mergedResponse.addAll(responseList1);
             mergedResponse.addAll(responseList2);
 
-            // Return the merged response as ResponseEntity<SuccessResponse>
-            return ResponseService.generateSuccessResponse("Service Providers", new ArrayList<>(mergedResponse), HttpStatus.OK);
+            // Apply pagination
+            List<Map<String, Object>> paginatedResponse;
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, mergedResponse.size());
+
+            if (fromIndex >= mergedResponse.size()) {
+                return ResponseService.generateErrorResponse("No more service provider data available", HttpStatus.NOT_FOUND);
+            }
+
+            paginatedResponse = new ArrayList<>(mergedResponse).subList(fromIndex, toIndex);
+
+            // Return paginated response
+            return ResponseService.generateSuccessResponse("Service Providers", paginatedResponse, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -383,24 +410,42 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> showReferredCandidates(
+            @PathVariable Long service_provider_id,
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) Boolean registeredByMe,
+            HttpServletRequest httpServletRequest,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
-            if (serviceProvider == null)
+            if (serviceProvider == null) {
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
+            }
+
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                if(registeredByMe!=null&&registeredByMe.equals(true)) {
+                if (registeredByMe != null && registeredByMe.equals(true)) {
                     if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
                         customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                     }
-                }
-                else
-                {
+                } else {
                     customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                 }
             }
-            return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
+
+            // Apply pagination
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, customers.size());
+
+            if (fromIndex >= customers.size()) {
+                return ResponseService.generateErrorResponse("No more referred candidates available", HttpStatus.NOT_FOUND);
+            }
+
+            List<Map<String, Object>> paginatedCustomers = customers.subList(fromIndex, toIndex);
+
+            return ResponseService.generateSuccessResponse("List of referred candidates:", paginatedCustomers, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -408,6 +453,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
