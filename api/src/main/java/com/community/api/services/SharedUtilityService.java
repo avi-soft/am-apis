@@ -162,7 +162,7 @@ public class SharedUtilityService {
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        if (deviceDetectorService.isMobileOrTablet(request)) {
+        if (deviceDetectorService.isRequestFromMobileApp(request)) {
             Map<String, Object> customerDetailsForMobile = new HashMap<>();
             customerDetailsForMobile.put("id", customer.getId());
             customerDetailsForMobile.put("dateCreated", customer.getAuditable().getDateCreated());
