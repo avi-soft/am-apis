@@ -188,6 +188,12 @@ public class QualificationDetailsService {
                 throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
             }
         }
+        else {
+            if(qualificationDetails.getCourse_duration_in_months()!=null)
+            {
+                throw new IllegalArgumentException("Duration of course is required only for diploma and ITI");
+            }
+        }
         validateQualificationDetail(qualificationDetails);
         List<Institution> institutions = institutionService.getAllInstitutions();
         Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
@@ -272,9 +278,12 @@ public class QualificationDetailsService {
         }
 
         boolean isOtherSubjects=false;
-        if(qualificationDetails.getSubject_ids().contains(54L))
+        if(qualificationDetails.getSubject_ids()!=null)
         {
-            isOtherSubjects=true;
+            if(qualificationDetails.getSubject_ids().contains(54L))
+            {
+                isOtherSubjects=true;
+            }
         }
         if((boardUniversityOthers!=null && boardUniversityToAdd.equals(1L))|| (!qualificationDetails.getQualification_id().equals(1) &&
                 streamOthers != null && customStream.getStreamName().equalsIgnoreCase("Others")) || qualificationOthers != null && qualificationToSearch.getQualification_name().equalsIgnoreCase("Others") || isOtherSubjects)
@@ -637,6 +646,10 @@ public class QualificationDetailsService {
                         throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
                     }
                     qualificationDetailsToUpdate.setCourse_duration_in_months(qualification.getCourse_duration_in_months());
+                }
+                else
+                {
+                    qualificationDetailsToUpdate.setCourse_duration_in_months(null);
                 }
             }
             else {
