@@ -35,6 +35,9 @@ public class Qualification
     @Column(name = "is_stream_required", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean is_stream_required;
 
+    @Column(name = "overlapping")
+    private Long overlap;
+
     @JsonIgnore
     @ManyToMany
     @JoinTable(
