@@ -188,6 +188,12 @@ public class QualificationDetailsService {
                 throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
             }
         }
+        else {
+            if(qualificationDetails.getCourse_duration_in_months()!=null)
+            {
+                throw new IllegalArgumentException("Duration of course is required only for diploma and ITI");
+            }
+        }
         validateQualificationDetail(qualificationDetails);
         List<Institution> institutions = institutionService.getAllInstitutions();
         Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
@@ -640,6 +646,10 @@ public class QualificationDetailsService {
                         throw new IllegalArgumentException("Duration of course cannot be a negative number or zero");
                     }
                     qualificationDetailsToUpdate.setCourse_duration_in_months(qualification.getCourse_duration_in_months());
+                }
+                else
+                {
+                    qualificationDetailsToUpdate.setCourse_duration_in_months(null);
                 }
             }
             else {

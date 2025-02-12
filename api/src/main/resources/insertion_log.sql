@@ -1707,7 +1707,7 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
                 FROM qualification q
                 CROSS JOIN custom_stream cs
                 WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
-                AND q.qualification_id=60;
+                AND q.qualification_id BETWEEN 3 AND 60;
     END IF;
 
       INSERT INTO stream_subject (stream_id, subject_id)
