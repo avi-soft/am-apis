@@ -2571,7 +2571,11 @@ public class CustomerEndpoint {
        /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
                 return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
-            List<Long> refereeId = ref;
+            List<Long> refereeId=null;
+            if(ref!=null)
+                 refereeId= ref;
+            else
+                refereeId=new ArrayList<>();
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -2659,10 +2663,12 @@ public class CustomerEndpoint {
             Qualificationorder.put(5, 7);
             Qualificationorder.put(8, 8);
             for (BigInteger id : uniqueResultList) {
+                System.out.println("fetchedId:"+id);
                 Customer customer = null;
                 try {
                     customer = customerService.readCustomerById(id.longValue());
                 } catch (Exception e) {
+                    System.out.println(e);
                     continue;
                 }
                 if (customer != null) {
