@@ -102,6 +102,7 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.request;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
@@ -2564,18 +2565,18 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) Long ref, @RequestParam(required = false) Integer stateId, @RequestParam(required = false) Integer districtId, @RequestParam(required = false) Integer qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
-        try {
+       /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
                 return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
-            Long refereeId = ref;
+            List<Long> refereeId = ref;
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
                 if (refereeId == null)
-                    refereeId = tokenUserId;
+                    refereeId.add(tokenUserId);
                 else if (ref != null)
                     return ResponseService.generateErrorResponse("Invalid search filter selected", HttpStatus.BAD_REQUEST);
             }
@@ -2583,22 +2584,41 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
             String stateName = null, districtName = null, qualificationName = null, firstName = null, lastName = null;
             String[] names = null;
+            List<String>stateNames=new ArrayList<>();
+            List<String>districtNames=new ArrayList<>();
+            List<Long>qualificationNames=new ArrayList<>();
+            List<String >qualificationStrings=new ArrayList<>();
             if (stateId != null) {
-                stateName = districtService.findStateById(stateId);
-                if (stateName == null)
-                    return ResponseService.generateErrorResponse("Invalid state Id", HttpStatus.BAD_REQUEST);
+                for(Integer stateCode:stateId) {
+                    stateName = districtService.findStateById(stateCode);
+                    if (stateName == null)
+                        return ResponseService.generateErrorResponse("Invalid state Id", HttpStatus.BAD_REQUEST);
+                    stateNames.add(stateName);
+                }
             }
+            else
+                stateNames=null;
             if (districtId != null) {
-                districtName = districtService.findDistrictById(districtId);
-                if (districtName == null)
-                    return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
+                for (Integer district : districtId) {
+                    districtName = districtService.findDistrictById(district);
+                    if (districtName == null)
+                        return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
+                    districtNames.add(districtName);
+                }
             }
+            else
+                districtNames=null;
             if (qualificationType != null) {
-                if (qualificationService.getQualificationByQualificationId(qualificationType) == null)
-                    return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
-                qualificationName = qualificationService.getQualificationByQualificationId(qualificationType).getQualification_name();
-
+                for (Integer id : qualificationType) {
+                    if (qualificationService.getQualificationByQualificationId(id) == null)
+                        return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+                    qualificationStrings.add(qualificationService.getQualificationByQualificationId(id).getQualification_name());
+                    qualificationNames.add(qualificationService.getQualificationByQualificationId(id).getOverlap());
+                }
             }
+            else
+                qualificationNames=null;
+
             if (name != null && !name.isEmpty()) {
                 names = sharedUtilityService.separateName(name);
                 if (names[0] != null)
@@ -2606,15 +2626,26 @@ public class CustomerEndpoint {
                 if (names[1] != null)
                     lastName = names[1];
             }
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refereeId, firstName, lastName, stateName, districtName, qualificationName, username, completed, authHeader, page, limit, sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refereeId, lastName, firstName, stateName, districtName, qualificationName, username, completed, authHeader, page, limit, sort);
+
+        List<Long> refids=new ArrayList<>();
+            if(refereeId!=null&&!refereeId.isEmpty()) {
+                // Convert the list of Long to a list of String using Java Streams
+                refids =refereeId.stream()
+                        .map(Long::valueOf)
+                        .collect(Collectors.toList());
+            }
+                if(refids.isEmpty())
+                    refids=null;
+
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
             uniqueResults.addAll(resultSet1);
             uniqueResults.addAll(resultSet2);
             List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
-            System.out.println(uniqueResultList.size());
+            System.out.println("count:"+uniqueResultList.size());
 // Convert the Set back to a List
             List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
             Map<Integer, Integer> Qualificationorder = new HashMap<>();
@@ -2625,6 +2656,7 @@ public class CustomerEndpoint {
             Qualificationorder.put(3, 5);
             Qualificationorder.put(4, 6);
             Qualificationorder.put(5, 7);
+            Qualificationorder.put(8, 8);
             for (BigInteger id : uniqueResultList) {
                 Customer customer = null;
                 try {
@@ -2658,8 +2690,10 @@ public class CustomerEndpoint {
                         customerBasicDetailsDto.setGender(customCustomer.getGender());
                         customerBasicDetailsDto.setUsername(customer.getUsername());
 
-                        if (refereeId != null) {
-                            if (customCustomer.getPrimaryRef() != 0 && customCustomer.getPrimaryRef().equals(refereeId)) {
+                        if (ref != null) {
+                            System.out.println(customCustomer.getId()+","+customCustomer.getPrimaryRef());
+                            if (customCustomer.getPrimaryRef() != 0 && ref.contains(customCustomer.getPrimaryRef())) {
+                                System.out.println("true"+customCustomer.getId());
                                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
                                 if (serviceProvider != null) {
                                     primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
@@ -2675,13 +2709,14 @@ public class CustomerEndpoint {
                         int max = 0;
                         if (!qualifications.isEmpty()) {
                             for (QualificationDetails qualificationDetails : qualifications) {
-                                System.out.println(qualificationDetails.getQualification_id());
-                                if (Qualificationorder.get(qualificationDetails.getQualification_id()) > max) {
+                                System.out.println("kk"+qualificationDetails.getQualification_id());
+                                Qualification qualificationFound=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+                                if (Qualificationorder.get(qualificationFound.getOverlap().intValue()) > max) {
                                     customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
-                                    max = Qualificationorder.get(qualificationDetails.getQualification_id());
+                                    max = Qualificationorder.get(qualificationFound.getOverlap().intValue());
                                 }
                             }
-                            if (qualificationType != null && max != 0 && !qualificationName.equals(customerBasicDetailsDto.getHighestQualification())) {
+                            if (qualificationType != null && max != 0 && !qualificationStrings.contains(customerBasicDetailsDto.getHighestQualification())) {
                                 continue;
                             }
                             if (max == 0)
@@ -2702,10 +2737,10 @@ public class CustomerEndpoint {
             else
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
             return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
-        } catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
+        }/* catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
-        }
-    }
+        }*/
+
 
     @Transactional
     @PutMapping("manage-user")
@@ -2794,4 +2829,3 @@ public class CustomerEndpoint {
         }
     }
 }
-
