@@ -47,7 +47,10 @@ import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -158,72 +161,90 @@ public class TicketController {
             @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
             @RequestParam(value = "ticket_type", required = false) List<Long> type,
-            @RequestParam(value = "ticket_status", required = false) Long status)
+            @RequestParam(value = "ticket_status", required = false) Long status,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size)
     {
         try {
-
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
-            if(dateFrom != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            if (dateFrom != null) {
                 String formattedDateFrom = dateFormat.format(dateFrom);
                 dateFrom = dateFormat.parse(formattedDateFrom);
-                if(dateTo == null) {
+                if (dateTo == null) {
                     dateTo = dateFrom;
                 }
             }
-            if(dateTo != null) {
+            if (dateTo != null) {
                 String formattedDateTo = dateFormat.format(dateTo);
                 dateTo = dateFormat.parse(formattedDateTo);
-                if(dateFrom == null) {
+                if (dateFrom == null) {
                     dateFrom = dateTo;
                 }
             }
-
-            if(dateFrom != null && dateTo != null && dateTo.before(dateFrom)) {
+            if (dateFrom != null && dateTo != null && dateTo.before(dateFrom)) {
                 throw new IllegalArgumentException("createdDateFrom must be before createdDateTo");
             }
 
             String jwtToken = authHeader.substring(7);
-
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
-
             Long userId = null;
 
             if (role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
                 userId = jwtTokenUtil.extractId(jwtToken);
             }
 
-            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(state, type, userId, role, dateFrom, dateTo,status);
-            /*if (tickets.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
-            }*/
+            List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
+                    state, type, userId, role, dateFrom, dateTo, status);
 
-            List<CustomTicketWrapper> responses = new ArrayList<>();
-            for (CustomServiceProviderTicket ticket : tickets) {
+            int totalItems = tickets.size();
+            int totalPages = (int) Math.ceil((double) totalItems / size);
 
-                if (ticket != null) {
-                    CustomTicketWrapper wrapper = new CustomTicketWrapper();
-
-                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-                    OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
-
-                    wrapper.customWrapDetails(ticket, orderDto);
-                    responses.add(wrapper);
-                }
+            if (page < 0) {
+                page = 0;
+            }
+            if (page >= totalPages) {
+                page = totalPages - 1;
             }
 
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalItems);
+
+            List<CustomServiceProviderTicket> paginatedTickets = (totalItems > 0) ? tickets.subList(fromIndex, toIndex) : new ArrayList<>();
+
+            List<CustomTicketWrapper> responses = paginatedTickets.stream().map(ticket -> {
+                CustomTicketWrapper wrapper = new CustomTicketWrapper();
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                        customer.getId(),
+                        customer.getFirstName() + " " + customer.getLastName(),
+                        customer.getEmailAddress(),
+                        customCustomer.getMobileNumber(),
+                        addressFetcher.fetch(customer),
+                        customer.getUsername());
+
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                wrapper.customWrapDetails(ticket, orderDto);
+                return wrapper;
+            }).collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Tickets Found");
+            response.put("tickets", responses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", page);
+
             logger.info("Total tickets: " + responses.size());
-            return ResponseService.generateSuccessResponse("Tickets Found", responses, HttpStatus.OK);
+            return new ResponseEntity<>(response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     @PutMapping("/ticket/update/{ticketId}")
     @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin})
     public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization")String authHeader)

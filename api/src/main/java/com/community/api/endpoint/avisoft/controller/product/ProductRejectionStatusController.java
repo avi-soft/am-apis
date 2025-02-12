@@ -11,9 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class ProductRejectionStatusController {
@@ -28,18 +31,45 @@ public class ProductRejectionStatusController {
     }
 
     @GetMapping("/get-all-product-rejection-status")
-    public ResponseEntity<?> getAllProductRejectionStatus() {
+    public ResponseEntity<?> getAllProductRejectionStatus(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            List<CustomProductRejectionStatus> customTicketStateList = productRejectionStatusService.getAllRejectionStatus();
-            if (customTicketStateList.isEmpty()) {
+            List<CustomProductRejectionStatus> allStatuses = productRejectionStatusService.getAllRejectionStatus();
+
+            if (allStatuses.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO REJECTION STATUS IS FOUND", HttpStatus.NOT_FOUND);
             }
-            return ResponseService.generateSuccessResponse("REJECTION STATUS IS FOUND", customTicketStateList, HttpStatus.OK);
+
+            // Calculate pagination details
+            int totalItems = allStatuses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalItems);
+
+            // Validate the requested page
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomProductRejectionStatus> paginatedList = allStatuses.subList(fromIndex, toIndex);
+
+            // Construct response
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "REJECTION STATUS IS FOUND");
+            response.put("rejectionStatuses", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", page);
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @GetMapping("/get-product-rejection-status-by-rejection-status-id/{rejectionStatusId}")
     public ResponseEntity<?> getProductRejectionStateByRejectionStatusId(@PathVariable Long rejectionStatusId) {
