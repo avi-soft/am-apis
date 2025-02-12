@@ -3,24 +3,25 @@ package com.community.api.services;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.regex.Pattern;
 
 @Service
 public class DeviceDetectorService {
 
-    // Improved regex to match various mobile and tablet devices
-    private static final String MOBILE_REGEX = ".*(android|webos|iphone|ipad|ipod|blackberry|windows phone|mobile).*";
-    private static final Pattern MOBILE_PATTERN = Pattern.compile(MOBILE_REGEX, Pattern.CASE_INSENSITIVE);
+    private static final String CLIENT_HEADER = "X-Client-Type";
+    private static final String MOBILE_APP_IDENTIFIER = "MOBILE_APP";
+    private static final String WEB_IDENTIFIER = "WEB";
 
-    public boolean isMobileOrTablet(HttpServletRequest request) {
-        String userAgent = request.getHeader("User-Agent");
-        System.out.println("User-Agent: " + userAgent);  // Log the User-Agent string for debugging
-        if (userAgent == null) {
-            return false;
-        }
+    public boolean isRequestFromMobileApp(HttpServletRequest request) {
+        String clientType = request.getHeader(CLIENT_HEADER);
+        System.out.println("X-Client-Type Header: " + clientType);  // Debugging
 
-        boolean isMobile = MOBILE_PATTERN.matcher(userAgent).matches();
-        System.out.println("Matches mobile/tablet regex: " + isMobile);  // Log the match result
-        return isMobile;
+        return MOBILE_APP_IDENTIFIER.equalsIgnoreCase(clientType);
+    }
+
+    public boolean isRequestFromWebsite(HttpServletRequest request) {
+        String clientType = request.getHeader(CLIENT_HEADER);
+        System.out.println("X-Client-Type Header: " + clientType);  // Debugging
+
+        return WEB_IDENTIFIER.equalsIgnoreCase(clientType);
     }
 }
