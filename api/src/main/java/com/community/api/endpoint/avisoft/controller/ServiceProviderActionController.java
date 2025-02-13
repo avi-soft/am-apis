@@ -3,6 +3,8 @@ package com.community.api.endpoint.avisoft.controller;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.configuration.ImageSizeConfig;
+import com.community.api.dto.CommunicationRequest;
+import com.community.api.dto.FormDataOnly;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.DocumentStorageService;
@@ -17,6 +19,7 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -71,14 +74,10 @@ public class ServiceProviderActionController {
 //    @Autowired
 //    private WhatsappService whatsappService; //  need to implement this later
 
-    @PostMapping("/communicate")
+    @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
-            @RequestParam (value ="customerIds" )List<Long> customerIds,
-            @RequestParam (value = "modes")List<Integer> modes,
-            @RequestParam (value = "contentText", required = false) String contentText,
-            @RequestParam (value = "subject", required = false)String subject,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @FormDataOnly CommunicationRequest request,
             @RequestHeader(value = "Authorization") String authHeader){
         try {
             // Validate service provider
@@ -115,11 +114,19 @@ public class ServiceProviderActionController {
                 }
             }
 
-            if(customerIds==null || customerIds.isEmpty())
+            if(request.getModes()==null)
+            {
+                throw new IllegalArgumentException("Modes cannot be null");
+            }
+            if(request.getModes().isEmpty())
+            {
+                throw new IllegalArgumentException("You have to select atleast one mode");
+            }
+            if(request.getCustomerIds()==null || request.getCustomerIds().isEmpty())
             {
                 return ResponseService.generateErrorResponse("You have to select atleast one customer to communicate with", HttpStatus.BAD_REQUEST);
             }
-            for(Long customerId: customerIds)
+            for(Long customerId: request.getCustomerIds())
             {
                 CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
                 if(customCustomer==null)
@@ -138,7 +145,7 @@ public class ServiceProviderActionController {
                     {
                         referrerIds.add(customerReferrer.getCustomer().getId());
                     }
-                    for(Long customerId: customerIds)
+                    for(Long customerId: request.getCustomerIds())
                     {
                         if(!referrerIds.contains(customerId))
                         {
@@ -156,32 +163,32 @@ public class ServiceProviderActionController {
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
             }*/
-            if(contentText==null && (files==null || files.isEmpty()))
+            if(request.getContentText()==null && (request.getFiles()==null || request.getFiles().isEmpty()))
             {
                 return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null",HttpStatus.BAD_REQUEST);
             }
             String contentTextTrimmed=null;
-            if(contentText!=null)
+            if(request.getContentText()!=null)
             {
-                contentTextTrimmed=contentText.trim();
+                contentTextTrimmed=request.getContentText().trim();
             }
             String subjectTrimmed=null;
-            if(subject!=null)
+            if(request.getSubject()!=null)
             {
-                subjectTrimmed=subject.trim();
+                subjectTrimmed=request.getSubject().trim();
             }
 
             boolean hasValidContent = contentTextTrimmed != null && !contentTextTrimmed.isEmpty();
             boolean hasValidFiles = false;
 
             // Check if files are effectively non-empty
-            if (files != null && !files.isEmpty()) {
-                if (files.size() == 1) {
+            if (request.getFiles() != null && !request.getFiles().isEmpty()) {
+                if (request.getFiles().size() == 1) {
                     // Single file case
-                    hasValidFiles = files.get(0).getContentType() != null;
+                    hasValidFiles = request.getFiles().get(0).getContentType() != null;
                 } else {
                     // Multiple files case
-                    hasValidFiles = files.stream()
+                    hasValidFiles = request.getFiles().stream()
                             .anyMatch(file -> file.getContentType() != null);
                 }
             }
@@ -218,19 +225,19 @@ public class ServiceProviderActionController {
             }
 
             List<ContentFile> contentFiles = new ArrayList<>();
-            if (files != null && !files.isEmpty()) {
-                if(files.size()==1)
+            if (request.getFiles() != null && !request.getFiles().isEmpty()) {
+                if(request.getFiles().size()==1)
                 {
-                    if( files.get(0).getContentType()!=null)
+                    if( request.getFiles().get(0).getContentType()!=null)
                     {
-                        contentFiles = processFiles(files, content);
+                        contentFiles = processFiles(request.getFiles(), content);
                         content.setContentFiles(contentFiles);
                     }
                 }
 
-                else if(files.size()>1)
+                else if(request.getFiles().size()>1)
                 {
-                    contentFiles = processFiles(files, content);
+                    contentFiles = processFiles(request.getFiles(), content);
                     content.setContentFiles(contentFiles);
                 }
 
@@ -252,21 +259,21 @@ public class ServiceProviderActionController {
             actionLog.setContent(content);
 
             // Validate and set custom modes
-            for (Integer customModeId : modes) {
+            for (Integer customModeId : request.getModes()) {
                 CustomMode customMode = entityManager.find(CustomMode.class, customModeId);
                 if (customMode == null) {
                     throw new IllegalArgumentException("Custom mode with id " + customModeId + " does not exist");
                 }
             }
 
-            List<CustomMode> modeList = modes.stream()
+            List<CustomMode> modeList = request.getModes().stream()
                     .map(modeId -> entityManager.find(CustomMode.class, modeId))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
 
-            List<CustomCustomer> allCustomers = customerIds.stream()
+            List<CustomCustomer> allCustomers = request.getCustomerIds().stream()
                     .map(id -> entityManager.find(CustomCustomer.class, id))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
@@ -291,13 +298,13 @@ public class ServiceProviderActionController {
 
             // Send communications based on selected modes
             List<File> tempFiles = new ArrayList<>();
-            if (files != null && !files.isEmpty()) {
-                if (files.size() == 1) {
-                    if (files.get(0).getContentType() != null) {
-                        tempFiles = createTemporaryFiles(files);
+            if (request.getFiles() != null && !request.getFiles().isEmpty()) {
+                if (request.getFiles().size() == 1) {
+                    if (request.getFiles().get(0).getContentType() != null) {
+                        tempFiles = createTemporaryFiles(request.getFiles());
                     }
-                } else if (files.size() > 1) {
-                    tempFiles = createTemporaryFiles(files);
+                } else if (request.getFiles().size() > 1) {
+                    tempFiles = createTemporaryFiles(request.getFiles());
                 }
             }
 
