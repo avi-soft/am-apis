@@ -290,6 +290,14 @@ public class ServiceProviderActionController {
                 }
             }
 
+            // Check if any customer has an email address before proceeding
+            if (customersWithEmail.isEmpty()) {
+                return ResponseService.generateErrorResponse(
+                        "Communication is not done via Email.Not even a single selected customer has an email address to receive communication",
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
             // Set both lists in action log
             actionLog.setCustomersWithEmail(customersWithEmail);
             actionLog.setCustomersWithoutEmail(customersWithoutEmail);
@@ -323,10 +331,6 @@ public class ServiceProviderActionController {
                                         content.getContentText(),
                                         tempFiles
                                 );
-                            }
-
-                            if (!customersWithoutEmail.isEmpty()) {
-                                deliveryStatus.append("PARTIALLY_FAILED: Some customers don't have email addresses; ");
                             }
                         }
                         // Add other communication modes here...
