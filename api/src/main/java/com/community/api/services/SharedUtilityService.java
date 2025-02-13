@@ -311,6 +311,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
             customerDetailsForMobile.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
             customerDetailsForMobile.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+            customerDetailsForMobile.put("isLivePhotoNa",customCustomer.getIsLivePhotoNa());
             customerDetailsForMobile.put("archived",customCustomer.getArchived());
             customerDetailsForMobile.put("archivedByRole",customCustomer.getArchivedByRole());
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
@@ -572,6 +573,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("isSportsCertificate",customCustomer.getIsSportsCertificate());
             customerDetailsForDesktop.put("domicileIssueDate",customCustomer.getDomicileIssueDate());
             customerDetailsForDesktop.put("domicileValidUpto",customCustomer.getDomicileValidUpto());
+            customerDetailsForDesktop.put("isLivePhotoNa",customCustomer.getIsLivePhotoNa());
             customerDetailsForDesktop.put("archived",customCustomer.getArchived());
             customerDetailsForDesktop.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
             customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
@@ -1521,6 +1523,10 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("In Personal Details, Category cannot be null or empty");
         }
+        if(customCustomer.getIsLivePhotoNa()==null)
+        {
+            throw new IllegalArgumentException("You have to select whether you will upload live photo or not ");
+        }
         if(!customCustomer.getCategory().equalsIgnoreCase("GEN") && (customCustomer.getCategoryIssueDate()==null || (customCustomer.getCategoryIssueDate()!=null &&customCustomer.getCategoryIssueDate().trim().isEmpty())))
         {
             throw new IllegalArgumentException("In Personal Details, Category issue date cannot be null or empty");
@@ -1799,9 +1805,11 @@ public class SharedUtilityService {
         {
             documentsNotUploaded.add("Personal Photo");
         }
-        if(!isLivePhotoCaptured)
-        {
-            documentsNotUploaded.add("Live Photograph");
+
+        if(customCustomer.getIsLivePhotoNa().equals(false)) {
+            if (!isLivePhotoCaptured) {
+                documentsNotUploaded.add("Live Photograph");
+            }
         }
 
         if(!isSignature)
