@@ -744,6 +744,23 @@ public class CustomerEndpoint {
                 else
                 customCustomer.setDob(dob);
             }
+            if (details.containsKey("isLivePhotoNa")) {
+               Boolean isLivePhotoNa= (Boolean) details.get("isLivePhotoNa");
+                System.out.println(isLivePhotoNa);
+               if(isLivePhotoNa.equals(true))
+               {
+                   assert customCustomer.getDocuments() != null;
+                   for(Document document: customCustomer.getDocuments())
+                   {
+                       if(document.getDocumentType().getDocument_type_id().equals(3) && document.getIsArchived().equals(false))
+                       {
+                           throw new IllegalArgumentException("You cannot select NA as true if live photo is already uploaded");
+                       }
+
+                   }
+               }
+                customCustomer.setIsLivePhotoNa(isLivePhotoNa);
+            }
             if (details.containsKey("isNccCertificate")) {
                 Boolean isNccCertificate = (Boolean) details.get("isNccCertificate");
                 if (isNccCertificate.equals(true)) {
@@ -1547,6 +1564,10 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(documentTypeObj.getDocument_type_id().equals(3))
+                            {
+                                customCustomer.setIsLivePhotoNa(false);
+                            }
                             if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                 QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
                                 existingDocument.setIs_qualification_document(true);
@@ -1606,6 +1627,10 @@ public class CustomerEndpoint {
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 Document document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
                                 documentsToSave.add(document);
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    customCustomer.setIsLivePhotoNa(false);
+                                }
                                 if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                     QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
                                     document.setIs_qualification_document(true);
@@ -1634,6 +1659,7 @@ public class CustomerEndpoint {
                         }
                     }
                 }
+                entityManager.merge(customCustomer);
                 List<Map<String, Object>> filteredDocuments = new ArrayList<>();
                 for (Document document : documentsToSave) {
                     if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
