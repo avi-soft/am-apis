@@ -2633,8 +2633,8 @@ public class CustomerEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
-                if (refereeId == null)
-                    refereeId.add(tokenUserId);
+                if (refereeId.isEmpty())
+                        refereeId.add(tokenUserId);
                 else if (ref != null)
                     return ResponseService.generateErrorResponse("Invalid search filter selected", HttpStatus.BAD_REQUEST);
             }
