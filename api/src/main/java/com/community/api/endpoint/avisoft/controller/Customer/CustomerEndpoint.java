@@ -2296,12 +2296,12 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleUser})
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
-                                           @RequestParam(value = "page", defaultValue = "0") int page,
-                                           @RequestParam(value = "size", defaultValue = "10") int size) throws Exception {
+                                           @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                           @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
-                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
 
             if (customer.getSavedForms().isEmpty())
                 return ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
@@ -2310,29 +2310,37 @@ public class CustomerEndpoint {
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
                     continue;
                 }
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                // You can add the commented lines if needed
-                // customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
                 customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
 
-            // Pagination Logic
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, listOfSavedProducts.size());
+            // Calculate pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= listOfSavedProducts.size()) {
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more saved forms available", HttpStatus.NOT_FOUND);
             }
 
             List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
 
-            // Return paginated list
-            return ResponseService.generateSuccessResponse("Forms saved: ", paginatedList, HttpStatus.OK);
+            // Create response with pagination info
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Forms saved",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
@@ -2344,8 +2352,8 @@ public class CustomerEndpoint {
     @GetMapping(value = "/forms/show-filled-forms")
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
-                                                    @RequestParam(value = "page", defaultValue = "0") int page,
-                                                    @RequestParam(value = "size", defaultValue = "10") int size) throws Exception {
+                                                    @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
@@ -2358,28 +2366,36 @@ public class CustomerEndpoint {
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
                     continue;
                 }
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                // You can add the commented lines if needed
-                // customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
                 customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
 
-            // Pagination Logic
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, listOfSavedProducts.size());
+            // Calculate pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= listOfSavedProducts.size()) {
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.NOT_FOUND);
             }
 
             List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
 
-            // Return paginated list
-            return ResponseService.generateSuccessResponse("Forms filled: ", paginatedList, HttpStatus.OK);
+            // Create response with pagination info
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Forms filled",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
@@ -2391,8 +2407,8 @@ public class CustomerEndpoint {
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
-                                                         @RequestParam(value = "page", defaultValue = "0") int page,
-                                                         @RequestParam(value = "size", defaultValue = "10") int size) throws Exception {
+                                                         @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                                         @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
@@ -2405,30 +2421,38 @@ public class CustomerEndpoint {
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
                     continue;
                 }
+
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                // You can uncomment the lines below if needed
-                // List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                // List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
                 List<Post> postList = customProduct.getPosts();
                 customProductWrapper.wrapDetails(customProduct, postList, null, reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
 
-            // Pagination Logic
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, listOfSavedProducts.size());
+            // Calculate pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= listOfSavedProducts.size()) {
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.NOT_FOUND);
             }
 
             List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
 
-            // Return paginated list
-            return ResponseService.generateSuccessResponse("Recommended Forms: ", paginatedList, HttpStatus.OK);
+            // Create response with pagination info
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Recommended Forms",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {

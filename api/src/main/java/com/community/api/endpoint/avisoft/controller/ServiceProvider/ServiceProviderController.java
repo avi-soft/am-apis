@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/service-providers")
@@ -336,8 +337,8 @@ public class ServiceProviderController {
             @RequestParam(required = false) String full_name,
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) Long test_status_id,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
             HttpServletRequest request) {
 
         try {
@@ -375,28 +376,38 @@ public class ServiceProviderController {
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
                     serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
 
-            // Combine the responses (handling duplicates if necessary)
-            List<Map<String, Object>> responseList1 = (List<Map<String, Object>>) response1.getBody().getData();
-            List<Map<String, Object>> responseList2 = (List<Map<String, Object>>) response2.getBody().getData();
+            // Merge results and remove duplicates
+            Set<Map<String, Object>> mergedResults = new HashSet<>();
+            if (response1.getBody() != null && response1.getBody().getData() != null) {
+                mergedResults.addAll((List<Map<String, Object>>) response1.getBody().getData());
+            }
+            if (response2.getBody() != null && response2.getBody().getData() != null) {
+                mergedResults.addAll((List<Map<String, Object>>) response2.getBody().getData());
+            }
 
-            // Merging lists and removing duplicates
-            Set<Map<String, Object>> mergedResponse = new HashSet<>();
-            mergedResponse.addAll(responseList1);
-            mergedResponse.addAll(responseList2);
+            // Pagination logic
+            List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
+            int totalItems = finalList.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            // Apply pagination
-            List<Map<String, Object>> paginatedResponse;
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, mergedResponse.size());
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= mergedResponse.size()) {
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more service provider data available", HttpStatus.NOT_FOUND);
             }
 
-            paginatedResponse = new ArrayList<>(mergedResponse).subList(fromIndex, toIndex);
+            List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
-            // Return paginated response
-            return ResponseService.generateSuccessResponse("Service Providers", paginatedResponse, HttpStatus.OK);
+            // Construct response
+            Map<String, Object> response = new HashMap<>();
+            response.put("serviceProviders", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Service Providers",response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
@@ -415,8 +426,8 @@ public class ServiceProviderController {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -434,23 +445,34 @@ public class ServiceProviderController {
                 }
             }
 
-            // Apply pagination
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, customers.size());
+            // Pagination details
+            int totalItems = customers.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= customers.size()) {
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more referred candidates available", HttpStatus.NOT_FOUND);
             }
 
             List<Map<String, Object>> paginatedCustomers = customers.subList(fromIndex, toIndex);
 
-            return ResponseService.generateSuccessResponse("List of referred candidates:", paginatedCustomers, HttpStatus.OK);
+            // Response with pagination metadata
+            Map<String, Object> response = new HashMap<>();
+            response.put("candidates", paginatedCustomers);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("List of referred candidates:",response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

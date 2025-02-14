@@ -129,7 +129,7 @@ public class CategoryController extends CatalogEndpoint {
     @GetMapping(value = "/get-all-categories")
     public ResponseEntity<?> getCategories(
             HttpServletRequest request,
-            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
             if (catalogService == null) {
@@ -153,10 +153,10 @@ public class CategoryController extends CatalogEndpoint {
             // Pagination logic
             int totalItems = activeCategories.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int fromIndex = page * limit;
+            int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            // Validate page index
+            // Validate offset index
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
@@ -165,13 +165,12 @@ public class CategoryController extends CatalogEndpoint {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "CATEGORIES FOUND SUCCESSFULLY");
             response.put("categories", paginatedCategories);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -184,8 +183,8 @@ public class CategoryController extends CatalogEndpoint {
     public ResponseEntity<?> getSubCategories(
             HttpServletRequest request,
             @RequestParam(value = "category", required = false) List<Long> parentCategories,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
 
         try {
             if (catalogService == null) {
@@ -214,11 +213,11 @@ public class CategoryController extends CatalogEndpoint {
 
             // Pagination logic
             int totalItems = activeCategories.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            // Validate page request
+            // Validate offset request
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
@@ -227,13 +226,12 @@ public class CategoryController extends CatalogEndpoint {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "CATEGORIES FOUND SUCCESSFULLY");
             response.put("categories", paginatedList);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -246,8 +244,8 @@ public class CategoryController extends CatalogEndpoint {
     public ResponseEntity<?> getProductsByCategoryId(
             HttpServletRequest request,
             @PathVariable String id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -283,11 +281,11 @@ public class CategoryController extends CatalogEndpoint {
 
             // Pagination logic
             int totalItems = products.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            // Validate page index
+            // Validate offset index
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
@@ -299,13 +297,12 @@ public class CategoryController extends CatalogEndpoint {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "CATEGORY DATA FOUND");
             response.put("category", categoryWrapper);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
