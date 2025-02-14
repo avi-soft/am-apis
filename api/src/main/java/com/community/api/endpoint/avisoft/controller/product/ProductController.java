@@ -581,7 +581,7 @@ public class ProductController extends CatalogEndpoint {
 
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
-            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "size", defaultValue = "10") int size) {
 
         try {
@@ -609,12 +609,28 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
-            // Apply Pagination
-            int start = Math.min(page * size, responses.size());
-            int end = Math.min(start + size, responses.size());
+            // Calculate pagination details
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int currentPage = offset;
+
+            int start = Math.min(offset * size, totalItems);
+            int end = Math.min(start + size, totalItems);
+
+            if (start >= totalItems) {
+                return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
+            }
+
             List<CustomProductWrapper> paginatedResponses = responses.subList(start, end);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
+            // Create response with pagination info
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -627,6 +643,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 
     @DeleteMapping("/delete/{productId}")
@@ -678,15 +695,15 @@ public class ProductController extends CatalogEndpoint {
 
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Product> products = catalogService.findAllProducts(); // find all the products.
+            List<Product> products = catalogService.findAllProducts(); // Retrieve all products.
 
             if (products.isEmpty()) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
@@ -694,36 +711,45 @@ public class ProductController extends CatalogEndpoint {
 
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-                // finding customProduct that resembles with productId.
+                // Find the CustomProduct that matches productId
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
                 if (customProduct != null) {
-                    if ((((Status) customProduct).getArchived() != 'Y' &&
-                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
-                            customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW)) {
+                    boolean isActive = ((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date());
+                    boolean isNewState = customProduct.getProductState().getProductState().equals(PRODUCT_STATE_NEW);
 
-                        List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(customProduct.getId());
-                        List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(customProduct.getId());
+                    if (isActive && isNewState) {
                         List<Post> postList = customProduct.getPosts();
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct, postList, null, productReserveCategoryFeePostRefService);
-
                         responses.add(wrapper);
                     }
                 }
             }
 
-            // Apply pagination
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, responses.size());
+            // Pagination details
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= responses.size()) {
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
             }
 
             List<CustomProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
+            // Response with pagination metadata
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -733,15 +759,15 @@ public class ProductController extends CatalogEndpoint {
 
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Product> products = catalogService.findAllProducts(); // find all the products.
+            List<Product> products = catalogService.findAllProducts(); // Retrieve all products.
 
             if (products.isEmpty()) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
@@ -749,14 +775,15 @@ public class ProductController extends CatalogEndpoint {
 
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (Product product : products) {
-                // finding customProduct that resembles with productId.
+                // Find the CustomProduct that matches productId
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
 
                 if (customProduct != null) {
-                    if ((((Status) customProduct).getArchived() != 'Y' &&
-                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
-                            !customProduct.getGoLiveDate().after(new Date())) {
+                    boolean isActive = ((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date());
+                    boolean isLive = !customProduct.getGoLiveDate().after(new Date());
 
+                    if (isActive && isLive) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct);
                         responses.add(wrapper);
@@ -764,17 +791,28 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
-            // Apply pagination
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, responses.size());
+            // Pagination details
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            if (fromIndex >= responses.size()) {
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
             }
 
             List<CustomProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, paginatedResponses, HttpStatus.OK);
+            // Response with pagination metadata
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -793,8 +831,8 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
 
         try {
             // Date formatting
@@ -825,11 +863,11 @@ public class ProductController extends CatalogEndpoint {
 
             // Pagination logic
             int totalItems = responses.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            // Validate page request
+            // Validate offset request
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
@@ -838,13 +876,12 @@ public class ProductController extends CatalogEndpoint {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "PRODUCTS RETRIEVED SUCCESSFULLY");
             response.put("products", paginatedList);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -861,7 +898,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all")
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
 
@@ -874,7 +911,7 @@ public class ProductController extends CatalogEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
 
-            return productService.filterProductsByRoleAndUserId(roleId, userId, page, limit,showDraftProducts);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit,showDraftProducts);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
