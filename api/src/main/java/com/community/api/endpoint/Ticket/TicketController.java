@@ -162,8 +162,8 @@ public class TicketController {
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
             @RequestParam(value = "ticket_type", required = false) List<Long> type,
             @RequestParam(value = "ticket_status", required = false) Long status,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size)
+            @RequestParam(value = "offset", defaultValue = "0") int page,
+            @RequestParam(value = "limit", defaultValue = "10") int size)
     {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -231,14 +231,13 @@ public class TicketController {
             }).collect(Collectors.toList());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Tickets Found");
             response.put("tickets", responses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", page);
 
             logger.info("Total tickets: " + responses.size());
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Tickets Found successfully",response,HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);

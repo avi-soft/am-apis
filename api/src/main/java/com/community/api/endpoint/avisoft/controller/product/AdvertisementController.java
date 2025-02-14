@@ -176,7 +176,7 @@ public class AdvertisementController {
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "category", required = false) List<Long> categories,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
@@ -206,7 +206,7 @@ public class AdvertisementController {
             // Manual Pagination
             int totalItems = responses.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int fromIndex = page * limit;
+            int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             if (fromIndex >= totalItems) {
@@ -217,13 +217,12 @@ public class AdvertisementController {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "ADVERTISEMENT RETRIEVED SUCCESSFULLY");
             response.put("advertisements", paginatedResponses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -241,7 +240,7 @@ public class AdvertisementController {
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
@@ -303,7 +302,7 @@ public class AdvertisementController {
             // Manual Pagination
             int totalItems = responses.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int fromIndex = page * limit;
+            int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             if (fromIndex >= totalItems) {
@@ -314,13 +313,12 @@ public class AdvertisementController {
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "ADVERTISEMENT RETRIEVED SUCCESSFULLY");
             response.put("advertisements", paginatedResponses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
