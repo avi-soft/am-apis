@@ -32,8 +32,8 @@ public class ProductRejectionStatusController {
 
     @GetMapping("/get-all-product-rejection-status")
     public ResponseEntity<?> getAllProductRejectionStatus(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             List<CustomProductRejectionStatus> allStatuses = productRejectionStatusService.getAllRejectionStatus();
 
@@ -43,11 +43,11 @@ public class ProductRejectionStatusController {
 
             // Calculate pagination details
             int totalItems = allStatuses.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            // Validate the requested page
+            // Validate the requested offset
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
@@ -56,13 +56,12 @@ public class ProductRejectionStatusController {
 
             // Construct response
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "REJECTION STATUS IS FOUND");
             response.put("rejectionStatuses", paginatedList);
-            response.put("totalItems", totalItems);
+            response.put("totalItems", totalItems);     
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("REJECTION STATUS IS FOUND",response, HttpStatus.OK);
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
