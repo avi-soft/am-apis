@@ -143,8 +143,24 @@ public class CategoryController extends CatalogEndpoint {
                 if (category.getDefaultParentCategory() == null) {
                     if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
                             (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                        List<BigInteger> productIdList = categoryService.getAllProductsByCategoryId(category.getId());
+                        List<CustomProductWrapper> products = new ArrayList<>();
+
+                        for (BigInteger productId : productIdList) {
+                            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
+
+                            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
+                                    customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                                    customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+
+                                CustomProductWrapper wrapper = new CustomProductWrapper();
+                                wrapper.wrapDetails(customProduct);
+                                products.add(wrapper);
+                            }
+                        }
                         CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                        wrapper.wrapDetailsCategory(category, null, request);
+                        wrapper.wrapDetailsCategory(category, products, request);
                         activeCategories.add(wrapper);
                     }
                 }
