@@ -131,6 +131,8 @@ public class TwilioService {
                 customerDetails.setRegisteredBySp(true);
                 customerDetails.setCreatedById(tokenUserId);
                 customerDetails.setCreatedByRole(roleId);
+                if(roleId==4)
+                    customerDetails.setPrimaryRef(tokenUserId);
                 entityManager.merge(customer);
                 }
                 else
@@ -150,6 +152,14 @@ public class TwilioService {
                         "message", ApiConstants.NUMBER_ALREADY_REGISTERED_SERVICE_PROVIDER
                 ));
             } else {
+                if(existingCustomer.getArchived().equals(true)) {
+                    return ResponseEntity.ok(Map.of(
+
+                            "message","Your account has been suspended ,please contact support.",
+                            "status", HttpStatus.UNAUTHORIZED,
+                            "status_code", HttpStatus.UNAUTHORIZED.value()
+                    ));
+                }
                 existingCustomer.setOtp(otp);
                 entityManager.merge(existingCustomer);
                 return ResponseEntity.ok(Map.of(

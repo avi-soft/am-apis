@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityManager;
 import javax.validation.Valid;
 import java.util.List;
 
@@ -31,13 +32,15 @@ public class SubjectController {
     private final SubjectService subjectService;
     private final RoleService roleService;
     private final JwtUtil jwtTokenUtil;
+    private final EntityManager entityManager;
 
     @Autowired
-    public SubjectController(ExceptionHandlingService exceptionHandlingService, SubjectService subjectService, RoleService roleService, JwtUtil jwtTokenUtil) {
+    public SubjectController(ExceptionHandlingService exceptionHandlingService, SubjectService subjectService, RoleService roleService, JwtUtil jwtTokenUtil, EntityManager entityManager) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.subjectService = subjectService;
         this.roleService = roleService;
         this.jwtTokenUtil = jwtTokenUtil;
+        this.entityManager = entityManager;
     }
 
     @PostMapping("/add-subject")
@@ -124,6 +127,20 @@ public class SubjectController {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get-subjects-by-steam-id/{streamId}")
+    public ResponseEntity<?> getSubjectsByStream(@PathVariable Long streamId) {
+        try {
+            List<CustomSubject> subjectList = subjectService.getSubjectsByStreamIds(streamId);
+            if (subjectList.isEmpty()) {
+                return ResponseService.generateSuccessResponse("LIST OF SUBJECTS IS EMPTY IN STREAM WITH ID "+ streamId, subjectList,HttpStatus.OK);
+            }
+            return ResponseService.generateSuccessResponse("SUBJECTS FOUND IN STREAM WITH ID "+ streamId,subjectList, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

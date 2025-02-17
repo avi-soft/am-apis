@@ -96,6 +96,7 @@ public class DistrictService {
 
             List<Districts> districts = query.getResultList();
             if(districts.size() ==0 || districts == null){
+                System.out.println(district);
                 throw new IllegalArgumentException("DISTRICTS NOT FOUND");
             }
             return districts.get(0);
