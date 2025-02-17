@@ -2770,7 +2770,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
        /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
@@ -2846,8 +2846,8 @@ public class CustomerEndpoint {
                 if(refids.isEmpty())
                     refids=null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
@@ -2947,7 +2947,18 @@ public class CustomerEndpoint {
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
             else
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
-            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
+        int totalItems = customerList.size();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+
+        List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("orders", paginatedList);       // Your paginated data
+        response.put("totalItems", totalItems);      // Total number of items
+        response.put("totalPages", totalPages);      // Total number of pages
+        response.put("currentPage", offset);           // Current offset number
+
+        return ResponseService.generateSuccessResponse("Fetched Customers", response, HttpStatus.OK);
         }/* catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }*/
