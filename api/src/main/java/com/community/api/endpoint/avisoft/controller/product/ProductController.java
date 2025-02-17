@@ -393,6 +393,10 @@ public class ProductController extends CatalogEndpoint {
             {
                 customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
             }
+            if(addProductDto.getOtherInfo()!=null)
+            {
+                customProduct.setOtherInfo(addProductDto.getOtherInfo());
+            }
 
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
