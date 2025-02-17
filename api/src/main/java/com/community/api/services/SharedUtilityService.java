@@ -820,32 +820,50 @@ public class SharedUtilityService {
 
         List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
+
         for (ServiceProviderDocument document : serviceProvider.getDocuments()) {
-            if (document.getIsArchived() != null && !document.getIsArchived()) {
+            if (document.getIsArchived().equals(false)) {
                 if (document.getFilePath() != null && document.getDocumentType() != null) {
                     Map<String, Object> documentDetails = new HashMap<>();
                     documentDetails.put("documentId", document.getDocumentId());
                     documentDetails.put("name", document.getName());
                     documentDetails.put("filePath", document.getFilePath());
-                    if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
-                    {
-                        documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
+
+                    if (document.getIs_qualification_document().equals(true) && document.getQualificationDetails() != null) {
+                        documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
                     }
-                    if(document.getDocumentValidity()!=null)
-                    {
-                        documentDetails.put("documentValidity",document.getDocumentValidity());
+
+                    if (document.getDocumentValidity() != null) {
+                        documentDetails.put("documentValidity", document.getDocumentValidity());
                     }
 
                     String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                     documentDetails.put("fileUrl", fileUrl);
 
-                    documentDetails.put("documentType", document.getDocumentType());
+                    // Get the document type name dynamically without modifying the actual entity
+                    String documentTypeName = document.getDocumentType().getDocument_type_name();
+                    if ("Others".equalsIgnoreCase(documentTypeName) && document.getOtherDocument() != null) {
+                        documentTypeName = document.getOtherDocument(); // Override for response only
+                    }
+
+                    // Create a response map for documentType to avoid modifying the original entity
+                    Map<String, Object> documentTypeResponse = new HashMap<>();
+                    documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                    documentTypeResponse.put("document_type_name", documentTypeName);
+                    documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                    documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                    documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                    documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                    documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                    documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                    documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                    documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+
+                    documentDetails.put("documentType", documentTypeResponse);
                     filteredDocuments.add(documentDetails);
                 }
             }
-
         }
-
         if (!filteredDocuments.isEmpty()) {
             serviceProviderDetails.put("documents", filteredDocuments);
         }
