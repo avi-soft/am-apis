@@ -123,6 +123,14 @@ public class AdvertisementController {
         }
     }
 
+//    @PostMapping("/update/{categoryIdString}")
+//    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
+//    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,
+//                                              @PathVariable String categoryIdString,
+//                                              @RequestHeader(value = "Authorization") String authHeader) {
+//
+//    }
+
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
     public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
 
