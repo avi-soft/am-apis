@@ -51,6 +51,9 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "last_modified")
     protected Date modifiedDate;
 
+    @Column(name = "other_info",columnDefinition = "text")
+    protected String otherInfo;
+
     @ManyToOne
     @NotNull
     @JoinColumn(name = "product_state_id")
