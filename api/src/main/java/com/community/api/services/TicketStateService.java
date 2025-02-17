@@ -96,7 +96,37 @@ public class TicketStateService {
             throw new Exception(exception.getMessage());
         }
     }
-
+    @Transactional
+    public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket,CustomTicketState nextState,Long oldSp,Long newSp)
+    {
+        if(oldSp!=newSp)
+        {
+            ServiceProviderEntity exServiceProvider=entityManager.find(ServiceProviderEntity.class,newSp);
+            if(ticket.getTicketState().getTicketState().equals("TO-DO"))
+            {
+                exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned()-1);
+            }
+            else if(!ticket.getTicketState().getTicketState().equals("TO-DO")&&!ticket.getTicketState().getTicketState().equals("CLOSED"))
+        {
+            exServiceProvider.setTicketPending(exServiceProvider.getTicketPending()-1);
+        }
+            entityManager.merge(exServiceProvider);
+        }
+        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,oldSp);
+        if(nextState.getTicketState().equals("TO-DO"))
+        {
+            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+        }
+        if(nextState.getTicketState().equals("CLOSE"))
+        {
+            serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted()+1);
+        }
+        if(nextState.getTicketState().equals("IN-PROGRESS")&&ticket.getTicketState().equals("TO-DO"))
+        {
+            serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
+        }
+        entityManager.merge(serviceProvider);
+    }
     @Transactional
     public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId, String authHeader) {
         try {
@@ -207,12 +237,15 @@ public class TicketStateService {
                 orderState.setOrderStateId(orderStateId);
                 entityManager.merge(orderState);
             }
+            Long newId=createTicketDTO.getAssignee();
+            Long old=ticket.getAssignee();
             LocalDateTime localDateTime = LocalDateTime.now();
             Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
             ticket.setModifiedDate(date);
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
+            updateSpTicketAvailibility(ticket,ticketState,old,newId);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
 
         } catch (PersistenceException e) {

@@ -15,6 +15,7 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
@@ -32,7 +33,11 @@ public class QualificationService {
     public List<Qualification> getAllQualifications() {
         TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
         List<Qualification> qualifications = query.getResultList();
-        return qualifications;
+        List<Qualification> filteredQualifications = qualifications.stream()
+                .filter(q -> !q.getQualification_name().equalsIgnoreCase("BACHELORS/GRADUATION") &&
+                        !q.getQualification_name().equalsIgnoreCase("MASTERS/POST_GRADUATION"))
+                .collect(Collectors.toList());
+        return filteredQualifications;
     }
 //    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in dscription
     @Transactional
