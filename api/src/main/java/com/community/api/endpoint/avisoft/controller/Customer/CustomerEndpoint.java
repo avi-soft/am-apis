@@ -2517,21 +2517,53 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
-            TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
+
+            // **Get total number of customers (without pagination)**
+            TypedQuery<Long> countQuery = entityManager.createQuery(
+                    "SELECT COUNT(c) FROM CustomCustomer c WHERE c.archived = false", Long.class);
+            Long totalItems = countQuery.getSingleResult();  // Total count of active customers
+
+            // **Fetch paginated customers**
+            TypedQuery<CustomCustomer> query = entityManager.createQuery(
+                    "SELECT c FROM CustomCustomer c WHERE c.archived = false", CustomCustomer.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<Map> results = new ArrayList<>();
-            for (CustomCustomer customer : query.getResultList()) {
-                Customer customerToadd = customerService.readCustomerById(customer.getId());
-                if (customer.getArchived().equals(false))
-                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader,httpServletRequest));
-            }
-            return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in customers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            List<CustomCustomer> customers = query.getResultList();
+
+            // Convert customers to response format
+            List<Map> results = customers.stream()
+                    .map(customer -> {
+                        try {
+                            return sharedUtilityService.breakReferenceForCustomer(
+                                    customerService.readCustomerById(customer.getId()), authHeader, httpServletRequest);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            // **Calculate total pages correctly**
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+
+            // **Prepare the response map**
+            Map<String, Object> response = new HashMap<>();
+            response.put("customers", results);
+            response.put("totalItems", totalItems); // Total number of customers (entire dataset)
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            // **Return success response**
+            return ResponseService.generateSuccessResponse("CUSTOMERS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

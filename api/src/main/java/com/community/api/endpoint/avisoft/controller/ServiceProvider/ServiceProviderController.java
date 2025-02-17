@@ -248,16 +248,21 @@ public class ServiceProviderController {
         }
     }
 
-
     @Transactional // Set readOnly for performance improvement
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
-            int startPosition = page * limit;
+            int startPosition = offset * limit;
+
+            // Count total service providers (excluding archived ones)
+            Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
+            long totalItems = (long) countQuery.getSingleResult();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+
             // Create the query with pagination
-            Query query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
 
@@ -266,11 +271,19 @@ public class ServiceProviderController {
 
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                if(serviceProvider.getIsArchived().equals(false))
+                if (!serviceProvider.getIsArchived()) {
                     resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
             }
 
-            return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
+            // Prepare response
+            Map<String, Object> response = new HashMap<>();
+            response.put("serviceProviders", resultOfSp);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("List of service providers: ", response, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
