@@ -320,7 +320,6 @@ public class CustomerEndpoint {
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
             if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
-                System.out.println("hellob");
                 if (customCustomer.getInterestedInDefence()) {
                     // List of required fields
                     final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
@@ -746,7 +745,6 @@ public class CustomerEndpoint {
             }
             if (details.containsKey("isLivePhotoNa")) {
                Boolean isLivePhotoNa= (Boolean) details.get("isLivePhotoNa");
-                System.out.println(isLivePhotoNa);
                if(isLivePhotoNa.equals(true))
                {
                    assert customCustomer.getDocuments() != null;
@@ -1324,6 +1322,7 @@ public class CustomerEndpoint {
             @RequestParam(value = "qualificationDetailId", required = false) Long qualificationDetailId,
             @RequestParam(value = "dateOfIssue", required = false) String dateOfIssue,
             @RequestParam(value = "validUpto", required = false) String validUpto,
+            @RequestParam(value = "otherDocument", required = false) String otherDocument,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -1462,6 +1461,17 @@ public class CustomerEndpoint {
                                 "Unknown document type for file: " + fileNameId,
                                 HttpStatus.BAD_REQUEST);
                     }
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
+                        }
+                        if(otherDocument.trim().isEmpty())
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be empty");
+                        }
+                    }
 
                     if (documentTypeObj.getIs_qualification_document().equals(true)) {
                         if (qualificationDetailId == null) {
@@ -1537,28 +1547,40 @@ public class CustomerEndpoint {
                             String newFileName = file.getOriginalFilename();
                             // Check for existing document with the same name
                             Document existingDocument13 = em.createQuery(
-                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name = :documentName AND (d.name IS NOT NULL)", Document.class)
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND LOWER(d.otherDocument) = LOWER(:otherDocument) " +  // Case-insensitive check
+                                                    "AND d.name IS NOT NULL", Document.class)
                                     .setParameter("customCustomer", customCustomer)
                                     .setParameter("documentType", documentTypeObj)
-                                    .setParameter("documentName", newFileName)
+                                    .setParameter("otherDocument", otherDocument.toLowerCase())  // Ensure consistency
                                     .getResultStream()
                                     .findFirst()
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
                                 Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                if(documentTypeObj.getDocument_type_id().equals(13))
+                                {
+                                    createdDocument.setOtherDocument(otherDocument);
+                                    entityManager.merge(createdDocument);
+                                }
                                 documentsToSave.add(createdDocument);
                             } else if (existingDocument13 != null) {
+
                                 String filePath = existingDocument13.getFilePath();
-                                if (removeFileTypes != null && removeFileTypes && newFileName != null) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    existingDocument13.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
+                                        documentStorageService.updateOrCreateDocument(existingDocument13, file, documentTypeObj, customerId, role);
+                                    }
                                 }
-                                existingDocument13.setFilePath(null);
-                                existingDocument13.setName(null);
-                                existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument13);
+                                entityManager.merge(existingDocument13);
                                 documentsToSave.add(existingDocument13);
-                                deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
                         // If the file is not empty and a document already exists, update the document
@@ -1686,9 +1708,20 @@ public class CustomerEndpoint {
 
                             // Generate a file URL for the document
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                            documentDetails.put("fileUrl", fileUrl);
+                            Map<String, Object> documentTypeResponse = new HashMap<>();
+                            documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                            documentTypeResponse.put("document_type_name", otherDocument);
+                            documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                            documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                            documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                            documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                            documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                            documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                            documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                            documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
 
-                            documentDetails.put("documentType", document.getDocumentType());
+                            documentDetails.put("documentType", documentTypeResponse);
+                            documentDetails.put("fileUrl", fileUrl);
                             filteredDocuments.add(documentDetails);
                         }
                     }
@@ -1722,6 +1755,18 @@ public class CustomerEndpoint {
 
                     if (documentTypeObj == null) {
                         return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
+
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
+                        }
+                        if(otherDocument.trim().isEmpty())
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be empty");
+                        }
                     }
 
                     if (documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1775,35 +1820,47 @@ public class CustomerEndpoint {
 
                         if (fileNameId == 13 && (!file.isEmpty() || file != null)) {
                             String newFileName = file.getOriginalFilename();
-
                             // Check for existing document with the same name
                             ServiceProviderDocument existingDocument13 = em.createQuery(
-                                            "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name = :documentName AND (d.name IS NOT NULL)", ServiceProviderDocument.class)
+                                            "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) " +  // Handle null safely
+                                                    "AND d.name = :documentName " +  // Include document name check
+                                                    "AND d.name IS NOT NULL",
+                                            ServiceProviderDocument.class
+                                    )
                                     .setParameter("serviceProviderEntity", serviceProviderEntity)
                                     .setParameter("documentType", documentTypeObj)
-                                    .setParameter("documentName", newFileName)
+                                    .setParameter("otherDocument", otherDocument != null ? otherDocument.toLowerCase() : null)  // Avoid NullPointerException
+                                    .setParameter("documentName", newFileName)  // Ensure document name is included
                                     .getResultStream()
                                     .findFirst()
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
                                 ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                if(documentTypeObj.getDocument_type_id().equals(13))
+                                {
+                                    serviceProviderDocument.setOtherDocument(otherDocument);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                             } else if (existingDocument13 != null) {
-                                if (removeFileTypes != null && removeFileTypes && newFileName != null) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
+                                String filePath = existingDocument13.getFilePath();
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    existingDocument13.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument13, file, documentTypeObj, customerId, role);
+                                    }
                                 }
-                                existingDocument13.setFilePath(null);
-                                existingDocument13.setName(null);
-                                existingDocument13.setServiceProviderEntity(null);
-
-                                em.merge(existingDocument13);
+                                entityManager.merge(existingDocument13);
                                 serviceProviderDocumentToSave.add(existingDocument13);
-                                deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
-
-
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
@@ -1925,7 +1982,19 @@ public class CustomerEndpoint {
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                             documentDetails.put("fileUrl", fileUrl);
 
-                            documentDetails.put("documentType", document.getDocumentType());
+                            Map<String, Object> documentTypeResponse = new HashMap<>();
+                            documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                            documentTypeResponse.put("document_type_name", otherDocument);
+                            documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                            documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                            documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                            documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                            documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                            documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                            documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                            documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+
+                            documentDetails.put("documentType", documentTypeResponse);
                             filteredDocuments.add(documentDetails);
                         }
                     }
@@ -2517,21 +2586,53 @@ public class CustomerEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
-            TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
+
+            // **Get total number of customers (without pagination)**
+            TypedQuery<Long> countQuery = entityManager.createQuery(
+                    "SELECT COUNT(c) FROM CustomCustomer c WHERE c.archived = false", Long.class);
+            Long totalItems = countQuery.getSingleResult();  // Total count of active customers
+
+            // **Fetch paginated customers**
+            TypedQuery<CustomCustomer> query = entityManager.createQuery(
+                    "SELECT c FROM CustomCustomer c WHERE c.archived = false", CustomCustomer.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<Map> results = new ArrayList<>();
-            for (CustomCustomer customer : query.getResultList()) {
-                Customer customerToadd = customerService.readCustomerById(customer.getId());
-                if (customer.getArchived().equals(false))
-                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader,httpServletRequest));
-            }
-            return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in customers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            List<CustomCustomer> customers = query.getResultList();
+
+            // Convert customers to response format
+            List<Map> results = customers.stream()
+                    .map(customer -> {
+                        try {
+                            return sharedUtilityService.breakReferenceForCustomer(
+                                    customerService.readCustomerById(customer.getId()), authHeader, httpServletRequest);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            // **Calculate total pages correctly**
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+
+            // **Prepare the response map**
+            Map<String, Object> response = new HashMap<>();
+            response.put("customers", results);
+            response.put("totalItems", totalItems); // Total number of customers (entire dataset)
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            // **Return success response**
+            return ResponseService.generateSuccessResponse("CUSTOMERS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2669,8 +2770,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
-
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
        /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
                 return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
@@ -2745,8 +2845,8 @@ public class CustomerEndpoint {
                 if(refids.isEmpty())
                     refids=null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
@@ -2846,7 +2946,18 @@ public class CustomerEndpoint {
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
             else
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
-            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
+        int totalItems = customerList.size();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+
+        List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("orders", paginatedList);       // Your paginated data
+        response.put("totalItems", totalItems);      // Total number of items
+        response.put("totalPages", totalPages);      // Total number of pages
+        response.put("currentPage", offset);           // Current offset number
+
+        return ResponseService.generateSuccessResponse("Fetched Customers", response, HttpStatus.OK);
         }/* catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }*/
