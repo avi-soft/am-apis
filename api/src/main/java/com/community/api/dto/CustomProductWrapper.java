@@ -131,6 +131,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Boolean isMultiplePostSameFee;
     @JsonProperty("total_vacancies_in_product")
     Long totalVacanciesInProduct;
+    @JsonProperty("other_info")
+    String otherInfo;
 
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct) throws Exception {
@@ -151,6 +153,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
+        this.otherInfo=addProductDto.getOtherInfo();
 
 
         if(addProductDto.getReservedCategory()!=null)
@@ -304,6 +307,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.createdDate = customProduct.getCreatedDate();
         this.isReviewRequired=customProduct.getIsReviewRequired();
         this.isMultiplePostSameFee= customProduct.getIsMultiplePostSameFee();
+        this.otherInfo=customProduct.getOtherInfo();
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
         }
@@ -326,6 +330,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaDescription = customProduct.getMetaDescription();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
+        this.otherInfo=customProduct.getOtherInfo();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -410,6 +415,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
+        this.otherInfo=customProduct.getOtherInfo();
 
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
