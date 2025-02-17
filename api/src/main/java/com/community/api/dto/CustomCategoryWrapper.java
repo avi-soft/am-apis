@@ -72,7 +72,6 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         this.urlKey = category.getUrlKey();
         this.archived = ((Status) category).getArchived();
         this.products = products;
-        System.out.println(products);
         if (products == null) {
             this.totalProducts = 0;
         } else {
