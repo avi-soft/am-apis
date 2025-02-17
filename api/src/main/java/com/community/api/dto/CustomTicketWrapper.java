@@ -57,6 +57,8 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     @JsonProperty("order")
     protected CombinedOrderDTO order;
+    @JsonProperty("task_description")
+    protected String task_desc;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
@@ -70,6 +72,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.modifierUserId = customServiceProviderTicket.getModifierId();
         this.modifierRole = customServiceProviderTicket.getModifierRole();
         this.customTicketState = customServiceProviderTicket.getTicketState();
+        if(customServiceProviderTicket.getTicketType().getTicketTypeId()==3)
+        {
+            this.task_desc=customServiceProviderTicket.getDesc();
+        }
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();

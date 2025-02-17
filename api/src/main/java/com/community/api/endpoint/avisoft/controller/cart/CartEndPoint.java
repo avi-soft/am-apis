@@ -251,7 +251,7 @@ public class CartEndPoint extends BaseEndpoint {
             }
             CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
             List<Long>postPreference=getLongList(map,"postPreference");
-            if(postPreference.isEmpty()&&customProduct.getPosts().size()>=1)
+            if(postPreference.isEmpty()&&customProduct.getPosts().size()>1)
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
             Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
             if(reserveCategoryId==null)
@@ -668,7 +668,7 @@ public class CartEndPoint extends BaseEndpoint {
         }
     }
     @Transactional
-    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PATCH)
+    @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PUT)
     public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
         try {
             List<Long> postPreference = getLongList(map, "postPreference");

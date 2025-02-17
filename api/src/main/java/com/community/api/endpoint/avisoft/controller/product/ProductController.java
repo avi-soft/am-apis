@@ -359,10 +359,6 @@ public class ProductController extends CatalogEndpoint {
             }
 
 //            // Validations and checks.
-            if (addProductDto.getReservedCategory() != null) {
-                productService.validateReserveCategory(addProductDto);
-                productService.deleteOldReserveCategoryMapping(customProduct);
-            }
             productService.updateProductValidation(addProductDto, customProduct);
 
             // Validation of getActiveEndDate and getGoLiveDate.
@@ -388,9 +384,8 @@ public class ProductController extends CatalogEndpoint {
             customProduct.setModifierRole(roleService.getRoleByRoleId(jwtTokenUtil.extractRoleId(authHeader.substring(7))));
             customProduct.setModifierUserId(jwtTokenUtil.extractId(authHeader.substring(7)));
 
-
             if (addProductDto.getReservedCategory() != null) {
-                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                productService.validateReserveCategory(addProductDto);
             }
             if(addProductDto.getIsReviewRequired()!=null)
             {
@@ -481,9 +476,17 @@ public class ProductController extends CatalogEndpoint {
                     }
                     entityManager.flush();
                 }
+            }
 
-                postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
-                postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+            if (addProductDto.getReservedCategory() != null) {
+                productService.deleteOldReserveCategoryMapping(customProduct);
+                productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+            }
+            if(addProductDto.getPosts() != null) {
+                if (!addProductDto.getPosts().isEmpty()) {
+                    postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
+                    postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+                }
             }
            /* if(addProductDto.getReserveCategoryAge()!=null)
             {
