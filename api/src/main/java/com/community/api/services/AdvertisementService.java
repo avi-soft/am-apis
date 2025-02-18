@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
 import com.community.api.entity.Advertisement;
+import com.community.api.entity.BoardUniversity;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
@@ -23,6 +24,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class AdvertisementService {
@@ -74,6 +78,9 @@ public class AdvertisementService {
 
             if(addAdvertisementDto.getUrl() == null || addAdvertisementDto.getUrl().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Url cannot be null or empty");
+            }
+            if (!isValidUrl(addAdvertisementDto.getUrl().trim())) {
+                throw new IllegalArgumentException("Invalid Advertisement URL format");
             }
             addAdvertisementDto.setUrl(addAdvertisementDto.getUrl().trim());
 
@@ -249,4 +256,91 @@ public class AdvertisementService {
             throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
         }
     }
+
+    @Transactional
+    public Advertisement updateAdvertisement(AddAdvertisementDto advertisementDto,Long advertisementId) throws Exception {
+        Date notificationStartDate=null;
+        Date notificationEndDate=null;
+        Advertisement advertisementToUpdate= entityManager.find(Advertisement.class,advertisementId);
+        if(advertisementToUpdate==null)
+        {
+            throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
+        }
+        if(Objects.nonNull(advertisementDto.getTitle()))
+        {
+            if(advertisementDto.getTitle().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Title cannot be empty");
+            }
+            advertisementToUpdate.setTitle(advertisementDto.getTitle().trim());
+        }
+        if(advertisementDto.getDescription() != null) {
+            if (advertisementDto.getDescription().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Description cannot be Empty");
+            }
+            advertisementToUpdate.setDescription(advertisementDto.getDescription().trim());
+        }
+        if (Objects.nonNull(advertisementDto.getUrl())) {
+            if(advertisementDto.getUrl().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Url cannot be empty");
+            }
+            // URL validation using regex
+            if (!isValidUrl(advertisementDto.getUrl().trim())) {
+                throw new IllegalArgumentException("Invalid Advertisement URL format");
+            }
+            advertisementToUpdate.setUrl(advertisementDto.getUrl().trim());
+        }
+        if (Objects.nonNull(advertisementDto.getNotifyingAuthority())) {
+            if(advertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Notifying Authority cannot be empty");
+            }
+            advertisementToUpdate.setNotifyingAuthority(advertisementDto.getNotifyingAuthority().trim());
+        }
+
+        if (Objects.nonNull(advertisementDto.getNumber())) {
+            if(advertisementDto.getNumber().trim().isEmpty()) {
+                throw new IllegalArgumentException("Advertisement Number cannot be empty");
+            }
+            advertisementToUpdate.setNumber(advertisementDto.getNumber().trim());
+        }
+
+        if (Objects.nonNull(advertisementDto.getNotificationStartDate())) {
+            String formattedDate = dateFormat.format(advertisementDto.getNotificationStartDate());
+            dateFormat.parse(formattedDate);
+            notificationStartDate=advertisementDto.getNotificationStartDate();
+        }
+        else {
+            notificationStartDate=advertisementToUpdate.getNotificationStartDate();
+        }
+
+        if(notificationStartDate.after(new Date())) {
+            throw new IllegalArgumentException("Notification Start Date cannot be of future");
+        }
+
+        advertisementToUpdate.setNotificationStartDate(notificationStartDate);
+
+        if (Objects.nonNull(advertisementDto.getNotificationEndDate())) {
+            String formattedDate = dateFormat.format(advertisementDto.getNotificationEndDate());
+            dateFormat.parse(formattedDate);
+            notificationEndDate=advertisementDto.getNotificationEndDate();
+        }
+        else {
+            notificationEndDate=advertisementToUpdate.getNotificationEndDate();
+        }
+
+        if (notificationEndDate != null && notificationEndDate.before(notificationStartDate)) {
+            throw new IllegalArgumentException("Notification end date cannot be before of Notification start date");
+        }
+        advertisementToUpdate.setNotificationEndDate(notificationEndDate);
+
+        entityManager.merge(advertisementToUpdate);
+        return advertisementToUpdate;
+    }
+
+    private boolean isValidUrl(String url) {
+        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*\\/?$";
+        Pattern pattern = Pattern.compile(urlRegex);
+        Matcher matcher = pattern.matcher(url);
+        return matcher.matches();
+    }
+
 }
