@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -123,13 +124,32 @@ public class AdvertisementController {
         }
     }
 
-//    @PostMapping("/update/{categoryIdString}")
-//    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
-//    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,
-//                                              @PathVariable String categoryIdString,
-//                                              @RequestHeader(value = "Authorization") String authHeader) {
-//
-//    }
+    @PutMapping("/update/{advertisementId}")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
+    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId) {
+        try {
+            Advertisement advertisement=advertisementService.updateAdvertisement(addAdvertisementDto,advertisementId);
+
+            AdvertisementWrapper wrapper = new AdvertisementWrapper();
+            wrapper.wrapDetails(advertisement, null);
+
+            return ResponseService.generateSuccessResponse("Advertisement Created Successfully", wrapper, HttpStatus.OK);
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+            exceptionHandlingService.handleException(dataIntegrityViolationException);
+            return ResponseService.generateErrorResponse(dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    }
 
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
     public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
