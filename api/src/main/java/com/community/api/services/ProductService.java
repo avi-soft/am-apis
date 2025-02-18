@@ -234,6 +234,11 @@ public class ProductService {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
             }
+            if(addProductDto.getOtherInfo()!=null)
+            {
+                sql.append(", other_info");
+                values.append(", :otherInfo");
+            }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
                 sql.append(", is_multiple_post_same_fee");
@@ -327,6 +332,9 @@ public class ProductService {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            } if(addProductDto.getOtherInfo()!=null)
+            {
+                query.setParameter("otherInfo",addProductDto.getOtherInfo());
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
