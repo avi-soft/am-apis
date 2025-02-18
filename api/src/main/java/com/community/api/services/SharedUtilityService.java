@@ -1824,13 +1824,8 @@ public class SharedUtilityService {
         if(!isAadharCardBackUploaded)
         {
             documentsNotUploaded.add("Back Aadhaar card");
-        } if(!isRightThumb)
-        {
-            documentsNotUploaded.add("Right Thumb impression");
-        } if(!isLeftThumb)
-        {
-            documentsNotUploaded.add("Left Thumb impression");
         }
+
         if(customCustomer.getCategory()!=null && !customCustomer.getCategory().equalsIgnoreCase("GEN"))
         {
             if(!isCategoryCertificate)
