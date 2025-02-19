@@ -2368,6 +2368,14 @@ public class CustomerEndpoint {
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
                                            @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
@@ -2424,6 +2432,14 @@ public class CustomerEndpoint {
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                     @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
@@ -2479,6 +2495,14 @@ public class CustomerEndpoint {
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                          @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
