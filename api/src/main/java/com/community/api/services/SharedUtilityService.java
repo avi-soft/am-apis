@@ -1457,11 +1457,6 @@ public class SharedUtilityService {
             customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Primary Email address cannot be null or empty");
         }
-        if(customCustomer.getSecondaryEmail()==null || (customCustomer.getSecondaryEmail()!=null &&customCustomer.getSecondaryEmail().trim().isEmpty()))
-        {
-            customCustomer.setProfileComplete(false);
-            throw new IllegalArgumentException("In Contact Details, Secondary Email address cannot be null or empty");
-        }
         return true;
     }
 
