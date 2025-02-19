@@ -208,6 +208,14 @@ public class AdvertisementController {
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories);
 
             if (advertisements.isEmpty()) {
@@ -236,9 +244,8 @@ public class AdvertisementController {
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
-
             if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("No more advertisements available", HttpStatus.BAD_REQUEST);
             }
 
             List<AdvertisementWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);

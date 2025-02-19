@@ -588,6 +588,11 @@ public class ProductService {
         query.setMaxResults(limit);
         products= query.getResultList();
 
+        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+        int totalPages =(int) Math.ceil((double) totalProducts / limit);
+        if (page >= totalPages) {
+            throw new IllegalArgumentException("No more products availabe");
+        }
         if (products.isEmpty()) {
             if(showDraftProducts)
             {
@@ -595,7 +600,7 @@ public class ProductService {
             }
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
-        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+         totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
             if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
@@ -610,7 +615,7 @@ public class ProductService {
         response.put("products", responses);
         response.put("currentPage", page);
         response.put("totalItems", totalProducts);
-        response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
+        response.put("totalPages",totalPages );
         if(showDraftProducts)
         {
             return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully",response,HttpStatus.OK);
