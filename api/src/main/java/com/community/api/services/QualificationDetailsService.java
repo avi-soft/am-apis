@@ -150,19 +150,24 @@ public class QualificationDetailsService {
                     streamOthers != null && customStream.getStreamName().equalsIgnoreCase("Others")) || qualificationOthers != null && qualificationToSearch.getQualification_name().equalsIgnoreCase("Others"))
             {
                 qualificationDetails.setOtherItems(allOtherItemsToSave);
-                QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+                qualificationDetails.setOtherItems(allOtherItemsToSave);
+
                 if(boardUniversityOtherItemToAdd!=null)
                 {
                     entityManager.merge(boardUniversityOtherItemToAdd);
+                    qualificationDetails.setOther_board_university(boardUniversityOthers);
                 }
                 if(streamOtherItemToAdd!=null)
                 {
                     entityManager.merge(streamOtherItemToAdd);
+                    qualificationDetails.setOther_stream(streamOthers);
                 }
                 if(qualificationOtherItemToAdd!=null)
                 {
                     entityManager.merge(qualificationOtherItemToAdd);
+                    qualificationDetails.setOther_qualification(qualificationOthers);
                 }
+                QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
                 return addedQualificationDetails;
             }
             giveQualificationScore(userId);
@@ -289,18 +294,21 @@ public class QualificationDetailsService {
                 streamOthers != null && customStream.getStreamName().equalsIgnoreCase("Others")) || qualificationOthers != null && qualificationToSearch.getQualification_name().equalsIgnoreCase("Others") || isOtherSubjects)
         {
             qualificationDetails.setOtherItems(allOtherItemsToSave);
-            QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+
             if(boardUniversityOtherItemToAdd!=null)
             {
                 entityManager.merge(boardUniversityOtherItemToAdd);
+                qualificationDetails.setOther_board_university(boardUniversityOthers);
             }
             if(streamOtherItemToAdd!=null)
             {
                 entityManager.merge(streamOtherItemToAdd);
+                qualificationDetails.setOther_stream(streamOthers);
             }
             if(qualificationOtherItemToAdd!=null)
             {
                 entityManager.merge(qualificationOtherItemToAdd);
+                qualificationDetails.setOther_qualification(qualificationOthers);
             }
             if(qualificationDetails.getOtherSubjects()!=null && !qualificationDetails.getOtherSubjects().isEmpty())
             {
@@ -316,6 +324,7 @@ public class QualificationDetailsService {
                     }
                 }
             }
+            QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
             return addedQualificationDetails;
         }
         return qualificationDetails;
@@ -471,6 +480,7 @@ public class QualificationDetailsService {
             }
             Boolean userExists= false;
             if (isOtherQualification.equals(false)) {
+                qualificationDetailsToUpdate.setOther_stream(null);
                 List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                 if (!currentOtherItems.isEmpty()) {
                     Iterator<OtherItem> iterator = currentOtherItems.iterator();
@@ -496,6 +506,7 @@ public class QualificationDetailsService {
                             iterator.remove();
                         }
                     }
+                    qualificationDetailsToUpdate.setOther_qualification(null);
                     qualificationDetailsToUpdate.setOtherItems(currentOtherItems);
                 }
             } else if (isOtherQualification.equals(true)) {
@@ -535,6 +546,7 @@ public class QualificationDetailsService {
                 }
 
                 qualificationDetailsToUpdate.setOtherItems(existingItems);
+                qualificationDetailsToUpdate.setOther_qualification(qualificationOthers);
                 entityManager.merge(qualificationDetailsToUpdate);
             }
         }
@@ -562,6 +574,7 @@ public class QualificationDetailsService {
 
                 Boolean userExists= false;
                 if (isOtherStream.equals(false)) {
+                    qualificationDetailsToUpdate.setOther_stream(null);
                     List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                     if (!currentOtherItems.isEmpty()) {
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
@@ -624,8 +637,8 @@ public class QualificationDetailsService {
                                 streamToAdd, streamOthers, roleId, userId, sourceName);
                         existingItems.add(streamOtherItemToAdd);
                     }
-
                     qualificationDetailsToUpdate.setOtherItems(existingItems);
+                    qualificationDetailsToUpdate.setOther_stream(streamOthers);
                     entityManager.merge(qualificationDetailsToUpdate);
                 }
 
@@ -686,6 +699,7 @@ public class QualificationDetailsService {
 
             Boolean userExists= false;
                 if (isOtherBoardUniversity.equals(false)) {
+                    qualificationDetailsToUpdate.setOther_board_university(null);
                     List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                     if (!currentOtherItems.isEmpty()) {
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
@@ -711,6 +725,7 @@ public class QualificationDetailsService {
                                 iterator.remove();
                             }
                         }
+                        qualificationDetailsToUpdate.setOther_board_university(null);
                         qualificationDetailsToUpdate.setOtherItems(currentOtherItems);
                     }
                 } else if (isOtherBoardUniversity.equals(true)) {
@@ -750,6 +765,7 @@ public class QualificationDetailsService {
                     }
 
                     qualificationDetailsToUpdate.setOtherItems(existingItems);
+                    qualificationDetailsToUpdate.setOther_board_university(boardUniversityOthers);
                     entityManager.merge(qualificationDetailsToUpdate);
                 }
         }

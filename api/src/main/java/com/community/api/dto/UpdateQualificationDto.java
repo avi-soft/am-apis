@@ -47,6 +47,11 @@ public class UpdateQualificationDto
 
     private Long examination_registration_number;
 
+    private String other_stream;
+
+    private String other_board_university;
+
+    private String other_qualification;
     private Boolean is_grade;
 
     private String grade_value;
