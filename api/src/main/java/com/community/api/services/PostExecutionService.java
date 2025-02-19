@@ -68,6 +68,7 @@ public class PostExecutionService {
             entityManager.merge(post); // Persist the post before updating the age requirement
         }
         customProduct.setTotalVacanciesInProduct(totalPostInProduct);
+        customProduct.setTotalPostsInProduct((long)postList.size());
         entityManager.merge(customProduct);
     }
 }
