@@ -162,10 +162,18 @@ public class TicketController {
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
             @RequestParam(value = "ticket_type", required = false) List<Long> type,
             @RequestParam(value = "ticket_status", required = false) Long status,
-            @RequestParam(value = "offset", defaultValue = "0") int page,
-            @RequestParam(value = "limit", defaultValue = "10") int size)
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit)
     {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
                 String formattedDateFrom = dateFormat.format(dateFrom);
@@ -198,17 +206,17 @@ public class TicketController {
                     state, type, userId, role, dateFrom, dateTo, status);
 
             int totalItems = tickets.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
 
-            if (page < 0) {
-                page = 0;
+            if (offset < 0) {
+                offset = 0;
             }
-            if (page >= totalPages) {
-                page = totalPages - 1;
+            if (offset >= totalPages) {
+                throw new IllegalArgumentException("No more tickets available");
             }
 
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
             List<CustomServiceProviderTicket> paginatedTickets = (totalItems > 0) ? tickets.subList(fromIndex, toIndex) : new ArrayList<>();
 
@@ -234,7 +242,7 @@ public class TicketController {
             response.put("tickets", responses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
             logger.info("Total tickets: " + responses.size());
             return ResponseService.generateSuccessResponse("Tickets Found successfully",response,HttpStatus.OK);
