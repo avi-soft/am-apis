@@ -889,68 +889,10 @@ public class SharedUtilityService {
         return qualificationDetails.stream()
                 .map(qualificationDetail -> {
                     Map<String, Object> qualificationInfo = new HashMap<>();
-                    // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
                     Institution institution =  qualificationDetail.getInstitution();
                     CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
-
-                    String qualificationName = null;
-                    if (qualification.getQualification_name() .equalsIgnoreCase("Others")) {
-                        // Check the `otherItems` for a matching "Stream" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("qualification_name") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            qualificationName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (qualificationName == null) {
-                        // Use the qulification name if no valid entry in `otherItems` is found
-                        qualificationName= qualification != null ? qualification.getQualification_name() : "Unknown Qualification";
-                    }
-                    // Fetch the BoardUniversity
                     BoardUniversity boardUniversity = entityManager.find(BoardUniversity.class, qualificationDetail.getBoard_university_id());
-
-                    // Determine the board_university_name
-                    String boardUniversityName = null;
-                    if (qualificationDetail.getBoard_university_id() .equals(1L)) {
-                        // Check the `otherItems` for a matching "Board or University" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("board_or_university") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            boardUniversityName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (boardUniversityName == null) {
-                        // Use the BoardUniversity name if no valid entry in `otherItems` is found
-                        boardUniversityName = boardUniversity != null ? boardUniversity.getBoard_university_name() : "Unknown BoardUniversity";
-                    }
-
-                    String streamName = null;
-                    CustomStream stream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
-                    if (stream.getStreamName() .equalsIgnoreCase("Others")) {
-                        // Check the `otherItems` for a matching "Stream" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("stream") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getCustom_customer().getId()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            streamName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (streamName == null) {
-                        // Use the stream name if no valid entry in `otherItems` is found
-                        streamName = stream != null ? stream.getStreamName() : "Unknown Stream";
-                    }
 
                     // Populate the map
                     qualificationInfo.put("qualification_detail_id", qualificationDetail.getQualification_detail_id());
@@ -971,10 +913,29 @@ public class SharedUtilityService {
                     qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
                     qualificationInfo.put("highest_qualification_subject_names",qualificationDetail.getHighest_qualification_subject_names());
                     qualificationInfo.put("course_duration_in_months",qualificationDetail.getCourse_duration_in_months());
+                    qualificationInfo.put("other_qualification",qualificationDetail.getOther_qualification());
+                    qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
+                    qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
 
-                    qualificationInfo.put("qualification_name", qualificationName);
-                    qualificationInfo.put("board_university_name", boardUniversityName);
-                    qualificationInfo.put("stream_name", streamName);
+                    if (qualification != null) {
+                        qualificationInfo.put("qualification_name", qualification.getQualification_name());
+                    } else {
+                        qualificationInfo.put("qualification_name", "Unknown Qualification");
+                    }
+
+                    if (boardUniversity != null) {
+                        qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
+                    } else {
+                        qualificationInfo.put("board_university_name", "Unknown Board University");
+                    }
+
+                    // Add stream_name
+                    if (customStream != null) {
+                        qualificationInfo.put("stream_name", customStream.getStreamName());
+                    } else {
+                        qualificationInfo.put("stream_name", "Unknown Stream");
+                    }
+//
 
                     // Add institution_name
                     if (institution != null) {
@@ -1085,65 +1046,9 @@ public class SharedUtilityService {
 
                     // Fetch the qualification by qualification_id
                     Qualification qualification = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
-                    Institution institution = entityManager.find(Institution.class, qualificationDetail.getInstitution().getInstitution_id());
-                    String qualificationName = null;
-                    if (qualification.getQualification_name() .equalsIgnoreCase("Others")) {
-                        // Check the `otherItems` for a matching "Stream" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("qualification_name") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getService_provider().getService_provider_id()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            qualificationName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (qualificationName == null) {
-                        // Use the qulification name if no valid entry in `otherItems` is found
-                        qualificationName= qualification != null ? qualification.getQualification_name() : "Unknown Qualification";
-                    }
-                    // Fetch the BoardUniversity
+                    Institution institution =  qualificationDetail.getInstitution();
+                    CustomStream customStream = entityManager.find(CustomStream.class, qualificationDetail.getStream_id());
                     BoardUniversity boardUniversity = entityManager.find(BoardUniversity.class, qualificationDetail.getBoard_university_id());
-
-                    // Determine the board_university_name
-                    String boardUniversityName = null;
-                    if (qualificationDetail.getBoard_university_id() .equals(1L)) {
-                        // Check the `otherItems` for a matching "Board or University" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("board_or_university") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getService_provider().getService_provider_id()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            boardUniversityName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (boardUniversityName == null) {
-                        // Use the BoardUniversity name if no valid entry in `otherItems` is found
-                        boardUniversityName = boardUniversity != null ? boardUniversity.getBoard_university_name() : "Unknown BoardUniversity";
-                    }
-//stream name
-                    String streamName = null;
-                    CustomStream stream= entityManager.find(CustomStream.class,qualificationDetail.getStream_id());
-                    if (stream.getStreamName() .equalsIgnoreCase("Others")) {
-                        // Check the `otherItems` for a matching "Stream" field
-                        Optional<OtherItem> otherItemOpt = qualificationDetail.getOtherItems().stream()
-                                .filter(otherItem ->
-                                        otherItem.getField_name().equalsIgnoreCase("stream") &&
-                                                Objects.equals(otherItem.getUser_id(), qualificationDetail.getService_provider().getService_provider_id()))
-                                .findFirst();
-                        if (otherItemOpt.isPresent()) {
-                            streamName = otherItemOpt.get().getTyped_text();
-                        }
-                    }
-
-                    if (streamName == null) {
-                        // Use the stream name if no valid entry in `otherItems` is found
-                        streamName = stream != null ? stream.getStreamName() : "Unknown Stream";
-                    }
-
                     // Populate the map with necessary fields from qualificationDetail
                     qualificationInfo.put("qualification_detail_id",qualificationDetail.getQualification_detail_id());
                     qualificationInfo.put("date_of_passing", qualificationDetail.getDate_of_passing());
@@ -1163,10 +1068,28 @@ public class SharedUtilityService {
                     qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
                     qualificationInfo.put("is_division",qualificationDetail.getIs_division());
                     qualificationInfo.put("division_value",qualificationDetail.getDivision_value());
+                    qualificationInfo.put("other_qualification",qualificationDetail.getOther_qualification());
+                    qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
+                    qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
 
-                    qualificationInfo.put("qualification_name", qualificationName);
-                    qualificationInfo.put("board_university_name", boardUniversityName);
-                    qualificationInfo.put("stream_name", streamName);
+                    if (qualification != null) {
+                        qualificationInfo.put("qualification_name", qualification.getQualification_name());
+                    } else {
+                        qualificationInfo.put("qualification_name", "Unknown Qualification");
+                    }
+
+                    if (boardUniversity != null) {
+                        qualificationInfo.put("board_university_name", boardUniversity.getBoard_university_name());
+                    } else {
+                        qualificationInfo.put("board_university_name", "Unknown Board University");
+                    }
+
+                    // Add stream_name
+                    if (customStream != null) {
+                        qualificationInfo.put("stream_name", customStream.getStreamName());
+                    } else {
+                        qualificationInfo.put("stream_name", "Unknown Stream");
+                    }
 
                     if (institution != null) {
                         qualificationInfo.put("institution_name", institution.getInstitution_name());
