@@ -480,6 +480,7 @@ public class QualificationDetailsService {
             }
             Boolean userExists= false;
             if (isOtherQualification.equals(false)) {
+                qualificationDetailsToUpdate.setOther_stream(null);
                 List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                 if (!currentOtherItems.isEmpty()) {
                     Iterator<OtherItem> iterator = currentOtherItems.iterator();
@@ -573,6 +574,7 @@ public class QualificationDetailsService {
 
                 Boolean userExists= false;
                 if (isOtherStream.equals(false)) {
+                    qualificationDetailsToUpdate.setOther_stream(null);
                     List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                     if (!currentOtherItems.isEmpty()) {
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
@@ -599,7 +601,6 @@ public class QualificationDetailsService {
                             }
                         }
                         qualificationDetailsToUpdate.setOtherItems(currentOtherItems);
-                        qualificationDetailsToUpdate.setOther_stream(null);
                     }
                 } else if (isOtherStream.equals(true)) {
                     List<OtherItem> existingItems = qualificationDetailsToUpdate.getOtherItems();
@@ -636,7 +637,6 @@ public class QualificationDetailsService {
                                 streamToAdd, streamOthers, roleId, userId, sourceName);
                         existingItems.add(streamOtherItemToAdd);
                     }
-
                     qualificationDetailsToUpdate.setOtherItems(existingItems);
                     qualificationDetailsToUpdate.setOther_stream(streamOthers);
                     entityManager.merge(qualificationDetailsToUpdate);
@@ -699,6 +699,7 @@ public class QualificationDetailsService {
 
             Boolean userExists= false;
                 if (isOtherBoardUniversity.equals(false)) {
+                    qualificationDetailsToUpdate.setOther_board_university(null);
                     List<OtherItem> currentOtherItems = qualificationDetailsToUpdate.getOtherItems();
                     if (!currentOtherItems.isEmpty()) {
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
