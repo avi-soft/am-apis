@@ -110,7 +110,7 @@ public class DocumentEndpoint {
             List<DocumentType> documentTypes;
 
             documentTypes = entityManager.createQuery(
-                            "SELECT dt FROM DocumentType dt WHERE dt.documentName <> 'Others' ORDER BY dt.sort_order ASC",
+                            "SELECT dt FROM DocumentType dt WHERE dt.document_type_name <> 'Others' ORDER BY dt.sort_order ASC",
                             DocumentType.class)
                     .getResultList();
 
