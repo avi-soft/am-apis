@@ -335,7 +335,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
-        this.totalPostsInProduct=(long)postProjectionDTOS.size();
+        if(postProjectionDTOS!=null)
+            this.totalPostsInProduct=(long)postProjectionDTOS.size();
+        else
+            this.totalPostsInProduct=0L;
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
