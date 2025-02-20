@@ -3094,11 +3094,11 @@ public class CustomerEndpoint {
         } else if (actionedIds.isEmpty()) {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.BAD_REQUEST);
         } else {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
 }

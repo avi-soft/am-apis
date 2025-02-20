@@ -60,6 +60,8 @@ public class SharedUtilityService {
     @Autowired
     DistrictService districtService;
     @Autowired
+    DocumentStorageService documentStorageService;
+    @Autowired
     HttpServletRequest request;
     @Autowired
     DeviceDetectorService deviceDetectorService;
@@ -404,7 +406,7 @@ public class SharedUtilityService {
                         {
                             documentDetails.put("documentValidity",document.getDocumentValidity());
                         }
-                        String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                        String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                         documentDetails.put("fileUrl", fileUrl);
 
                         // Get the document type name dynamically without modifying the actual entity
@@ -693,7 +695,8 @@ public class SharedUtilityService {
                             documentDetails.put("documentValidity", document.getDocumentValidity());
                         }
 
-                        String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                        String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
+                        System.out.println("heloooooooooooooooooooooooooooooooooooooooooo");
                         documentDetails.put("fileUrl", fileUrl);
 
                         // Get the document type name dynamically without modifying the actual entity
@@ -753,7 +756,7 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider) {
+    public Map<String, Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider) throws Exception {
         Map<String, Object> serviceProviderDetails = new HashMap<>();
         serviceProviderDetails.put("type", serviceProvider.getType());
         serviceProviderDetails.put("service_provider_id", serviceProvider.getService_provider_id());
@@ -837,7 +840,7 @@ public class SharedUtilityService {
                         documentDetails.put("documentValidity", document.getDocumentValidity());
                     }
 
-                    String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                    String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
                     documentDetails.put("fileUrl", fileUrl);
 
                     // Get the document type name dynamically without modifying the actual entity
