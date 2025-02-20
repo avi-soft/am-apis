@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,6 +44,7 @@ public class DocumentEndpoint {
 
     @Autowired
     private FileService fileService;
+
 
     @Autowired
     private DocumentStorageService documentStorageService;
@@ -109,7 +111,9 @@ public class DocumentEndpoint {
         try {
             List<DocumentType> documentTypes;
 
-            documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt ORDER BY dt.sort_order ASC", DocumentType.class)
+            documentTypes = entityManager.createQuery(
+                            "SELECT dt FROM DocumentType dt WHERE dt.document_type_name <> 'Others' ORDER BY dt.sort_order ASC",
+                            DocumentType.class)
                     .getResultList();
 
             if (documentTypes.isEmpty()) {
@@ -132,7 +136,6 @@ public class DocumentEndpoint {
             @RequestParam(required = false) Integer role,
             HttpServletRequest request) {
         try {
-
             if (role != null) {
                 if (roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER)) {
 
@@ -153,8 +156,14 @@ public class DocumentEndpoint {
                     List<DocumentResponse> documentResponses = serviceProviderDocuments.stream()
                             .map(serviceProviderDocument -> {
                                 String fileName = serviceProviderDocument.getName();
-                                String filePath = serviceProviderDocument.getFilePath();
-                                String fileUrl = fileService.getFileUrl(filePath, request);
+                                String filePath = null;
+                                try {
+                                    filePath = documentStorageService.encrypt(serviceProviderDocument.getFilePath());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                                String fileUrl = null;
+                                    fileUrl = fileService.getFileUrl(filePath, request);
                                 String document_name = documentStorageService.findRoleName(serviceProviderDocument.getDocumentType());
 
                                 return new DocumentResponse(fileName, fileUrl, document_name);
@@ -180,7 +189,12 @@ public class DocumentEndpoint {
                 List<DocumentResponse> documentResponses = documents.stream()
                         .map(document -> {
                             String fileName = document.getName();
-                            String filePath = document.getFilePath();
+                            String filePath = null;
+                            try {
+                                filePath = documentStorageService.encrypt(document.getFilePath());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
                             String fileUrl = fileService.getFileUrl(filePath, request);
 
                             String document_name = documentStorageService.findRoleName(document.getDocumentType());
