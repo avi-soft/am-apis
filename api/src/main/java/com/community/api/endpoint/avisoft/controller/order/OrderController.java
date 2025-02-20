@@ -207,7 +207,7 @@ public class OrderController {
         }
         catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.BAD_REQUEST);
         }
     }
 

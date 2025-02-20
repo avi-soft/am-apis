@@ -247,9 +247,13 @@ public class TicketController {
             logger.info("Total tickets: " + responses.size());
             return ResponseService.generateSuccessResponse("Tickets Found successfully",response,HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
     @PutMapping("/ticket/update/{ticketId}")
