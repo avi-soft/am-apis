@@ -26,12 +26,15 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,6 +62,12 @@ public class DocumentStorageService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Value("${secret.key}")
+    private  String key;
+
+    private static final String ALGORITHM = "AES";
+    // 16-byte secret key for AES-128
 
 
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
@@ -323,6 +332,20 @@ public class DocumentStorageService {
          em.persist(newDocument);
          return newDocument;
     }
+
+
+
+
+        public String encrypt(String data) throws Exception {
+            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] encryptedData = cipher.doFinal(data.getBytes());
+
+            // Use URL-safe Base64 encoding
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(encryptedData);
+        }
+
     @Transactional
     public ServiceProviderDocument createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
