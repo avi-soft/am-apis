@@ -28,6 +28,7 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.CallableStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -45,6 +46,9 @@ import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.CallableStatement;
@@ -64,6 +68,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ServiceProviderTicketService {
@@ -75,8 +80,6 @@ public class ServiceProviderTicketService {
     @Autowired
     OrderStateRefService orderStateRefService;
 
-    @Autowired
-    AutoAssignerService autoAssignerService;
 
     @Autowired
     CustomOrderService customOrderService;
@@ -147,24 +150,18 @@ public class ServiceProviderTicketService {
     }
 
 
-    public List<Long> getAssignedTickets() {
+    public List<Long> getAssignedTickets() throws IOException {
         List<Long> ticketList = new ArrayList<>();
-
-        // Define the DO block query
-        String query = "DO $$ " +
-                "DECLARE " +
-                "  total_assigned_tickets BIGINT[]; " +
-                "BEGIN " +
-                "  CALL public.auto_assigner_procedure(total_assigned_tickets); " +
-                "  RAISE NOTICE 'Assigned Tickets: %', array_length(total_assigned_tickets, 1); " +
-                "END $$;";
-
+        String scriptPathForAutoAssigner = "auto_assigner.sql";
+        String sqlScript = new BufferedReader(
+                new InputStreamReader(new ClassPathResource(scriptPathForAutoAssigner).getInputStream())
+        ).lines().collect(Collectors.joining("\n"));
         // Execute the query using a callback to access the underlying Connection and Statement
         jdbcTemplate.execute((Connection connection) -> {
             try (Statement stmt = connection.createStatement()) {
 
                 // Execute the PL/pgSQL block
-                stmt.execute(query);
+                stmt.execute(sqlScript);
 
                 // Define a regex pattern to extract the value after "Assigned Tickets:"
                 Pattern pattern = Pattern.compile("Assigned Tickets:\\s*(\\{.*?\\}|<NULL>|[^,\\s]+)");
