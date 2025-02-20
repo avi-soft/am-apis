@@ -44,6 +44,8 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
+import javax.validation.constraints.Null;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -99,9 +101,20 @@ public class TicketController {
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
-            List<CustomTicketWrapper> assignedTickets = serviceProviderTicketService.autoAssigner();
-
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
+           List<Long>resultList=serviceProviderTicketService.getAssignedTickets();
+           List<CombinedOrderDTO>orderDTO=new ArrayList<>();
+            for(Long id :resultList)
+            {
+                CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,id);
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+               CombinedOrderDTO combinedOrderDTO= orderDTOService.wrapOrder(ticket.getOrder(),orderState,ticket,customerDetailsDTO);
+               orderDTO.add(combinedOrderDTO);
+            }
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", orderDTO, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
