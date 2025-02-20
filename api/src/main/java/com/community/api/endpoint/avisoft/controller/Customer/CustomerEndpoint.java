@@ -2420,9 +2420,13 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Forms saved",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -2483,9 +2487,12 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Forms filled",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (Exception exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -2548,9 +2555,12 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Recommended Forms",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (Exception exception) {
+        }  catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

@@ -294,21 +294,21 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            Long totalPostInProduct=0L;
+            Long totalVacanciesInProduct=0L;
              if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
                     for(Post post: postList)
                     {
-                        totalPostInProduct+=post.getPostTotalVacancies();
+                        totalVacanciesInProduct+=post.getPostTotalVacancies();
                     }
                     postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
@@ -316,11 +316,11 @@ public class ProductController extends CatalogEndpoint {
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
                 {
-                    totalPostInProduct+=post.getPostTotalVacancies();
+                    totalVacanciesInProduct+=post.getPostTotalVacancies();
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
-            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
              ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
              return response;
 
@@ -651,7 +651,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -762,9 +762,12 @@ public class ProductController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -825,9 +828,12 @@ public class ProductController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }  catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -913,7 +919,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -946,7 +952,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

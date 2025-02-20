@@ -188,9 +188,13 @@ public class CategoryController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -249,9 +253,13 @@ public class CategoryController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -328,7 +336,7 @@ public class CategoryController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

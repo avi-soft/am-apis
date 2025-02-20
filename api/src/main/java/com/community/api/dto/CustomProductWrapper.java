@@ -133,9 +133,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long totalVacanciesInProduct;
     @JsonProperty("other_info")
     String otherInfo;
+    @JsonProperty("total_posts_in_product")
+    Long totalPostsInProduct;
 
 
-    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct) throws Exception {
+    public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
 
         this.id = product.getId();
         this.metaTitle = product.getMetaTitle();
@@ -233,6 +235,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postDtoIndex++;
             }
         }
+        this.totalPostsInProduct=totalPostsInProduct;
         this.platformFee = addProductDto.getPlatformFee();
 
         this.customApplicationScope = customApplicationScope;
@@ -285,6 +288,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
+        this.totalPostsInProduct=(long)customProduct.getPosts().size();
 
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
@@ -331,6 +335,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
+        this.totalPostsInProduct=(long)postProjectionDTOS.size();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -416,6 +421,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
         this.otherInfo=customProduct.getOtherInfo();
+        this.totalPostsInProduct=(long)customProduct.getPosts().size();
 
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();

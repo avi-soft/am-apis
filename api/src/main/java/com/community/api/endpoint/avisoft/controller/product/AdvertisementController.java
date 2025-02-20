@@ -267,7 +267,7 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -363,7 +363,7 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
