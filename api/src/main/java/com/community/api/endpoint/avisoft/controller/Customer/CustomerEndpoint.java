@@ -93,6 +93,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -996,11 +997,11 @@ public class CustomerEndpoint {
                     String chestSizeCms = (String) details.get("chestSizeCms");
                     if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
                         try {
-                            Double waistSizeValue = Double.parseDouble(chestSizeCms);
-                            if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
-                                errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            Double chestSizeValue = Double.parseDouble(chestSizeCms);
+                            if (chestSizeValue < minChestSize || chestSizeValue > maxChestSize) {
+                                errorMessages.add("Chest size should be between " + minChestSize + " and " + maxChestSize + " cms.");
                             } else {
-                                customCustomer.setWaistSizeCms(waistSizeValue);
+                                customCustomer.setChestSizeCms(chestSizeValue);
                             }
                         } catch (NumberFormatException e) {
                             errorMessages.add("Chest size must be valid.");
@@ -2368,20 +2369,17 @@ public class CustomerEndpoint {
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
                                            @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
-            CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if (customer == null)
-                return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
 
-            if (customer.getSavedForms().isEmpty())
-                return ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
+            CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
+            if (customer == null) {
+                return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
+            }
 
             List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
 
@@ -2401,30 +2399,36 @@ public class CustomerEndpoint {
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int currentPage = offset;
 
+            if (offset >= totalPages && offset != 0) {
+                return ResponseService.generateErrorResponse("No more saved forms available", HttpStatus.BAD_REQUEST);
+            }
+
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("No more saved forms available", HttpStatus.NOT_FOUND);
-            }
+            List<CustomProductWrapper> paginatedList = (fromIndex < totalItems)
+                    ? listOfSavedProducts.subList(fromIndex, toIndex)
+                    : Collections.emptyList(); // Return empty list if offset exceeds total items
 
-            List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
-
-            // Create response with pagination info
+            // Response Map
             Map<String, Object> response = new HashMap<>();
             response.put("forms", paginatedList);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse("Forms saved",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(
+                    paginatedList.isEmpty() ? "Saved forms list is empty" : "Forms retrieved successfully",
+                    response,
+                    HttpStatus.OK
+            );
+
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        }
-        catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -2434,88 +2438,78 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
-            if(offset<0)
-            {
-                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
-            }
-            if(limit<=0)
-            {
-                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
-            }
+            // Validate pagination parameters
+            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            if (limit <= 0) throw new IllegalArgumentException("Limit for pagination cannot be zero or negative");
+
+            // Find customer
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
 
-            if (customer.getSavedForms().isEmpty())
-                return ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
+            // Prepare list of saved products
+            List<CustomProductWrapper> listOfSavedProducts = customer.getSavedForms().stream()
+                    .map(product -> entityManager.find(CustomProduct.class, product.getId()))
+                    .filter(customProduct -> customProduct != null && ((Status) customProduct).getArchived() != 'Y')
+                    .map(customProduct -> {
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
+                        return wrapper;
+                    })
+                    .collect(Collectors.toList());
 
-            List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
-
-            for (Product product : customer.getSavedForms()) {
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
-                    continue;
-                }
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
-                listOfSavedProducts.add(customProductWrapper);
-            }
-
-            // Calculate pagination details
+            // Pagination details
             int totalItems = listOfSavedProducts.size();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int currentPage = offset;
+            int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / limit);
+
+            if (offset >= totalPages && offset != 0)
+                return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.BAD_REQUEST);
 
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.NOT_FOUND);
-            }
+            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList()
+                    : listOfSavedProducts.subList(fromIndex, toIndex);
 
-            List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
+            // Prepare response
+            Map<String, Object> response = Map.of(
+                    "forms", paginatedList,
+                    "totalItems", totalItems,
+                    "totalPages", totalPages,
+                    "currentPage", offset
+            );
 
-            // Create response with pagination info
-            Map<String, Object> response = new HashMap<>();
-            response.put("forms", paginatedList);
-            response.put("totalItems", totalItems);
-            response.put("totalPages", totalPages);
-            response.put("currentPage", currentPage);
+            return ResponseService.generateSuccessResponse("Forms filled", response, HttpStatus.OK);
 
-            return ResponseService.generateSuccessResponse("Forms filled",response, HttpStatus.OK);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (IllegalArgumentException exception) {
-            exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                          @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
-            CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if (customer == null)
-                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
 
-            if (customer.getSavedForms().isEmpty())
-                return ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
+            CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
+            if (customer == null) {
+                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
+            }
 
             List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
 
@@ -2536,11 +2530,21 @@ public class CustomerEndpoint {
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int currentPage = offset;
 
+            if (totalItems == 0 && offset==0) {
+                // Return 200 with an empty list if there are no forms
+                Map<String, Object> response = new HashMap<>();
+                response.put("forms", Collections.emptyList());
+                response.put("totalItems", 0);
+                response.put("totalPages", 0);
+                response.put("currentPage", currentPage);
+                return ResponseService.generateSuccessResponse("No recommended forms available", response, HttpStatus.OK);
+            }
+
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.NOT_FOUND);
+            if (offset >= totalPages) {
+                return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.BAD_REQUEST);
             }
 
             List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
@@ -2552,17 +2556,19 @@ public class CustomerEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse("Recommended Forms",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Recommended Forms", response, HttpStatus.OK);
+
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        }  catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
 
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest)
@@ -2615,6 +2621,14 @@ public class CustomerEndpoint {
             @RequestParam(defaultValue = "10") int limit,
             @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -2647,6 +2661,9 @@ public class CustomerEndpoint {
 
             // **Calculate total pages correctly**
             int totalPages = (int) Math.ceil((double) totalItems / limit);
+            if (offset >= totalPages) {
+                throw new IllegalArgumentException("No more customers available");
+            }
 
             // **Prepare the response map**
             Map<String, Object> response = new HashMap<>();
@@ -2986,7 +3003,7 @@ public class CustomerEndpoint {
         List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("orders", paginatedList);       // Your paginated data
+        response.put("customers", paginatedList);       // Your paginated data
         response.put("totalItems", totalItems);      // Total number of items
         response.put("totalPages", totalPages);      // Total number of pages
         response.put("currentPage", offset);           // Current offset number

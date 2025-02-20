@@ -1,14 +1,11 @@
 package com.community.api.dto;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.EntityManager;
-import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 
-import com.broadleafcommerce.rest.api.wrapper.MediaWrapper;
 import com.community.api.entity.*;
 
 import com.community.api.services.*;
@@ -133,9 +130,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long totalVacanciesInProduct;
     @JsonProperty("other_info")
     String otherInfo;
-    @JsonProperty("total_posts_in_product")
-    Long totalPostsInProduct;
-
+    @JsonProperty("number_of_posts")
+    Long numberOfPosts;
 
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
 
@@ -235,7 +231,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postDtoIndex++;
             }
         }
-        this.totalPostsInProduct=totalPostsInProduct;
+        this.numberOfPosts =totalPostsInProduct;
         this.platformFee = addProductDto.getPlatformFee();
 
         this.customApplicationScope = customApplicationScope;
@@ -288,7 +284,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
-        this.totalPostsInProduct=(long)customProduct.getPosts().size();
+        this.numberOfPosts =(long)customProduct.getPosts().size();
 
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
@@ -336,9 +332,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
         if(postProjectionDTOS!=null)
-            this.totalPostsInProduct=(long)postProjectionDTOS.size();
+            this.numberOfPosts =(long)postProjectionDTOS.size();
         else
-            this.totalPostsInProduct=0L;
+            this.numberOfPosts =0L;
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -424,7 +420,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
         this.otherInfo=customProduct.getOtherInfo();
-        this.totalPostsInProduct=(long)customProduct.getPosts().size();
+        this.numberOfPosts =(long)customProduct.getPosts().size();
 
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();

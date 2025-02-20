@@ -590,10 +590,10 @@ public class ProductService {
 
         long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         int totalPages =(int) Math.ceil((double) totalProducts / limit);
-        if (page >= totalPages) {
+        if (page >= totalPages && page!=0) {
             throw new IllegalArgumentException("No more products availabe");
         }
-        if (products.isEmpty()) {
+        if (products.isEmpty() && page==0) {
             if(showDraftProducts)
             {
                 return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
