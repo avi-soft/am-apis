@@ -29,21 +29,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.CallableStatementCreator;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
 import javax.persistence.Query;
+import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.math.BigInteger;
+import java.sql.Array;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ServiceProviderTicketService {
@@ -56,10 +76,19 @@ public class ServiceProviderTicketService {
     OrderStateRefService orderStateRefService;
 
     @Autowired
+    AutoAssignerService autoAssignerService;
+
+    @Autowired
     CustomOrderService customOrderService;
 
     @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
     OrderService orderService;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Autowired
     TicketStateService ticketStateService;
@@ -116,6 +145,79 @@ public class ServiceProviderTicketService {
             exceptionHandlingService.handleException(exception);
         }
     }
+
+
+    public List<Long> getAssignedTickets() {
+        List<Long> ticketList = new ArrayList<>();
+
+        // Define the DO block query
+        String query = "DO $$ " +
+                "DECLARE " +
+                "  total_assigned_tickets BIGINT[]; " +
+                "BEGIN " +
+                "  CALL public.auto_assigner_procedure(total_assigned_tickets); " +
+                "  RAISE NOTICE 'Assigned Tickets: %', array_length(total_assigned_tickets, 1); " +
+                "END $$;";
+
+        // Execute the query using a callback to access the underlying Connection and Statement
+        jdbcTemplate.execute((Connection connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+
+                // Execute the PL/pgSQL block
+                stmt.execute(query);
+
+                // Define a regex pattern to extract the value after "Assigned Tickets:"
+                Pattern pattern = Pattern.compile("Assigned Tickets:\\s*(\\{.*?\\}|<NULL>|[^,\\s]+)");
+
+                // Retrieve all SQLWarnings (which include RAISE NOTICE messages)
+                SQLWarning warning = stmt.getWarnings();
+                while (warning != null) {
+                    String message = warning.getMessage();
+
+                    // Look for the "Assigned Tickets:" part in the warning message
+                    Matcher matcher = pattern.matcher(message);
+                    if (matcher.find()) {
+                        String assignedTicketsValue = matcher.group(1);
+                        System.out.println("Assigned Tickets Value: " + assignedTicketsValue);
+
+                        // Check if the value is an array (in curly braces)
+                        if (assignedTicketsValue.startsWith("{") && assignedTicketsValue.endsWith("}")) {
+                            // Remove the curly braces and split the string by commas
+                            String[] ticketIds = assignedTicketsValue.substring(1, assignedTicketsValue.length() - 1).split(",");
+                            // Convert the split strings into a List of Longs
+
+                            for (String ticketId : ticketIds) {
+                                try {
+                                    ticketList.add(Long.parseLong(ticketId.trim()));
+                                } catch (NumberFormatException e) {
+                                    // Handle the case where a value is not a valid Long
+                                    System.err.println("Invalid ticket ID: " + ticketId);
+                                }
+                            }
+                            System.out.println("Converted ticket IDs to List<Long>: " + ticketList);
+                        }
+                    }
+
+                    // Move to the next warning if present
+                    warning = warning.getNextWarning();
+                }
+            } catch (SQLException e) {
+                // Handle SQL exceptions if necessary
+                e.printStackTrace();
+            }
+            return null;  // No need to return anything here
+        });
+
+        // Now that the callback has completed, return the populated ticketList
+        return ticketList;
+    }
+
+
+
+
+
+
+
 
     public List<CustomTicketWrapper> autoAssigner() throws Exception {
         try {
