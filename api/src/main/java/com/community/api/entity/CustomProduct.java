@@ -142,6 +142,8 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "totalVacanciesInProduct")
     protected Long totalVacanciesInProduct;
+    @Column(name = "total_posts_in_product")
+    protected Long totalPostsInProduct;
     @OneToMany(mappedBy = "customProduct", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OtherItem> otherItems = new ArrayList<>();
 

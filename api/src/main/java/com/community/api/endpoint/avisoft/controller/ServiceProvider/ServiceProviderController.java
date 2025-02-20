@@ -254,13 +254,23 @@ public class ServiceProviderController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             int startPosition = offset * limit;
 
             // Count total service providers (excluding archived ones)
             Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
             long totalItems = (long) countQuery.getSingleResult();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-
+            if (offset >= totalPages) {
+                throw new IllegalArgumentException("No more service providers available");
+            }
             // Create the query with pagination
             Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
@@ -485,7 +495,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
