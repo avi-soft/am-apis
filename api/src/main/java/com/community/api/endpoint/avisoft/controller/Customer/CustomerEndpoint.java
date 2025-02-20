@@ -1434,6 +1434,7 @@ public class CustomerEndpoint {
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
+            MultipartFile processedFile=null;
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
                 HashSet<Document> documentsToSave = new HashSet<>();
@@ -1492,7 +1493,13 @@ public class CustomerEndpoint {
                     for (MultipartFile file : fileList) {
 
                         // Validate document
-                        documentStorageService.validateDocument(file, documentTypeObj);
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
+                             processedFile = documentStorageService.convertHeicToJpg(file);
+                            customCustomer.setIsLivePhotoNa(false);
+                        }
+                        else {
+                            documentStorageService.validateDocument(file, documentTypeObj);
+                        }
                         Document existingDocument = null;
 
                         if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1518,7 +1525,13 @@ public class CustomerEndpoint {
                                     .orElse(null);
                         }
 
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        if(documentTypeObj.getDocument_type_id().equals(3))
+                        {
+                            fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
+                        else {
+                            fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
 
                         if (removeFileTypes != null && removeFileTypes) {
 
@@ -1527,6 +1540,7 @@ public class CustomerEndpoint {
                                     String filePath = existingDocument.getFilePath();
 
                                     if (filePath != null) {
+                                        System.out.println("1");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
 
@@ -1575,6 +1589,7 @@ public class CustomerEndpoint {
                                     String oldFileName = oldFile.getName();
                                     existingDocument13.setIsArchived(false);
                                     if (!newFileName.equals(oldFileName)) {
+                                        System.out.println("2");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
                                         documentStorageService.updateOrCreateDocument(existingDocument13, file, documentTypeObj, customerId, role);
                                     }
@@ -1638,8 +1653,15 @@ public class CustomerEndpoint {
                                 String newFileName = file.getOriginalFilename();
                                 existingDocument.setIsArchived(false);
                                 if (!newFileName.equals(oldFileName)) {
+                                    System.out.println("3");
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
-                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    if(documentTypeObj.getDocument_type_id().equals(3))
+                                    {
+                                        documentStorageService.updateOrCreateDocument(existingDocument, processedFile, documentTypeObj, customerId, role);
+                                    }
+                                    else {
+                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
                                 }
                             }
                             entityManager.merge(existingDocument);
@@ -1647,7 +1669,15 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                Document document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document document =null;
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    customCustomer.setIsLivePhotoNa(false);
+                                     document = documentStorageService.createDocument(processedFile, documentTypeObj, customCustomer, customerId, role);
+                                }
+                                else {
+                                     document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                }
                                 documentsToSave.add(document);
                                 if(documentTypeObj.getDocument_type_id().equals(3))
                                 {
@@ -1710,7 +1740,13 @@ public class CustomerEndpoint {
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                            documentTypeResponse.put("document_type_name", otherDocument);
+                            if(otherDocument!=null && !otherDocument.trim().isEmpty())
+                            {
+                                documentTypeResponse.put("document_type_name", otherDocument);
+                            }
+                            else {
+                                documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
+                            }
                             documentTypeResponse.put("description", document.getDocumentType().getDescription());
                             documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
                             documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
@@ -1804,6 +1840,7 @@ public class CustomerEndpoint {
 
                                     String filePath = existingDocument.getFilePath();
                                     if (filePath != null) {
+                                        System.out.println("4");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
                                     existingDocument.setDocumentType(null);
@@ -1854,6 +1891,7 @@ public class CustomerEndpoint {
                                     String oldFileName = oldFile.getName();
                                     existingDocument13.setIsArchived(false);
                                     if (!newFileName.equals(oldFileName)) {
+                                        System.out.println("5");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument13, file, documentTypeObj, customerId, role);
                                     }
@@ -1984,7 +2022,13 @@ public class CustomerEndpoint {
 
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                            documentTypeResponse.put("document_type_name", otherDocument);
+                            if(otherDocument!=null && !otherDocument.trim().isEmpty())
+                            {
+                                documentTypeResponse.put("document_type_name", otherDocument);
+                            }
+                            else {
+                                documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
+                            }
                             documentTypeResponse.put("description", document.getDocumentType().getDescription());
                             documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
                             documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());

@@ -232,8 +232,11 @@
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.9</version> <!-- Use the latest version -->
         </dependency>
-
-
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 
     </dependencies>
 </project>

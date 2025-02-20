@@ -25,16 +25,24 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.persistence.EntityManager;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItem;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+import java.io.*;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.io.File;
+import java.io.IOException;
+import javax.annotation.PreDestroy;
+import javax.persistence.EntityManager;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.io.*;
+import java.util.concurrent.*;
 
 @Service
 public class DocumentStorageService {
@@ -60,7 +68,14 @@ public class DocumentStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Value("${ffmpeg.path}")
+    private String ffmpegPath;
+    private final ExecutorService executorService;
 
+    public DocumentStorageService(String ffmpegPath) {
+        this.ffmpegPath = ffmpegPath;
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
 
@@ -434,4 +449,117 @@ public class DocumentStorageService {
         return  fileName;
     }
 
+    public MultipartFile convertHeicToJpg(MultipartFile heicFile) throws IOException {
+        File tempHeicFile = null;
+        File tempJpgFile = null;
+
+        try {
+            if (heicFile.getSize() == 0) {
+                throw new IOException("Input file is empty");
+            }
+
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            tempHeicFile = File.createTempFile("temp_" + timestamp, ".heic");
+            tempJpgFile = File.createTempFile("converted_" + timestamp, ".jpg");
+
+            heicFile.transferTo(tempHeicFile);
+
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    ffmpegPath,
+                    "-y",
+                    "-i", tempHeicFile.getAbsolutePath(),
+                    "-quality", "85",
+                    "-preset", "veryfast",
+                    "-threads", String.valueOf(Runtime.getRuntime().availableProcessors()),
+                    "-nostdin",
+                    tempJpgFile.getAbsolutePath()
+            );
+
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            Future<Boolean> future = executorService.submit(() -> {
+                try {
+                    return process.waitFor(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    process.destroyForcibly();
+                    return false;
+                }
+            });
+
+            try {
+                if (!future.get(30, TimeUnit.SECONDS)) {
+                    process.destroyForcibly();
+                    throw new IOException("FFmpeg conversion timed out");
+                }
+            } catch (TimeoutException | InterruptedException | ExecutionException e) {
+                process.destroyForcibly();
+                throw new IOException("FFmpeg conversion failed: " + e.getMessage());
+            }
+
+            if (!tempJpgFile.exists() || tempJpgFile.length() == 0) {
+                throw new IOException("Conversion failed - output file is empty or doesn't exist");
+            }
+
+            String originalFilename = heicFile.getOriginalFilename();
+            if (originalFilename == null) {
+                originalFilename = "converted.jpg";
+            } else {
+                int dotIndex = originalFilename.lastIndexOf('.');
+                if (dotIndex != -1) {
+                    originalFilename = originalFilename.substring(0, dotIndex) + ".jpg";
+                } else {
+                    originalFilename += ".jpg";
+                }
+            }
+//Create File item and copy the content
+            FileItem fileItem = new DiskFileItem(
+                    "file",
+                    "image/jpeg",
+                    false,
+                    originalFilename, // Use the modified original filename
+                    (int) tempJpgFile.length(),
+                    tempJpgFile.getParentFile()
+            );
+
+            // Fixed file copy using regular streams
+            try (InputStream input = new FileInputStream(tempJpgFile);
+                 OutputStream output = fileItem.getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, bytesRead);
+                }
+            }
+
+            return new CommonsMultipartFile(fileItem);
+
+        } finally {
+            cleanupFile(tempHeicFile);
+            cleanupFile(tempJpgFile);
+        }
+    }
+
+    private void cleanupFile(File file) {
+        if (file != null && file.exists()) {
+            try {
+                Files.deleteIfExists(file.toPath());
+            } catch (IOException e) {
+                System.err.println("Failed to cleanup temporary file: " + e.getMessage());
+            }
+        }
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 }
