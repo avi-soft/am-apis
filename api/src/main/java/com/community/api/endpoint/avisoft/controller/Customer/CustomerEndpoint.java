@@ -1494,7 +1494,7 @@ public class CustomerEndpoint {
 
                         // Validate document
                         if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
-                             processedFile = documentStorageService.convertHeicToJpg(file);
+                             processedFile = documentStorageService.convertToJpg(file);
                             customCustomer.setIsLivePhotoNa(false);
                         }
                         else {
@@ -1540,7 +1540,6 @@ public class CustomerEndpoint {
                                     String filePath = existingDocument.getFilePath();
 
                                     if (filePath != null) {
-                                        System.out.println("1");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
 
@@ -1589,7 +1588,6 @@ public class CustomerEndpoint {
                                     String oldFileName = oldFile.getName();
                                     existingDocument13.setIsArchived(false);
                                     if (!newFileName.equals(oldFileName)) {
-                                        System.out.println("2");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
                                         documentStorageService.updateOrCreateDocument(existingDocument13, file, documentTypeObj, customerId, role);
                                     }
@@ -1653,7 +1651,6 @@ public class CustomerEndpoint {
                                 String newFileName = file.getOriginalFilename();
                                 existingDocument.setIsArchived(false);
                                 if (!newFileName.equals(oldFileName)) {
-                                    System.out.println("3");
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     if(documentTypeObj.getDocument_type_id().equals(3))
                                     {
@@ -1821,8 +1818,12 @@ public class CustomerEndpoint {
                         }
                     }
                     for (MultipartFile file : fileList) {
-
-                        documentStorageService.validateDocument(file, documentTypeObj);
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
+                            processedFile = documentStorageService.convertToJpg(file);
+                        }
+                        else {
+                            documentStorageService.validateDocument(file, documentTypeObj);
+                        }
                         ServiceProviderDocument existingDocument = em.createQuery(
                                         "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL", ServiceProviderDocument.class)
                                 .setParameter("serviceProviderEntity", serviceProviderEntity)
@@ -1832,7 +1833,13 @@ public class CustomerEndpoint {
                                 .findFirst()
                                 .orElse(null);
 
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        if(documentTypeObj.getDocument_type_id().equals(3))
+                        {
+                            fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
+                        else {
+                            fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
 
                         if (removeFileTypes != null && removeFileTypes) {
                             if (existingDocument != null && fileNameId != 13) {
@@ -1840,7 +1847,6 @@ public class CustomerEndpoint {
 
                                     String filePath = existingDocument.getFilePath();
                                     if (filePath != null) {
-                                        System.out.println("4");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
                                     existingDocument.setDocumentType(null);
@@ -1891,7 +1897,6 @@ public class CustomerEndpoint {
                                     String oldFileName = oldFile.getName();
                                     existingDocument13.setIsArchived(false);
                                     if (!newFileName.equals(oldFileName)) {
-                                        System.out.println("5");
                                         fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument13, file, documentTypeObj, customerId, role);
                                     }
@@ -1953,7 +1958,13 @@ public class CustomerEndpoint {
 //                                    oldFile.delete();
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
-                                    documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
+                                    if(documentTypeObj.getDocument_type_id().equals(3))
+                                    {
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
+                                    }
+                                    else {
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
                                 }
                             }
                             entityManager.merge(existingDocument);
@@ -1961,7 +1972,14 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument = null;
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    serviceProviderDocument = documentStorageService.createDocumentServiceProvider(processedFile, documentTypeObj, serviceProviderEntity, customerId, role);
+                                }
+                                else {
+                                    serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                     QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);

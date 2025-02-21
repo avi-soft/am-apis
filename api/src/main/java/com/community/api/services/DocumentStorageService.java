@@ -12,7 +12,7 @@ import com.community.api.utils.ServiceProviderDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -29,8 +29,9 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.springframework.web.multipart.commons.CommonsMultipartFile;
 import java.io.*;
-import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.io.File;
 import java.io.IOException;
@@ -38,10 +39,11 @@ import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.io.*;
 import java.util.concurrent.*;
 
 @Service
@@ -68,13 +70,28 @@ public class DocumentStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("${ffmpeg.path}")
     private String ffmpegPath;
     private final ExecutorService executorService;
 
-    public DocumentStorageService(String ffmpegPath) {
-        this.ffmpegPath = ffmpegPath;
+    private static final long MIN_SIZE_BYTES = 100 * 1024; // 100KB
+    private static final long MAX_SIZE_BYTES = 200 * 1024; // 200KB
+    private static final int MAX_ATTEMPTS = 5;
+
+    private static final Set<String> SUPPORTED_IMAGE_FORMATS = new HashSet<>(Arrays.asList(
+            "heic", "heif", "jpg", "jpeg", "png", "webp", "tiff", "tif", "bmp",
+            "cr2", "cr3", "nef", "arw", "orf", "dng", "raf", "pef", "srw", "rw2",
+            "3fr", "psd", "xcf", "avif", "jp2", "jpx", "ico", "pcx", "tga", "sgi",
+            "dib", "jxr", "dpx", "cin", "gif"
+    ));
+
+    public DocumentStorageService() throws IOException {
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        this.ffmpegPath = getFfmpegExecutablePath();
+    }
+
+    private String getFfmpegExecutablePath() throws IOException {
+        File ffmpegFile = new ClassPathResource("ffmpeg/ffmpeg.exe").getFile();
+        return ffmpegFile.getAbsolutePath();
     }
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
@@ -449,81 +466,106 @@ public class DocumentStorageService {
         return  fileName;
     }
 
-    public MultipartFile convertHeicToJpg(MultipartFile heicFile) throws IOException {
-        File tempHeicFile = null;
-        File tempJpgFile = null;
+    public MultipartFile convertToJpg(MultipartFile inputFile) throws IOException {
+        if (inputFile.getSize() == 0) {
+            throw new IOException("Input file is empty");
+        }
+
+        String originalExtension = getFileExtension(inputFile.getOriginalFilename());
+        if (!isImageFormat(originalExtension)) {
+            throw new IOException("Unsupported file format: " + originalExtension);
+        }
+
+        File tempInputFile = null;
+        File tempOutputFile = null;
 
         try {
-            if (heicFile.getSize() == 0) {
-                throw new IOException("Input file is empty");
-            }
-
             String timestamp = String.valueOf(System.currentTimeMillis());
-            tempHeicFile = File.createTempFile("temp_" + timestamp, ".heic");
-            tempJpgFile = File.createTempFile("converted_" + timestamp, ".jpg");
+            tempInputFile = File.createTempFile("temp_" + timestamp, "." + originalExtension);
+            tempOutputFile = File.createTempFile("converted_" + timestamp, ".jpg");
 
-            heicFile.transferTo(tempHeicFile);
+            inputFile.transferTo(tempInputFile);
 
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-y",
-                    "-i", tempHeicFile.getAbsolutePath(),
-                    "-quality", "85",
-                    "-preset", "veryfast",
-                    "-threads", String.valueOf(Runtime.getRuntime().availableProcessors()),
-                    "-nostdin",
-                    tempJpgFile.getAbsolutePath()
-            );
-
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
-
-            Future<Boolean> future = executorService.submit(() -> {
+            // Try compression with different parameters until we get the desired size
+            boolean success = false;
+            for (int attempt = 0; attempt < MAX_ATTEMPTS && !success; attempt++) {
                 try {
-                    return process.waitFor(30, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    process.destroyForcibly();
-                    return false;
-                }
-            });
+                    int quality = calculateQuality(attempt);
+                    double scale = calculateScale(attempt);
 
-            try {
-                if (!future.get(30, TimeUnit.SECONDS)) {
-                    process.destroyForcibly();
-                    throw new IOException("FFmpeg conversion timed out");
+                    String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
+
+                    ProcessBuilder processBuilder = new ProcessBuilder(
+                            ffmpegPath,
+                            "-i", tempInputFile.getAbsolutePath(),
+                            "-vf", scaleFilter,
+                            "-q:v", String.valueOf(quality),  // Using -q:v instead of -quality
+                            "-y",  // Overwrite output file
+                            tempOutputFile.getAbsolutePath()
+                    );
+
+                    processBuilder.redirectErrorStream(true);
+                    Process process = processBuilder.start();
+
+                    // Read the process output
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            // Log the output if needed
+                            System.out.println("FFmpeg: " + line);
+                        }
+                    }
+
+                    boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+                    if (!completed) {
+                        process.destroyForcibly();
+                        continue;
+                    }
+
+                    if (process.exitValue() == 0 && tempOutputFile.exists()) {
+                        long size = tempOutputFile.length();
+                        if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
+                            success = true;
+                            break;
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Conversion interrupted", e);
                 }
-            } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                process.destroyForcibly();
-                throw new IOException("FFmpeg conversion failed: " + e.getMessage());
             }
 
-            if (!tempJpgFile.exists() || tempJpgFile.length() == 0) {
+            if (!success) {
+                // Final attempt with fixed parameters
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        ffmpegPath,
+                        "-i", tempInputFile.getAbsolutePath(),
+                        "-vf", "scale=iw*0.5:ih*0.5",  // 50% scale
+                        "-q:v", "3",  // Fixed quality
+                        "-y",
+                        tempOutputFile.getAbsolutePath()
+                );
+
+                Process process = processBuilder.start();
+                process.waitFor(30, TimeUnit.SECONDS);
+            }
+
+            if (!tempOutputFile.exists() || tempOutputFile.length() == 0) {
                 throw new IOException("Conversion failed - output file is empty or doesn't exist");
             }
 
-            String originalFilename = heicFile.getOriginalFilename();
-            if (originalFilename == null) {
-                originalFilename = "converted.jpg";
-            } else {
-                int dotIndex = originalFilename.lastIndexOf('.');
-                if (dotIndex != -1) {
-                    originalFilename = originalFilename.substring(0, dotIndex) + ".jpg";
-                } else {
-                    originalFilename += ".jpg";
-                }
-            }
-//Create File item and copy the content
+            String newFilename = generateOutputFilename(inputFile.getOriginalFilename());
+
             FileItem fileItem = new DiskFileItem(
                     "file",
                     "image/jpeg",
                     false,
-                    originalFilename, // Use the modified original filename
-                    (int) tempJpgFile.length(),
-                    tempJpgFile.getParentFile()
+                    newFilename,
+                    (int) tempOutputFile.length(),
+                    tempOutputFile.getParentFile()
             );
 
-            // Fixed file copy using regular streams
-            try (InputStream input = new FileInputStream(tempJpgFile);
+            try (InputStream input = new FileInputStream(tempOutputFile);
                  OutputStream output = fileItem.getOutputStream()) {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -534,10 +576,56 @@ public class DocumentStorageService {
 
             return new CommonsMultipartFile(fileItem);
 
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         } finally {
-            cleanupFile(tempHeicFile);
-            cleanupFile(tempJpgFile);
+            cleanupFile(tempInputFile);
+            cleanupFile(tempOutputFile);
         }
+    }
+
+    private int calculateQuality(int attempt) {
+        // Quality values for JPEG (1-31, where 1 is best quality)
+        switch (attempt) {
+            case 0: return 2;  // First try with high quality
+            case 1: return 3;
+            case 2: return 4;
+            case 3: return 5;
+            default: return 6; // Lowest quality we'll try
+        }
+    }
+
+    private double calculateScale(int attempt) {
+        // Scale factors to try
+        switch (attempt) {
+            case 0: return 1.0;    // First try with original size
+            case 1: return 0.8;    // 80%
+            case 2: return 0.6;    // 60%
+            case 3: return 0.5;    // 50%
+            default: return 0.4;   // 40%
+        }
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || filename.lastIndexOf('.') == -1) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private boolean isImageFormat(String extension) {
+        return SUPPORTED_IMAGE_FORMATS.contains(extension.toLowerCase());
+    }
+
+    private String generateOutputFilename(String originalFilename) {
+        if (originalFilename == null) {
+            return "converted.jpg";
+        }
+        int dotIndex = originalFilename.lastIndexOf('.');
+        if (dotIndex != -1) {
+            return originalFilename.substring(0, dotIndex) + ".jpg";
+        }
+        return originalFilename + ".jpg";
     }
 
     private void cleanupFile(File file) {
