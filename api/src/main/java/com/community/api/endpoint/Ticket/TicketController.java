@@ -224,7 +224,7 @@ public class TicketController {
             if (offset < 0) {
                 offset = 0;
             }
-            if (offset >= totalPages) {
+            if (offset >= totalPages && offset!=0) {
                 throw new IllegalArgumentException("No more tickets available");
             }
 
