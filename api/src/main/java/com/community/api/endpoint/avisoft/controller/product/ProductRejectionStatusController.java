@@ -54,7 +54,7 @@ public class ProductRejectionStatusController {
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
-            if (offset >= totalPages) {
+            if (offset >= totalPages && offset != 0) {
                 throw new IllegalArgumentException("No more rejection status available");
             }
             // Validate the requested offset

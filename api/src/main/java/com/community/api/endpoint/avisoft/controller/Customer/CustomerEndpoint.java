@@ -2543,7 +2543,7 @@ public class CustomerEndpoint {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (offset >= totalPages) {
+            if (offset >= totalPages&& offset != 0) {
                 return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.BAD_REQUEST);
             }
 
@@ -2661,7 +2661,7 @@ public class CustomerEndpoint {
 
             // **Calculate total pages correctly**
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages) {
+            if (offset >= totalPages&& offset != 0) {
                 throw new IllegalArgumentException("No more customers available");
             }
 

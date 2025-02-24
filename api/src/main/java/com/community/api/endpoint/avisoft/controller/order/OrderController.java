@@ -195,7 +195,7 @@ public class OrderController {
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", offset); // Ensure this correctly returns the requested offset
-            if (offset >= totalPages) {
+            if (offset >= totalPages && offset != 0) {
                 throw new IllegalArgumentException("No more orders available");
             }
             return ResponseService.generateSuccessResponse("Orders are fetched", response, HttpStatus.OK);
