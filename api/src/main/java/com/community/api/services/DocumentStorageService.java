@@ -75,6 +75,7 @@ public class DocumentStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Value("${ffmpeg.path}")
     private String ffmpegPath;
     private final ExecutorService executorService;
     @Value("${secret.key}")
@@ -94,10 +95,14 @@ public class DocumentStorageService {
             "dib", "jxr", "dpx", "cin", "gif"
     ));
 
-    public DocumentStorageService() throws IOException {
+   /* public DocumentStorageService() throws IOException {
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         this.ffmpegPath = getFfmpegExecutablePath();
-    }
+    }*/
+   public DocumentStorageService(String ffmpegPath) throws IOException {
+       this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+       this.ffmpegPath = ffmpegPath;
+   }
 
     private String getFfmpegExecutablePath() throws IOException {
         File ffmpegFile = new ClassPathResource("ffmpeg/ffmpeg.exe").getFile();
