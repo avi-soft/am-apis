@@ -32,8 +32,10 @@ import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 
@@ -125,7 +127,10 @@ public class CategoryController extends CatalogEndpoint {
     }
 
     @GetMapping(value = "/get-all-categories")
-    public ResponseEntity<?> getCategories(HttpServletRequest request, @RequestParam(value = "limit", defaultValue = "20") int limit) {
+    public ResponseEntity<?> getCategories(
+            HttpServletRequest request,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -134,12 +139,91 @@ public class CategoryController extends CatalogEndpoint {
             List<Category> categories = this.catalogService.findAllCategories();
             List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
 
-            Iterator<Category> iterator = categories.iterator();
-            while (iterator.hasNext()) {
-                Category category = iterator.next();
+            for (Category category : categories) {
+                if (category.getDefaultParentCategory() == null) {
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
+                            (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
 
-                if(category.getDefaultParentCategory() == null) {
-                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+                        List<BigInteger> productIdList = categoryService.getAllProductsByCategoryId(category.getId());
+                        List<CustomProductWrapper> products = new ArrayList<>();
+
+                        for (BigInteger productId : productIdList) {
+                            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
+
+                            if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
+                                    customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                                    customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+
+                                CustomProductWrapper wrapper = new CustomProductWrapper();
+                                wrapper.wrapDetails(customProduct);
+                                products.add(wrapper);
+                            }
+                        }
+                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                        wrapper.wrapDetailsCategory(category, products, request);
+                        activeCategories.add(wrapper);
+                    }
+                }
+            }
+
+            // Pagination logic
+            int totalItems = activeCategories.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            // Validate offset index
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomCategoryWrapper> paginatedCategories = activeCategories.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("categories", paginatedCategories);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
+
+        }
+        catch (IllegalArgumentException exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    @GetMapping(value = "/get-sub-categories")
+    public ResponseEntity<?> getSubCategories(
+            HttpServletRequest request,
+            @RequestParam(value = "category", required = false) List<Long> parentCategories,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        try {
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Category> categories = this.catalogService.findAllCategories();
+            List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
+
+            // Filtering active sub-categories
+            for (Category category : categories) {
+                if (category.getDefaultParentCategory() != null) {
+                    boolean isParentMatching = parentCategories == null || parentCategories.isEmpty() ||
+                            parentCategories.contains(category.getDefaultParentCategory().getId());
+
+                    boolean isActive = (((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
+                            (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()));
+
+                    if (isParentMatching && isActive) {
                         CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
                         wrapper.wrapDetailsCategory(category, null, request);
                         activeCategories.add(wrapper);
@@ -147,58 +231,45 @@ public class CategoryController extends CatalogEndpoint {
                 }
             }
 
-            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY", activeCategories, HttpStatus.OK);
-        } catch (Exception exception) {
+            // Pagination logic
+            int totalItems = activeCategories.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            // Validate offset request
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomCategoryWrapper> paginatedList = activeCategories.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("categories", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
+
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
-    @GetMapping(value = "/get-sub-categories")
-    public ResponseEntity<?> getSubCategories(HttpServletRequest request, @RequestParam(value = "limit", defaultValue = "20") int limit, @RequestParam(value = "category", required = false) List<Long> parentCategories) {
-        try {
-            if (catalogService == null) {
-                return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
-            List<Category> categories = this.catalogService.findAllCategories();
-            List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
-
-            Iterator<Category> iterator = categories.iterator();
-            while (iterator.hasNext()) {
-                Category category = iterator.next();
-                if(category.getDefaultParentCategory() != null) {
-                    if(parentCategories == null || parentCategories.isEmpty()) {
-                        if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
-
-                            CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                            wrapper.wrapDetailsCategory(category, null, request);
-                            activeCategories.add(wrapper);
-                        }
-                    } else {
-                        for(Long parentCategoryId: parentCategories) {
-                            if(parentCategoryId.equals(category.getDefaultParentCategory().getId())) {
-                                if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) || (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
-
-                                    CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                                    wrapper.wrapDetailsCategory(category, null, request);
-                                    activeCategories.add(wrapper);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY", activeCategories, HttpStatus.OK);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
 
     @GetMapping(value = "/get-products-by-category-id/{id}")
-    public ResponseEntity<?> getProductsByCategoryId(HttpServletRequest request, @PathVariable String id) {
+    public ResponseEntity<?> getProductsByCategoryId(
+            HttpServletRequest request,
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
         try {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -210,7 +281,6 @@ public class CategoryController extends CatalogEndpoint {
             }
 
             Category category = this.catalogService.findCategoryById(categoryId);
-
             if (category == null) {
                 return ResponseService.generateErrorResponse("CATEGORY NOT FOUND", HttpStatus.NOT_FOUND);
             } else if (((Status) category).getArchived() == 'Y') {
@@ -223,17 +293,40 @@ public class CategoryController extends CatalogEndpoint {
             for (BigInteger productId : productIdList) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
 
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date())) && customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
+                        customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                        customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     wrapper.wrapDetails(customProduct);
                     products.add(wrapper);
                 }
             }
 
-            CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
-            categoryWrapper.wrapDetailsCategory(category, products, request);
+            // Pagination logic
+            int totalItems = products.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND", categoryWrapper, HttpStatus.OK);
+            // Validate offset index
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomProductWrapper> paginatedProducts = products.subList(fromIndex, toIndex);
+
+            CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
+            categoryWrapper.wrapDetailsCategory(category, paginatedProducts, request);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("category", categoryWrapper);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -243,7 +336,7 @@ public class CategoryController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

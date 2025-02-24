@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -123,6 +124,33 @@ public class AdvertisementController {
         }
     }
 
+    @PutMapping("/update/{advertisementId}")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
+    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId) {
+        try {
+            Advertisement advertisement=advertisementService.updateAdvertisement(addAdvertisementDto,advertisementId);
+
+            AdvertisementWrapper wrapper = new AdvertisementWrapper();
+            wrapper.wrapDetails(advertisement, null);
+
+            return ResponseService.generateSuccessResponse("Advertisement Created Successfully", wrapper, HttpStatus.OK);
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+            exceptionHandlingService.handleException(dataIntegrityViolationException);
+            return ResponseService.generateErrorResponse(dataIntegrityViolationException.getMessage(), HttpStatus.BAD_REQUEST);
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    }
+
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
     public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
 
@@ -175,10 +203,19 @@ public class AdvertisementController {
     @GetMapping("/get-filter-advertisement")
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "title", required = false) String title,
-            @RequestParam(value = "category", required = false) List<Long> categories) {
+            @RequestParam(value = "category", required = false) List<Long> categories,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
 
         try {
-
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories);
 
             if (advertisements.isEmpty()) {
@@ -186,31 +223,41 @@ public class AdvertisementController {
             }
 
             List<AdvertisementWrapper> responses = new ArrayList<>();
-            for (Advertisement advertisement : advertisements) {
 
+            for (Advertisement advertisement : advertisements) {
                 if (advertisement == null) {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
 
-                if ( advertisement.getArchived() != 'Y' && (( advertisement.getNotificationEndDate() == null )|| (advertisement.getNotificationEndDate() != null && advertisement.getNotificationEndDate().after(new Date())))) {
-                    /*List<CustomProductWrapper> products = new ArrayList<>();
+                if (advertisement.getArchived() != 'Y' &&
+                        ((advertisement.getNotificationEndDate() == null) ||
+                                (advertisement.getNotificationEndDate().after(new Date())))) {
 
-                    List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
-                    for (CustomProduct customProduct : customProducts) {
-
-                        if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
-                            CustomProductWrapper wrapper = new CustomProductWrapper();
-                            wrapper.wrapDetails(customProduct);
-                            products.add(wrapper);
-                        }
-                    }*/
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
                 }
             }
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", responses, HttpStatus.OK);
+            // Manual Pagination
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("No more advertisements available", HttpStatus.BAD_REQUEST);
+            }
+
+            List<AdvertisementWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("advertisements", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -220,22 +267,25 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/get-all-advertisement-by-categoryId")
-    public ResponseEntity<?> getFilterAdvertisements(@RequestParam(value = "category", required = false)String categories,@RequestHeader(value = "Authorization",required = false) String authHeader){
+    public ResponseEntity<?> getFilterAdvertisements(
+            @RequestParam(value = "category", required = false) String categories,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
 
         try {
-            CustomCustomer customCustomer=null;
-            if(authHeader!=null) {
+            CustomCustomer customCustomer = null;
+            if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
-                List<String> deleteLogs = new ArrayList<>();
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-                if(roleId==5)
-                    customCustomer=entityManager.find(CustomCustomer.class,tokenUserId);
+                if (roleId == 5)
+                    customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
             }
             List<Long> longList = Arrays.stream(categories.split(","))
                     .map(Long::parseLong)
@@ -245,8 +295,6 @@ public class AdvertisementController {
             }
 
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList);
-            for (Advertisement advertisement:advertisements)
-
 
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
@@ -254,33 +302,58 @@ public class AdvertisementController {
 
             List<AdvertisementProductWrapper> responses = new ArrayList<>();
             for (Advertisement advertisement : advertisements) {
-
                 if (advertisement == null) {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
 
-                if ( advertisement.getArchived() != 'Y' && (( advertisement.getNotificationEndDate() == null )|| (advertisement.getNotificationEndDate() != null && advertisement.getNotificationEndDate().after(new Date())))) {
+                if (advertisement.getArchived() != 'Y' &&
+                        ((advertisement.getNotificationEndDate() == null) ||
+                                (advertisement.getNotificationEndDate().after(new Date())))) {
+
                     List<CustomAdvertisementProductWrapper> products = new ArrayList<>();
 
                     List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                     for (CustomProduct customProduct : customProducts) {
+                        if (customProduct != null &&
+                                (((Status) customProduct).getArchived() != 'Y' &&
+                                        customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
-                        if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
                             CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
-                            if(authHeader==null)
+                            if (authHeader == null)
                                 wrapper.wrapDetails(customProduct, null);
                             else
-                                wrapper.wrapDetails(customProduct, null,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
+                                wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+
                             products.add(wrapper);
                         }
                     }
+
                     AdvertisementProductWrapper wrapper = new AdvertisementProductWrapper();
                     wrapper.wrapDetails(advertisement, products, null);
                     responses.add(wrapper);
                 }
             }
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", responses, HttpStatus.OK);
+            // Manual Pagination
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<AdvertisementProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("advertisements", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -290,11 +363,11 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
-        @DeleteMapping("/delete/{advertisementId}")
+    @DeleteMapping("/delete/{advertisementId}")
     @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable("advertisementId") String advertisementIdPath,
                                            @RequestHeader(value = "Authorization") String authHeader) {

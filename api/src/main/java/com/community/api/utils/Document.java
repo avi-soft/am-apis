@@ -3,6 +3,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -52,5 +53,8 @@ public class Document {
     @JsonManagedReference("document-validity-customer")
     @JoinColumn(name = "document_validity_id", referencedColumnName = "id")
     private DocumentValidity documentValidity;
+
+    @JsonIgnore
+    private String otherDocument;
 
 }

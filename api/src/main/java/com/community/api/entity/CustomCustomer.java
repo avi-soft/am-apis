@@ -363,8 +363,8 @@ public class CustomCustomer extends CustomerImpl {
     private Integer archivedByRole;
     @Column(name = "archived_by_id",columnDefinition = "BIGINT DEFAULT 0")
     private Long archivedById;
-    @Column(name = "completed",columnDefinition ="BOOLEAN DEFAULT FALSE")
-    private Boolean complete=false;
+    @Column(name = "is_live_photo_na",columnDefinition ="BOOLEAN DEFAULT FALSE")
+    private Boolean isLivePhotoNa=false;
     @Column(name = "primary_referrer_id",columnDefinition = "BIGINT DEFAULT 0")
     private Long primaryRef=0L;
 }
