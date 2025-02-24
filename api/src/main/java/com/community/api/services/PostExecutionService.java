@@ -2,11 +2,9 @@ package com.community.api.services;
 
 import com.community.api.dto.PostDto;
 import com.community.api.entity.CustomProduct;
-import com.community.api.entity.OtherItem;
 import com.community.api.entity.Post;
 
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,8 +12,6 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -68,6 +64,7 @@ public class PostExecutionService {
             entityManager.merge(post); // Persist the post before updating the age requirement
         }
         customProduct.setTotalVacanciesInProduct(totalPostInProduct);
+        customProduct.setNumberOfPosts((long)postList.size());
         entityManager.merge(customProduct);
     }
 }

@@ -44,6 +44,8 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
+import javax.validation.constraints.Null;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -99,9 +101,20 @@ public class TicketController {
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try{
-            List<CustomTicketWrapper> assignedTickets = serviceProviderTicketService.autoAssigner();
-
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
+           List<Long>resultList=serviceProviderTicketService.getAssignedTickets();
+           List<CombinedOrderDTO>orderDTO=new ArrayList<>();
+            for(Long id :resultList)
+            {
+                CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,id);
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+               CombinedOrderDTO combinedOrderDTO= orderDTOService.wrapOrder(ticket.getOrder(),orderState,ticket,customerDetailsDTO);
+               orderDTO.add(combinedOrderDTO);
+            }
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", orderDTO, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -162,10 +175,18 @@ public class TicketController {
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
             @RequestParam(value = "ticket_type", required = false) List<Long> type,
             @RequestParam(value = "ticket_status", required = false) Long status,
-            @RequestParam(value = "offset", defaultValue = "0") int page,
-            @RequestParam(value = "limit", defaultValue = "10") int size)
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit)
     {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
                 String formattedDateFrom = dateFormat.format(dateFrom);
@@ -198,17 +219,17 @@ public class TicketController {
                     state, type, userId, role, dateFrom, dateTo, status);
 
             int totalItems = tickets.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
 
-            if (page < 0) {
-                page = 0;
+            if (offset < 0) {
+                offset = 0;
             }
-            if (page >= totalPages) {
-                page = totalPages - 1;
+            if (offset >= totalPages && offset!=0) {
+                throw new IllegalArgumentException("No more tickets available");
             }
 
-            int fromIndex = page * size;
-            int toIndex = Math.min(fromIndex + size, totalItems);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
 
             List<CustomServiceProviderTicket> paginatedTickets = (totalItems > 0) ? tickets.subList(fromIndex, toIndex) : new ArrayList<>();
 
@@ -234,14 +255,18 @@ public class TicketController {
             response.put("tickets", responses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", page);
+            response.put("currentPage", offset);
 
             logger.info("Total tickets: " + responses.size());
             return ResponseService.generateSuccessResponse("Tickets Found successfully",response,HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
     @PutMapping("/ticket/update/{ticketId}")

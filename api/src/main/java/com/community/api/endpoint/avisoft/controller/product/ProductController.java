@@ -294,21 +294,21 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            Long totalPostInProduct=0L;
+            Long totalVacanciesInProduct=0L;
              if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
                     for(Post post: postList)
                     {
-                        totalPostInProduct+=post.getPostTotalVacancies();
+                        totalVacanciesInProduct+=post.getPostTotalVacancies();
                     }
                     postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
                 }
                 if(reserveCategoryService!=null)
                 {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
                  return response;
@@ -316,11 +316,11 @@ public class ProductController extends CatalogEndpoint {
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
                 {
-                    totalPostInProduct+=post.getPostTotalVacancies();
+                    totalVacanciesInProduct+=post.getPostTotalVacancies();
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
-            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalPostInProduct);
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
              ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
              return response;
 
@@ -392,6 +392,10 @@ public class ProductController extends CatalogEndpoint {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+            }
+            if(addProductDto.getOtherInfo()!=null)
+            {
+                customProduct.setOtherInfo(addProductDto.getOtherInfo());
             }
 
             if(addProductDto.getIsMultiplePostSameFee()!=null)
@@ -582,9 +586,17 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -611,11 +623,10 @@ public class ProductController extends CatalogEndpoint {
 
             // Calculate pagination details
             int totalItems = responses.size();
-            int totalPages = (int) Math.ceil((double) totalItems / size);
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
             int currentPage = offset;
-
-            int start = Math.min(offset * size, totalItems);
-            int end = Math.min(start + size, totalItems);
+            int start = Math.min(offset * limit, totalItems);
+            int end = Math.min(start + limit, totalItems);
 
             if (start >= totalItems) {
                 return ResponseService.generateErrorResponse("No more products available", HttpStatus.NOT_FOUND);
@@ -640,7 +651,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -751,9 +762,12 @@ public class ProductController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -814,9 +828,12 @@ public class ProductController extends CatalogEndpoint {
 
             return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }  catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -835,6 +852,14 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
@@ -867,6 +892,9 @@ public class ProductController extends CatalogEndpoint {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
+            if (offset >= totalPages && offset != 0) {
+                throw new IllegalArgumentException("No more products availabe");
+            }
             // Validate offset request
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
@@ -891,7 +919,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -906,7 +934,14 @@ public class ProductController extends CatalogEndpoint {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
-
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
@@ -917,7 +952,7 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

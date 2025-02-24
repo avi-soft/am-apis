@@ -35,6 +35,14 @@ public class ProductRejectionStatusController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             List<CustomProductRejectionStatus> allStatuses = productRejectionStatusService.getAllRejectionStatus();
 
             if (allStatuses.isEmpty()) {
@@ -46,7 +54,9 @@ public class ProductRejectionStatusController {
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
-
+            if (offset >= totalPages && offset != 0) {
+                throw new IllegalArgumentException("No more rejection status available");
+            }
             // Validate the requested offset
             if (fromIndex >= totalItems) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
@@ -63,9 +73,14 @@ public class ProductRejectionStatusController {
 
             return ResponseService.generateSuccessResponse("REJECTION STATUS IS FOUND",response, HttpStatus.OK);
 
-        } catch (Exception exception) {
+        }
+        catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

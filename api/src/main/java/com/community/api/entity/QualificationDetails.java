@@ -120,6 +120,14 @@ public class QualificationDetails {
     @Column(name = "subject_name")
     private String subject_name;
 
+    @Column(name = "other_stream", columnDefinition = "text")
+    private String other_stream;
+
+    @Column(name = "other_board_university", columnDefinition = "text")
+    private String other_board_university;
+
+    @Column(name = "other_qualification", columnDefinition = "text")
+    private String other_qualification;
 
     @ElementCollection
     @CollectionTable(name = "highest_qualification_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))

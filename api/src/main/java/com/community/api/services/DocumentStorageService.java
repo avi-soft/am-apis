@@ -33,6 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
 import javax.annotation.PreDestroy;
@@ -40,6 +44,7 @@ import javax.persistence.EntityManager;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +77,11 @@ public class DocumentStorageService {
 
     private String ffmpegPath;
     private final ExecutorService executorService;
+    @Value("${secret.key}")
+    private  String key;
+
+    private static final String ALGORITHM = "AES";
+    // 16-byte secret key for AES-128
 
     private static final long MIN_SIZE_BYTES = 100 * 1024; // 100KB
     private static final long MAX_SIZE_BYTES = 200 * 1024; // 200KB
@@ -355,6 +365,20 @@ public class DocumentStorageService {
          em.persist(newDocument);
          return newDocument;
     }
+
+
+
+
+        public String encrypt(String data) throws Exception {
+            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] encryptedData = cipher.doFinal(data.getBytes());
+
+            // Use URL-safe Base64 encoding
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(encryptedData);
+        }
+
     @Transactional
     public ServiceProviderDocument createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");

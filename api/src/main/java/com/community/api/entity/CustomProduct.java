@@ -51,6 +51,9 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "last_modified")
     protected Date modifiedDate;
 
+    @Column(name = "other_info",columnDefinition = "text")
+    protected String otherInfo;
+
     @ManyToOne
     @NotNull
     @JoinColumn(name = "product_state_id")
@@ -139,6 +142,9 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "totalVacanciesInProduct")
     protected Long totalVacanciesInProduct;
+
+    @Column(name = "number_of_posts")
+    protected Long numberOfPosts;
     @OneToMany(mappedBy = "customProduct", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OtherItem> otherItems = new ArrayList<>();
 
