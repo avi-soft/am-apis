@@ -12,7 +12,7 @@ import com.community.api.utils.ServiceProviderDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -25,19 +25,31 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItem;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.persistence.EntityManager;
 import java.io.File;
+import java.io.IOException;
+import javax.annotation.PreDestroy;
+import javax.persistence.EntityManager;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.IOException;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 @Service
 public class DocumentStorageService {
@@ -63,13 +75,34 @@ public class DocumentStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
+    private String ffmpegPath;
+    private final ExecutorService executorService;
     @Value("${secret.key}")
     private  String key;
 
     private static final String ALGORITHM = "AES";
     // 16-byte secret key for AES-128
 
+    private static final long MIN_SIZE_BYTES = 100 * 1024; // 100KB
+    private static final long MAX_SIZE_BYTES = 200 * 1024; // 200KB
+    private static final int MAX_ATTEMPTS = 5;
 
+    private static final Set<String> SUPPORTED_IMAGE_FORMATS = new HashSet<>(Arrays.asList(
+            "heic", "heif", "jpg", "jpeg", "png", "webp", "tiff", "tif", "bmp",
+            "cr2", "cr3", "nef", "arw", "orf", "dng", "raf", "pef", "srw", "rw2",
+            "3fr", "psd", "xcf", "avif", "jp2", "jpx", "ico", "pcx", "tga", "sgi",
+            "dib", "jxr", "dpx", "cin", "gif"
+    ));
+
+    public DocumentStorageService() throws IOException {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        this.ffmpegPath = getFfmpegExecutablePath();
+    }
+
+    private String getFfmpegExecutablePath() throws IOException {
+        File ffmpegFile = new ClassPathResource("ffmpeg/ffmpeg.exe").getFile();
+        return ffmpegFile.getAbsolutePath();
+    }
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
 
@@ -457,4 +490,256 @@ public class DocumentStorageService {
         return  fileName;
     }
 
+    public MultipartFile convertToJpg(MultipartFile inputFile) throws IOException {
+        if (inputFile.getSize() == 0) {
+            throw new IOException("Input file is empty");
+        }
+
+        String originalExtension = getFileExtension(inputFile.getOriginalFilename());
+        if (!isImageFormat(originalExtension)) {
+            throw new IOException("Unsupported file format: " + originalExtension);
+        }
+
+        File tempInputFile = null;
+        File tempOutputFile = null;
+
+        try {
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            tempInputFile = File.createTempFile("temp_" + timestamp, "." + originalExtension);
+            tempOutputFile = File.createTempFile("converted_" + timestamp, ".jpg");
+
+            inputFile.transferTo(tempInputFile);
+
+            boolean success = false;
+
+            // Only compress if the image is larger than MAX_SIZE_BYTES
+            if (inputFile.getSize() < MIN_SIZE_BYTES) {
+                // For small images, try to increase size while maintaining quality
+                success = upscaleImage(tempInputFile, tempOutputFile);
+            }
+            else if (inputFile.getSize() > MAX_SIZE_BYTES) {
+                // Try compression with different parameters until we get the desired size
+                for (int attempt = 0; attempt < MAX_ATTEMPTS && !success; attempt++) {
+                    try {
+                        int quality = calculateQuality(attempt);
+                        double scale = calculateScale(attempt);
+
+                        String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
+
+                        ProcessBuilder processBuilder = new ProcessBuilder(
+                                ffmpegPath,
+                                "-i", tempInputFile.getAbsolutePath(),
+                                "-vf", scaleFilter,
+                                "-q:v", String.valueOf(quality),
+                                "-y",
+                                tempOutputFile.getAbsolutePath()
+                        );
+
+                        processBuilder.redirectErrorStream(true);
+                        Process process = processBuilder.start();
+
+                        // Read the process output
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                System.out.println("FFmpeg: " + line);
+                            }
+                        }
+
+                        boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+                        if (!completed) {
+                            process.destroyForcibly();
+                            continue;
+                        }
+
+                        if (process.exitValue() == 0 && tempOutputFile.exists()) {
+                            long size = tempOutputFile.length();
+                            if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
+                                success = true;
+                                break;
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Conversion interrupted", e);
+                    }
+                }
+
+                if (!success) {
+                    // Final attempt with fixed parameters
+                    ProcessBuilder processBuilder = new ProcessBuilder(
+                            ffmpegPath,
+                            "-i", tempInputFile.getAbsolutePath(),
+                            "-vf", "scale=iw*0.5:ih*0.5",
+                            "-q:v", "3",
+                            "-y",
+                            tempOutputFile.getAbsolutePath()
+                    );
+
+                    Process process = processBuilder.start();
+                    process.waitFor(30, TimeUnit.SECONDS);
+                }
+            } else {
+                // For images <= MAX_SIZE_BYTES, just convert format without changing size
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        ffmpegPath,
+                        "-i", tempInputFile.getAbsolutePath(),
+                        "-q:v", "1",  // Best quality
+                        "-y",
+                        tempOutputFile.getAbsolutePath()
+                );
+
+                Process process = processBuilder.start();
+                process.waitFor(30, TimeUnit.SECONDS);
+            }
+
+            if (!tempOutputFile.exists() || tempOutputFile.length() == 0) {
+                throw new IOException("Conversion failed - output file is empty or doesn't exist");
+            }
+
+            String newFilename = generateOutputFilename(inputFile.getOriginalFilename());
+
+            FileItem fileItem = new DiskFileItem(
+                    "file",
+                    "image/jpeg",
+                    false,
+                    newFilename,
+                    (int) tempOutputFile.length(),
+                    tempOutputFile.getParentFile()
+            );
+
+            try (InputStream input = new FileInputStream(tempOutputFile);
+                 OutputStream output = fileItem.getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, bytesRead);
+                }
+            }
+
+            return new CommonsMultipartFile(fileItem);
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            cleanupFile(tempInputFile);
+            cleanupFile(tempOutputFile);
+        }
+    }
+
+    private boolean upscaleImage(File inputFile, File outputFile) throws IOException, InterruptedException {
+        // Gradually try increasing scales with high quality until desired size is reached
+        double[] scales = {1.5, 1.8, 2.0, 2.2, 2.5, 2.8, 3.0};
+
+        for (double scale : scales) {
+            String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
+
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    ffmpegPath,
+                    "-i", inputFile.getAbsolutePath(),
+                    "-vf", scaleFilter,
+                    "-q:v", "1",          // Best quality
+                    "-qmin", "1",         // Force minimum quality
+                    "-qmax", "2",         // Allow slight variation for better size control
+                    "-y",
+                    outputFile.getAbsolutePath()
+            );
+
+            Process process = processBuilder.start();
+            process.waitFor(30, TimeUnit.SECONDS);
+
+            if (process.exitValue() == 0 && outputFile.exists()) {
+                long size = outputFile.length();
+                if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
+                    return true;
+                }
+            }
+        }
+
+        // If we couldn't achieve desired size with scaling alone, try slight quality adjustments
+        if (outputFile.length() < MIN_SIZE_BYTES) {
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    ffmpegPath,
+                    "-i", inputFile.getAbsolutePath(),
+                    "-vf", "scale=iw*3.0:ih*3.0",  // Maximum scale
+                    "-q:v", "2",                    // Slightly reduced quality
+                    "-qmin", "2",
+                    "-qmax", "2",
+                    "-y",
+                    outputFile.getAbsolutePath()
+            );
+
+            Process process = processBuilder.start();
+            return process.waitFor(30, TimeUnit.SECONDS) && process.exitValue() == 0;
+        }
+
+        return false;
+    }
+
+    private int calculateQuality(int attempt) {
+        // Quality values for JPEG (1-31, where 1 is best quality)
+        switch (attempt) {
+            case 0: return 2;  // First try with high quality
+            case 1: return 3;
+            case 2: return 4;
+            case 3: return 5;
+            default: return 6; // Lowest quality we'll try
+        }
+    }
+
+    private double calculateScale(int attempt) {
+        // Scale factors to try
+        switch (attempt) {
+            case 0: return 1.0;    // First try with original size
+            case 1: return 0.8;    // 80%
+            case 2: return 0.6;    // 60%
+            case 3: return 0.5;    // 50%
+            default: return 0.4;   // 40%
+        }
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || filename.lastIndexOf('.') == -1) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    private boolean isImageFormat(String extension) {
+        return SUPPORTED_IMAGE_FORMATS.contains(extension.toLowerCase());
+    }
+
+    private String generateOutputFilename(String originalFilename) {
+        if (originalFilename == null) {
+            return "converted.jpg";
+        }
+        int dotIndex = originalFilename.lastIndexOf('.');
+        if (dotIndex != -1) {
+            return originalFilename.substring(0, dotIndex) + ".jpg";
+        }
+        return originalFilename + ".jpg";
+    }
+
+    private void cleanupFile(File file) {
+        if (file != null && file.exists()) {
+            try {
+                Files.deleteIfExists(file.toPath());
+            } catch (IOException e) {
+                System.err.println("Failed to cleanup temporary file: " + e.getMessage());
+            }
+        }
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 }
