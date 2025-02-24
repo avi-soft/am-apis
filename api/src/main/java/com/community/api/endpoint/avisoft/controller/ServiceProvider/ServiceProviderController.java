@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/service-providers")
@@ -247,16 +248,31 @@ public class ServiceProviderController {
         }
     }
 
-
     @Transactional // Set readOnly for performance improvement
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
-            int startPosition = page * limit;
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
+            int startPosition = offset * limit;
+
+            // Count total service providers (excluding archived ones)
+            Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
+            long totalItems = (long) countQuery.getSingleResult();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            if (offset >= totalPages&& offset != 0) {
+                throw new IllegalArgumentException("No more service providers available");
+            }
             // Create the query with pagination
-            Query query = entityManager.createQuery(Constant.GET_ALL_SERVICE_PROVIDERS, ServiceProviderEntity.class);
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
 
@@ -265,11 +281,19 @@ public class ServiceProviderController {
 
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                if(serviceProvider.getIsArchived().equals(false))
+                if (!serviceProvider.getIsArchived()) {
                     resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
             }
 
-            return ResponseService.generateSuccessResponse("List of service providers: ", resultOfSp, HttpStatus.OK);
+            // Prepare response
+            Map<String, Object> response = new HashMap<>();
+            response.put("serviceProviders", resultOfSp);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("List of service providers: ", response, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -330,47 +354,84 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/filter-service-provider")
-    public ResponseEntity<?> filterServiceProvider(@RequestParam(required = false) String state,
-                                                   @RequestParam(required = false) String district,
-                                                   @RequestParam(required = false) String full_name,
-                                                   @RequestParam(required = false) String mobileNumber,
-                                                   @RequestParam(required = false) Long test_status_id, HttpServletRequest request) {
+    public ResponseEntity<?> filterServiceProvider(
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String district,
+            @RequestParam(required = false) String full_name,
+            @RequestParam(required = false) String mobileNumber,
+            @RequestParam(required = false) Long test_status_id,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            HttpServletRequest request) {
+
         try {
             Map<String, String[]> uri = request.getParameterMap();
-            if ((uri.containsKey("state") && state == null) || (uri.containsKey("full_name") && full_name == null)|| (uri.containsKey("test_status_id") && test_status_id == null) || (uri.containsKey("district") && district == null) || (uri.containsKey("mobileNumber") && mobileNumber == null))
+
+            // Validate input
+            if ((uri.containsKey("state") && state == null) ||
+                    (uri.containsKey("full_name") && full_name == null) ||
+                    (uri.containsKey("test_status_id") && test_status_id == null) ||
+                    (uri.containsKey("district") && district == null) ||
+                    (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
+            }
+
             String first_name = null;
             String last_name = null;
 
-            if(mobileNumber!=null&&!mobileNumber.isEmpty()&& serviceProviderService.isValidMobileNumber(mobileNumber))
-            {
+            // Handle search by mobile number
+            if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
                 return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
             }
 
-            if(full_name!=null) {
+            // Handle search by full name (split into first and last names)
+            if (full_name != null) {
                 String[] name = sharedUtilityService.separateName(full_name.trim());
-                if (!name[0].equals(""))
-                    first_name = name[0];
-                if (!name[1].equals(""))
-                    last_name = name[1];
+                if (!name[0].equals("")) first_name = name[0];
+                if (!name[1].equals("")) last_name = name[1];
             }
+
             // First call with the provided order of first_name and last_name
-            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
 
             // Second call with swapped order of first_name and last_name
-            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
+            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
 
-            // Combine the responses (handling duplicates if necessary)
-            List<Map<String, Object>> responseList1 = (List<Map<String, Object>>) response1.getBody().getData();
-            List<Map<String, Object>> responseList2 = (List<Map<String, Object>>) response2.getBody().getData();
+            // Merge results and remove duplicates
+            Set<Map<String, Object>> mergedResults = new HashSet<>();
+            if (response1.getBody() != null && response1.getBody().getData() != null) {
+                mergedResults.addAll((List<Map<String, Object>>) response1.getBody().getData());
+            }
+            if (response2.getBody() != null && response2.getBody().getData() != null) {
+                mergedResults.addAll((List<Map<String, Object>>) response2.getBody().getData());
+            }
 
-            // Merging lists and removing duplicates if any
-            Set<Map<String, Object>> mergedResponse = new HashSet<>();
-            mergedResponse.addAll(responseList1);
-            mergedResponse.addAll(responseList2);
+            // Pagination logic
+            List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
+            int totalItems = finalList.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
 
-            // Return the merged response as ResponseEntity<SuccessResponse>
-            return ResponseService.generateSuccessResponse("Service Providers", new ArrayList<>(mergedResponse), HttpStatus.OK);
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("No more service provider data available", HttpStatus.NOT_FOUND);
+            }
+
+            List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
+
+            // Construct response
+            Map<String, Object> response = new HashMap<>();
+            response.put("serviceProviders", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Service Providers",response, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -383,24 +444,53 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
-    public ResponseEntity<?> showRefferedCandidates(@PathVariable Long service_provider_id,@RequestHeader(value = "Authorization") String authHeader,@RequestParam(required = false)Boolean registeredByMe,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> showReferredCandidates(
+            @PathVariable Long service_provider_id,
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) Boolean registeredByMe,
+            HttpServletRequest httpServletRequest,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
-            if (serviceProvider == null)
+            if (serviceProvider == null) {
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
+            }
+
             List<Map<String, Object>> customers = new ArrayList<>();
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
-                if(registeredByMe!=null&&registeredByMe.equals(true)) {
+                if (registeredByMe != null && registeredByMe.equals(true)) {
                     if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
                         customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                     }
-                }
-                else
-                {
+                } else {
                     customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                 }
             }
-            return ResponseService.generateSuccessResponse("List of referred candidates is : ", customers, HttpStatus.OK);
+
+            // Pagination details
+            int totalItems = customers.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
+
+            int fromIndex = Math.min(offset * limit, totalItems);
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("No more referred candidates available", HttpStatus.NOT_FOUND);
+            }
+
+            List<Map<String, Object>> paginatedCustomers = customers.subList(fromIndex, toIndex);
+
+            // Response with pagination metadata
+            Map<String, Object> response = new HashMap<>();
+            response.put("candidates", paginatedCustomers);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("List of referred candidates:",response, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -408,6 +498,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")

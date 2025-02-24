@@ -93,6 +93,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -320,7 +321,6 @@ public class CustomerEndpoint {
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
             if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
-                System.out.println("hellob");
                 if (customCustomer.getInterestedInDefence()) {
                     // List of required fields
                     final List<String> requiredFields = Arrays.asList("heightCms", "weightKgs", "shoeSizeInches", "waistSizeCms");
@@ -744,6 +744,22 @@ public class CustomerEndpoint {
                 else
                 customCustomer.setDob(dob);
             }
+            if (details.containsKey("isLivePhotoNa")) {
+               Boolean isLivePhotoNa= (Boolean) details.get("isLivePhotoNa");
+               if(isLivePhotoNa.equals(true))
+               {
+                   assert customCustomer.getDocuments() != null;
+                   for(Document document: customCustomer.getDocuments())
+                   {
+                       if(document.getDocumentType().getDocument_type_id().equals(3) && document.getIsArchived().equals(false))
+                       {
+                           throw new IllegalArgumentException("You cannot select NA as true if live photo is already uploaded");
+                       }
+
+                   }
+               }
+                customCustomer.setIsLivePhotoNa(isLivePhotoNa);
+            }
             if (details.containsKey("isNccCertificate")) {
                 Boolean isNccCertificate = (Boolean) details.get("isNccCertificate");
                 if (isNccCertificate.equals(true)) {
@@ -981,11 +997,11 @@ public class CustomerEndpoint {
                     String chestSizeCms = (String) details.get("chestSizeCms");
                     if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
                         try {
-                            Double waistSizeValue = Double.parseDouble(chestSizeCms);
-                            if (waistSizeValue < minChestSize || waistSizeValue > maxChestSize) {
-                                errorMessages.add("Chest size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                            Double chestSizeValue = Double.parseDouble(chestSizeCms);
+                            if (chestSizeValue < minChestSize || chestSizeValue > maxChestSize) {
+                                errorMessages.add("Chest size should be between " + minChestSize + " and " + maxChestSize + " cms.");
                             } else {
-                                customCustomer.setWaistSizeCms(waistSizeValue);
+                                customCustomer.setChestSizeCms(chestSizeValue);
                             }
                         } catch (NumberFormatException e) {
                             errorMessages.add("Chest size must be valid.");
@@ -1307,6 +1323,7 @@ public class CustomerEndpoint {
             @RequestParam(value = "qualificationDetailId", required = false) Long qualificationDetailId,
             @RequestParam(value = "dateOfIssue", required = false) String dateOfIssue,
             @RequestParam(value = "validUpto", required = false) String validUpto,
+            @RequestParam(value = "otherDocument", required = false) String otherDocument,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -1445,6 +1462,17 @@ public class CustomerEndpoint {
                                 "Unknown document type for file: " + fileNameId,
                                 HttpStatus.BAD_REQUEST);
                     }
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
+                        }
+                        if(otherDocument.trim().isEmpty())
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be empty");
+                        }
+                    }
 
                     if (documentTypeObj.getIs_qualification_document().equals(true)) {
                         if (qualificationDetailId == null) {
@@ -1520,33 +1548,49 @@ public class CustomerEndpoint {
                             String newFileName = file.getOriginalFilename();
                             // Check for existing document with the same name
                             Document existingDocument13 = em.createQuery(
-                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name = :documentName AND (d.name IS NOT NULL)", Document.class)
+                                            "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND LOWER(d.otherDocument) = LOWER(:otherDocument) " +  // Case-insensitive check
+                                                    "AND d.name IS NOT NULL", Document.class)
                                     .setParameter("customCustomer", customCustomer)
                                     .setParameter("documentType", documentTypeObj)
-                                    .setParameter("documentName", newFileName)
+                                    .setParameter("otherDocument", otherDocument.toLowerCase())  // Ensure consistency
                                     .getResultStream()
                                     .findFirst()
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
                                 Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                if(documentTypeObj.getDocument_type_id().equals(13))
+                                {
+                                    createdDocument.setOtherDocument(otherDocument);
+                                    entityManager.merge(createdDocument);
+                                }
                                 documentsToSave.add(createdDocument);
                             } else if (existingDocument13 != null) {
+
                                 String filePath = existingDocument13.getFilePath();
-                                if (removeFileTypes != null && removeFileTypes && newFileName != null) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    existingDocument13.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
+                                        documentStorageService.updateOrCreateDocument(existingDocument13, file, documentTypeObj, customerId, role);
+                                    }
                                 }
-                                existingDocument13.setFilePath(null);
-                                existingDocument13.setName(null);
-                                existingDocument13.setCustom_customer(null);
-                                em.merge(existingDocument13);
+                                entityManager.merge(existingDocument13);
                                 documentsToSave.add(existingDocument13);
-                                deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
+                            if(documentTypeObj.getDocument_type_id().equals(3))
+                            {
+                                customCustomer.setIsLivePhotoNa(false);
+                            }
                             if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                 QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
                                 existingDocument.setIs_qualification_document(true);
@@ -1606,6 +1650,10 @@ public class CustomerEndpoint {
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
                                 Document document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
                                 documentsToSave.add(document);
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    customCustomer.setIsLivePhotoNa(false);
+                                }
                                 if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                     QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
                                     document.setIs_qualification_document(true);
@@ -1634,6 +1682,7 @@ public class CustomerEndpoint {
                         }
                     }
                 }
+                entityManager.merge(customCustomer);
                 List<Map<String, Object>> filteredDocuments = new ArrayList<>();
                 for (Document document : documentsToSave) {
                     if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
@@ -1660,9 +1709,20 @@ public class CustomerEndpoint {
 
                             // Generate a file URL for the document
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
-                            documentDetails.put("fileUrl", fileUrl);
+                            Map<String, Object> documentTypeResponse = new HashMap<>();
+                            documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                            documentTypeResponse.put("document_type_name", otherDocument);
+                            documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                            documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                            documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                            documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                            documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                            documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                            documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                            documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
 
-                            documentDetails.put("documentType", document.getDocumentType());
+                            documentDetails.put("documentType", documentTypeResponse);
+                            documentDetails.put("fileUrl", fileUrl);
                             filteredDocuments.add(documentDetails);
                         }
                     }
@@ -1696,6 +1756,18 @@ public class CustomerEndpoint {
 
                     if (documentTypeObj == null) {
                         return ResponseService.generateErrorResponse("Unknown document type for file: " + fileNameId, HttpStatus.BAD_REQUEST);
+                    }
+
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
+                        }
+                        if(otherDocument.trim().isEmpty())
+                        {
+                            throw new IllegalArgumentException("otherDocument name cannot be empty");
+                        }
                     }
 
                     if (documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1749,35 +1821,47 @@ public class CustomerEndpoint {
 
                         if (fileNameId == 13 && (!file.isEmpty() || file != null)) {
                             String newFileName = file.getOriginalFilename();
-
                             // Check for existing document with the same name
                             ServiceProviderDocument existingDocument13 = em.createQuery(
-                                            "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name = :documentName AND (d.name IS NOT NULL)", ServiceProviderDocument.class)
+                                            "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity " +
+                                                    "AND d.documentType = :documentType " +
+                                                    "AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) " +  // Handle null safely
+                                                    "AND d.name = :documentName " +  // Include document name check
+                                                    "AND d.name IS NOT NULL",
+                                            ServiceProviderDocument.class
+                                    )
                                     .setParameter("serviceProviderEntity", serviceProviderEntity)
                                     .setParameter("documentType", documentTypeObj)
-                                    .setParameter("documentName", newFileName)
+                                    .setParameter("otherDocument", otherDocument != null ? otherDocument.toLowerCase() : null)  // Avoid NullPointerException
+                                    .setParameter("documentName", newFileName)  // Ensure document name is included
                                     .getResultStream()
                                     .findFirst()
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
                                 ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                if(documentTypeObj.getDocument_type_id().equals(13))
+                                {
+                                    serviceProviderDocument.setOtherDocument(otherDocument);
+                                    entityManager.merge(serviceProviderDocument);
+                                }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                             } else if (existingDocument13 != null) {
-                                if (removeFileTypes != null && removeFileTypes && newFileName != null) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
+                                String filePath = existingDocument13.getFilePath();
+                                if (filePath != null) {
+                                    String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                    File oldFile = new File(absolutePath);
+                                    String oldFileName = oldFile.getName();
+                                    existingDocument13.setIsArchived(false);
+                                    if (!newFileName.equals(oldFileName)) {
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument13.getName(), role);
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument13, file, documentTypeObj, customerId, role);
+                                    }
                                 }
-                                existingDocument13.setFilePath(null);
-                                existingDocument13.setName(null);
-                                existingDocument13.setServiceProviderEntity(null);
-
-                                em.merge(existingDocument13);
+                                entityManager.merge(existingDocument13);
                                 serviceProviderDocumentToSave.add(existingDocument13);
-                                deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
                             }
-
-
                         }
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
@@ -1899,7 +1983,19 @@ public class CustomerEndpoint {
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                             documentDetails.put("fileUrl", fileUrl);
 
-                            documentDetails.put("documentType", document.getDocumentType());
+                            Map<String, Object> documentTypeResponse = new HashMap<>();
+                            documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                            documentTypeResponse.put("document_type_name", otherDocument);
+                            documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                            documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                            documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                            documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                            documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                            documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                            documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                            documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+
+                            documentDetails.put("documentType", documentTypeResponse);
                             filteredDocuments.add(documentDetails);
                         }
                     }
@@ -2268,95 +2364,211 @@ public class CustomerEndpoint {
 
     @GetMapping(value = "/forms/show-saved-forms")
     @Authorize(value = {Constant.roleUser})
-    public ResponseEntity<?> getSavedForms(HttpServletRequest request, @RequestParam long customer_id) throws Exception {
+    public ResponseEntity<?> getSavedForms(HttpServletRequest request,
+                                           @RequestParam long customer_id,
+                                           @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                           @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
+            if (offset < 0) {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if (limit <= 0) {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
+
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if (customer == null)
-                ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
-            if (customer.getSavedForms().isEmpty())
-                ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
+            if (customer == null) {
+                return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
+            }
+
             List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
+
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
                     continue;
                 }
+
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
                 customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
-            return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
+
+            // Calculate pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
+
+            if (offset >= totalPages && offset != 0) {
+                return ResponseService.generateErrorResponse("No more saved forms available", HttpStatus.BAD_REQUEST);
+            }
+
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            List<CustomProductWrapper> paginatedList = (fromIndex < totalItems)
+                    ? listOfSavedProducts.subList(fromIndex, toIndex)
+                    : Collections.emptyList(); // Return empty list if offset exceeds total items
+
+            // Response Map
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse(
+                    paginatedList.isEmpty() ? "Saved forms list is empty" : "Forms retrieved successfully",
+                    response,
+                    HttpStatus.OK
+            );
+
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping(value = "/forms/show-filled-forms")
-    public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request, @RequestParam long customer_id) throws Exception {
+    public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
+                                                    @RequestParam long customer_id,
+                                                    @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
+            // Validate pagination parameters
+            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            if (limit <= 0) throw new IllegalArgumentException("Limit for pagination cannot be zero or negative");
+
+            // Find customer
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
-                ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
-            if (customer.getSavedForms().isEmpty())
-                ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
-            List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
-            for (Product product : customer.getSavedForms()) {
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
-                    continue;
-                }
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                /*List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());
-                List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());*/
-                customProductWrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
-                listOfSavedProducts.add(customProductWrapper);
-            }
-            return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
+                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
+
+            // Prepare list of saved products
+            List<CustomProductWrapper> listOfSavedProducts = customer.getSavedForms().stream()
+                    .map(product -> entityManager.find(CustomProduct.class, product.getId()))
+                    .filter(customProduct -> customProduct != null && ((Status) customProduct).getArchived() != 'Y')
+                    .map(customProduct -> {
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
+                        return wrapper;
+                    })
+                    .collect(Collectors.toList());
+
+            // Pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / limit);
+
+            if (offset >= totalPages && offset != 0)
+                return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.BAD_REQUEST);
+
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList()
+                    : listOfSavedProducts.subList(fromIndex, toIndex);
+
+            // Prepare response
+            Map<String, Object> response = Map.of(
+                    "forms", paginatedList,
+                    "totalItems", totalItems,
+                    "totalPages", totalPages,
+                    "currentPage", offset
+            );
+
+            return ResponseService.generateSuccessResponse("Forms filled", response, HttpStatus.OK);
+
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (IllegalArgumentException e) {
+            exceptionHandlingService.handleException(e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
     @GetMapping(value = "/forms/show-recommended-forms")
-    public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request, @RequestParam long customer_id) throws Exception {
+    public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
+                                                         @RequestParam long customer_id,
+                                                         @RequestParam(value = "offset", defaultValue = "0") int offset,
+                                                         @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
         try {
+            if (offset < 0) {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if (limit <= 0) {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
+
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
-            if (customer == null)
-                ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
-            if (customer.getSavedForms().isEmpty())
-                ResponseService.generateErrorResponse("Saved form list is empty", HttpStatus.NOT_FOUND);
+            if (customer == null) {
+                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
+            }
+
             List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
+
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if ((((Status) customProduct).getArchived() == 'Y')) {
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
                     continue;
                 }
+
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-               /* List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(product.getId());
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(product.getId());*/
                 List<Post> postList = customProduct.getPosts();
-                //List< ReserveCategoryAgeDto> ageRequirement = reserveCategoryAgeService.getReserveCategoryDto(product.getId());
                 customProductWrapper.wrapDetails(customProduct, postList, null, reserveCategoryFeePostRefService);
                 listOfSavedProducts.add(customProductWrapper);
             }
-            return ResponseService.generateSuccessResponse("Forms saved : ", listOfSavedProducts, HttpStatus.OK);
+
+            // Calculate pagination details
+            int totalItems = listOfSavedProducts.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int currentPage = offset;
+
+            if (totalItems == 0 && offset==0) {
+                // Return 200 with an empty list if there are no forms
+                Map<String, Object> response = new HashMap<>();
+                response.put("forms", Collections.emptyList());
+                response.put("totalItems", 0);
+                response.put("totalPages", 0);
+                response.put("currentPage", currentPage);
+                return ResponseService.generateSuccessResponse("No recommended forms available", response, HttpStatus.OK);
+            }
+
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (offset >= totalPages&& offset != 0) {
+                return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
+
+            // Create response with pagination info
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+
+            return ResponseService.generateSuccessResponse("Recommended Forms", response, HttpStatus.OK);
+
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException exception) {
+            exceptionHandlingService.handleException(exception);
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>("SOMEEXCEPTIONOCCURRED: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
 
     @PostMapping("/submit-customer-details/{customerId}")
     public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest)
@@ -2409,26 +2621,69 @@ public class CustomerEndpoint {
             @RequestParam(defaultValue = "10") int limit,
             @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             int startPosition = offset * limit;
-            TypedQuery<CustomCustomer> query = entityManager.createQuery(Constant.GET_ALL_CUSTOMERS, CustomCustomer.class);
+
+            // **Get total number of customers (without pagination)**
+            TypedQuery<Long> countQuery = entityManager.createQuery(
+                    "SELECT COUNT(c) FROM CustomCustomer c WHERE c.archived = false", Long.class);
+            Long totalItems = countQuery.getSingleResult();  // Total count of active customers
+
+            // **Fetch paginated customers**
+            TypedQuery<CustomCustomer> query = entityManager.createQuery(
+                    "SELECT c FROM CustomCustomer c WHERE c.archived = false", CustomCustomer.class);
             query.setFirstResult(startPosition);
             query.setMaxResults(limit);
-            List<Map> results = new ArrayList<>();
-            for (CustomCustomer customer : query.getResultList()) {
-                Customer customerToadd = customerService.readCustomerById(customer.getId());
-                if (customer.getArchived().equals(false))
-                    results.add(sharedUtilityService.breakReferenceForCustomer(customerToadd, authHeader,httpServletRequest));
+            List<CustomCustomer> customers = query.getResultList();
+
+            // Convert customers to response format
+            List<Map> results = customers.stream()
+                    .map(customer -> {
+                        try {
+                            return sharedUtilityService.breakReferenceForCustomer(
+                                    customerService.readCustomerById(customer.getId()), authHeader, httpServletRequest);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            // **Calculate total pages correctly**
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            if (offset >= totalPages&& offset != 0) {
+                throw new IllegalArgumentException("No more customers available");
             }
-            return ResponseService.generateSuccessResponse("List of customers : ", results, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in customers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+
+            // **Prepare the response map**
+            Map<String, Object> response = new HashMap<>();
+            response.put("customers", results);
+            response.put("totalItems", totalItems); // Total number of customers (entire dataset)
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            // **Return success response**
+            return ResponseService.generateSuccessResponse("CUSTOMERS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2566,7 +2821,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
 
        /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
@@ -2580,8 +2835,8 @@ public class CustomerEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
-                if (refereeId == null)
-                    refereeId.add(tokenUserId);
+                if (refereeId.isEmpty())
+                        refereeId.add(tokenUserId);
                 else if (ref != null)
                     return ResponseService.generateErrorResponse("Invalid search filter selected", HttpStatus.BAD_REQUEST);
             }
@@ -2642,8 +2897,8 @@ public class CustomerEndpoint {
                 if(refids.isEmpty())
                     refids=null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, page, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
@@ -2743,7 +2998,18 @@ public class CustomerEndpoint {
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
             else
                 customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
-            return ResponseService.generateSuccessResponse("Fetched Customers", sharedUtilityService.getPaginatedList(customerList, page, limit), HttpStatus.OK);
+        int totalItems = customerList.size();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+
+        List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("customers", paginatedList);       // Your paginated data
+        response.put("totalItems", totalItems);      // Total number of items
+        response.put("totalPages", totalPages);      // Total number of pages
+        response.put("currentPage", offset);           // Current offset number
+
+        return ResponseService.generateSuccessResponse("Fetched Customers", response, HttpStatus.OK);
         }/* catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }*/
@@ -2828,11 +3094,11 @@ public class CustomerEndpoint {
         } else if (actionedIds.isEmpty()) {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.BAD_REQUEST);
         } else {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
 }

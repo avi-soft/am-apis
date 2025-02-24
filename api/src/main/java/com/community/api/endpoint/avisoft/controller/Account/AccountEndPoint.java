@@ -506,6 +506,8 @@ public class AccountEndPoint {
                     return responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                 }
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customer.getId());
+                if(customCustomer.getArchived())
+                    return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
                 if (passwordEncoder.matches(password, customer.getPassword())) {
 
                     String tokenKey = "authToken_" + customCustomer.getMobileNumber();
@@ -639,6 +641,9 @@ public class AccountEndPoint {
 
             if (roleService.findRoleName(role).equals(Constant.roleUser)) {
                 CustomCustomer existingCustomer = customCustomerService.findCustomCustomerByPhone(mobileNumber, countryCode);
+                System.out.println("archived:"+existingCustomer.getArchived());
+                if(existingCustomer.getArchived().equals(true))
+                    return ResponseService.generateErrorResponse("Your account is suspended please contact suppot",HttpStatus.UNAUTHORIZED);
                 if (existingCustomer != null) {
                     Customer customer = customerService.readCustomerById(existingCustomer.getId());
                     if (passwordEncoder.matches(password, existingCustomer.getPassword())) {

@@ -234,6 +234,11 @@ public class ProductService {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
             }
+            if(addProductDto.getOtherInfo()!=null)
+            {
+                sql.append(", other_info");
+                values.append(", :otherInfo");
+            }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
                 sql.append(", is_multiple_post_same_fee");
@@ -327,6 +332,9 @@ public class ProductService {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            } if(addProductDto.getOtherInfo()!=null)
+            {
+                query.setParameter("otherInfo",addProductDto.getOtherInfo());
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
@@ -580,14 +588,19 @@ public class ProductService {
         query.setMaxResults(limit);
         products= query.getResultList();
 
-        if (products.isEmpty()) {
+        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+        int totalPages =(int) Math.ceil((double) totalProducts / limit);
+        if (page >= totalPages && page!=0) {
+            throw new IllegalArgumentException("No more products availabe");
+        }
+        if (products.isEmpty() && page==0) {
             if(showDraftProducts)
             {
                 return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
-        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+         totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
             if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
@@ -602,7 +615,7 @@ public class ProductService {
         response.put("products", responses);
         response.put("currentPage", page);
         response.put("totalItems", totalProducts);
-        response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
+        response.put("totalPages",totalPages );
         if(showDraftProducts)
         {
             return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully",response,HttpStatus.OK);
