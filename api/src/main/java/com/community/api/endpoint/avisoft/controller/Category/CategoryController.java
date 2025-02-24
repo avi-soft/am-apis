@@ -310,7 +310,7 @@ public class CategoryController extends CatalogEndpoint {
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             // Validate offset index
-            if (fromIndex >= totalItems) {
+            if (fromIndex >= totalItems && offset!=0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
