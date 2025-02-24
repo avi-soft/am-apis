@@ -16,12 +16,6 @@ public class FFmpegService {
     @Value("${ffmpeg.path}")
     private String ffmpegPath;
 
-    @Value("${ffplay.path}")
-    private String ffplayPath;
-
-    @Value("${ffprobe.path}")
-    private String ffprobePath;
-
     private final ResourceLoader resourceLoader;
 
     public FFmpegService(ResourceLoader resourceLoader) {
@@ -46,13 +40,5 @@ public class FFmpegService {
 
     public String getFFmpegExecutable() throws Exception {
         return extractExecutable(ffmpegPath);
-    }
-
-    public String getFFplayExecutable() throws Exception {
-        return extractExecutable(ffplayPath);
-    }
-
-    public String getFFprobeExecutable() throws Exception {
-        return extractExecutable(ffprobePath);
     }
 }
