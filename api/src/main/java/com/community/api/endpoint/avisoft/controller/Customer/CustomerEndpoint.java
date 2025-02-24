@@ -1361,15 +1361,66 @@ public class CustomerEndpoint {
                                 "Unknown document type for file: " + fileType,
                                 HttpStatus.BAD_REQUEST);
                     }
+                    if(documentTypeObj.getDocument_type_id().equals(12))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
+                        }
+                    }
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("other document is required to delete a other document");
+                        }
+                    }
+                    boolean isQualificationDocumentToDelete=false;
+                    boolean isOtherDocumentToDelete=false;
                     try {
-                        Query query = entityManager.createNativeQuery(queryStringArchiveId);
+                        String archiveIdQuery = queryStringArchiveId;
+                        String archiveQuery = queryStringArchive;
+
+                        // Append qualification_detail_id condition if provided
+                        if(documentTypeObj.getDocument_type_id().equals(12) && qualificationDetailId != null)
+                        {
+                            isQualificationDocumentToDelete=true;
+                            archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
+                            archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
+                        }
+                        if(documentTypeObj.getDocument_type_id().equals(13) && qualificationDetailId != null)
+                        {
+                            isOtherDocumentToDelete=true;
+                            archiveIdQuery += " AND otherdocument = :otherDocument";
+                            archiveQuery += " AND otherdocument = :otherDocument";
+                        }
+
+                        Query query = entityManager.createNativeQuery(archiveIdQuery);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
+                        if (isQualificationDocumentToDelete) {
+                            query.setParameter("qualificationDetailId", qualificationDetailId);
+                        }
+                        if(isOtherDocumentToDelete)
+                        {
+                            query.setParameter("otherDocument", otherDocument);
+                        }
+
                         BigInteger id = (BigInteger) query.getSingleResult();
-                        query = entityManager.createNativeQuery(queryStringArchive);
+
+                        query = entityManager.createNativeQuery(archiveQuery);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
+                        if (isQualificationDocumentToDelete) {
+                            query.setParameter("qualificationDetailId", qualificationDetailId);
+                        }
+                        if(isOtherDocumentToDelete)
+                        {
+                            query.setParameter("otherDocument", otherDocument);
+                        }
+
                         int result = query.executeUpdate();
+
                         if (result == 1) {
                             switch (role) {
                                 case Constant.roleUser:
@@ -1388,7 +1439,6 @@ public class CustomerEndpoint {
                                     }
                                     break;
                                 case Constant.roleServiceProvider:
-                                    System.out.println("SID:" + id.longValue());
                                     ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
                                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
                                     if (serviceProvider.getDocuments() != null) {
@@ -1396,7 +1446,6 @@ public class CustomerEndpoint {
                                         while (iterator.hasNext()) {
                                             ServiceProviderDocument documentToDelete = iterator.next();
                                             if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
-                                                System.out.println("hiSp");
                                                 iterator.remove();  // safely remove the document
                                                 entityManager.merge(serviceProvider);  // merge after modification
                                                 break;
@@ -1405,8 +1454,9 @@ public class CustomerEndpoint {
                                         deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
                                     }
                             }
-                        } else
+                        } else {
                             return ResponseService.generateErrorResponse("No documents found", HttpStatus.NOT_FOUND);
+                        }
                         return ResponseService.generateSuccessResponse("Document deleted successfully", deleteLogs, HttpStatus.OK);
                     } catch (NoResultException noResultException) {
                         return ResponseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
@@ -1541,7 +1591,7 @@ public class CustomerEndpoint {
                                     String filePath = existingDocument.getFilePath();
 
                                     if (filePath != null) {
-                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+//                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
 
                                     existingDocument.setDocumentType(null);
@@ -1848,7 +1898,7 @@ public class CustomerEndpoint {
 
                                     String filePath = existingDocument.getFilePath();
                                     if (filePath != null) {
-                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+//                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
                                     existingDocument.setDocumentType(null);
                                     existingDocument.setName(null);
@@ -1890,7 +1940,6 @@ public class CustomerEndpoint {
                                 }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                             } else if (existingDocument13 != null) {
-
                                 String filePath = existingDocument13.getFilePath();
                                 if (filePath != null) {
                                     String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
