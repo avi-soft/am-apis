@@ -453,8 +453,7 @@ public class CustomerEndpoint {
                             errorMessages.add("Waist size must be valid.");
                         }
                     }
-                }
-            }
+                }}
 
             if (details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong(details.get("workExperienceScopeId").toString()));
@@ -1435,6 +1434,7 @@ public class CustomerEndpoint {
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
+            MultipartFile processedFile=null;
 
             if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
                 HashSet<Document> documentsToSave = new HashSet<>();
@@ -1493,7 +1493,13 @@ public class CustomerEndpoint {
                     for (MultipartFile file : fileList) {
 
                         // Validate document
-                        documentStorageService.validateDocument(file, documentTypeObj);
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
+                             processedFile = documentStorageService.convertToJpg(file);
+                            customCustomer.setIsLivePhotoNa(false);
+                        }
+                        else {
+                            documentStorageService.validateDocument(file, documentTypeObj);
+                        }
                         Document existingDocument = null;
 
                         if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1519,7 +1525,13 @@ public class CustomerEndpoint {
                                     .orElse(null);
                         }
 
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        if(documentTypeObj.getDocument_type_id().equals(3))
+                        {
+                            fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
+                        else {
+                            fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
 
                         if (removeFileTypes != null && removeFileTypes) {
 
@@ -1640,7 +1652,13 @@ public class CustomerEndpoint {
                                 existingDocument.setIsArchived(false);
                                 if (!newFileName.equals(oldFileName)) {
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
-                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    if(documentTypeObj.getDocument_type_id().equals(3))
+                                    {
+                                        documentStorageService.updateOrCreateDocument(existingDocument, processedFile, documentTypeObj, customerId, role);
+                                    }
+                                    else {
+                                        documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
                                 }
                             }
                             entityManager.merge(existingDocument);
@@ -1648,7 +1666,15 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                Document document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                Document document =null;
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    customCustomer.setIsLivePhotoNa(false);
+                                     document = documentStorageService.createDocument(processedFile, documentTypeObj, customCustomer, customerId, role);
+                                }
+                                else {
+                                     document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                }
                                 documentsToSave.add(document);
                                 if(documentTypeObj.getDocument_type_id().equals(3))
                                 {
@@ -1711,7 +1737,13 @@ public class CustomerEndpoint {
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                            documentTypeResponse.put("document_type_name", otherDocument);
+                            if(otherDocument!=null && !otherDocument.trim().isEmpty())
+                            {
+                                documentTypeResponse.put("document_type_name", otherDocument);
+                            }
+                            else {
+                                documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
+                            }
                             documentTypeResponse.put("description", document.getDocumentType().getDescription());
                             documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
                             documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
@@ -1786,8 +1818,12 @@ public class CustomerEndpoint {
                         }
                     }
                     for (MultipartFile file : fileList) {
-
-                        documentStorageService.validateDocument(file, documentTypeObj);
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
+                            processedFile = documentStorageService.convertToJpg(file);
+                        }
+                        else {
+                            documentStorageService.validateDocument(file, documentTypeObj);
+                        }
                         ServiceProviderDocument existingDocument = em.createQuery(
                                         "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL", ServiceProviderDocument.class)
                                 .setParameter("serviceProviderEntity", serviceProviderEntity)
@@ -1797,7 +1833,13 @@ public class CustomerEndpoint {
                                 .findFirst()
                                 .orElse(null);
 
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        if(documentTypeObj.getDocument_type_id().equals(3))
+                        {
+                            fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
+                        else {
+                            fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                        }
 
                         if (removeFileTypes != null && removeFileTypes) {
                             if (existingDocument != null && fileNameId != 13) {
@@ -1916,7 +1958,13 @@ public class CustomerEndpoint {
 //                                    oldFile.delete();
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
-                                    documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
+                                    if(documentTypeObj.getDocument_type_id().equals(3))
+                                    {
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
+                                    }
+                                    else {
+                                        documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
+                                    }
                                 }
                             }
                             entityManager.merge(existingDocument);
@@ -1924,7 +1972,14 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                ServiceProviderDocument serviceProviderDocument = null;
+                                if(documentTypeObj.getDocument_type_id().equals(3))
+                                {
+                                    serviceProviderDocument = documentStorageService.createDocumentServiceProvider(processedFile, documentTypeObj, serviceProviderEntity, customerId, role);
+                                }
+                                else {
+                                    serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                                }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                                 if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
                                     QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);
@@ -1985,7 +2040,13 @@ public class CustomerEndpoint {
 
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                            documentTypeResponse.put("document_type_name", otherDocument);
+                            if(otherDocument!=null && !otherDocument.trim().isEmpty())
+                            {
+                                documentTypeResponse.put("document_type_name", otherDocument);
+                            }
+                            else {
+                                documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
+                            }
                             documentTypeResponse.put("description", document.getDocumentType().getDescription());
                             documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
                             documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
@@ -2543,7 +2604,7 @@ public class CustomerEndpoint {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (offset >= totalPages) {
+            if (offset >= totalPages&& offset != 0) {
                 return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.BAD_REQUEST);
             }
 
@@ -2661,7 +2722,7 @@ public class CustomerEndpoint {
 
             // **Calculate total pages correctly**
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages) {
+            if (offset >= totalPages&& offset != 0) {
                 throw new IllegalArgumentException("No more customers available");
             }
 
