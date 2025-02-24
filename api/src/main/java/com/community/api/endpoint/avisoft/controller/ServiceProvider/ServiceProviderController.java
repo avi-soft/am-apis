@@ -268,7 +268,7 @@ public class ServiceProviderController {
             Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
             long totalItems = (long) countQuery.getSingleResult();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages) {
+            if (offset >= totalPages&& offset != 0) {
                 throw new IllegalArgumentException("No more service providers available");
             }
             // Create the query with pagination

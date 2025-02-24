@@ -892,7 +892,7 @@ public class ProductController extends CatalogEndpoint {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (offset >= totalPages) {
+            if (offset >= totalPages && offset != 0) {
                 throw new IllegalArgumentException("No more products availabe");
             }
             // Validate offset request
