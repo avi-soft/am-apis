@@ -28,22 +28,47 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.CallableStatementCreator;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
 import javax.persistence.Query;
+import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.sql.Array;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ServiceProviderTicketService {
@@ -55,11 +80,18 @@ public class ServiceProviderTicketService {
     @Autowired
     OrderStateRefService orderStateRefService;
 
+
     @Autowired
     CustomOrderService customOrderService;
 
     @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
     OrderService orderService;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Autowired
     TicketStateService ticketStateService;
@@ -117,6 +149,73 @@ public class ServiceProviderTicketService {
         }
     }
 
+
+    public List<Long> getAssignedTickets() throws IOException {
+        List<Long> ticketList = new ArrayList<>();
+        String scriptPathForAutoAssigner = "auto_assigner.sql";
+        String sqlScript = new BufferedReader(
+                new InputStreamReader(new ClassPathResource(scriptPathForAutoAssigner).getInputStream())
+        ).lines().collect(Collectors.joining("\n"));
+        // Execute the query using a callback to access the underlying Connection and Statement
+        jdbcTemplate.execute((Connection connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+
+                // Execute the PL/pgSQL block
+                stmt.execute(sqlScript);
+
+                // Define a regex pattern to extract the value after "Assigned Tickets:"
+                Pattern pattern = Pattern.compile("Assigned Tickets:\\s*(\\{.*?\\}|<NULL>|[^,\\s]+)");
+
+                // Retrieve all SQLWarnings (which include RAISE NOTICE messages)
+                SQLWarning warning = stmt.getWarnings();
+                while (warning != null) {
+                    String message = warning.getMessage();
+
+                    // Look for the "Assigned Tickets:" part in the warning message
+                    Matcher matcher = pattern.matcher(message);
+                    if (matcher.find()) {
+                        String assignedTicketsValue = matcher.group(1);
+                        System.out.println("Assigned Tickets Value: " + assignedTicketsValue);
+
+                        // Check if the value is an array (in curly braces)
+                        if (assignedTicketsValue.startsWith("{") && assignedTicketsValue.endsWith("}")) {
+                            // Remove the curly braces and split the string by commas
+                            String[] ticketIds = assignedTicketsValue.substring(1, assignedTicketsValue.length() - 1).split(",");
+                            // Convert the split strings into a List of Longs
+
+                            for (String ticketId : ticketIds) {
+                                try {
+                                    ticketList.add(Long.parseLong(ticketId.trim()));
+                                } catch (NumberFormatException e) {
+                                    // Handle the case where a value is not a valid Long
+                                    System.err.println("Invalid ticket ID: " + ticketId);
+                                }
+                            }
+                            System.out.println("Converted ticket IDs to List<Long>: " + ticketList);
+                        }
+                    }
+
+                    // Move to the next warning if present
+                    warning = warning.getNextWarning();
+                }
+            } catch (SQLException e) {
+                // Handle SQL exceptions if necessary
+                e.printStackTrace();
+            }
+            return null;  // No need to return anything here
+        });
+
+        // Now that the callback has completed, return the populated ticketList
+        return ticketList;
+    }
+
+
+
+
+
+
+
+
     public List<CustomTicketWrapper> autoAssigner() throws Exception {
         try {
             logger.info("AUTO-ASSIGNER");
@@ -150,6 +249,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
+            System.out.println("size"+customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -194,7 +294,7 @@ public class ServiceProviderTicketService {
     public boolean allocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: " + serviceProvider.getService_provider_id());
-            if ((serviceProvider.getMaximumTicketSize() != null && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
+            if ((serviceProvider.getMaximumTicketSize() != null &&(serviceProvider.getIsActive().equals(true))&& serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
                 // assign him the ticket
                 // create a entry in serviceProvider ticket table where the info about which serviceProvider is linked with which ticket is stored.
                 CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -324,6 +424,8 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setOrder(order);
+            if(createTicketDto.getTicketType()==3)
+                customServiceProviderTicket.setDesc(createTicketDto.getTask());
             if (creatorId != null && creatorRoleId != null) {
                 customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
                 customServiceProviderTicket.setUserId(creatorId);
@@ -354,7 +456,12 @@ public class ServiceProviderTicketService {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-
+            if(createTicketDto.getAssigneeRole()==4)
+            {
+                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                entityManager.merge(serviceProvider);
+            }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
 

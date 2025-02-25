@@ -32,8 +32,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>11</source>
-                    <target>11</target>
+                    <source>15</source>
+                    <target>15</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -79,30 +79,30 @@
             <artifactId>broadleaf-rest-api</artifactId>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.springframework/spring-web -->
-            <!-- Spring Boot Web (for MultipartFile) -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-web</artifactId>
-            </dependency>
+        <!-- Spring Boot Web (for MultipartFile) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-            <!-- Spring Boot WebFlux (for WebClient) -->
+        <!-- Spring Boot WebFlux (for WebClient) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
             <version>3.3.4</version>
         </dependency>
 
-            <!-- Spring Boot Starter (common starter for Spring Boot) -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter</artifactId>
-            </dependency>
+        <!-- Spring Boot Starter (common starter for Spring Boot) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
 
-            <!-- Optional: For logging purposes, add a logging dependency -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-logging</artifactId>
-            </dependency><!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
+        <!-- Optional: For logging purposes, add a logging dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency><!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
         <dependency>
             <groupId>com.broadleafcommerce</groupId>
             <artifactId>broadleaf-boot-starter-solr</artifactId>
@@ -212,14 +212,14 @@
              </exclusions>
          </dependency>-->
 
-<!--       <dependency>
+        <!--       <dependency>
 
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.0</version>
+                    <groupId>org.yaml</groupId>
+                    <artifactId>snakeyaml</artifactId>
+                    <version>2.0</version>
 
-        </dependency>
--->
+                </dependency>
+        -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
@@ -232,8 +232,27 @@
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.9</version> <!-- Use the latest version -->
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-crypto</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 
     </dependencies>
 </project>

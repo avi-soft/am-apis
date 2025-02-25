@@ -47,9 +47,17 @@ public class UpdateQualificationDto
 
     private Long examination_registration_number;
 
+    private String other_stream;
+
+    private String other_board_university;
+
+    private String other_qualification;
     private Boolean is_grade;
 
     private String grade_value;
+    private Long course_duration_in_months;
+    private List<String> highest_qualification_subject_names;
+    List<String> otherSubjects=new ArrayList<>();
 
     private Boolean is_division;
 

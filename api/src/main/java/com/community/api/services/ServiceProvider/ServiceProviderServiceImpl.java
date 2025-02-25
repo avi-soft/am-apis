@@ -821,20 +821,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     //find service provider by phone and validate the password.
-    public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) {
+    public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
     //find service provider by username and validate the password.
-    public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) {
+    public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
     //mechanism to check password
     @Transactional
-    public ResponseEntity<?> validateServiceProvider(ServiceProviderEntity serviceProvider, String password, HttpServletRequest request, HttpSession session) {
+    public ResponseEntity<?> validateServiceProvider(ServiceProviderEntity serviceProvider, String password, HttpServletRequest request, HttpSession session) throws Exception {
         if (serviceProvider == null) {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }

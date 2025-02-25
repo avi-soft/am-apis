@@ -234,6 +234,11 @@ public class ProductService {
                 sql.append(", is_review_required");
                 values.append(", :isReviewRequired");
             }
+            if(addProductDto.getOtherInfo()!=null)
+            {
+                sql.append(", other_info");
+                values.append(", :otherInfo");
+            }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
                 sql.append(", is_multiple_post_same_fee");
@@ -327,6 +332,9 @@ public class ProductService {
             if(addProductDto.getIsReviewRequired()!=null)
             {
                 query.setParameter("isReviewRequired",addProductDto.getIsReviewRequired());
+            } if(addProductDto.getOtherInfo()!=null)
+            {
+                query.setParameter("otherInfo",addProductDto.getOtherInfo());
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
@@ -580,14 +588,19 @@ public class ProductService {
         query.setMaxResults(limit);
         products= query.getResultList();
 
-        if (products.isEmpty()) {
+        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+        int totalPages =(int) Math.ceil((double) totalProducts / limit);
+        if (page >= totalPages && page!=0) {
+            throw new IllegalArgumentException("No more products availabe");
+        }
+        if (products.isEmpty() && page==0) {
             if(showDraftProducts)
             {
                 return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
         }
-        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+         totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
             if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
@@ -602,7 +615,7 @@ public class ProductService {
         response.put("products", responses);
         response.put("currentPage", page);
         response.put("totalItems", totalProducts);
-        response.put("totalPages", (int) Math.ceil((double) totalProducts / limit));
+        response.put("totalPages",totalPages );
         if(showDraftProducts)
         {
             return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully",response,HttpStatus.OK);
@@ -765,14 +778,15 @@ public class ProductService {
             dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
-
+            Date activeDateStart = stripTime(addProductDto.getActiveStartDate());
+            Date activeDateEnd = stripTime(addProductDto.getActiveEndDate());
             if (!addProductDto.getActiveEndDate().after(activeStartDate)) {
                 throw new IllegalArgumentException("Expiration date cannot be before or equal of current date.");
             } else if (!addProductDto.getGoLiveDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
-            } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
-            }else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
+            } else if (activeDateStart.after(activeDateEnd)) {
+                throw new IllegalArgumentException("Active start date cannot be after active end date.");
+            } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
 
@@ -936,13 +950,15 @@ public class ProductService {
             dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
             dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
+            Date activeDateStart = stripTime(addProductDto.getActiveStartDate());
+            Date activeDateEnd = stripTime(addProductDto.getActiveEndDate());
 
             if (!addProductDto.getActiveEndDate().after(activeStartDate)) {
                 throw new IllegalArgumentException("Expiration date cannot be before or equal of current date.");
             } else if (!addProductDto.getGoLiveDate().before(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
-            } else if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Active start date cannot be after or equal of active end date.");
+            }else if (activeDateStart.after(activeDateEnd)) {
+                throw new IllegalArgumentException("Active start date cannot be after active end date.");
             } else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
                 throw new IllegalArgumentException("Go live date cannot be past of current date.");
             }
@@ -1515,12 +1531,16 @@ public class ProductService {
 
                 if (addProductDto.getActiveEndDate() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getActiveEndDate()));
-                    if (!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Active start date must be before active end date.");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 } else {
-                    if (!addProductDto.getActiveStartDate().before(customProduct.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Active start date must be before active end date.");
+                    Date activeDateEnd= stripTime(customProduct.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 }
                 customProduct.setActiveStartDate(addProductDto.getActiveStartDate());
@@ -1543,8 +1563,12 @@ public class ProductService {
             if (addProductDto.getGoLiveDate() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getGoLiveDate()));
 
-                if (addProductDto.getGoLiveDate().before(createdDate)) {
-                    throw new IllegalArgumentException("Go live date must be after current date.");
+                if(createdDate!=null)
+                {
+                    if(!isSameOrFutureDate(addProductDto.getGoLiveDate()))
+                    {
+                        throw new IllegalArgumentException("Go live date cannot be past of current date.");
+                    }
                 }
 
                 if (addProductDto.getActiveEndDate() != null) {
@@ -1589,12 +1613,16 @@ public class ProductService {
                 }
                 if(addProductDto.getActiveStartDate() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));
-                    if(!addProductDto.getActiveStartDate().before(addProductDto.getActiveEndDate())){
-                        throw new IllegalArgumentException("Active end date has be future of active start Date");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(addProductDto.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 } else {
-                    if(!customProduct.getActiveStartDate().before(addProductDto.getActiveEndDate())){
-                        throw new IllegalArgumentException("Active end date has be future of active start Date");
+                    Date activeDateEnd= stripTime(addProductDto.getActiveEndDate());
+                    Date activeDateStart=stripTime(customProduct.getActiveStartDate());
+                    if (activeDateStart.after(activeDateEnd)) {
+                        throw new IllegalArgumentException("Active start date cannot be after active end date.");
                     }
                 }
 
@@ -1744,7 +1772,7 @@ public class ProductService {
                         throw new IllegalArgumentException("Modified date from must be after active end date.");
                     }
                 } else if (customProduct.getActiveEndDate() != null) {
-                    if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
+                    if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
                         throw new IllegalArgumentException("Modified date from must be after active end date.");
                     }
                 }
@@ -1759,7 +1787,7 @@ public class ProductService {
                     }
                 }
                 if (addProductDto.getExamDateFrom() != null) {
-                    dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
+                    dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
                     if (!addProductDto.getModificationDateTo().before(addProductDto.getExamDateFrom())) {
                         throw new IllegalArgumentException("Modified date to must be before or equal of exam date from.");
                     }
@@ -2330,8 +2358,11 @@ public class ProductService {
                     throw new IllegalArgumentException("Modification date to cannot be of future of admit card date from.");
                 }
             } else {
-                if (addProductDto.getModificationDateTo().after(addProductDto.getExamDateFrom())) {
-                    throw new IllegalArgumentException("Modification date to cannot be of future of exam date from");
+                if(addProductDto.getExamDateFrom()!=null)
+                {
+                    if (addProductDto.getModificationDateTo().after(addProductDto.getExamDateFrom())) {
+                        throw new IllegalArgumentException("Modification date to cannot be of future of exam date from");
+                    }
                 }
             }
 
@@ -2380,14 +2411,16 @@ public class ProductService {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to admit card date from.");
                 }
             } else {
-                if (addProductDto.getLastDateToPayFee().after(addProductDto.getExamDateFrom())) {
-                    throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to exam date from.");
+                if(addProductDto.getExamDateFrom()!=null)
+                {
+                    if (addProductDto.getLastDateToPayFee().after(addProductDto.getExamDateFrom())) {
+                        throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to exam date from.");
+                    }
                 }
             }
-
-            if (!addProductDto.getLastDateToPayFee().after(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Last date to pay application fee has to future of active end date");
-            }
+                if (!addProductDto.getLastDateToPayFee().after(addProductDto.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Last date to pay application fee has to future of active end date");
+                }
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {

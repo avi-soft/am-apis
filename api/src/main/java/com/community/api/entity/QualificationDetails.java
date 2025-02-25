@@ -5,7 +5,9 @@ import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -31,6 +33,7 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -39,6 +42,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
+import java.util.Iterator;
 import java.util.List;
 
 @Entity
@@ -63,6 +67,9 @@ public class QualificationDetails {
 
     @Column(name = "examination_role_number",nullable = true)
     private Long examination_role_number;
+
+    @Column(name = "course_duration_in_months",nullable = true)
+    private Long course_duration_in_months;
 
     //    @NotNull(message = "Examination Registration Number is required")
     @Column(name = "examination_registration_number",nullable = true)
@@ -113,6 +120,20 @@ public class QualificationDetails {
     @Column(name = "subject_name")
     private String subject_name;
 
+    @Column(name = "other_stream", columnDefinition = "text")
+    private String other_stream;
+
+    @Column(name = "other_board_university", columnDefinition = "text")
+    private String other_board_university;
+
+    @Column(name = "other_qualification", columnDefinition = "text")
+    private String other_qualification;
+
+    @ElementCollection
+    @CollectionTable(name = "highest_qualification_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "subject_name")
+    private List<String> highest_qualification_subject_names;
+
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
@@ -154,5 +175,9 @@ public class QualificationDetails {
         this.institution = new Institution();
         this.institution.setInstitution_id(institutionId);
     }
+    @ElementCollection
+    @CollectionTable(name = "other_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "other_subject_name")
+    List<String> otherSubjects=new ArrayList<>();
 
 }

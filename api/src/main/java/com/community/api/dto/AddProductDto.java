@@ -59,6 +59,8 @@ public class AddProductDto {
     Long productState;
     @JsonProperty("display_template")
     String displayTemplate;
+    @JsonProperty("other_info")
+    String otherInfo;
     @JsonProperty("rejection_status_id")
     Long rejectionStatus;
     @Temporal(TemporalType.TIMESTAMP)

@@ -128,96 +128,161 @@ public class OrderController {
     }
 
     @Transactional
-    @RequestMapping(value = "details/{orderId}", method = RequestMethod.GET)
-    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long orderId) {
-        try {
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Role role = roleService.getRoleByRoleId(roleId);
-            Long id = Long.valueOf(orderId);
-            if (id == null)
-                return ResponseService.generateErrorResponse("Order Id not specified", HttpStatus.BAD_REQUEST);
-            Order order = orderService.findOrderById(orderId);
-            CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
-            OrderDTO orderDTO = null;
-            if (order == null)
-                throw new NullPointerException("Order not found");
-            else {
-                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-                CustomServiceProviderTicket customServiceProviderTicket = null;
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
-                if (!role.getRole_name().equals(Constant.roleUser)) {
-                    try {
-                        Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
-                        query.setParameter("orderId", orderId.longValue());
-                        BigInteger tid = (BigInteger) query.getSingleResult();  // This will throw NoResultException if no result is found
-                        customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, tid.longValue());
-                    } catch (NoResultException e) {
-                        // Handle the case where no result is found (e.g., log it or return null)
-                        customServiceProviderTicket = null;
-                    }
-                }
-                return ResponseService.generateSuccessResponse("order_details :", orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO), HttpStatus.OK);
-            }
-        } catch (NullPointerException e) {
-            return ResponseService.generateErrorResponse("Order not found", HttpStatus.NOT_FOUND);
-        } catch (NumberFormatException e) {
-            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error retrieving Order Details", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
     public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader,
                                          @RequestParam(defaultValue = "9") Integer orderState,
                                          @RequestParam(defaultValue = "oldest-to-latest") String sort,
-                                         @RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "5") int limit) {
+                                         @RequestParam(defaultValue = "0") int offset,
+                                         @RequestParam(defaultValue = "10") int limit) {
         try {
+
+            if(offset<0)
+            {
+                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+            }
+            if(limit<=0)
+            {
+                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
             sort = sort.toLowerCase();
-            int startPosition = page * limit;
-            List<BigInteger> orderIds = null;
-            Query query = null;
+            int offset1 = offset * limit; // Ensure offset1 changes with offset number
+
+            // OrderState validation
             OrderStateRef orderStateRef = entityManager.find(OrderStateRef.class, orderState);
-            if (orderState.equals(9)) {
-                String queryString = Constant.GET_ALL_ORDERS;
-                if (sort.equals("latest-to-oldest"))
-                    queryString = queryString + " ORDER BY order_id DESC";
-                query = entityManager.createNativeQuery(queryString);
-                query.setFirstResult(startPosition);
-                query.setMaxResults(limit);
-                orderIds = query.getResultList();
-            } else {
-                if (orderStateRef == null)
-                    return ResponseService.generateErrorResponse("Invalid orderState provided", HttpStatus.BAD_REQUEST);
-                String queryString = Constant.SEARCH_ORDER_QUERY;
-                if (sort.equals("latest-to-oldest"))
-                    queryString = queryString + " ORDER BY order_id DESC";
-                query = entityManager.createNativeQuery(queryString);
-                query.setFirstResult(startPosition);
-                query.setMaxResults(limit);
+            if (!orderState.equals(9) && orderStateRef == null) {
+                return ResponseService.generateErrorResponse("Invalid orderState provided", HttpStatus.BAD_REQUEST);
+            }
+
+            // Base Query
+            String baseQuery = orderState.equals(9)
+                    ? "SELECT os.order_id FROM ORDER_STATE os"
+                    : "SELECT os.order_id FROM ORDER_STATE os WHERE os.order_state_id = :orderStateId";
+
+            // Sorting
+            String orderByClause = sort.equals("latest-to-oldest") ? " ORDER BY os.order_id DESC" : " ORDER BY os.order_id ASC";
+            String finalQuery = baseQuery + orderByClause;
+
+            // Count Query
+            String countQueryStr = "SELECT COUNT(*) FROM (" + baseQuery + ") AS countQuery";
+            Query countQuery = entityManager.createNativeQuery(countQueryStr);
+            if (!orderState.equals(9)) {
+                countQuery.setParameter("orderStateId", orderState);
+            }
+
+            BigInteger totalItems = (BigInteger) countQuery.getSingleResult();
+
+            // Pagination Query
+            finalQuery += " LIMIT :limit OFFSET :offset1"; // Ensure OFFSET is applied
+
+
+            Query query = entityManager.createNativeQuery(finalQuery);
+            if (!orderState.equals(9)) {
                 query.setParameter("orderStateId", orderState);
             }
-            orderIds = query.getResultList();
-            return generateCombinedDTO(authHeader, orderIds, sort);
-        } catch (Exception e) {
+            query.setParameter("limit", limit);
+            query.setParameter("offset1", offset1);
+
+            @SuppressWarnings("unchecked")
+            List<BigInteger> orderIds = query.getResultList();
+
+            // Fetch Order Details
+            List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sort);
+
+            // Pagination response
+            int totalPages = (int) Math.ceil(totalItems.doubleValue() / limit);
+            Map<String, Object> response = new HashMap<>();
+            response.put("orders", orderDetails);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset); // Ensure this correctly returns the requested offset
+            if (offset >= totalPages && offset != 0) {
+                throw new IllegalArgumentException("No more orders available");
+            }
+            return ResponseService.generateSuccessResponse("Orders are fetched", response, HttpStatus.OK);
+        }
+        catch (IllegalArgumentException e)
+        {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error Fetching order List", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.BAD_REQUEST);
         }
     }
 
-    public void sortOrdersByDate(List<CombinedOrderDTO> orders) {
-        Collections.sort(orders, new Comparator<CombinedOrderDTO>() {
-            @Override
-            public int compare(CombinedOrderDTO o1, CombinedOrderDTO o2) {
-                return o2.getOrderDetails().getOrderPlacedDate().compareTo(o1.getOrderDetails().getOrderPlacedDate());
+
+    @Transactional
+    public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort) {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Role role = roleService.getRoleByRoleId(roleId);
+
+        List<CombinedOrderDTO> orderDetails = new ArrayList<>();
+
+        for (BigInteger orderId : orders) {
+            try {
+
+                Order order = orderService.findOrderById(orderId.longValue());
+                if (order == null) {
+                    continue;
+                }
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+
+                if (customer == null) {
+                    continue;
+                }
+
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                        customer.getId(),
+                        customer.getFirstName() + " " + customer.getLastName(),
+                        customer.getEmailAddress(),
+                        customCustomer != null ? customCustomer.getMobileNumber() : null,
+                        addressFetcher.fetch(customer),
+                        customer.getUsername()
+                );
+
+                CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
+
+                CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
+                if (dto != null) {
+                    orderDetails.add(dto);
+                }
+
+            } catch (Exception e) {
             }
-        });
+        }
+
+        return orderDetails;
     }
+
+    private void logDebugQuery(String message, String queryStr) {
+        try {
+            BigInteger count = (BigInteger) entityManager.createNativeQuery(queryStr).getSingleResult();
+        } catch (Exception e) {
+        }
+    }
+
+    private CustomServiceProviderTicket getServiceProviderTicket(Long orderId) {
+        try {
+            Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
+            query.setParameter("orderId", orderId);
+
+            @SuppressWarnings("unchecked")
+            List<BigInteger> ticketIds = query.getResultList();
+            if (!ticketIds.isEmpty()) {
+                return entityManager.find(CustomServiceProviderTicket.class, ticketIds.get(0).longValue());
+            }
+        } catch (NoResultException e) {
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
 
     @Transactional
     public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort) {
@@ -248,7 +313,7 @@ public class OrderController {
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
                     } catch (NoResultException e) {
-                        //the case where no result is found 
+                        //the case where no result is found
                         customServiceProviderTicket = null;
                     }
                     orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
@@ -322,10 +387,15 @@ public class OrderController {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
             ServiceProviderEntity serviceProvider = null;
             CustomAdmin customAdmin = null;
-            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_UNASSIGNED.getOrderStateId()) && !customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
-                return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
+            if(createTicketDto.getTicketType()!=3) {
+                if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_UNASSIGNED.getOrderStateId()) && !customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
+                    return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
-
+            if(createTicketDto.getTicketType()==3&&(createTicketDto.getTask()==null||createTicketDto.getTask().isEmpty()))
+            {
+                return ResponseService.generateErrorResponse("Misc Ticket Task Description is required",HttpStatus.BAD_REQUEST);
+            }
             if (role.getRole_name().equals(Constant.roleServiceProvider)) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 if (serviceProvider == null)
@@ -347,9 +417,10 @@ public class OrderController {
 
             CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, serviceProvider,roleId,tokenUserId);
 
-            customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
-            entityManager.merge(customOrderState);
-
+            if(createTicketDto.getTicketType()!=3) {
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                entityManager.merge(customOrderState);
+            }
             Customer customer = customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());

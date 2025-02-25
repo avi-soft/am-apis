@@ -1,5 +1,6 @@
 package com.community.api.endpoint.serviceProvider;
 
+import com.community.api.entity.ActionLog;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderRequest;
 import com.community.api.entity.Privileges;
@@ -277,6 +278,10 @@ public class ServiceProviderEntity  {
 
     @Column(name="ticket_assigned")
     private Integer ticketAssigned=0;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ActionLog> actionLogs;
 
 }
 
