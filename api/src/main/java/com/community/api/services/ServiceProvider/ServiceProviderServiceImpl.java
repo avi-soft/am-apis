@@ -1182,9 +1182,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 errorList.add(field.getName() + "cannot be empty");
             }
         }
-        /*if (!isOnlyDigits(addressToupdate.getState()) || !isOnlyDigits(addressToupdate.getDistrict())) {
-            errorList.add("Invalid state or district");
-        }*/
         if (!errorList.isEmpty())
             return errorList;
         if (addressToupdate != null) {
