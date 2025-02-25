@@ -17,7 +17,7 @@
     <description>API Module For Customized Broadleaf Commerce Site</description>
 
     <properties>
-        <debug.port>8003</debug.port>
+        <debug.port>8002</debug.port>
         <jersey.version>2.34</jersey.version>
     </properties>
 
@@ -79,30 +79,30 @@
             <artifactId>broadleaf-rest-api</artifactId>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.springframework/spring-web -->
-            <!-- Spring Boot Web (for MultipartFile) -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-web</artifactId>
-            </dependency>
+        <!-- Spring Boot Web (for MultipartFile) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-            <!-- Spring Boot WebFlux (for WebClient) -->
+        <!-- Spring Boot WebFlux (for WebClient) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
             <version>3.3.4</version>
         </dependency>
 
-            <!-- Spring Boot Starter (common starter for Spring Boot) -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter</artifactId>
-            </dependency>
+        <!-- Spring Boot Starter (common starter for Spring Boot) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
 
-            <!-- Optional: For logging purposes, add a logging dependency -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-logging</artifactId>
-            </dependency><!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
+        <!-- Optional: For logging purposes, add a logging dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency><!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
         <dependency>
             <groupId>com.broadleafcommerce</groupId>
             <artifactId>broadleaf-boot-starter-solr</artifactId>
@@ -212,14 +212,14 @@
              </exclusions>
          </dependency>-->
 
-<!--       <dependency>
+        <!--       <dependency>
 
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.0</version>
+                    <groupId>org.yaml</groupId>
+                    <artifactId>snakeyaml</artifactId>
+                    <version>2.0</version>
 
-        </dependency>
--->
+                </dependency>
+        -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
@@ -248,8 +248,11 @@
             <version>1.1.0</version>
         </dependency>
 
-
-
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 
     </dependencies>
 </project>
