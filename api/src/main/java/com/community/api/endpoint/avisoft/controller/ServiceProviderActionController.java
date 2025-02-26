@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/service-provider-actions")
@@ -570,7 +571,12 @@ public class ServiceProviderActionController {
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
-        dto.put("customerIds", actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId).collect(Collectors.toList()));
+        List<Long> customerIds = Stream.concat(
+                actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId),
+                actionLog.getCustomersWithoutEmail().stream().map(CustomCustomer::getId)
+        ).collect(Collectors.toList());
+
+        dto.put("customerIds", customerIds);
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
         if(actionLog.getServiceProvider()!=null)
         {
