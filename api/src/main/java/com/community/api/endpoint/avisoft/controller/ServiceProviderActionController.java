@@ -114,19 +114,25 @@ public class ServiceProviderActionController {
                 }
             }
 
-            if(request.getModes()==null)
+            // Process comma-separated modes if needed
+            List<Integer> modesList = getModesListFromRequest(request);
+            if(modesList == null)
             {
                 throw new IllegalArgumentException("Modes cannot be null");
             }
-            if(request.getModes().isEmpty())
+            if(modesList.isEmpty())
             {
                 throw new IllegalArgumentException("You have to select atleast one mode");
             }
-            if(request.getCustomerIds()==null || request.getCustomerIds().isEmpty())
+
+            // Process comma-separated customerIds if needed
+            List<Long> customerIdsList = getCustomerIdsListFromRequest(request);
+            if(customerIdsList == null || customerIdsList.isEmpty())
             {
                 return ResponseService.generateErrorResponse("You have to select atleast one customer to communicate with", HttpStatus.BAD_REQUEST);
             }
-            for(Long customerId: request.getCustomerIds())
+
+            for(Long customerId: customerIdsList)
             {
                 CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
                 if(customCustomer==null)
@@ -145,7 +151,7 @@ public class ServiceProviderActionController {
                     {
                         referrerIds.add(customerReferrer.getCustomer().getId());
                     }
-                    for(Long customerId: request.getCustomerIds())
+                    for(Long customerId: customerIdsList)
                     {
                         if(!referrerIds.contains(customerId))
                         {
@@ -259,21 +265,21 @@ public class ServiceProviderActionController {
             actionLog.setContent(content);
 
             // Validate and set custom modes
-            for (Integer customModeId : request.getModes()) {
+            for (Integer customModeId : modesList) {
                 CustomMode customMode = entityManager.find(CustomMode.class, customModeId);
                 if (customMode == null) {
                     throw new IllegalArgumentException("Custom mode with id " + customModeId + " does not exist");
                 }
             }
 
-            List<CustomMode> modeList = request.getModes().stream()
+            List<CustomMode> modeList = modesList.stream()
                     .map(modeId -> entityManager.find(CustomMode.class, modeId))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
 
-            List<CustomCustomer> allCustomers = request.getCustomerIds().stream()
+            List<CustomCustomer> allCustomers = customerIdsList.stream()
                     .map(id -> entityManager.find(CustomCustomer.class, id))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
@@ -394,6 +400,60 @@ public class ServiceProviderActionController {
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    // Helper method to parse comma-separated customer IDs
+    private List<Long> getCustomerIdsListFromRequest(CommunicationRequest request) {
+        List<Long> result = new ArrayList<>();
+
+        // Handle the case where customerIds is already a List<Long>
+        if (request.getCustomerIds() instanceof List) {
+            return (List<Long>) request.getCustomerIds();
+        }
+
+        // Handle string representation (comma-separated values)
+        if (request.getCustomerIds() instanceof String) {
+            String customerIdsStr = (String) request.getCustomerIds();
+            if (customerIdsStr != null && !customerIdsStr.trim().isEmpty()) {
+                String[] idsArray = customerIdsStr.split(",");
+                for (String id : idsArray) {
+                    try {
+                        result.add(Long.parseLong(id.trim()));
+                    } catch (NumberFormatException e) {
+                        // Skip invalid IDs
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Helper method to parse comma-separated modes
+    private List<Integer> getModesListFromRequest(CommunicationRequest request) {
+        List<Integer> result = new ArrayList<>();
+
+        // Handle the case where modes is already a List<Integer>
+        if (request.getModes() instanceof List) {
+            return (List<Integer>) request.getModes();
+        }
+
+        // Handle string representation (comma-separated values)
+        if (request.getModes() instanceof String) {
+            String modesStr = (String) request.getModes();
+            if (modesStr != null && !modesStr.trim().isEmpty()) {
+                String[] modesArray = modesStr.split(",");
+                for (String mode : modesArray) {
+                    try {
+                        result.add(Integer.parseInt(mode.trim()));
+                    } catch (NumberFormatException e) {
+                        // Skip invalid modes
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     private List<ContentFile> processFiles(List<MultipartFile> files, CommunicationContent content) {
