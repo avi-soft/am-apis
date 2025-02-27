@@ -212,7 +212,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         Customer customCustomer = null;
         ServiceProviderEntity serviceProvider = null;
-        CustomAdmin customAdmin=null;
+        ServiceProviderEntity customAdmin=null;
         if (id != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.roleUser)) {
                 customCustomer = CustomerService.readCustomerById(id);
@@ -243,10 +243,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             else if (roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.roleAdminServiceProvider)) {
-                customAdmin=entityManager.find(CustomAdmin.class,id);
+                customAdmin=entityManager.find(ServiceProviderEntity.class,id);
                 if (customAdmin != null && jwtUtil.validateToken(jwt, ipAdress, User_Agent)) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            customAdmin.getAdmin_id(), null, new ArrayList<>());
+                            customAdmin.getService_provider_id(), null, new ArrayList<>());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     return false;
