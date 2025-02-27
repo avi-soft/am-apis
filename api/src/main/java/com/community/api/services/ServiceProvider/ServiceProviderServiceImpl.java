@@ -992,7 +992,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             String otpEntered = (String) serviceProviderDetails.get("otpEntered");
             String mobileNumber = (String) serviceProviderDetails.get("mobileNumber");
             String countryCode = (String) serviceProviderDetails.get("countryCode");
-            Integer role = (Integer) serviceProviderDetails.get("role");
             if (countryCode == null || countryCode.isEmpty()) {
                 countryCode = Constant.COUNTRY_CODE;
             }
@@ -1021,7 +1020,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return responseService.generateErrorResponse("Invalid Data Provided ", HttpStatus.UNAUTHORIZED);
 
             }
-
+            Integer role = existingServiceProvider.getRole();
             String storedOtp = existingServiceProvider.getOtp();
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
