@@ -145,7 +145,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         List<Pattern> bypassPatterns = Arrays.asList(
                 Pattern.compile("^/api/v1/category-custom/get-products-by-category-id/\\d+$"),
-                Pattern.compile("^/api/v1/category-custom/get-all-categories$")
+                Pattern.compile("^/api/v1/category-custom/get-all-categories$"),
+                Pattern.compile("^api/v1/product-custom/get-product-by-id$"),
+                Pattern.compile("^api/v1/category-custom/get-sub-categories$"),
+                Pattern.compile("^api/v1/product-custom/get-product-by-id$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
