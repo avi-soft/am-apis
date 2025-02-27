@@ -28,6 +28,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.springframework.web.multipart.commons.CommonsMultipartFile;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -36,6 +38,11 @@ import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
@@ -515,91 +522,75 @@ public class DocumentStorageService {
 
             inputFile.transferTo(tempInputFile);
 
-            boolean success = false;
-
-            // Only compress if the image is larger than MAX_SIZE_BYTES
-            if (inputFile.getSize() < MIN_SIZE_BYTES) {
-                // For small images, try to increase size while maintaining quality
-                success = upscaleImage(tempInputFile, tempOutputFile);
+            // Read the image
+            BufferedImage originalImage = ImageIO.read(tempInputFile);
+            if (originalImage == null) {
+                throw new IOException("Failed to read image: " + tempInputFile.getName());
             }
-            else if (inputFile.getSize() > MAX_SIZE_BYTES) {
-                // Try compression with different parameters until we get the desired size
-                for (int attempt = 0; attempt < MAX_ATTEMPTS && !success; attempt++) {
-                    try {
-                        int quality = calculateQuality(attempt);
-                        double scale = calculateScale(attempt);
 
-                        String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
+            // Create the target image with the appropriate dimensions
+            BufferedImage resultImage;
+            int width = originalImage.getWidth();
+            int height = originalImage.getHeight();
+            double ratio = (double) width / height;
 
-                        ProcessBuilder processBuilder = new ProcessBuilder(
-                                ffmpegPath,
-                                "-i", tempInputFile.getAbsolutePath(),
-                                "-vf", scaleFilter,
-                                "-q:v", String.valueOf(quality),
-                                "-y",
-                                tempOutputFile.getAbsolutePath()
-                        );
+            // Calculate target size based on whether we need to upscale or downscale
+            if (inputFile.getSize() < MIN_SIZE_BYTES) {
+                // Upscale small images
+                double scaleFactor = calculateUpscaleRatio(inputFile.getSize());
+                width = (int) (width * scaleFactor);
+                height = (int) (height * scaleFactor);
+            } else if (inputFile.getSize() > MAX_SIZE_BYTES) {
+                // Downscale large images
+                double scaleFactor = calculateDownscaleRatio(inputFile.getSize());
+                width = (int) (width * scaleFactor);
+                height = (int) (height * scaleFactor);
+            }
 
-                        processBuilder.redirectErrorStream(true);
-                        Process process = processBuilder.start();
+            // Resize the image
+            resultImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
-                        // Read the process output
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                            String line;
-                            while ((line = reader.readLine()) != null) {
-                                System.out.println("FFmpeg: " + line);
-                            }
-                        }
+            // Use high-quality scaling
+            Graphics2D g = resultImage.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.drawImage(originalImage, 0, 0, width, height, null);
+            g.dispose();
 
-                        boolean completed = process.waitFor(30, TimeUnit.SECONDS);
-                        if (!completed) {
-                            process.destroyForcibly();
-                            continue;
-                        }
+            // Write the image with appropriate compression level
+            float quality = calculateJpegQuality(inputFile.getSize());
 
-                        if (process.exitValue() == 0 && tempOutputFile.exists()) {
-                            long size = tempOutputFile.length();
-                            if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
-                                success = true;
-                                break;
-                            }
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Conversion interrupted", e);
+            ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            params.setCompressionQuality(quality); // 0.0-1.0, lower means more compression
+
+            try (ImageOutputStream output = ImageIO.createImageOutputStream(tempOutputFile)) {
+                writer.setOutput(output);
+                writer.write(null, new IIOImage(resultImage, null, null), params);
+            }
+
+            // If the file is still not within size range, try a few more times with different qualities
+            if (tempOutputFile.length() < MIN_SIZE_BYTES || tempOutputFile.length() > MAX_SIZE_BYTES) {
+                for (int attempt = 0; attempt < MAX_ATTEMPTS &&
+                        (tempOutputFile.length() < MIN_SIZE_BYTES || tempOutputFile.length() > MAX_SIZE_BYTES); attempt++) {
+
+                    float adjustedQuality;
+                    if (tempOutputFile.length() < MIN_SIZE_BYTES) {
+                        // Increase quality to increase file size
+                        adjustedQuality = Math.min(1.0f, quality + (0.1f * (attempt + 1)));
+                    } else {
+                        // Decrease quality to decrease file size
+                        adjustedQuality = Math.max(0.5f, quality - (0.1f * (attempt + 1)));
+                    }
+
+                    params.setCompressionQuality(adjustedQuality);
+                    try (ImageOutputStream output = ImageIO.createImageOutputStream(tempOutputFile)) {
+                        writer.setOutput(output);
+                        writer.write(null, new IIOImage(resultImage, null, null), params);
                     }
                 }
-
-                if (!success) {
-                    // Final attempt with fixed parameters
-                    ProcessBuilder processBuilder = new ProcessBuilder(
-                            ffmpegPath,
-                            "-i", tempInputFile.getAbsolutePath(),
-                            "-vf", "scale=iw*0.5:ih*0.5",
-                            "-q:v", "3",
-                            "-y",
-                            tempOutputFile.getAbsolutePath()
-                    );
-
-                    Process process = processBuilder.start();
-                    process.waitFor(30, TimeUnit.SECONDS);
-                }
-            } else {
-                // For images <= MAX_SIZE_BYTES, just convert format without changing size
-                ProcessBuilder processBuilder = new ProcessBuilder(
-                        ffmpegPath,
-                        "-i", tempInputFile.getAbsolutePath(),
-                        "-q:v", "1",  // Best quality
-                        "-y",
-                        tempOutputFile.getAbsolutePath()
-                );
-
-                Process process = processBuilder.start();
-                process.waitFor(30, TimeUnit.SECONDS);
-            }
-
-            if (!tempOutputFile.exists() || tempOutputFile.length() == 0) {
-                throw new IOException("Conversion failed - output file is empty or doesn't exist");
             }
 
             String newFilename = generateOutputFilename(inputFile.getOriginalFilename());
@@ -624,83 +615,38 @@ public class DocumentStorageService {
 
             return new CommonsMultipartFile(fileItem);
 
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         } finally {
             cleanupFile(tempInputFile);
             cleanupFile(tempOutputFile);
         }
     }
 
-    private boolean upscaleImage(File inputFile, File outputFile) throws IOException, InterruptedException {
-        // Gradually try increasing scales with high quality until desired size is reached
-        double[] scales = {1.5, 1.8, 2.0, 2.2, 2.5, 2.8, 3.0};
-
-        for (double scale : scales) {
-            String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
-
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-i", inputFile.getAbsolutePath(),
-                    "-vf", scaleFilter,
-                    "-q:v", "1",          // Best quality
-                    "-qmin", "1",         // Force minimum quality
-                    "-qmax", "2",         // Allow slight variation for better size control
-                    "-y",
-                    outputFile.getAbsolutePath()
-            );
-
-            Process process = processBuilder.start();
-            process.waitFor(30, TimeUnit.SECONDS);
-
-            if (process.exitValue() == 0 && outputFile.exists()) {
-                long size = outputFile.length();
-                if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
-                    return true;
-                }
-            }
+    private float calculateJpegQuality(long originalSize) {
+        // Start with high quality
+        if (originalSize < MIN_SIZE_BYTES) {
+            return 0.95f; // Very high quality for small images
+        } else if (originalSize > MAX_SIZE_BYTES) {
+            // For larger images, start with moderate quality
+            return 0.85f;
         }
-
-        // If we couldn't achieve desired size with scaling alone, try slight quality adjustments
-        if (outputFile.length() < MIN_SIZE_BYTES) {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-i", inputFile.getAbsolutePath(),
-                    "-vf", "scale=iw*3.0:ih*3.0",  // Maximum scale
-                    "-q:v", "2",                    // Slightly reduced quality
-                    "-qmin", "2",
-                    "-qmax", "2",
-                    "-y",
-                    outputFile.getAbsolutePath()
-            );
-
-            Process process = processBuilder.start();
-            return process.waitFor(30, TimeUnit.SECONDS) && process.exitValue() == 0;
-        }
-
-        return false;
+        // For already correctly sized images
+        return 0.9f;
     }
 
-    private int calculateQuality(int attempt) {
-        // Quality values for JPEG (1-31, where 1 is best quality)
-        switch (attempt) {
-            case 0: return 2;  // First try with high quality
-            case 1: return 3;
-            case 2: return 4;
-            case 3: return 5;
-            default: return 6; // Lowest quality we'll try
-        }
+    private double calculateUpscaleRatio(long originalSize) {
+        // Calculate desired upscale factor based on current size
+        double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
+        double ratio = Math.sqrt(targetSize / originalSize);
+        // Limit maximum upscale to 3x
+        return Math.min(3.0, ratio);
     }
 
-    private double calculateScale(int attempt) {
-        // Scale factors to try
-        switch (attempt) {
-            case 0: return 1.0;    // First try with original size
-            case 1: return 0.8;    // 80%
-            case 2: return 0.6;    // 60%
-            case 3: return 0.5;    // 50%
-            default: return 0.4;   // 40%
-        }
+    private double calculateDownscaleRatio(long originalSize) {
+        // Calculate desired downscale factor based on current size
+        double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
+        double ratio = Math.sqrt(targetSize / originalSize);
+        // Limit minimum downscale to 0.3x
+        return Math.max(0.3, ratio);
     }
 
     private String getFileExtension(String filename) {
