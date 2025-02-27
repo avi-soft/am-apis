@@ -465,7 +465,7 @@ public class ProductService {
             }
 
             if (title != null && !title.isEmpty()) {
-                jpql.append("AND p.metaTitle LIKE :title ");
+                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:title) ");
             }
 
             if (fee != null) {
@@ -497,7 +497,7 @@ public class ProductService {
                 query.setParameter("reserveCategories", customReserveCategoryList);
             }
             if (title != null && !title.isEmpty()) {
-                query.setParameter("title", "%" + title + "%");
+                query.setParameter("title", "%" + title.toLowerCase() + "%");
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
