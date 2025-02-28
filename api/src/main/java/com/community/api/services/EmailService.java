@@ -85,6 +85,7 @@ public class EmailService {
             }
 
             mailSender.send(message);
+            System.out.println("Email Semt");
         } catch (MessagingException e) {
             throw new MessagingException("Failed to send email: " + e.getMessage(), e);
         }
