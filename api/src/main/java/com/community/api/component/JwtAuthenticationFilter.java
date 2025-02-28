@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String requestURI = request.getRequestURI();
 
-            if(!isUnsecuredUri(requestURI)/*&&!isApiKeyRequiredUri(request)*/) {
+            if(!isUnsecuredUri(requestURI)&&!isApiKeyRequiredUri(request)) {
                 System.out.println("ENTERING BLOCK1");
                 String token = request.getHeader("Authorization");
                 if(token==null)
@@ -180,7 +180,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/webjars")
                 || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
                 || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
-                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId");
+                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
+                || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id");
     }
 
 
