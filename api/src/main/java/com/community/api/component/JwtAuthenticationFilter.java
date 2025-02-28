@@ -48,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = Constant.BEARER_CONST;
     private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
     private static final Pattern UNSECURED_URI_PATTERN = Pattern.compile(
-            "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars|product-custom/get-product-by-id|category-custom/get-sub-categories|advertisement/get-all-advertisement-by-categoryId).*"
+            "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars).*"
     );
     private String apiKey="IaJGL98yHnKjnlhKshiWiy1IhZ+uFsKnktaqFX3Dvfg=";
     
@@ -86,7 +86,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String requestURI = request.getRequestURI();
 
-            if(!isUnsecuredUri(requestURI)&&!isApiKeyRequiredUri(request)) {
+            if(!isUnsecuredUri(requestURI)/*&&!isApiKeyRequiredUri(request)*/) {
+                System.out.println("ENTERING BLOCK1");
                 String token = request.getHeader("Authorization");
                 if(token==null)
                     respondWithUnauthorized(response, "JWT token cannot be empty");
@@ -98,10 +99,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (isUnsecuredUri(requestURI) || bypassimages(requestURI)) {
+                System.out.println("ENTERING BLOCK2");
                 chain.doFilter(request, response);
                 return;
             }
             if (isApiKeyRequiredUri(request) && validateApiKey(request)) {
+                System.out.println("ENTERING BLOCK3");
                 chain.doFilter(request, response);
                 return;
             }
@@ -109,8 +112,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new AccessDeniedException("Access not granted");*/
             boolean responseHandled = authenticateUser(request, response);
             if (!responseHandled) {
+                System.out.println("ENTERING BLOCK4");
                 chain.doFilter(request, response);
             }else{
+                System.out.println("ENTERING BLOCK5");
                 return;
             }
 
@@ -145,7 +150,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         List<Pattern> bypassPatterns = Arrays.asList(
                 Pattern.compile("^/api/v1/category-custom/get-products-by-category-id/\\d+$"),
-                Pattern.compile("^/api/v1/category-custom/get-all-categories$")
+                Pattern.compile("^/api/v1/category-custom/get-all-categories$"),
+                Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
+                Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
+                Pattern.compile("^/api/v1/product-custom/get-product-by-id$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -169,7 +177,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/swagger-resources")
                 || requestURI.startsWith("/api/v1/v2/api-docs")
                 || requestURI.startsWith("/api/v1/images")
-                || requestURI.startsWith("/api/v1/webjars");
+                || requestURI.startsWith("/api/v1/webjars")
+                || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
+                || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
+                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId");
     }
 
 

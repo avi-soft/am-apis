@@ -4,8 +4,10 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.endpoint.avisoft.controller.ServiceProvider.ServiceProviderController;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -18,25 +20,7 @@ import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
 import com.community.api.entity.StateCode;
-import com.community.api.services.ApplicationScopeService;
-import com.community.api.services.FileDownloadService;
-import com.community.api.services.PostExecutionService;
-import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
-import com.community.api.services.QualificationService;
-import com.community.api.services.ReserveCategoryAgeService;
-import com.community.api.services.ResponseService;
-import com.community.api.services.SanitizerService;
-import com.community.api.services.CustomCustomerService;
-import com.community.api.services.DocumentStorageService;
-import com.community.api.services.ReserveCategoryService;
-import com.community.api.services.SharedUtilityService;
-import com.community.api.services.ReserveCategoryDtoService;
-import com.community.api.services.PhysicalRequirementDtoService;
-import com.community.api.services.RoleService;
-import com.community.api.services.FileService;
-import com.community.api.services.ProductReserveCategoryFeePostRefService;
-import com.community.api.services.DistrictService;
-import com.community.api.services.ApiConstants;
+import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -106,7 +90,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import static com.community.api.component.Constant.request;
+import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @RestController
@@ -135,6 +119,8 @@ public class CustomerEndpoint {
     private DocumentStorageService fileUploadService;
     @Autowired
     private SharedUtilityService sharedUtilityServiceApi;
+    @Autowired
+    private EmailService emailService;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
@@ -1223,7 +1209,20 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
+
+            if(!customCustomer.getEmailActive()&&customCustomer.getEmailAddress()!=null)
+            {
+                customCustomer.setEmailActive(true);
             em.merge(customCustomer);
+            List<String>email=new ArrayList<>();
+            email.add(customCustomer.getEmailAddress());
+                Customer customer=customerService.readCustomerById(customCustomer.getId());
+                String welcomeMessage = String.format(WELCOME_BODY_TEMPLATE,customer.getFirstName()+" "+customer.getLastName());
+            emailService.sendEmailWithAttachments(email,Constant.WELCOME_SUBJECT,welcomeMessage,null);
+            }
+            else {
+                em.merge(customCustomer);
+            }
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader,httpServletRequest), HttpStatus.OK);
 
         } catch (ClassCastException classCastException) {
