@@ -56,6 +56,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.mail.MessagingException;
 import javax.persistence.Query;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
@@ -88,6 +89,7 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
@@ -1219,7 +1221,13 @@ public class CustomerEndpoint {
             email.add(customCustomer.getEmailAddress());
                 Customer customer=customerService.readCustomerById(customCustomer.getId());
                 String welcomeMessage = String.format(WELCOME_BODY_TEMPLATE,customer.getFirstName()+" "+customer.getLastName());
-            emailService.sendEmailWithAttachments(email,Constant.WELCOME_SUBJECT,welcomeMessage,null);
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emailService.sendEmailWithAttachments(email, Constant.WELCOME_SUBJECT, welcomeMessage, null);
+                    } catch (MessagingException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
             else {
                 em.merge(customCustomer);
