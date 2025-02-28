@@ -540,7 +540,7 @@ public class ProductController extends CatalogEndpoint {
     }
 
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(HttpServletRequest request, @PathVariable("productId") String productIdPath) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath) {
 
         try {
 
