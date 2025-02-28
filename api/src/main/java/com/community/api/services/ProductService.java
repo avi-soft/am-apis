@@ -407,10 +407,10 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
-
+    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
+                                              List<Long> reserveCategories, String title, Double fee,
+                                              Integer post, Date startRange, Date endRange) throws Exception {
         try {
-
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
                     .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
@@ -469,15 +469,22 @@ public class ProductService {
             }
 
             if (fee != null) {
-                jpql.append("AND r.fee > :fee ");
+                jpql.append("AND r.fee = :fee ");
             }
 
             if (post != null) {
-                jpql.append("AND r.post > :post ");
+                jpql.append("AND SIZE(p.posts) = :post ");
             }
 
-            if (startRange != null && endRange != null) {
-                jpql.append("AND s.activeStartDate BETWEEN :startRange AND :endRange ");
+            // Filter for exact date match, ignoring time portion
+            if (startRange != null) {
+                jpql.append("AND p.examDateFrom IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.examDateFrom) = FUNCTION('DATE', :startRange) ");
+            }
+
+            if (endRange != null) {
+                jpql.append("AND p.examDateTo IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.examDateTo) = FUNCTION('DATE', :endRange) ");
             }
 
             // Create the query with the final JPQL string
@@ -505,8 +512,10 @@ public class ProductService {
             if (post != null) {
                 query.setParameter("post", post);
             }
-            if (startRange != null && endRange != null) {
+            if (startRange != null) {
                 query.setParameter("startRange", startRange);
+            }
+            if (endRange != null) {
                 query.setParameter("endRange", endRange);
             }
 
