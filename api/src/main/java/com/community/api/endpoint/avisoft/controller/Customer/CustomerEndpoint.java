@@ -939,8 +939,8 @@ public class CustomerEndpoint {
             }
             details.remove("domicile");
 
-            if (details.containsKey("isMinority")) {
-                Boolean isMinority = (Boolean) details.get("isMinority");
+            if (details.containsKey("belongsToMinority")) {
+                Boolean isMinority = (Boolean) details.get("belongsToMinority");
                 if (isMinority.equals(false)) {
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
@@ -954,9 +954,9 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                customCustomer.setIsMinority(isMinority);
+                customCustomer.setBelongsToMinority(isMinority);
             }
-            details.remove("isMinority");
+            details.remove("belongsToMinority");
 
             if (details.containsKey("isSportsCertificate")) {
                 Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
