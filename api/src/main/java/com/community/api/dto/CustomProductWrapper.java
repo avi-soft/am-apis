@@ -331,10 +331,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
-        if(postProjectionDTOS!=null)
-            this.numberOfPosts =(long)postProjectionDTOS.size();
-        else
-            this.numberOfPosts =0L;
+       this.numberOfPosts= (long) customProduct.getPosts().size();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -352,8 +349,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setPost(fee.getPost());
             /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
             reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
-                reserveCategoryDto.setGenderId(fee.getGender().getGenderId());
-                reserveCategoryDto.setGenderName(fee.getGender().getGenderName());
+                if(fee.getGender()!=null)
+                {
+                    reserveCategoryDto.setGenderId(fee.getGender().getGenderId());
+                    reserveCategoryDto.setGenderName(fee.getGender().getGenderName());
+                }
                 feeDto.add(reserveCategoryDto);
             }
         }

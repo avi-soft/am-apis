@@ -407,10 +407,10 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date startRange, Date endRange) throws Exception {
-
+    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
+                                              List<Long> reserveCategories, String title, Double fee,
+                                              Integer post, Date startRange, Date endRange) throws Exception {
         try {
-
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
                     .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
@@ -465,19 +465,26 @@ public class ProductService {
             }
 
             if (title != null && !title.isEmpty()) {
-                jpql.append("AND p.metaTitle LIKE :title ");
+                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:title) ");
             }
 
             if (fee != null) {
-                jpql.append("AND r.fee > :fee ");
+                jpql.append("AND r.fee = :fee ");
             }
 
             if (post != null) {
-                jpql.append("AND r.post > :post ");
+                jpql.append("AND SIZE(p.posts) = :post ");
             }
 
-            if (startRange != null && endRange != null) {
-                jpql.append("AND s.activeStartDate BETWEEN :startRange AND :endRange ");
+            // Filter for exact date match, ignoring time portion
+            if (startRange != null) {
+                jpql.append("AND p.examDateFrom IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.examDateFrom) = FUNCTION('DATE', :startRange) ");
+            }
+
+            if (endRange != null) {
+                jpql.append("AND p.examDateTo IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.examDateTo) = FUNCTION('DATE', :endRange) ");
             }
 
             // Create the query with the final JPQL string
@@ -497,7 +504,7 @@ public class ProductService {
                 query.setParameter("reserveCategories", customReserveCategoryList);
             }
             if (title != null && !title.isEmpty()) {
-                query.setParameter("title", "%" + title + "%");
+                query.setParameter("title", "%" + title.toLowerCase() + "%");
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
@@ -505,8 +512,10 @@ public class ProductService {
             if (post != null) {
                 query.setParameter("post", post);
             }
-            if (startRange != null && endRange != null) {
+            if (startRange != null) {
                 query.setParameter("startRange", startRange);
+            }
+            if (endRange != null) {
                 query.setParameter("endRange", endRange);
             }
 
@@ -525,7 +534,6 @@ public class ProductService {
         StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
 
         Map<String, Object> queryParams = new HashMap<>();
-        List<CustomProduct> products=new ArrayList<>();
 
         // Check if the role exists
         if (roleId != null) {
@@ -535,48 +543,41 @@ public class ProductService {
             }
 
             if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
-                String roleCheckQuery = "SELECT COUNT(p) FROM CustomProduct p WHERE p.creatoRole.role_id = :roleId";
-                Long roleProductCount = entityManager.createQuery(roleCheckQuery, Long.class)
-                        .setParameter("roleId", roleId)
-                        .getSingleResult();
-
-                if (roleProductCount == 0) {
-                    if(showDraftProducts)
-                    {
-                        return ResponseService.generateSuccessResponse("No product is saved as draft by role with id " + roleId, Collections.emptyList(),HttpStatus.OK);
-                    }
-                    return ResponseService.generateSuccessResponse("No product is created by role with id " + roleId, Collections.emptyList(),HttpStatus.OK);
-                } else {
-                    jpql.append("WHERE r.role_id = :roleId ");
-                    queryParams.put("roleId", roleId);
-                }
+                jpql.append("WHERE r.role_id = :roleId ");
+                queryParams.put("roleId", roleId);
 
                 if (userId != null) {
-                    String userCheckQuery = "SELECT COUNT(p) FROM CustomProduct p WHERE p.userId = :userId";
-                    Long userProductCount = entityManager.createQuery(userCheckQuery, Long.class)
-                            .setParameter("userId", userId)
-                            .getSingleResult();
-
-                    if (userProductCount == 0) {
-                        if(showDraftProducts)
-                        {
-                            return ResponseService.generateSuccessResponse("No user with id " + userId + " has saved any product as draft",Collections.emptyList(),HttpStatus.OK);
-                        }
-                        return ResponseService.generateSuccessResponse("No user with id " + userId + " has created any product",Collections.emptyList(),HttpStatus.OK);
-                    } else {
-                        jpql.append("AND p.userId = :userId ");
-                        queryParams.put("userId", userId);
-                    }
+                    jpql.append("AND p.userId = :userId ");
+                    queryParams.put("userId", userId);
                 }
             } else {
-                // For Admin or Superadmin, they can see all products, so no need to append any conditions
+                // For Admin or Superadmin, they can see all products
                 jpql.append("WHERE 1=1 ");
             }
+        } else {
+            jpql.append("WHERE 1=1 ");
         }
+
+        // Add filter for non-archived products - using the correct path through archiveStatus
+        jpql.append("AND p.archiveStatus.archived != 'Y' ");
 
         if (showDraftProducts) {
             jpql.append("AND p.productState.productState = :draftState ");
             queryParams.put("draftState", "DRAFT");
+        }
+
+        // Get the count query
+        String countJpql = jpql.toString().replace("SELECT DISTINCT p", "SELECT COUNT(DISTINCT p)");
+
+        // Execute count query for pagination
+        TypedQuery<Long> countQuery = entityManager.createQuery(countJpql, Long.class);
+        queryParams.forEach(countQuery::setParameter);
+        long totalProducts = countQuery.getSingleResult();
+
+        int totalPages = (int) Math.ceil((double) totalProducts / limit);
+
+        if (page >= totalPages && page != 0 && totalProducts > 0) {
+            throw new IllegalArgumentException("No more products available");
         }
 
         // Execute the query with pagination
@@ -586,95 +587,33 @@ public class ProductService {
         int startPosition = page * limit;
         query.setFirstResult(startPosition);
         query.setMaxResults(limit);
-        products= query.getResultList();
+        List<CustomProduct> products = query.getResultList();
 
-        long totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
-        int totalPages =(int) Math.ceil((double) totalProducts / limit);
-        if (page >= totalPages && page!=0) {
-            throw new IllegalArgumentException("No more products availabe");
-        }
-        if (products.isEmpty() && page==0) {
-            if(showDraftProducts)
-            {
-                return ResponseService.generateSuccessResponse("Draft Product list is empty",products,HttpStatus.OK);
+        if (products.isEmpty() && page == 0) {
+            if (showDraftProducts) {
+                return ResponseService.generateSuccessResponse("Draft Product list is empty", products, HttpStatus.OK);
             }
-            return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY",products, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY", products, HttpStatus.OK);
         }
-         totalProducts = countTotalProducts(roleId, userId,showDraftProducts);
+
         List<CustomProductWrapper> responses = new ArrayList<>();
         for (CustomProduct customProduct : products) {
-            if (customProduct != null && ((((Status) customProduct).getArchived() != 'Y')))
-            {
-                CustomProductWrapper wrapper = new CustomProductWrapper();
-                wrapper.wrapDetails(customProduct);
-                responses.add(wrapper);
-            }
+            CustomProductWrapper wrapper = new CustomProductWrapper();
+            wrapper.wrapDetails(customProduct);
+            responses.add(wrapper);
         }
 
         Map<String, Object> response = new HashMap<>();
         response.put("products", responses);
         response.put("currentPage", page);
         response.put("totalItems", totalProducts);
-        response.put("totalPages",totalPages );
-        if(showDraftProducts)
-        {
-            return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully",response,HttpStatus.OK);
+        response.put("totalPages", totalPages);
+
+        if (showDraftProducts) {
+            return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully", response, HttpStatus.OK);
         }
 
         return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
-    }
-
-    public long countTotalProducts(Integer roleId, Long userId, boolean showDraftProducts) {
-        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
-        StringBuilder countJpql = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p JOIN p.creatoRole r ");
-
-        Map<String, Object> queryParams = new HashMap<>();
-        Map<String, Object> queryParamsForJpql = new HashMap<>();
-
-        if (roleId != null) {
-            Role role = entityManager.find(Role.class, roleId);
-            if (role == null) {
-                throw new IllegalArgumentException("No role exists with id " + roleId);
-            }
-
-            if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
-                countJpql.append("WHERE r.role_id = :roleId ");
-                jpql.append("WHERE r.role_id = :roleId ");
-                queryParams.put("roleId", roleId);
-                queryParamsForJpql.put("roleId", roleId);
-
-                if (userId != null) {
-                    countJpql.append("AND p.userId = :userId ");
-                    jpql.append("AND p.userId = :userId ");
-                    queryParams.put("userId", userId);
-                    queryParamsForJpql.put("userId", userId);
-                }
-            } else {
-                countJpql.append("WHERE 1=1 ");
-                jpql.append("WHERE 1=1 ");
-            }
-            if (showDraftProducts) {
-                countJpql.append("AND p.productState.productState = :draftState ");
-                jpql.append("AND p.productState.productState = :draftState ");
-                queryParams.put("draftState", "DRAFT");
-                queryParamsForJpql.put("draftState", "DRAFT");
-            }
-        }
-        TypedQuery<Long> countQuery = entityManager.createQuery(countJpql.toString(), Long.class);
-        queryParams.forEach(countQuery::setParameter);
-        long totalCount= countQuery.getSingleResult();
-        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-        queryParamsForJpql.forEach(query::setParameter);
-        queryParamsForJpql.forEach(countQuery::setParameter);
-        List<CustomProduct> products=new ArrayList<>();
-        products= query.getResultList();
-        for (CustomProduct customProduct : products) {
-            if(customProduct!=null && ((((Status) customProduct).getArchived() == 'Y')))
-            {
-                totalCount-=1;
-            }
-        }
-        return totalCount;
     }
 
     public boolean addProductAccessAuthorisation(String authHeader) throws Exception {

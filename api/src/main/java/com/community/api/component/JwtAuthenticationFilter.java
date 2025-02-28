@@ -87,6 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String requestURI = request.getRequestURI();
 
             if(!isUnsecuredUri(requestURI)&&!isApiKeyRequiredUri(request)) {
+                System.out.println("ENTERING BLOCK1");
                 String token = request.getHeader("Authorization");
                 if(token==null)
                     respondWithUnauthorized(response, "JWT token cannot be empty");
@@ -98,10 +99,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (isUnsecuredUri(requestURI) || bypassimages(requestURI)) {
+                System.out.println("ENTERING BLOCK2");
                 chain.doFilter(request, response);
                 return;
             }
             if (isApiKeyRequiredUri(request) && validateApiKey(request)) {
+                System.out.println("ENTERING BLOCK3");
                 chain.doFilter(request, response);
                 return;
             }
@@ -109,8 +112,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new AccessDeniedException("Access not granted");*/
             boolean responseHandled = authenticateUser(request, response);
             if (!responseHandled) {
+                System.out.println("ENTERING BLOCK4");
                 chain.doFilter(request, response);
             }else{
+                System.out.println("ENTERING BLOCK5");
                 return;
             }
 
@@ -145,7 +150,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         List<Pattern> bypassPatterns = Arrays.asList(
                 Pattern.compile("^/api/v1/category-custom/get-products-by-category-id/\\d+$"),
-                Pattern.compile("^/api/v1/category-custom/get-all-categories$")
+                Pattern.compile("^/api/v1/category-custom/get-all-categories$"),
+                Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
+                Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
+                Pattern.compile("^/api/v1/product-custom/get-product-by-id$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -169,7 +177,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/swagger-resources")
                 || requestURI.startsWith("/api/v1/v2/api-docs")
                 || requestURI.startsWith("/api/v1/images")
-                || requestURI.startsWith("/api/v1/webjars");
+                || requestURI.startsWith("/api/v1/webjars")
+                || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
+                || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
+                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
+                || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id");
     }
 
 
@@ -212,7 +224,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         Customer customCustomer = null;
         ServiceProviderEntity serviceProvider = null;
-        CustomAdmin customAdmin=null;
+        ServiceProviderEntity customAdmin=null;
         if (id != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.roleUser)) {
                 customCustomer = CustomerService.readCustomerById(id);
@@ -243,10 +255,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             else if (roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.roleAdminServiceProvider)) {
-                customAdmin=entityManager.find(CustomAdmin.class,id);
+                customAdmin=entityManager.find(ServiceProviderEntity.class,id);
                 if (customAdmin != null && jwtUtil.validateToken(jwt, ipAdress, User_Agent)) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            customAdmin.getAdmin_id(), null, new ArrayList<>());
+                            customAdmin.getService_provider_id(), null, new ArrayList<>());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     return false;

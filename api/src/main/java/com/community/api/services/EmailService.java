@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +55,6 @@ public class EmailService {
             return scanner.useDelimiter("\\A").next();
         }
     }
-
     public void sendEmailWithAttachments(List<String> recipients, String subject, String content, List<File> attachments) throws MessagingException {
         if (recipients == null || recipients.isEmpty()) {
             throw new MessagingException("Recipients list cannot be empty");
@@ -85,6 +85,7 @@ public class EmailService {
             }
 
             mailSender.send(message);
+            System.out.println("Email Semt");
         } catch (MessagingException e) {
             throw new MessagingException("Failed to send email: " + e.getMessage(), e);
         }
