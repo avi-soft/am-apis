@@ -173,11 +173,11 @@ public class CategoryController extends CatalogEndpoint {
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             // Validate offset index
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("PAGE INDEX OUT OF RANGE", HttpStatus.BAD_REQUEST);
             }
 
-            List<CustomCategoryWrapper> paginatedCategories = activeCategories.subList(fromIndex, toIndex);
+            List<CustomCategoryWrapper> paginatedCategories = (totalItems > 0) ? activeCategories.subList(fromIndex, toIndex) : new ArrayList<>();
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
@@ -186,10 +186,12 @@ public class CategoryController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
+            // If no categories found, return a message but still maintain structure
+            String message = totalItems > 0 ? "CATEGORIES FOUND SUCCESSFULLY" : "CATEGORIES LIST IS EMPTY";
 
-        }
-        catch (IllegalArgumentException exception) {
+            return ResponseService.generateSuccessResponse(message, response, HttpStatus.OK);
+
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
         }catch (Exception exception) {
@@ -238,11 +240,11 @@ public class CategoryController extends CatalogEndpoint {
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
             // Validate offset request
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("PAGE INDEX OUT OF RANGE", HttpStatus.BAD_REQUEST);
             }
 
-            List<CustomCategoryWrapper> paginatedList = activeCategories.subList(fromIndex, toIndex);
+            List<CustomCategoryWrapper> paginatedList = (totalItems > 0) ? activeCategories.subList(fromIndex, toIndex) : new ArrayList<>();
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
@@ -251,10 +253,12 @@ public class CategoryController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("CATEGORIES FOUND SUCCESSFULLY",response, HttpStatus.OK);
+            // If no categories found, return a message but still maintain structure
+            String message = totalItems > 0 ? "CATEGORIES FOUND SUCCESSFULLY" : "CATEGORIES LIST IS EMPTY";
 
-        }
-        catch (IllegalArgumentException exception) {
+            return ResponseService.generateSuccessResponse(message, response, HttpStatus.OK);
+
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
         }catch (Exception exception) {
