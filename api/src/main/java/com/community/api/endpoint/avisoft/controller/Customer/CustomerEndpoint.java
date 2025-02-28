@@ -1598,7 +1598,7 @@ public class CustomerEndpoint {
                                     String filePath = existingDocument.getFilePath();
 
                                     if (filePath != null) {
-//                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
 
                                     existingDocument.setDocumentType(null);
@@ -1905,7 +1905,7 @@ public class CustomerEndpoint {
 
                                     String filePath = existingDocument.getFilePath();
                                     if (filePath != null) {
-//                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                                     }
                                     existingDocument.setDocumentType(null);
                                     existingDocument.setName(null);
