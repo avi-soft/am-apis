@@ -183,32 +183,63 @@ public class FFmpegManager {
                     Files.newInputStream(tempFile)))) {
 
                 ZipEntry entry;
-                while ((entry = zipStream.getNextEntry()) != null) {
-                    String entryName = entry.getName();
-                    logger.debug("Examining entry: {}", entryName);
+                boolean found = false;
 
-                    // Look for the FFmpeg executable in the archive
-                    if (entryName.endsWith("ffmpeg.exe") || entryName.endsWith("/ffmpeg") ||
-                            entryName.contains("/bin/ffmpeg") || entryName.contains("\\bin\\ffmpeg.exe")) {
-                        Path ffmpegExecutable = getExpectedFFmpegPath(os);
-                        logger.info("Found FFmpeg executable: {}, extracting to {}", entryName, ffmpegExecutable);
+                // For Mac, the structure might be different
+                if (os.equals("mac")) {
+                    while ((entry = zipStream.getNextEntry()) != null) {
+                        String entryName = entry.getName();
+                        logger.debug("Mac archive entry: {}", entryName);
 
-                        // Copy the executable
-                        Files.copy(zipStream, ffmpegExecutable, StandardCopyOption.REPLACE_EXISTING);
+                        // For Mac builds from evermeet.cx, the executable is usually just named "ffmpeg"
+                        if (entryName.equals("ffmpeg")) {
+                            Path ffmpegExecutable = getExpectedFFmpegPath(os);
+                            logger.info("Found Mac FFmpeg executable: {}, extracting to {}", entryName, ffmpegExecutable);
 
-                        // Make it executable on Mac/Linux
-                        if (!os.equals("windows")) {
+                            // Copy the executable
+                            Files.copy(zipStream, ffmpegExecutable, StandardCopyOption.REPLACE_EXISTING);
+
+                            // Make it executable
                             ffmpegExecutable.toFile().setExecutable(true, false);
-                            // On some Unix systems, also try with POSIX permissions
                             try {
                                 Files.setPosixFilePermissions(ffmpegExecutable,
                                         PosixFilePermissions.fromString("rwxr-xr-x"));
                             } catch (UnsupportedOperationException e) {
                                 // Not all filesystems support POSIX permissions, ignore
                             }
-                        }
 
-                        break;
+                            found = true;
+                            break;
+                        }
+                    }
+                } else {
+                    while ((entry = zipStream.getNextEntry()) != null) {
+                        String entryName = entry.getName();
+                        logger.debug("Examining entry: {}", entryName);
+
+                        // Look for the FFmpeg executable in the archive
+                        if (entryName.endsWith("ffmpeg.exe") || entryName.endsWith("/ffmpeg") ||
+                                entryName.contains("/bin/ffmpeg") || entryName.contains("\\bin\\ffmpeg.exe")) {
+                            Path ffmpegExecutable = getExpectedFFmpegPath(os);
+                            logger.info("Found FFmpeg executable: {}, extracting to {}", entryName, ffmpegExecutable);
+
+                            // Copy the executable
+                            Files.copy(zipStream, ffmpegExecutable, StandardCopyOption.REPLACE_EXISTING);
+
+                            // Make it executable on Mac/Linux
+                            if (!os.equals("windows")) {
+                                ffmpegExecutable.toFile().setExecutable(true, false);
+                                // On some Unix systems, also try with POSIX permissions
+                                try {
+                                    Files.setPosixFilePermissions(ffmpegExecutable,
+                                            PosixFilePermissions.fromString("rwxr-xr-x"));
+                                } catch (UnsupportedOperationException e) {
+                                    // Not all filesystems support POSIX permissions, ignore
+                                }
+                            }
+
+                            break;
+                        }
                     }
                 }
             }
