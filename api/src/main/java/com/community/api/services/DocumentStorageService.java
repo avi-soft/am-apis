@@ -1,5 +1,6 @@
 package com.community.api.services;
 import com.community.api.component.Constant;
+import com.community.api.component.FFmpegManager;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
@@ -28,6 +29,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -36,6 +40,11 @@ import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
@@ -75,8 +84,7 @@ public class DocumentStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("${ffmpeg.path}")
-    private String ffmpegPath;
+    private final String ffmpegPath;
     private final ExecutorService executorService;
     @Value("${secret.key}")
     private  String key;
@@ -95,18 +103,29 @@ public class DocumentStorageService {
             "dib", "jxr", "dpx", "cin", "gif"
     ));
 
-   /* public DocumentStorageService() throws IOException {
+    /**
+     * Constructor with FFmpegManager - preferred approach
+     */
+    @Autowired
+    public DocumentStorageService(FFmpegManager ffmpegManager) {
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        this.ffmpegPath = getFfmpegExecutablePath();
-    }*/
-   public DocumentStorageService(String ffmpegPath) throws IOException {
-       this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-       this.ffmpegPath = ffmpegPath;
-   }
+        this.ffmpegPath = ffmpegManager.getFFmpegExecutable();
+    }
 
-    private String getFfmpegExecutablePath() throws IOException {
-        File ffmpegFile = new ClassPathResource("ffmpeg/ffmpeg.exe").getFile();
-        return ffmpegFile.getAbsolutePath();
+    /**
+     * Constructor with explicit path (for backward compatibility or testing)
+     */
+    public DocumentStorageService(String ffmpegPath) {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        this.ffmpegPath = ffmpegPath;
+    }
+
+    /**
+     * Get the FFmpeg executable path
+     * This method is now simpler since FFmpegManager handles all the complexity
+     */
+    private String getFfmpegExecutablePath() {
+        return this.ffmpegPath;
     }
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
@@ -367,22 +386,22 @@ public class DocumentStorageService {
 
 
         newDocument.setFilePath(newFilePath);
-         em.persist(newDocument);
-         return newDocument;
+        em.persist(newDocument);
+        return newDocument;
     }
 
 
 
 
-        public String encrypt(String data) throws Exception {
-            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-            byte[] encryptedData = cipher.doFinal(data.getBytes());
+    public String encrypt(String data) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
+        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] encryptedData = cipher.doFinal(data.getBytes());
 
-            // Use URL-safe Base64 encoding
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(encryptedData);
-        }
+        // Use URL-safe Base64 encoding
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(encryptedData);
+    }
 
     @Transactional
     public ServiceProviderDocument createDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role) {
@@ -506,101 +525,74 @@ public class DocumentStorageService {
         }
 
         File tempInputFile = null;
+        File tempIntermediateFile = null;
         File tempOutputFile = null;
 
         try {
             String timestamp = String.valueOf(System.currentTimeMillis());
             tempInputFile = File.createTempFile("temp_" + timestamp, "." + originalExtension);
+            tempIntermediateFile = File.createTempFile("intermediate_" + timestamp, ".jpg");
             tempOutputFile = File.createTempFile("converted_" + timestamp, ".jpg");
 
             inputFile.transferTo(tempInputFile);
 
-            boolean success = false;
+            // STEP 1: Use FFmpeg to convert format to JPG (without resizing)
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    ffmpegPath,
+                    "-i", tempInputFile.getAbsolutePath(),
+                    "-q:v", "1",  // Best quality for intermediate step
+                    "-y",
+                    tempIntermediateFile.getAbsolutePath()
+            );
 
-            // Only compress if the image is larger than MAX_SIZE_BYTES
-            if (inputFile.getSize() < MIN_SIZE_BYTES) {
-                // For small images, try to increase size while maintaining quality
-                success = upscaleImage(tempInputFile, tempOutputFile);
-            }
-            else if (inputFile.getSize() > MAX_SIZE_BYTES) {
-                // Try compression with different parameters until we get the desired size
-                for (int attempt = 0; attempt < MAX_ATTEMPTS && !success; attempt++) {
-                    try {
-                        int quality = calculateQuality(attempt);
-                        double scale = calculateScale(attempt);
+            Process process = processBuilder.start();
 
-                        String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
-
-                        ProcessBuilder processBuilder = new ProcessBuilder(
-                                ffmpegPath,
-                                "-i", tempInputFile.getAbsolutePath(),
-                                "-vf", scaleFilter,
-                                "-q:v", String.valueOf(quality),
-                                "-y",
-                                tempOutputFile.getAbsolutePath()
-                        );
-
-                        processBuilder.redirectErrorStream(true);
-                        Process process = processBuilder.start();
-
-                        // Read the process output
-                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                            String line;
-                            while ((line = reader.readLine()) != null) {
-                                System.out.println("FFmpeg: " + line);
-                            }
-                        }
-
-                        boolean completed = process.waitFor(30, TimeUnit.SECONDS);
-                        if (!completed) {
-                            process.destroyForcibly();
-                            continue;
-                        }
-
-                        if (process.exitValue() == 0 && tempOutputFile.exists()) {
-                            long size = tempOutputFile.length();
-                            if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
-                                success = true;
-                                break;
-                            }
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Conversion interrupted", e);
-                    }
+            // Read the process output for debugging
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("FFmpeg: " + line);
                 }
-
-                if (!success) {
-                    // Final attempt with fixed parameters
-                    ProcessBuilder processBuilder = new ProcessBuilder(
-                            ffmpegPath,
-                            "-i", tempInputFile.getAbsolutePath(),
-                            "-vf", "scale=iw*0.5:ih*0.5",
-                            "-q:v", "3",
-                            "-y",
-                            tempOutputFile.getAbsolutePath()
-                    );
-
-                    Process process = processBuilder.start();
-                    process.waitFor(30, TimeUnit.SECONDS);
-                }
-            } else {
-                // For images <= MAX_SIZE_BYTES, just convert format without changing size
-                ProcessBuilder processBuilder = new ProcessBuilder(
-                        ffmpegPath,
-                        "-i", tempInputFile.getAbsolutePath(),
-                        "-q:v", "1",  // Best quality
-                        "-y",
-                        tempOutputFile.getAbsolutePath()
-                );
-
-                Process process = processBuilder.start();
-                process.waitFor(30, TimeUnit.SECONDS);
             }
 
-            if (!tempOutputFile.exists() || tempOutputFile.length() == 0) {
-                throw new IOException("Conversion failed - output file is empty or doesn't exist");
+            boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+            if (!completed) {
+                process.destroyForcibly();
+                throw new IOException("FFmpeg conversion timed out");
             }
+
+            if (process.exitValue() != 0 || !tempIntermediateFile.exists() || tempIntermediateFile.length() == 0) {
+                throw new IOException("Format conversion failed - output file is empty or doesn't exist");
+            }
+
+            // STEP 2: Now use Java's image processing to resize and adjust quality
+            BufferedImage intermediateImage = ImageIO.read(tempIntermediateFile);
+            if (intermediateImage == null) {
+                throw new IOException("Failed to read intermediate image");
+            }
+
+            // Calculate target size based on whether we need to upscale or downscale
+            int width = intermediateImage.getWidth();
+            int height = intermediateImage.getHeight();
+            long intermediateSize = tempIntermediateFile.length();
+
+            if (intermediateSize < MIN_SIZE_BYTES) {
+                // Upscale small images
+                double scaleFactor = calculateUpscaleRatio(intermediateSize);
+                width = (int) (width * scaleFactor);
+                height = (int) (height * scaleFactor);
+            } else if (intermediateSize > MAX_SIZE_BYTES) {
+                // Downscale large images
+                double scaleFactor = calculateDownscaleRatio(intermediateSize);
+                width = (int) (width * scaleFactor);
+                height = (int) (height * scaleFactor);
+            }
+
+            // Resize with high quality
+            BufferedImage resultImage = resizeWithHighQuality(intermediateImage, width, height);
+
+            // Write the JPEG with appropriate compression
+            writeJpegWithTargetSize(resultImage, tempOutputFile, intermediateSize);
 
             String newFilename = generateOutputFilename(inputFile.getOriginalFilename());
 
@@ -625,84 +617,78 @@ public class DocumentStorageService {
             return new CommonsMultipartFile(fileItem);
 
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
+            throw new IOException("Conversion interrupted", e);
         } finally {
             cleanupFile(tempInputFile);
+            cleanupFile(tempIntermediateFile);
             cleanupFile(tempOutputFile);
         }
     }
 
-    private boolean upscaleImage(File inputFile, File outputFile) throws IOException, InterruptedException {
-        // Gradually try increasing scales with high quality until desired size is reached
-        double[] scales = {1.5, 1.8, 2.0, 2.2, 2.5, 2.8, 3.0};
+    // Reuse these methods from the first version
+    private BufferedImage resizeWithHighQuality(BufferedImage original, int targetWidth, int targetHeight) {
+        BufferedImage resized = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
 
-        for (double scale : scales) {
-            String scaleFilter = String.format("scale=iw*%.2f:ih*%.2f", scale, scale);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.drawImage(original, 0, 0, targetWidth, targetHeight, null);
+        g.dispose();
 
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-i", inputFile.getAbsolutePath(),
-                    "-vf", scaleFilter,
-                    "-q:v", "1",          // Best quality
-                    "-qmin", "1",         // Force minimum quality
-                    "-qmax", "2",         // Allow slight variation for better size control
-                    "-y",
-                    outputFile.getAbsolutePath()
-            );
+        return resized;
+    }
 
-            Process process = processBuilder.start();
-            process.waitFor(30, TimeUnit.SECONDS);
+    private void writeJpegWithTargetSize(BufferedImage image, File outputFile, long originalSize) throws IOException {
+        // Start with reasonable quality
+        float targetQuality = originalSize < MIN_SIZE_BYTES ? 0.95f : 0.85f;
 
-            if (process.exitValue() == 0 && outputFile.exists()) {
-                long size = outputFile.length();
-                if (size >= MIN_SIZE_BYTES && size <= MAX_SIZE_BYTES) {
-                    return true;
-                }
+        // Try writing with different quality levels until we hit target size range
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+            ImageWriteParam params = writer.getDefaultWriteParam();
+            params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            params.setCompressionQuality(targetQuality);
+
+            try (ImageOutputStream output = ImageIO.createImageOutputStream(outputFile)) {
+                writer.setOutput(output);
+                writer.write(null, new IIOImage(image, null, null), params);
+            }
+
+            long fileSize = outputFile.length();
+
+            // Check if size is in desired range
+            if (fileSize >= MIN_SIZE_BYTES && fileSize <= MAX_SIZE_BYTES) {
+                break;
+            }
+
+            // Adjust quality for next attempt
+            if (fileSize < MIN_SIZE_BYTES) {
+                targetQuality = Math.min(1.0f, targetQuality + 0.1f);
+            } else {
+                targetQuality = Math.max(0.5f, targetQuality - 0.1f);
             }
         }
-
-        // If we couldn't achieve desired size with scaling alone, try slight quality adjustments
-        if (outputFile.length() < MIN_SIZE_BYTES) {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-i", inputFile.getAbsolutePath(),
-                    "-vf", "scale=iw*3.0:ih*3.0",  // Maximum scale
-                    "-q:v", "2",                    // Slightly reduced quality
-                    "-qmin", "2",
-                    "-qmax", "2",
-                    "-y",
-                    outputFile.getAbsolutePath()
-            );
-
-            Process process = processBuilder.start();
-            return process.waitFor(30, TimeUnit.SECONDS) && process.exitValue() == 0;
-        }
-
-        return false;
     }
 
-    private int calculateQuality(int attempt) {
-        // Quality values for JPEG (1-31, where 1 is best quality)
-        switch (attempt) {
-            case 0: return 2;  // First try with high quality
-            case 1: return 3;
-            case 2: return 4;
-            case 3: return 5;
-            default: return 6; // Lowest quality we'll try
-        }
+    private double calculateUpscaleRatio(long originalSize) {
+        // Calculate desired upscale factor based on current size
+        double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
+        double ratio = Math.sqrt(targetSize / originalSize);
+        // Limit maximum upscale to 3x
+        return Math.min(3.0, ratio);
     }
 
-    private double calculateScale(int attempt) {
-        // Scale factors to try
-        switch (attempt) {
-            case 0: return 1.0;    // First try with original size
-            case 1: return 0.8;    // 80%
-            case 2: return 0.6;    // 60%
-            case 3: return 0.5;    // 50%
-            default: return 0.4;   // 40%
-        }
+    private double calculateDownscaleRatio(long originalSize) {
+        // Calculate desired downscale factor based on current size
+        double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
+        double ratio = Math.sqrt(targetSize / originalSize);
+        // Limit minimum downscale to 0.3x
+        return Math.max(0.3, ratio);
     }
 
+    // Reuse these utility methods from the second version
     private String getFileExtension(String filename) {
         if (filename == null || filename.lastIndexOf('.') == -1) {
             return "";
