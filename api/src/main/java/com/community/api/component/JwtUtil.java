@@ -190,6 +190,7 @@ public class JwtUtil {
             throw e;
         } catch (Exception e) {
             exceptionHandling.handleException(e);
+            System.out.println("1111");
             throw new RuntimeException("Invalid JWT token", e);
         }
     }
@@ -212,6 +213,7 @@ public class JwtUtil {
             logoutUser(token);
             throw new ExpiredJwtException(null, null, "Token is expired");
         } catch (Exception e) {
+            System.out.println("2111");
             throw new RuntimeException("Invalid JWT token", e);
         }
     }
@@ -241,7 +243,7 @@ public class JwtUtil {
             int role=extractRoleId(token);
             Customer existingCustomer=null;
             ServiceProviderEntity existingServiceProvider=null;
-            CustomAdmin existingAdmin=null;
+            ServiceProviderEntity existingAdmin=null;
             if(roleService.findRoleName(role).equals(Constant.roleUser)){
                 existingCustomer = customerService.readCustomerById(id);
                 if (existingCustomer == null) {
@@ -255,7 +257,7 @@ public class JwtUtil {
             }
             else if(roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
             {
-                existingAdmin= entityManager.find(CustomAdmin.class, id);
+                existingAdmin= entityManager.find(ServiceProviderEntity.class, id);
                 if(existingAdmin==null)
                 {
                     return false;
@@ -305,6 +307,7 @@ public class JwtUtil {
             throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "Token is expired and cannot be used.");
         } catch (MalformedJwtException | SignatureException e) {
             exceptionHandling.handleException(e);
+            System.out.println("3111");
             throw new RuntimeException("Invalid JWT token", e);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
