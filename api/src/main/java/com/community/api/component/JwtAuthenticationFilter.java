@@ -127,9 +127,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             handleException(response, HttpServletResponse.SC_UNAUTHORIZED, "JWT token is expired");
             logger.error("ExpiredJwtException caught: {}", e.getMessage());
         } catch (MalformedJwtException e) {
+            System.out.println("hi");
             handleException(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
             exceptionHandling.handleException(e);
-            logger.error("MalformedJwtException caught: {}", e.getMessage());
+            System.out.println("MalformedJwtException caught: {}"+e.getMessage());
         } catch (Exception e) {
             handleException(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             exceptionHandling.handleException(e);
@@ -186,6 +187,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     private boolean authenticateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        System.out.println("hiiiii");
         final String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             respondWithUnauthorized(response, "JWT token cannot be empty");

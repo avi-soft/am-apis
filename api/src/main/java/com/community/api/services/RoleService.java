@@ -1,12 +1,14 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.entity.Role;
 import com.community.api.entity.Skill;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.social.NotAuthorizedException;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -22,6 +24,10 @@ public class RoleService {
     private SharedUtilityService sharedUtilityService;
     private ResponseService responseService;
     private ExceptionHandlingImplement exceptionHandling;
+    @Autowired
+    private JwtUtil jwtTokenUtil;
+    @Autowired
+    private RoleService roleService;
 
     @Autowired
     public void setEntityManager(EntityManager entityManager) {
@@ -84,5 +90,31 @@ public class RoleService {
                 .findFirst()
                 .orElse(null);
     }
-
+    public List<Role>getCondRoles(String authHeader) throws NotAuthorizedException {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        List<Role> allRoles = roleService.findAllRoleList();
+        switch (roleId) {
+            case 1:
+                allRoles.remove(4);
+                allRoles.remove(0);
+                break;
+            case 2:
+                allRoles.remove(4);
+                allRoles.remove(0);
+                allRoles.remove(1);
+                break;
+            case 3:
+                allRoles.clear();
+                ;
+                break;
+            case 4:
+                allRoles.clear();
+                ;
+                break;
+            case 5:
+                throw new NotAuthorizedException("Unauthorized", "Unauthorized access");
+        }
+        return allRoles;
+    }
 }
