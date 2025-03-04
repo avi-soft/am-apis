@@ -181,6 +181,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/webjars")
                 || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
                 || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
+                || requestURI.matches("^/api/v1/category-custom/get-sub-categories(/.*)?$")
                 || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
                 || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id");
     }
