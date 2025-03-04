@@ -242,4 +242,5 @@ public class Constant {
             "Best regards,\n" +
             "Admin";
     public static final String WELCOME_SUBJECT="System Message";
+    public static final Integer SUPER_ADMIN_PRIVILEGES=4;
 }
