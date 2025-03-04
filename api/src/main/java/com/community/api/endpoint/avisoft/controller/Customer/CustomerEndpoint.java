@@ -1225,7 +1225,7 @@ public class CustomerEndpoint {
                     try {
                         emailService.sendEmailWithAttachments(email, Constant.WELCOME_SUBJECT, welcomeMessage, null);
                     } catch (MessagingException e) {
-                        throw new RuntimeException(e);
+                         throw new RuntimeException(e);
                     }
                 });
             }
