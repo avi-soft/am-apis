@@ -33,6 +33,8 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.lang.reflect.Method;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -347,7 +349,6 @@ public class DocumentStorageService {
     public void deleteDocument(Document document) {
 
         String filePath = document.getFilePath();
-        System.out.println(filePath + " filePath");
         if (filePath != null) {
             File file = new File(filePath);
             if (file.exists()) {
@@ -494,24 +495,77 @@ public class DocumentStorageService {
 
     public String deleteFile(Long customerId, String documentType, String fileName, String role) throws IOException {
         try {
-            // String snakeCaseDocumentType = documentType.trim().replaceAll(" +", "_");
-            String url = fileServerUrl + "/files/delete?customerId=" + customerId +
-                    "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
 
+            // Handle image files for Live Photos (document type ID 3)
+            String fileNameToDelete = fileName;
+            if (fileName != null && documentType.equals("Live_Passport_Size_Photo")) {
+                // Check for various image formats that might be converted to JPG
+                String lowerCaseFileName = fileName.toLowerCase();
+                if (lowerCaseFileName.endsWith(".heic") || lowerCaseFileName.endsWith(".heif") ||
+                        lowerCaseFileName.endsWith(".png") || lowerCaseFileName.endsWith(".webp") ||
+                        lowerCaseFileName.endsWith(".tiff") || lowerCaseFileName.endsWith(".bmp")) {
+
+                    // Extract base name without extension and append .jpg
+                    int lastDotIndex = fileName.lastIndexOf('.');
+                    if (lastDotIndex > 0) {
+                        fileNameToDelete = fileName.substring(0, lastDotIndex) + ".jpg";
+                    }
+                }
+            }
+
+            String url = fileServerUrl + "/files/delete?customerId=" + customerId +
+                    "&documentType=" + documentType + "&fileName=" + fileNameToDelete + "&role=" + role;
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
 
             String deletedFilePath = response.getBody();
+
             if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
-                System.out.println("File deleted: " + deletedFilePath);
             } else {
+                // If original attempt failed and we haven't already tried with original name
+                if (!fileNameToDelete.equals(fileName)) {
+                    url = fileServerUrl + "/files/delete?customerId=" + customerId +
+                            "&documentType=" + documentType + "&fileName=" + fileName + "&role=" + role;
+
+                    try {
+                        response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
+                        deletedFilePath = response.getBody();
+                        if (deletedFilePath != null && !deletedFilePath.isEmpty()) {
+                            return fileName;
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Also failed with original filename: " + e.getMessage());
+                    }
+                }
+
                 throw new IOException("No file path returned from server.");
             }
+            return fileNameToDelete;
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new IOException("Error deleting document: " + e.getMessage());
         }
-        return  fileName;
+    }
+
+    public String getConvertedFilename(MultipartFile file, boolean isLivePhoto) {
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            return "unknown.jpg";
+        }
+
+        if (isLivePhoto) {
+            String lowerCaseFilename = originalFilename.toLowerCase();
+            int lastDotIndex = originalFilename.lastIndexOf('.');
+
+            if (lastDotIndex > 0) {
+                String extension = lowerCaseFilename.substring(lastDotIndex + 1);
+                if (SUPPORTED_IMAGE_FORMATS.contains(extension)) {
+                    return originalFilename.substring(0, lastDotIndex) + ".jpg";
+                }
+            }
+        }
+
+        return originalFilename;
     }
 
     public MultipartFile convertToJpg(MultipartFile inputFile) throws IOException {
@@ -536,39 +590,29 @@ public class DocumentStorageService {
 
             inputFile.transferTo(tempInputFile);
 
-            // STEP 1: Use FFmpeg to convert format to JPG (without resizing)
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    ffmpegPath,
-                    "-i", tempInputFile.getAbsolutePath(),
-                    "-q:v", "1",  // Best quality for intermediate step
-                    "-y",
-                    tempIntermediateFile.getAbsolutePath()
-            );
+            boolean conversionSuccess = false;
 
-            Process process = processBuilder.start();
+            // Special handling for HEIC/HEIF files
+            if (isHeicFormat(originalExtension)) {
+                conversionSuccess = convertHeicWithFfmpeg(tempInputFile, tempIntermediateFile);
 
-            // Read the process output for debugging
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println("FFmpeg: " + line);
+                // If FFmpeg fails for HEIC, try alternative approaches
+                if (!conversionSuccess) {
+                    conversionSuccess = convertHeicWithAlternativeMethods(tempInputFile, tempIntermediateFile);
                 }
+            } else {
+                // For all other formats, use standard FFmpeg approach
+                conversionSuccess = convertWithFfmpeg(tempInputFile, tempIntermediateFile);
             }
 
-            boolean completed = process.waitFor(30, TimeUnit.SECONDS);
-            if (!completed) {
-                process.destroyForcibly();
-                throw new IOException("FFmpeg conversion timed out");
-            }
-
-            if (process.exitValue() != 0 || !tempIntermediateFile.exists() || tempIntermediateFile.length() == 0) {
+            if (!conversionSuccess || !tempIntermediateFile.exists() || tempIntermediateFile.length() == 0) {
                 throw new IOException("Format conversion failed - output file is empty or doesn't exist");
             }
 
             // STEP 2: Now use Java's image processing to resize and adjust quality
             BufferedImage intermediateImage = ImageIO.read(tempIntermediateFile);
             if (intermediateImage == null) {
-                throw new IOException("Failed to read intermediate image");
+                throw new IOException("Failed to read intermediate image after conversion");
             }
 
             // Calculate target size based on whether we need to upscale or downscale
@@ -626,7 +670,209 @@ public class DocumentStorageService {
         }
     }
 
-    // Reuse these methods from the first version
+    // New method for HEIC format detection
+    private boolean isHeicFormat(String extension) {
+        return extension != null &&
+                (extension.equalsIgnoreCase("heic") || extension.equalsIgnoreCase("heif"));
+    }
+
+    private boolean convertHeicWithFfmpeg(File inputFile, File outputFile) throws IOException, InterruptedException {
+        // Verify the input file exists and has content
+        if (!inputFile.exists() || inputFile.length() == 0) {
+            System.err.println("Input file does not exist or is empty: " + inputFile.getAbsolutePath());
+            return false;
+        }
+
+        // Make sure the output directory exists
+        File outputDir = outputFile.getParentFile();
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                ffmpegPath,
+                "-y",  // Force overwrite output file
+                "-i", inputFile.getAbsolutePath(),
+                "-q:v", "1",
+                "-pix_fmt", "yuvj420p",
+                outputFile.getAbsolutePath()
+        );
+
+        // Remove conflicting options that might be causing issues
+        // Removed: "-vsync", "0"
+
+        Process process = processBuilder.start();
+
+        // Use separate threads to read stdout and stderr
+        StringBuilder stdoutBuilder = new StringBuilder();
+        StringBuilder stderrBuilder = new StringBuilder();
+
+        Thread stdoutThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stdoutBuilder.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading FFmpeg stdout: " + e.getMessage());
+            }
+        });
+
+        Thread stderrThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stderrBuilder.append(line).append("\n");
+                    System.err.println("FFmpeg Error: " + line);
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading FFmpeg stderr: " + e.getMessage());
+            }
+        });
+
+        stdoutThread.start();
+        stderrThread.start();
+
+        boolean completed = process.waitFor(60, TimeUnit.SECONDS);
+
+        // Wait for threads to finish
+        stdoutThread.join(5000);
+        stderrThread.join(5000);
+
+        if (!completed) {
+            process.destroyForcibly();
+            System.err.println("HEIC conversion with FFmpeg timed out");
+            return false;
+        }
+
+        int exitCode = process.exitValue();
+        if (exitCode != 0) {
+            System.err.println("HEIC conversion with FFmpeg failed with exit code: " + exitCode);
+            System.err.println("FFmpeg stdout: " + stdoutBuilder.toString());
+            System.err.println("FFmpeg stderr: " + stderrBuilder.toString());
+            return false;
+        }
+
+        // Verify the output file was created and has content
+        boolean success = outputFile.exists() && outputFile.length() > 0;
+        return success;
+    }
+
+    // Standard FFmpeg conversion for non-HEIC files
+    private boolean convertWithFfmpeg(File inputFile, File outputFile) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                ffmpegPath,
+                "-i", inputFile.getAbsolutePath(),
+                "-q:v", "1",  // Best quality
+                "-y",
+                outputFile.getAbsolutePath()
+        );
+
+        Process process = processBuilder.start();
+
+        // Capture output for debugging
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+            }
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.err.println("FFmpeg Error: " + line);
+            }
+        }
+
+        boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+        if (!completed) {
+            process.destroyForcibly();
+            return false;
+        }
+
+        return process.exitValue() == 0 && outputFile.exists() && outputFile.length() > 0;
+    }
+
+    // Alternative method to convert HEIC when FFmpeg fails
+    private boolean convertHeicWithAlternativeMethods(File inputFile, File outputFile) {
+        boolean success = false;
+
+        // Try with JpegKit HEIF decoder if available
+        try {
+            Class<?> heifClass = Class.forName("com.github.gotson.jpegkit.heif.HeifReader");
+            Method readMethod = heifClass.getMethod("read", File.class);
+            BufferedImage image = (BufferedImage) readMethod.invoke(null, inputFile);
+
+            if (image != null) {
+                // Write directly to JPEG with high quality
+                try (ImageOutputStream output = ImageIO.createImageOutputStream(outputFile)) {
+                    ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+                    ImageWriteParam params = writer.getDefaultWriteParam();
+                    params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                    params.setCompressionQuality(0.95f);
+
+                    writer.setOutput(output);
+                    writer.write(null, new IIOImage(image, null, null), params);
+                }
+
+                success = outputFile.exists() && outputFile.length() > 0;
+                if (success) {
+                    System.out.println("Successfully converted HEIC with JpegKit");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("JpegKit HEIF conversion failed: " + e.getMessage());
+        }
+
+        // If JpegKit failed, try Apache Commons Imaging
+        if (!success) {
+            try {
+                // Apache Commons Imaging approach
+                Class<?> imagingClass = Class.forName("org.apache.commons.imaging.Imaging");
+                Method getBufferedImageMethod = imagingClass.getMethod("getBufferedImage", File.class);
+                BufferedImage image = (BufferedImage) getBufferedImageMethod.invoke(null, inputFile);
+
+                if (image != null) {
+                    ImageIO.write(image, "jpg", outputFile);
+                    success = outputFile.exists() && outputFile.length() > 0;
+                    if (success) {
+                        System.out.println("Successfully converted HEIC with Apache Commons Imaging");
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Commons Imaging conversion failed: " + e.getMessage());
+            }
+        }
+
+        // Last resort - try converting with ImageMagick if available
+        if (!success) {
+            try {
+                String imageMagickPath = "/usr/bin/convert"; // Adjust as needed for your system
+
+                ProcessBuilder processBuilder = new ProcessBuilder(
+                        imageMagickPath,
+                        inputFile.getAbsolutePath(),
+                        outputFile.getAbsolutePath()
+                );
+
+                Process process = processBuilder.start();
+                boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+
+                if (completed && process.exitValue() == 0) {
+                    success = outputFile.exists() && outputFile.length() > 0;
+                    if (success) {
+                        System.out.println("Successfully converted HEIC with ImageMagick");
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("ImageMagick conversion failed: " + e.getMessage());
+            }
+        }
+
+        return success;
+    }
+
+    // [Keep all other methods unchanged from the previous version]
     private BufferedImage resizeWithHighQuality(BufferedImage original, int targetWidth, int targetHeight) {
         BufferedImage resized = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
 
@@ -673,22 +919,17 @@ public class DocumentStorageService {
     }
 
     private double calculateUpscaleRatio(long originalSize) {
-        // Calculate desired upscale factor based on current size
         double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
         double ratio = Math.sqrt(targetSize / originalSize);
-        // Limit maximum upscale to 3x
         return Math.min(3.0, ratio);
     }
 
     private double calculateDownscaleRatio(long originalSize) {
-        // Calculate desired downscale factor based on current size
         double targetSize = (MIN_SIZE_BYTES + MAX_SIZE_BYTES) / 2.0;
         double ratio = Math.sqrt(targetSize / originalSize);
-        // Limit minimum downscale to 0.3x
         return Math.max(0.3, ratio);
     }
 
-    // Reuse these utility methods from the second version
     private String getFileExtension(String filename) {
         if (filename == null || filename.lastIndexOf('.') == -1) {
             return "";
@@ -718,19 +959,6 @@ public class DocumentStorageService {
             } catch (IOException e) {
                 System.err.println("Failed to cleanup temporary file: " + e.getMessage());
             }
-        }
-    }
-
-    @PreDestroy
-    public void cleanup() {
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            Thread.currentThread().interrupt();
         }
     }
 }

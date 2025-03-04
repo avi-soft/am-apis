@@ -1463,14 +1463,11 @@ public class CustomerEndpoint {
                                 "Unknown document type for file: " + fileNameId,
                                 HttpStatus.BAD_REQUEST);
                     }
-                    if(documentTypeObj.getDocument_type_id().equals(13))
-                    {
-                        if(otherDocument==null)
-                        {
+                    if (documentTypeObj.getDocument_type_id().equals(13)) {
+                        if (otherDocument == null) {
                             throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
                         }
-                        if(otherDocument.trim().isEmpty())
-                        {
+                        if (otherDocument.trim().isEmpty()) {
                             throw new IllegalArgumentException("otherDocument name cannot be empty");
                         }
                     }
@@ -1495,10 +1492,9 @@ public class CustomerEndpoint {
 
                         // Validate document
                         if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
-                             processedFile = documentStorageService.convertToJpg(file);
+                            processedFile = documentStorageService.convertToJpg(file);
                             customCustomer.setIsLivePhotoNa(false);
-                        }
-                        else {
+                        } else {
                             documentStorageService.validateDocument(file, documentTypeObj);
                         }
                         Document existingDocument = null;
@@ -1526,11 +1522,9 @@ public class CustomerEndpoint {
                                     .orElse(null);
                         }
 
-                        if(documentTypeObj.getDocument_type_id().equals(3))
-                        {
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {
                             fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-                        }
-                        else {
+                        } else {
                             fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                         }
 
@@ -1574,8 +1568,7 @@ public class CustomerEndpoint {
 
                             if (existingDocument13 == null) {
                                 Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
-                                if(documentTypeObj.getDocument_type_id().equals(13))
-                                {
+                                if (documentTypeObj.getDocument_type_id().equals(13)) {
                                     createdDocument.setOtherDocument(otherDocument);
                                     entityManager.merge(createdDocument);
                                 }
@@ -1600,8 +1593,7 @@ public class CustomerEndpoint {
                         // If the file is not empty and a document already exists, update the document
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
-                            if(documentTypeObj.getDocument_type_id().equals(3))
-                            {
+                            if (documentTypeObj.getDocument_type_id().equals(3)) {
                                 customCustomer.setIsLivePhotoNa(false);
                             }
                             if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1649,15 +1641,18 @@ public class CustomerEndpoint {
                                 String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
                                 File oldFile = new File(absolutePath);
                                 String oldFileName = oldFile.getName();
-                                String newFileName = file.getOriginalFilename();
+
+                                // Get the expected filename after any conversion
+                                boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
+                                String newFileName = documentStorageService.getConvertedFilename(file, isLivePhoto);
+
                                 existingDocument.setIsArchived(false);
+
                                 if (!newFileName.equals(oldFileName)) {
                                     fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
-                                    if(documentTypeObj.getDocument_type_id().equals(3))
-                                    {
+                                    if (isLivePhoto) {
                                         documentStorageService.updateOrCreateDocument(existingDocument, processedFile, documentTypeObj, customerId, role);
-                                    }
-                                    else {
+                                    } else {
                                         documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
                                     }
                                 }
@@ -1667,18 +1662,15 @@ public class CustomerEndpoint {
                         } else {
                             // If the file is not empty create the document
                             if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                                Document document =null;
-                                if(documentTypeObj.getDocument_type_id().equals(3))
-                                {
+                                Document document = null;
+                                if (documentTypeObj.getDocument_type_id().equals(3)) {
                                     customCustomer.setIsLivePhotoNa(false);
-                                     document = documentStorageService.createDocument(processedFile, documentTypeObj, customCustomer, customerId, role);
-                                }
-                                else {
-                                     document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                    document = documentStorageService.createDocument(processedFile, documentTypeObj, customCustomer, customerId, role);
+                                } else {
+                                    document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
                                 }
                                 documentsToSave.add(document);
-                                if(documentTypeObj.getDocument_type_id().equals(3))
-                                {
+                                if (documentTypeObj.getDocument_type_id().equals(3)) {
                                     customCustomer.setIsLivePhotoNa(false);
                                 }
                                 if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1709,6 +1701,7 @@ public class CustomerEndpoint {
                         }
                     }
                 }
+
                 entityManager.merge(customCustomer);
                 List<Map<String, Object>> filteredDocuments = new ArrayList<>();
                 for (Document document : documentsToSave) {
@@ -1738,11 +1731,9 @@ public class CustomerEndpoint {
                             String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                            if(otherDocument!=null && !otherDocument.trim().isEmpty())
-                            {
+                            if (otherDocument != null && !otherDocument.trim().isEmpty()) {
                                 documentTypeResponse.put("document_type_name", otherDocument);
-                            }
-                            else {
+                            } else {
                                 documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
                             }
                             documentTypeResponse.put("description", document.getDocumentType().getDescription());
