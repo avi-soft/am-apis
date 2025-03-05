@@ -647,6 +647,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider.getImageUploadScore() != null) {
                 totalScore = totalScore + existingServiceProvider.getImageUploadScore();
             }
+            if(updates.containsKey("latitude"))
+                existingServiceProvider.setLatitude((Double)(updates.get("latitude")));
+            if(updates.containsKey("longitude"))
+                existingServiceProvider.setLatitude((Double)(updates.get("latitude")));
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
             assignRank(existingServiceProvider, totalScore);

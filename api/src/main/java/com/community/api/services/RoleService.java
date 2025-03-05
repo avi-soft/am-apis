@@ -106,7 +106,6 @@ public class RoleService {
                 break;
             case 3:
                 allRoles.clear();
-                ;
                 break;
             case 4:
                 allRoles.clear();
