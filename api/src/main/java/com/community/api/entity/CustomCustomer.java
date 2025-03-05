@@ -279,9 +279,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "other_category_valid_upto", columnDefinition = "DATE")
     private java.sql.Date  otherCategoryValidUpto;
 
-    @Column(name = "is_minority")
-    private Boolean isMinority;
-
     @Column(name = "is_married")
     private Boolean isMarried = false;
 
