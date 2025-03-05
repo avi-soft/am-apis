@@ -41,7 +41,7 @@ public class SubjectDetail {
 
     @JsonBackReference("subject-details")
     @ManyToOne
-    @JoinColumn(name = "qualification_detail_id", nullable = false)
+    @JoinColumn(name = "qualification_detail_id")
     private QualificationDetails qualificationDetails;
 
     @ManyToOne
