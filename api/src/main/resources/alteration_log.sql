@@ -154,4 +154,16 @@ BEGIN
     IF column_type IS DISTINCT FROM 'double precision' THEN
         ALTER TABLE custom_customer ALTER COLUMN waist_size_cms TYPE DOUBLE PRECISION USING waist_size_cms::DOUBLE PRECISION;
     END IF;
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'institution') THEN
+                UPDATE institution
+                SET institution_id=1, created_by='SUPER_ADMIN', created_date=NOW(), institution_location='Others', institution_code='Others', institution_name='Others', modified_by='SUPER_ADMIN', modified_date=NOW()
+                WHERE institution_id=1;
+            END IF;
+       IF EXISTS (
+             SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_NAME = 'subject_details'
+             AND COLUMN_NAME = 'qualification_detail_id'
+         ) THEN
+             EXECUTE 'ALTER TABLE subject_details ALTER COLUMN qualification_detail_id DROP NOT NULL';
+         END IF;
 END $$;
