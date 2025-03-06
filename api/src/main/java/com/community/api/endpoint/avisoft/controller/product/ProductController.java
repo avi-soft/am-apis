@@ -839,10 +839,10 @@ public class ProductController extends CatalogEndpoint {
 
     @GetMapping("/get-filter-products")
     public ResponseEntity<?> getFilterProducts(
-            @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
-            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
+            @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
             @RequestParam(value = "state", required = false) List<Long> state,
-            @RequestParam(value = "rejection_status", required = false) List<Long> status,
+            @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
@@ -870,7 +870,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             // Fetch filtered products
-            List<CustomProduct> products = productService.filterProducts(state, status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
+            List<CustomProduct> products = productService.filterProducts(state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
 
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
@@ -879,7 +879,8 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y'&&
+                        customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList= customProduct.getPosts();
                     List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
@@ -898,7 +899,7 @@ public class ProductController extends CatalogEndpoint {
                 throw new IllegalArgumentException("No more products availabe");
             }
             // Validate offset request
-            if (fromIndex >= totalItems) {
+            if (fromIndex >= totalItems && offset!=0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
