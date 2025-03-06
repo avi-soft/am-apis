@@ -4,8 +4,10 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.endpoint.avisoft.controller.ServiceProvider.ServiceProviderController;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -18,25 +20,7 @@ import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
 import com.community.api.entity.StateCode;
-import com.community.api.services.ApplicationScopeService;
-import com.community.api.services.FileDownloadService;
-import com.community.api.services.PostExecutionService;
-import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefService;
-import com.community.api.services.QualificationService;
-import com.community.api.services.ReserveCategoryAgeService;
-import com.community.api.services.ResponseService;
-import com.community.api.services.SanitizerService;
-import com.community.api.services.CustomCustomerService;
-import com.community.api.services.DocumentStorageService;
-import com.community.api.services.ReserveCategoryService;
-import com.community.api.services.SharedUtilityService;
-import com.community.api.services.ReserveCategoryDtoService;
-import com.community.api.services.PhysicalRequirementDtoService;
-import com.community.api.services.RoleService;
-import com.community.api.services.FileService;
-import com.community.api.services.ProductReserveCategoryFeePostRefService;
-import com.community.api.services.DistrictService;
-import com.community.api.services.ApiConstants;
+import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
@@ -72,6 +56,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.mail.MessagingException;
 import javax.persistence.Query;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
@@ -104,9 +89,10 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static com.community.api.component.Constant.request;
+import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @RestController
@@ -135,6 +121,8 @@ public class CustomerEndpoint {
     private DocumentStorageService fileUploadService;
     @Autowired
     private SharedUtilityService sharedUtilityServiceApi;
+    @Autowired
+    private EmailService emailService;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
@@ -939,8 +927,8 @@ public class CustomerEndpoint {
             }
             details.remove("domicile");
 
-            if (details.containsKey("isMinority")) {
-                Boolean isMinority = (Boolean) details.get("isMinority");
+            if (details.containsKey("belongsToMinority")) {
+                Boolean isMinority = (Boolean) details.get("belongsToMinority");
                 if (isMinority.equals(false)) {
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
@@ -954,9 +942,9 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                customCustomer.setIsMinority(isMinority);
+                customCustomer.setBelongsToMinority(isMinority);
             }
-            details.remove("isMinority");
+            details.remove("belongsToMinority");
 
             if (details.containsKey("isSportsCertificate")) {
                 Boolean isSportsCertificate = (Boolean) details.get("isSportsCertificate");
@@ -1224,7 +1212,26 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
+
+            if(!customCustomer.getEmailActive()&&customCustomer.getEmailAddress()!=null)
+            {
+                customCustomer.setEmailActive(true);
             em.merge(customCustomer);
+            List<String>email=new ArrayList<>();
+            email.add(customCustomer.getEmailAddress());
+                Customer customer=customerService.readCustomerById(customCustomer.getId());
+                String welcomeMessage = String.format(WELCOME_BODY_TEMPLATE,customer.getFirstName()+" "+customer.getLastName());
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        emailService.sendEmailWithAttachments(email, Constant.WELCOME_SUBJECT, welcomeMessage, null);
+                    } catch (MessagingException e) {
+                         throw new RuntimeException(e);
+                    }
+                });
+            }
+            else {
+                em.merge(customCustomer);
+            }
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader,httpServletRequest), HttpStatus.OK);
 
         } catch (ClassCastException classCastException) {
@@ -1361,15 +1368,66 @@ public class CustomerEndpoint {
                                 "Unknown document type for file: " + fileType,
                                 HttpStatus.BAD_REQUEST);
                     }
+                    if(documentTypeObj.getDocument_type_id().equals(12))
+                    {
+                        if(qualificationDetailId==null)
+                        {
+                            throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
+                        }
+                    }
+                    if(documentTypeObj.getDocument_type_id().equals(13))
+                    {
+                        if(otherDocument==null)
+                        {
+                            throw new IllegalArgumentException("other document is required to delete a other document");
+                        }
+                    }
+                    boolean isQualificationDocumentToDelete=false;
+                    boolean isOtherDocumentToDelete=false;
                     try {
-                        Query query = entityManager.createNativeQuery(queryStringArchiveId);
+                        String archiveIdQuery = queryStringArchiveId;
+                        String archiveQuery = queryStringArchive;
+
+                        // Append qualification_detail_id condition if provided
+                        if(documentTypeObj.getDocument_type_id().equals(12) && qualificationDetailId != null)
+                        {
+                            isQualificationDocumentToDelete=true;
+                            archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
+                            archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
+                        }
+                        if(documentTypeObj.getDocument_type_id().equals(13) && qualificationDetailId != null)
+                        {
+                            isOtherDocumentToDelete=true;
+                            archiveIdQuery += " AND otherdocument = :otherDocument";
+                            archiveQuery += " AND otherdocument = :otherDocument";
+                        }
+
+                        Query query = entityManager.createNativeQuery(archiveIdQuery);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
+                        if (isQualificationDocumentToDelete) {
+                            query.setParameter("qualificationDetailId", qualificationDetailId);
+                        }
+                        if(isOtherDocumentToDelete)
+                        {
+                            query.setParameter("otherDocument", otherDocument);
+                        }
+
                         BigInteger id = (BigInteger) query.getSingleResult();
-                        query = entityManager.createNativeQuery(queryStringArchive);
+
+                        query = entityManager.createNativeQuery(archiveQuery);
                         query.setParameter("userId", customerId);
                         query.setParameter("documentTypeId", fileType);
+                        if (isQualificationDocumentToDelete) {
+                            query.setParameter("qualificationDetailId", qualificationDetailId);
+                        }
+                        if(isOtherDocumentToDelete)
+                        {
+                            query.setParameter("otherDocument", otherDocument);
+                        }
+
                         int result = query.executeUpdate();
+
                         if (result == 1) {
                             switch (role) {
                                 case Constant.roleUser:
@@ -1388,7 +1446,6 @@ public class CustomerEndpoint {
                                     }
                                     break;
                                 case Constant.roleServiceProvider:
-                                    System.out.println("SID:" + id.longValue());
                                     ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
                                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
                                     if (serviceProvider.getDocuments() != null) {
@@ -1396,7 +1453,6 @@ public class CustomerEndpoint {
                                         while (iterator.hasNext()) {
                                             ServiceProviderDocument documentToDelete = iterator.next();
                                             if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
-                                                System.out.println("hiSp");
                                                 iterator.remove();  // safely remove the document
                                                 entityManager.merge(serviceProvider);  // merge after modification
                                                 break;
@@ -1405,8 +1461,9 @@ public class CustomerEndpoint {
                                         deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
                                     }
                             }
-                        } else
+                        } else {
                             return ResponseService.generateErrorResponse("No documents found", HttpStatus.NOT_FOUND);
+                        }
                         return ResponseService.generateSuccessResponse("Document deleted successfully", deleteLogs, HttpStatus.OK);
                     } catch (NoResultException noResultException) {
                         return ResponseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
@@ -1890,7 +1947,6 @@ public class CustomerEndpoint {
                                 }
                                 serviceProviderDocumentToSave.add(serviceProviderDocument);
                             } else if (existingDocument13 != null) {
-
                                 String filePath = existingDocument13.getFilePath();
                                 if (filePath != null) {
                                     String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
