@@ -443,18 +443,33 @@ public class ProductService {
                     }
                     productRejectionStatuses.add(productRejectionStatus);
                 }
-                jpql.append("AND p.rejectionStatus IN :statuses ");
+
+                // Explicitly filter for non-null rejection status that matches the specified values
+                jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
 
             if (categories != null && !categories.isEmpty()) {
+                boolean anyValidCategory = false;
                 for (Long id : categories) {
                     Category category = catalogService.findCategoryById(id);
                     if (category == null) {
                         throw new IllegalArgumentException("NO CATEGORY FOUND WITH THIS ID: " + id);
                     }
-                    categoryList.add(category);
+
+                    // Check if category is active and not archived
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
+                            (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+                        categoryList.add(category);
+                        anyValidCategory = true;
+                    }
                 }
-                jpql.append("AND p.defaultCategory IN :categories ");
+
+                if (anyValidCategory) {
+                    jpql.append(" AND p.defaultCategory IN :categories ");
+                } else {
+                    // If all requested categories are archived or inactive, return no results
+                    throw new IllegalArgumentException("All requested categories are archived or inactive");
+                }
             }
 
             if (reserveCategories != null && !reserveCategories.isEmpty()) {
@@ -465,7 +480,17 @@ public class ProductService {
             }
 
             if (title != null && !title.isEmpty()) {
-                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:title) ");
+                String[] words = title.split("\\s+");
+                if (words.length > 0) {
+                    jpql.append("AND (");
+                    for (int i = 0; i < words.length; i++) {
+                        if (i > 0) {
+                            jpql.append(" AND ");
+                        }
+                        jpql.append("LOWER(p.metaTitle) LIKE LOWER(:titleWord").append(i).append(") ");
+                    }
+                    jpql.append(") ");
+                }
             }
 
             if (fee != null) {
@@ -504,7 +529,10 @@ public class ProductService {
                 query.setParameter("reserveCategories", customReserveCategoryList);
             }
             if (title != null && !title.isEmpty()) {
-                query.setParameter("title", "%" + title.toLowerCase() + "%");
+                String[] words = title.split("\\s+");
+                for (int i = 0; i < words.length; i++) {
+                    query.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
+                }
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
