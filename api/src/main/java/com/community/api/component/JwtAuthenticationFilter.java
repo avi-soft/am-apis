@@ -48,7 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = Constant.BEARER_CONST;
     private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
     private static final Pattern UNSECURED_URI_PATTERN = Pattern.compile(
-            "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars|product-custom/get-product-by-id|category-custom/get-sub-categories|advertisement/get-all-advertisement-by-categoryId).*"
+//            "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars|product-custom/get-product-by-id|category-custom/get-sub-categories|advertisement/get-all-advertisement-by-categoryId).*"
+            "^/api/v1/(account|otp|test|files/avisoftdocument/[^/]+/[^/]+|files/[^/]+|avisoftdocument/[^/]+|swagger-ui.html|swagger-resources|v2/api-docs|images|webjars|advertisement/get-all-advertisement-by-categoryId).*"
+
     );
     private String apiKey="IaJGL98yHnKjnlhKshiWiy1IhZ+uFsKnktaqFX3Dvfg=";
     
