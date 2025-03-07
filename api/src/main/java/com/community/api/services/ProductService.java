@@ -1647,50 +1647,63 @@ public class ProductService {
 
     public Boolean validateAndSetLastDateToPayFeeDate(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
         try {
-            if (addProductDto.getLastDateToPayFee() != null) {
-                dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
-
-                if (addProductDto.getActiveEndDate() != null) {
-                    if (addProductDto.getLastDateToPayFee().before(addProductDto.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Last day to pay fee cannot be before of active end date.");
-                    }
-                } else if (customProduct.getActiveEndDate() != null) {
-                    if (addProductDto.getLastDateToPayFee().before(customProduct.getActiveEndDate())) {
-                        throw new IllegalArgumentException("Last day to pay fee cannot be before of active end date.");
-                    }
-                }
-                if (addProductDto.getModificationDateFrom() != null) {
-                    dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
-                    if (!addProductDto.getLastDateToPayFee().before(addProductDto.getModificationDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
-                    }
-                } else if (customProduct.getModificationDateFrom() != null) {
-                    if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
-                    }
-                }
-                if (addProductDto.getAdmitCardDateFrom() != null) {
-                    dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
-                    if (!addProductDto.getLastDateToPayFee().before(addProductDto.getAdmitCardDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of admit card from.");
-                    }
-                } else if (customProduct.getAdmitCardDateFrom() != null) {
-                    if (!addProductDto.getLastDateToPayFee().before(customProduct.getAdmitCardDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of admit card from.");
-                    }
-                }
-                if (addProductDto.getExamDateFrom() != null) {
-                    dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
-                    if (!addProductDto.getLastDateToPayFee().before(addProductDto.getExamDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of exam date from.");
-                    }
-                } else if (customProduct.getExamDateFrom() != null) {
-                    if (!addProductDto.getLastDateToPayFee().before(customProduct.getExamDateFrom())) {
-                        throw new IllegalArgumentException("last date to pay fee have to be before of exam date from.");
-                    }
-                }
-                customProduct.setLateDateToPayFee(addProductDto.getLastDateToPayFee());
+            // Check if lastDateToPayFee is null or empty (for when an empty value is passed)
+            if (addProductDto.getLastDateToPayFee() == null) {
+                // If last date to pay fee is null or empty, set it to null in the custom product
+                customProduct.setLateDateToPayFee(null);
+                return true;
             }
+
+            // Proceed with validation only if the date is not null
+            dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
+
+            // Your existing validation checks
+            if (addProductDto.getActiveEndDate() != null) {
+                if (addProductDto.getLastDateToPayFee().before(addProductDto.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Last day to pay fee cannot be before of active end date.");
+                }
+            } else if (customProduct.getActiveEndDate() != null) {
+                if (addProductDto.getLastDateToPayFee().before(customProduct.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Last day to pay fee cannot be before of active end date.");
+                }
+            }
+
+            // Additional validation checks remain the same
+            if (addProductDto.getModificationDateFrom() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
+                if (!addProductDto.getLastDateToPayFee().before(addProductDto.getModificationDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
+                }
+            } else if (customProduct.getModificationDateFrom() != null) {
+                if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
+                }
+            }
+
+            if (addProductDto.getAdmitCardDateFrom() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
+                if (!addProductDto.getLastDateToPayFee().before(addProductDto.getAdmitCardDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of admit card from.");
+                }
+            } else if (customProduct.getAdmitCardDateFrom() != null) {
+                if (!addProductDto.getLastDateToPayFee().before(customProduct.getAdmitCardDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of admit card from.");
+                }
+            }
+
+            if (addProductDto.getExamDateFrom() != null) {
+                dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
+                if (!addProductDto.getLastDateToPayFee().before(addProductDto.getExamDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of exam date from.");
+                }
+            } else if (customProduct.getExamDateFrom() != null) {
+                if (!addProductDto.getLastDateToPayFee().before(customProduct.getExamDateFrom())) {
+                    throw new IllegalArgumentException("last date to pay fee have to be before of exam date from.");
+                }
+            }
+
+            // Set the validated date
+            customProduct.setLateDateToPayFee(addProductDto.getLastDateToPayFee());
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
