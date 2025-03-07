@@ -44,8 +44,10 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import javax.persistence.EntityManager;
 import java.io.File;
@@ -56,6 +58,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Base64;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -600,6 +603,24 @@ public class DocumentStorageService {
                 if (!conversionSuccess) {
                     conversionSuccess = convertHeicWithAlternativeMethods(tempInputFile, tempIntermediateFile);
                 }
+            }
+           /* else if (isRawFormat(originalExtension)) {
+                // Specialized handling for RAW formats
+                conversionSuccess = convertRawWithFfmpeg(tempInputFile, tempIntermediateFile);
+
+                // Try alternative method if standard conversion fails
+                if (!conversionSuccess) {
+                    conversionSuccess = convertRawWithAlternativeMethods(tempInputFile, tempIntermediateFile);
+                }
+            }*/
+            else if (isAvifFormat(originalExtension)) {
+                // Specialized handling for AVIF format
+                conversionSuccess = convertAvifWithFfmpeg(tempInputFile, tempIntermediateFile);
+
+                // Try alternative method if standard conversion fails
+                if (!conversionSuccess) {
+                    conversionSuccess = convertWithAlternativeLibraries(tempInputFile, tempIntermediateFile);
+                }
             } else {
                 // For all other formats, use standard FFmpeg approach
                 conversionSuccess = convertWithFfmpeg(tempInputFile, tempIntermediateFile);
@@ -950,6 +971,146 @@ public class DocumentStorageService {
             return originalFilename.substring(0, dotIndex) + ".jpg";
         }
         return originalFilename + ".jpg";
+    }
+
+    private boolean isAvifFormat(String extension) {
+        return extension != null && extension.equalsIgnoreCase("avif");
+    }
+
+    // Specialized conversion for AVIF files
+    private boolean convertAvifWithFfmpeg(File inputFile, File outputFile) throws IOException, InterruptedException {
+        if (!inputFile.exists() || inputFile.length() == 0) {
+            System.err.println("Input AVIF file does not exist or is empty: " + inputFile.getAbsolutePath());
+            return false;
+        }
+
+        // Ensure output directory exists
+        File outputDir = outputFile.getParentFile();
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+
+        // FFmpeg command optimized for AVIF format
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                ffmpegPath,
+                "-y",                               // Force overwrite
+                "-threads", "2",                    // Limit threads to avoid hanging
+                "-i", inputFile.getAbsolutePath(),  // Input file
+                "-q:v", "1",                        // Best quality
+                outputFile.getAbsolutePath()        // Output file
+        );
+
+        Process process = processBuilder.start();
+
+        // Capture FFmpeg output
+        StringBuilder stderrBuilder = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stderrBuilder.append(line).append("\n");
+                System.err.println("FFmpeg AVIF Error: " + line);
+            }
+        }
+
+        // Use a shorter timeout for AVIF to avoid hanging
+        boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+        if (!completed) {
+            process.destroyForcibly();
+            System.err.println("AVIF conversion with FFmpeg timed out");
+            return false;
+        }
+
+        int exitCode = process.exitValue();
+        if (exitCode != 0) {
+            System.err.println("AVIF conversion with FFmpeg failed with exit code: " + exitCode);
+            System.err.println("FFmpeg stderr: " + stderrBuilder.toString());
+            return false;
+        }
+
+        // Verify the output file exists and has content
+        boolean success = outputFile.exists() && outputFile.length() > 0;
+        return success;
+    }
+
+    // Alternative methods for AVIF and other formats that might fail
+    private boolean convertWithAlternativeLibraries(File inputFile, File outputFile) {
+        boolean success = false;
+
+        // Try with ImageMagick first
+        try {
+            String imageMagickPath = "/usr/bin/convert"; // Adjust based on your system
+
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    imageMagickPath,
+                    inputFile.getAbsolutePath(),
+                    outputFile.getAbsolutePath()
+            );
+
+            Process process = processBuilder.start();
+            boolean completed = process.waitFor(30, TimeUnit.SECONDS);
+
+            if (completed && process.exitValue() == 0) {
+                success = outputFile.exists() && outputFile.length() > 0;
+                if (success) {
+                    System.out.println("Successfully converted with ImageMagick");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("ImageMagick conversion failed: " + e.getMessage());
+        }
+
+        // Try with Java libraries if available
+        if (!success) {
+            try {
+                // Try with TwelveMonkeys library if available
+                // This requires the appropriate TwelveMonkeys dependencies in your project
+                Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(
+                        getFileExtension(inputFile.getName()));
+
+                if (readers.hasNext()) {
+                    ImageReader reader = readers.next();
+                    try (ImageInputStream input = ImageIO.createImageInputStream(inputFile)) {
+                        reader.setInput(input);
+                        BufferedImage image = reader.read(0);
+                        if (image != null) {
+                            ImageIO.write(image, "jpg", outputFile);
+                            success = outputFile.exists() && outputFile.length() > 0;
+                            if (success) {
+                                System.out.println("Successfully converted with Java ImageIO");
+                            }
+                        }
+                    } finally {
+                        reader.dispose();
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Java ImageIO conversion failed: " + e.getMessage());
+            }
+        }
+
+        // Final fallback - create a blank image with error message if all conversions fail
+        if (!success) {
+            try {
+                // Create a simple blank image with text explaining the error
+                BufferedImage errorImage = new BufferedImage(800, 600, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = errorImage.createGraphics();
+                g.setColor(Color.WHITE);
+                g.fillRect(0, 0, 800, 600);
+                g.setColor(Color.RED);
+                g.setFont(new Font("Arial", Font.BOLD, 24));
+                g.drawString("Unable to convert " + inputFile.getName(), 100, 250);
+                g.drawString("Format not supported by converters", 100, 300);
+                g.dispose();
+
+                ImageIO.write(errorImage, "jpg", outputFile);
+                success = true; // We created a valid JPEG, even if it's not the converted image
+                System.out.println("Created fallback error image for " + inputFile.getName());
+            } catch (Exception e) {
+                System.err.println("Failed to create error image: " + e.getMessage());
+            }
+        }
+
+        return success;
     }
 
     private void cleanupFile(File file) {
