@@ -295,7 +295,6 @@ public class AdvertisementController {
             }
 
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList);
-
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
@@ -311,23 +310,32 @@ public class AdvertisementController {
                                 (advertisement.getNotificationEndDate().after(new Date())))) {
 
                     List<CustomAdvertisementProductWrapper> products = new ArrayList<>();
-
                     List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
-                    for (CustomProduct customProduct : customProducts) {
-                        if (customProduct != null &&
-                                (((Status) customProduct).getArchived() != 'Y' &&
-                                        customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
-                            CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
-                            if (authHeader == null)
-                                wrapper.wrapDetails(customProduct, null);
-                            else
-                                wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                    // Filter products: Keep only active products
+                    List<CustomProduct> activeProducts = customProducts.stream()
+                            .filter(customProduct -> customProduct != null &&
+                                    (((Status) customProduct).getArchived() != 'Y' &&
+                                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())))
+                            .collect(Collectors.toList());
 
-                            products.add(wrapper);
-                        }
+                    // **Skip this advertisement if all products are expired**
+                    if (activeProducts.isEmpty()) {
+                        continue; // Skip this advertisement
                     }
 
+                    // Wrap active products
+                    for (CustomProduct customProduct : activeProducts) {
+                        CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
+                        if (authHeader == null)
+                            wrapper.wrapDetails(customProduct, null);
+                        else
+                            wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+
+                        products.add(wrapper);
+                    }
+
+                    // Wrap advertisement with valid products
                     AdvertisementProductWrapper wrapper = new AdvertisementProductWrapper();
                     wrapper.wrapDetails(advertisement, products, null);
                     responses.add(wrapper);
@@ -340,7 +348,7 @@ public class AdvertisementController {
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems) {
+            if (fromIndex >= totalItems && offset != 0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
@@ -353,7 +361,7 @@ public class AdvertisementController {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
