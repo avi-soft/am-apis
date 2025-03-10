@@ -318,6 +318,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
         this.feeService=feeService;
+        this.activeStartDate=customProduct.getActiveStartDate();
+        this.activeEndDate=customProduct.getActiveEndDate();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
