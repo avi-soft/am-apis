@@ -129,6 +129,9 @@ public class QualificationDetails {
     @Column(name = "other_qualification", columnDefinition = "text")
     private String other_qualification;
 
+    @Column(name = "other_institution", columnDefinition = "text")
+    private String other_institution;
+
     @ElementCollection
     @CollectionTable(name = "highest_qualification_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
     @Column(name = "subject_name")

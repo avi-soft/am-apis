@@ -7,8 +7,8 @@ import java.util.List;
 
 @Data
 public class CommunicationRequest {
-    private List<Long> customerIds;
-    private List<Integer> modes;
+    private Object customerIds; // Can be List<Long> or String (comma-separated)
+    private Object modes;       // Can be List<Integer> or String (comma-separated)
     private String contentText;
     private String subject;
     private List<MultipartFile> files;
