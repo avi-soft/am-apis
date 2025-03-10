@@ -647,6 +647,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider.getImageUploadScore() != null) {
                 totalScore = totalScore + existingServiceProvider.getImageUploadScore();
             }
+            if(updates.containsKey("latitude")) {
+                Double latitude=(Double) (updates.get("latitude"));
+                if(latitude>90||latitude<-90)
+                    ResponseService.generateErrorResponse("Invalid latitude",HttpStatus.BAD_REQUEST);
+                else
+                    existingServiceProvider.setLatitude(latitude);
+            }
+            if(updates.containsKey("longitude")) {
+                Double longitude=(Double) (updates.get("longitude"));
+                if(longitude>180||longitude<-180)
+                    ResponseService.generateErrorResponse("Invalid longitude",HttpStatus.BAD_REQUEST);
+                else
+                    existingServiceProvider.setLatitude((Double) (updates.get("longitude")));
+            }
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
             assignRank(existingServiceProvider, totalScore);
