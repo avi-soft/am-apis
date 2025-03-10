@@ -1,3 +1,4 @@
+
 DO $$
 BEGIN
     -- Check if there are no records in custom_zones
@@ -16,7 +17,7 @@ BEGIN
     -- Check if there are no records in custom_state_codes
     IF (SELECT COUNT(*) FROM custom_state_codes) = 0 THEN
         -- Insert data into custom_state_codes table
-        INSERT INTO custom_state_codes (state_code_id, state_name, state_code) VALUES
+        INSERT INTO custom_state_codes (state_id, state_name, state_code) VALUES
             (1, 'Andhra Pradesh', 'AP'),
             (2, 'Arunachal Pradesh', 'AR'),
             (3, 'Assam', 'AS'),
@@ -79,23 +80,17 @@ END IF;
 IF (SELECT COUNT(*) FROM custom_ticket_status) = 0 THEN
     INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
     VALUES
-        (0, 'TO-DO', 'Ticket not assigned'),
         (1, 'NOT-REACHABLE', 'User is unreachable'),
         (2, 'VALIDATING-DOCUMENT', 'Validating documents'),
         (3, 'MISSING-DOCUMENT', 'Missing documents'),
         (4, 'USER-NOT-REACHABLE', 'User Not reachable'),
         (5, 'UPLOADING-DOCUMENT', 'Uploading documents'),
         (6, 'FILLING-PERSONAL-DETAILS', 'Filling personal details'),
-        (7, 'SOME-OTHER-STATUS', 'Some other status'),
-        (8, 'COMPLETED', 'Successfully Completed'),
-        (9, 'INCOMPLETE', 'Can not complete'),
-        (10, 'FORM-COMPLETED-REVIEW', 'Form is completed but requires review'),
-        (11, 'PROVIDER-HELP-REVIEW', 'SP is stuck');
+        (7, 'SOME-OTHER-STATUS', 'Some other status');
 END IF;
 
-
 IF (SELECT COUNT(*) FROM custom_ticket_type) = 0 THEN
-    INSERT INTO custom_ticket_type (ticket_type_id, ticket_type, ticekt_type_description)
+    INSERT INTO custom_ticket_type (ticket_type_id, ticket_type, ticket_type_description)
     VALUES
         (1, 'PRIMARY', 'Primary ticket of SP'),
         (2, 'REVIEW-TICKET', 'Review ticket of SP'),
@@ -115,20 +110,17 @@ IF (SELECT COUNT(*) FROM order_state_ref) = 0 THEN
         (8, 'IN_REVIEW', 'Order is in review.');
 END IF;
 IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
-    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_state_id, ticket_status_id)
+    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_state_id,ticket_status_id)
     VALUES
-        (1, 1, 0, 0),
-        (2, 3, 1, 0),
-        (3, 4, 2, 0),
+        (1, 1, NULL, NULL),
+        (2, 3, 1, NULL),
+        (3, 4, 1, NULL),
         (4, 6, 2, 2),
         (5, 6, 2, 5),
         (6, 6, 3, 3),
         (7, 6, 3, 4),
-        (8, 6, 2, 6),
-        (9, 7, 5, 8),
-        (10, 7, 5, 9),
-        (11, 6, 4, 10),
-        (12, 6, 4, 11);
+        (8, 6, 4, 6),
+        (9, 7, 5, NULL);
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
@@ -187,12 +179,12 @@ IF (SELECT COUNT(*) FROM custom_product_rejection_status) = 0 THEN
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_gender) = 0 THEN
-    INSERT INTO custom_gender (gender_id, gender_code, gender_name)
+    INSERT INTO custom_gender (gender_id, gender_symbol, gender_name)
     VALUES
         (1, 'M', 'MALE'),
         (2, 'F', 'FEMALE'),
 		(3, 'O', 'OTHERS'),
-        (4, 'N/A', 'N/A');
+        (4, 'N', 'N/A');
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
@@ -2008,4 +2000,3 @@ END IF;
     END IF;
 
 END $$;
-
