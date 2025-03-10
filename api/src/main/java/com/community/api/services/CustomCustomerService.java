@@ -159,7 +159,7 @@ public class CustomCustomerService {
         alias.put("last_name", "cust");
         alias.put("service_provider_id", "referrer");
         alias.put("overlapping","qual");
-        alias.put("completed","cc");
+        alias.put("profile_completed","cc");
         String generalizedQuery=null;
             generalizedQuery = Constant.CUSTOMER_FILTER;
             if ((county != null &&!county.isEmpty()) || (sub_state_prov_reg != null && !sub_state_prov_reg.isEmpty())) {
@@ -178,7 +178,7 @@ public class CustomCustomerService {
             generalizedQuery=generalizedQuery+aliasQuery.get("completed");
         }
         generalizedQuery=generalizedQuery+" WHERE ";
-        String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","overlapping","completed"};
+        String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","overlapping","profile_completed"};
         Object[] fields = {sub_state_prov_reg, county, first_name, last_name, service_provider_id,qualification_name,completed};
         for (int i = 0; i < fields.length; i++) {
             if (fields[i] != null) {
