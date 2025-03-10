@@ -2887,6 +2887,7 @@ public class CustomerEndpoint {
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
             Date validUpto = null;
             if (validUptoStr != null) {
+
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
                     throw new IllegalArgumentException("Valid Upto Date must be in " + dateFormatInString + " format");
                 }
