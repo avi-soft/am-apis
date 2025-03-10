@@ -102,7 +102,6 @@ public class RoleService {
             case 2:
                 allRoles.remove(4);
                 allRoles.remove(0);
-                allRoles.remove(1);
                 break;
             case 3:
                 allRoles.clear();
