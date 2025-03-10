@@ -1,3 +1,4 @@
+
 package com.community.api.entity;
 
 import com.community.api.utils.Document;
