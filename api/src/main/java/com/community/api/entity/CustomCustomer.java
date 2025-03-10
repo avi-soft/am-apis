@@ -280,9 +280,6 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "other_category_valid_upto", columnDefinition = "DATE")
     private java.sql.Date  otherCategoryValidUpto;
 
-    @Column(name = "is_minority")
-    private Boolean isMinority;
-
     @Column(name = "is_married")
     private Boolean isMarried = false;
 
@@ -367,4 +364,6 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean isLivePhotoNa=false;
     @Column(name = "primary_referrer_id",columnDefinition = "BIGINT DEFAULT 0")
     private Long primaryRef=0L;
+    @Column(name = "email_active",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean emailActive=false;
 }
