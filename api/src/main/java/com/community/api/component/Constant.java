@@ -237,5 +237,10 @@ public class Constant {
     public static final String ACTION_ACTIVATE="activate";
     public static final String ACTION_SUSPEND="suspend";
     public static final String CUSTOMER_FILTER= "SELECT cust.customer_id FROM blc_customer cust ";
-
+    public static final String WELCOME_BODY_TEMPLATE = "Hello, %s!\n" +
+            "Welcome to Application Marketplace. Explore forms and get them filled effortlessly.\n\n" +
+            "Best regards,\n" +
+            "Admin";
+    public static final String WELCOME_SUBJECT="System Message";
+    public static final Integer SUPER_ADMIN_PRIVILEGES=4;
 }

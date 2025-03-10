@@ -920,6 +920,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_qualification",qualificationDetail.getOther_qualification());
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
+                    qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1075,6 +1076,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_qualification",qualificationDetail.getOther_qualification());
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
+                    qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());

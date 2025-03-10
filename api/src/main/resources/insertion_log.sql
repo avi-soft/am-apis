@@ -1943,7 +1943,7 @@ END IF;
    IF NOT EXISTS (SELECT 1 FROM institution WHERE institution_id = 1) THEN
     INSERT INTO institution (institution_id, institution_name, institution_location, institution_code, created_date, modified_date, created_by, modified_by)
     VALUES
-        (1, 'All India Institute of Medical Sciences', 'New Delhi', 'AIIMS', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
+		(1,'Others','Others','Others',NOW(),NOW(),'SUPER_ADMIN','SUPER_ADMIN'),
         (2, 'Indian Institute of Technology Bombay', 'Mumbai', 'IITB', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
         (3, 'Indian Institute of Science', 'Bangalore', 'IISC', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
         (4, 'National Institute of Technology Tiruchirappalli', 'Tiruchirappalli', 'NITT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN'),
