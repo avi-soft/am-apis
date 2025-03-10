@@ -383,9 +383,9 @@ public class QualificationDetailsService {
         if(roleName.equalsIgnoreCase("CUSTOMER"))
         {
             customCustomer.getQualificationDetailsList().forEach(detail -> {
-                if (detail.getQualificationDocument() != null) {
+                if (detail.getQualificationDocument() != null ) {
                     Document customerDocument=detail.getQualificationDocument();
-                    if(customerDocument.getQualificationDetails().getQualification_id().equals(detail.getQualification_id()))
+                    if(customerDocument.getQualificationDetails().getQualification_detail_id().equals(qualificationId))
                     {
                         customerDocument.setQualificationDetails(null);
                         customerDocument.setIsArchived(true);
@@ -399,7 +399,7 @@ public class QualificationDetailsService {
             serviceProviderEntity.getQualificationDetailsList().forEach(detail -> {
                 if (detail.getServiceProviderDocument() != null) {
                     ServiceProviderDocument serviceProviderDocument=detail.getServiceProviderDocument();
-                    if(serviceProviderDocument.getQualificationDetails().getQualification_id().equals(detail.getQualification_id()))
+                    if(serviceProviderDocument.getQualificationDetails().getQualification_detail_id().equals(qualificationId))
                     {
                         serviceProviderDocument.setQualificationDetails(null);
                         serviceProviderDocument.setIsArchived(true);

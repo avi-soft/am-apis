@@ -409,6 +409,8 @@ public class CartEndPoint extends BaseEndpoint {
                         if(individualFee==null)
                             //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                             individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                            if(individualFee==null)
+                                individualFee=0.0;
                         }
                         productFee=productFee+individualFee;
 
@@ -572,10 +574,10 @@ public class CartEndPoint extends BaseEndpoint {
                     Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                     if(totalCost==null) {
                         //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
-
                         totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
                     if(totalCost==null)
                         totalCost=0.0;
+
                     }totalCost=totalCost+platformFee;
                     Money total=new Money(totalCost);
                     individualOrder.setTotal(total);
