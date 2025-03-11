@@ -710,7 +710,7 @@ public class ServiceProviderController {
         for (Long customerId : ids) {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
             //checking permissions
-            if (!roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
+            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)||roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
                 skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
@@ -718,6 +718,9 @@ public class ServiceProviderController {
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
+            if(serviceProvider.getRole()!=4)
+                skippedIds.put(customerId, "Action not Authorized");
+
             //checking valid permissions
             if (action.equals(Constant.ACTION_SUSPEND)) {
                 if (serviceProvider.getIsArchived().equals(true)) {
