@@ -13,7 +13,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import javax.annotation.PostConstruct;
 
 /**
  * Utility for automatically downloading and setting up FFmpeg based on the operating system
@@ -28,35 +30,51 @@ public class FFmpegManager {
     // FFmpeg executable path
     private Path ffmpegPath;
 
-    // Latest stable FFmpeg release URLs for different platforms
-    private static final String WINDOWS_FFMPEG_URL =
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
-    private static final String MAC_FFMPEG_URL =
-            "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip";
-    // Changed Linux URL to use a zip format instead of tar.xz
-    private static final String LINUX_FFMPEG_URL =
-            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.zip";
+    // Configurable FFmpeg URLs for different platforms
+    @Value("${ffmpeg.url.windows}")
+    private String windowsFfmpegUrl;
+
+    @Value("${ffmpeg.url.mac}")
+    private String macFfmpegUrl;
+
+    @Value("${ffmpeg.url.linux}")
+    private String linuxFfmpegUrl;
+
+    // Flag to track initialization state
+    private boolean initialized = false;
 
     /**
      * Initialize with application's temporary directory
+     * Note: This constructor should not call initialize() directly due to @Value injection timing
      */
     public FFmpegManager() {
         this.ffmpegBaseDir = Paths.get(System.getProperty("java.io.tmpdir"), "ffmpeg-bin");
-        this.initialize();
     }
 
     /**
      * Initialize with custom directory
+     * Note: This constructor should not call initialize() directly due to @Value injection timing
      */
     public FFmpegManager(Path customDirectory) {
         this.ffmpegBaseDir = customDirectory;
-        this.initialize();
+    }
+
+    /**
+     * Post-construct method that initializes FFmpeg after Spring has injected property values
+     */
+    @PostConstruct
+    public void postConstruct() {
+        initialize();
     }
 
     /**
      * Initialize and download FFmpeg if needed
      */
     private void initialize() {
+        if (initialized) {
+            return;
+        }
+
         try {
             // Create base directory if it doesn't exist
             if (!Files.exists(ffmpegBaseDir)) {
@@ -71,6 +89,7 @@ public class FFmpegManager {
             if (Files.exists(expectedPath) && Files.isExecutable(expectedPath)) {
                 logger.info("FFmpeg already exists at: {}", expectedPath);
                 this.ffmpegPath = expectedPath;
+                initialized = true;
                 return;
             }
 
@@ -85,6 +104,7 @@ public class FFmpegManager {
 
                 // Test FFmpeg
                 testFFmpeg();
+                initialized = true;
             } else {
                 logger.error("Failed to install FFmpeg at expected path: {}", expectedPath);
                 throw new IOException("Failed to install FFmpeg");
@@ -100,7 +120,14 @@ public class FFmpegManager {
      */
     public Path getFFmpegPath() {
         if (ffmpegPath == null) {
-            throw new IllegalStateException("FFmpeg is not initialized");
+            // Lazy initialization if someone calls this before PostConstruct
+            if (!initialized) {
+                initialize();
+            }
+
+            if (ffmpegPath == null) {
+                throw new IllegalStateException("FFmpeg is not initialized");
+            }
         }
         return ffmpegPath;
     }
@@ -150,15 +177,18 @@ public class FFmpegManager {
         String url;
         switch (os) {
             case "windows":
-                url = WINDOWS_FFMPEG_URL;
+                url = windowsFfmpegUrl;
+                logger.debug("Using Windows FFmpeg URL: {}", url);
                 downloadAndExtractZip(url, "windows");
                 break;
             case "mac":
-                url = MAC_FFMPEG_URL;
+                url = macFfmpegUrl;
+                logger.debug("Using Mac FFmpeg URL: {}", url);
                 downloadAndExtractZip(url, "mac");
                 break;
             case "linux":
-                url = LINUX_FFMPEG_URL;
+                url = linuxFfmpegUrl;
+                logger.debug("Using Linux FFmpeg URL: {}", url);
                 downloadAndExtractZip(url, "linux");
                 break;
             default:
@@ -170,6 +200,10 @@ public class FFmpegManager {
      * Download and extract a ZIP file
      */
     private void downloadAndExtractZip(String url, String os) throws IOException {
+        if (url == null || url.isEmpty()) {
+            throw new IllegalArgumentException("FFmpeg download URL cannot be null or empty for OS: " + os);
+        }
+
         Path tempFile = Files.createTempFile("ffmpeg-download", ".zip");
 
         try {
@@ -332,6 +366,10 @@ public class FFmpegManager {
      * Download a file from URL
      */
     private void downloadFile(String url, Path destination) throws IOException {
+        if (url == null) {
+            throw new IllegalArgumentException("Download URL cannot be null");
+        }
+
         try (ReadableByteChannel readableByteChannel = Channels.newChannel(new URL(url).openStream());
              FileOutputStream fileOutputStream = new FileOutputStream(destination.toFile())) {
 
@@ -370,7 +408,14 @@ public class FFmpegManager {
      */
     public boolean executeFFmpegCommand(String... args) throws IOException, InterruptedException {
         if (ffmpegPath == null) {
-            throw new IllegalStateException("FFmpeg is not initialized");
+            // Lazy initialization
+            if (!initialized) {
+                initialize();
+            }
+
+            if (ffmpegPath == null) {
+                throw new IllegalStateException("FFmpeg is not initialized");
+            }
         }
 
         String[] command = new String[args.length + 1];
