@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
@@ -47,6 +48,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
+
 @RestController
 @RequestMapping("/service-providers")
 public class ServiceProviderController {
@@ -61,6 +64,8 @@ public class ServiceProviderController {
     private String accountSid;
     @Value("${twilio.authToken}")
     private String authToken;
+    @Autowired
+    CustomerEndpoint customerEndpoint;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -679,6 +684,80 @@ public class ServiceProviderController {
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error assigning Request to Service Provider", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
+    @PutMapping("manage-sp")
+    public ResponseEntity<?> activateOrSuspendSp(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
+        //extracting info from jwt token
+        int actionCount = 0, successCount = 0;
+        System.out.println("hii");
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        List<Long> ids = getLongList(map, "spIds");
+        Map<Long, String> skippedIds = new HashMap<>();
+        List<Long> actionedIds = new ArrayList<>();
+        String actionReq = null;
+        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
+            return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
+        }
+        if (action.equals("suspend"))
+            actionReq = action + "ed";
+        else
+            actionReq = action + "d";
+        for (Long customerId : ids) {
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+            //checking permissions
+            if (!roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
+                skippedIds.put(customerId, "Action not Authorized");
+                continue;
+            }
+            if (serviceProvider == null) {
+                skippedIds.put(customerId, "SP Not Found");
+                continue;
+            }
+            //checking valid permissions
+            if (action.equals(Constant.ACTION_SUSPEND)) {
+                if (serviceProvider.getIsArchived().equals(true)) {
+                    skippedIds.put(customerId, "User Already Suspended");
+                    ++actionCount;
+                    continue;
+                }
+                serviceProvider.setIsArchived(true);
+            } else {
+                if (serviceProvider.getIsArchived().equals(false)) {
+                    skippedIds.put(customerId, "User Already Activate");
+                    ++actionCount;
+                    continue;
+                }
+                serviceProvider.setIsArchived(false);
+            }
+            if(action.equals(Constant.ACTION_SUSPEND)) {
+                sharedUtilityService.blackListToken(serviceProvider.getToken(),4,serviceProvider.getService_provider_id());
+                customerEndpoint.logout(serviceProvider.getToken());
+            }
+            else
+            {
+                sharedUtilityService.removeToken(serviceProvider.getToken());
+            }
+            actionedIds.add(customerId);
+            ++successCount;
+            entityManager.merge(serviceProvider);
+        }
+        Map<String, Object> response = new HashMap<>();
+        if (skippedIds.isEmpty()) {
+            response.put(actionReq + "Ids", actionedIds);
+            return ResponseService.generateSuccessResponse("Selected Accounts " + actionReq + " successfully", response, HttpStatus.OK);
+        } else if (actionedIds.isEmpty()) {
+            response.put(actionReq + " Ids:", actionedIds);
+            response.put("Skipped Ids:", skippedIds);
+            return ResponseService.generateSuccessResponse("Unable to " + action, response, HttpStatus.BAD_REQUEST);
+        } else {
+            response.put(actionReq + " Ids:", actionedIds);
+            response.put("Skipped Ids:", skippedIds);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
 }
