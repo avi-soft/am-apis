@@ -2189,7 +2189,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -2810,6 +2810,7 @@ public class CustomerEndpoint {
         }
     }
 
+
     @Transactional
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
 
@@ -3074,7 +3075,7 @@ public class CustomerEndpoint {
                         customerBasicDetailsDto.setGender(customCustomer.getGender());
                         customerBasicDetailsDto.setUsername(customer.getUsername());
 
-                        if (ref != null) {
+                        /*if (ref != null) {
                             System.out.println(customCustomer.getId()+","+customCustomer.getPrimaryRef());
                             if (customCustomer.getPrimaryRef() != 0 && ref.contains(customCustomer.getPrimaryRef())) {
                                 System.out.println("true"+customCustomer.getId());
@@ -3085,7 +3086,16 @@ public class CustomerEndpoint {
                                 }
                             } else
                                 continue;
-                        }
+                        }*/
+                        if (customCustomer.getPrimaryRef() != 0) {
+                            System.out.println("true"+customCustomer.getId());
+                            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
+                            if (serviceProvider != null) {
+                                primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
+                                primaryRefId = serviceProvider.getService_provider_id();
+                            }
+                        } else
+                            continue;
                         Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                         if (age != -1)
                             customerBasicDetailsDto.setAge(age);
