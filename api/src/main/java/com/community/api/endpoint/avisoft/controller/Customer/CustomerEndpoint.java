@@ -19,6 +19,7 @@ import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.Qualification;
 import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Post;
+import com.community.api.entity.Role;
 import com.community.api.entity.StateCode;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -87,6 +88,7 @@ import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
@@ -1296,9 +1298,11 @@ public class CustomerEndpoint {
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser) && !customerId.equals(tokenUserId)) {
-                return ResponseService.generateErrorResponse("Forbidden access", HttpStatus.FORBIDDEN);
-            }
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -2142,11 +2146,19 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser})
+    /*@Authorize(value = {Constant.roleUser})*/
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
 
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             updates = sanitizerService.sanitizeInputMap(updates);
 
             if (customerService == null) {
@@ -2187,10 +2199,18 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser})
+    @Authorize(value = {Constant.roleUser, roleAdmin, roleSuperAdmin})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
     public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
 
@@ -2486,12 +2506,19 @@ public class CustomerEndpoint {
     }
 
     @GetMapping(value = "/forms/show-saved-forms")
-    @Authorize(value = {Constant.roleUser})
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
@@ -2561,8 +2588,16 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit) {
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             // Validate pagination parameters
             if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             if (limit <= 0) throw new IllegalArgumentException("Limit for pagination cannot be zero or negative");
@@ -2620,8 +2655,17 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "10") int limit) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
@@ -2697,6 +2741,14 @@ public class CustomerEndpoint {
     public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest)
     {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer= entityManager.find(CustomCustomer.class,customerId);
             if(customCustomer==null)
             {
@@ -2813,9 +2865,17 @@ public class CustomerEndpoint {
 
     @Transactional
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
-
-    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id) {
+    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
