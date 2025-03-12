@@ -499,7 +499,7 @@ public class CartEndPoint extends BaseEndpoint {
     }
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
-    public ResponseEntity<?> placeOrder(@PathVariable Long customerId,@RequestBody Map<String,Object>map) {
+    public ResponseEntity<?> placeOrder(@PathVariable Long customerId,@RequestBody Map<String,Object>map,@RequestHeader(value = "Authorization")String authHeader) {
         try {
             CustomProduct customProduct=null;
            /* Long id = Long.valueOf(customerId);*/
@@ -567,7 +567,9 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
-                    Double platformFee=10.0;
+                    Double platformFee=0;
+                    if(customProduct.getPlatformFee()!=null)
+                        platformFee= customProduct.getPlatformFee();
                     Money subTotal=new Money(platformFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-"+customer.getId()+"-B-"+batchNumber);
@@ -599,7 +601,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderState.setOrderStatusId(orderStatusId);
                     orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
-                    customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId());
+                    customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId(),authHeader);
                     individualOrders.add(individualOrder);
                 }
             }

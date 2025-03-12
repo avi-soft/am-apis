@@ -782,7 +782,7 @@ public class ProductService {
             {
                 Date examDateTo = stripTime(addProductDto.getExamDateTo());
                 Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
-                    if (!examDateTo.after(examDateFrom)){
+                if (examDateTo.before(examDateFrom)) {
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
@@ -961,7 +961,7 @@ public class ProductService {
             {
                 Date examDateTo = stripTime(addProductDto.getExamDateTo());
                 Date examDateFrom = stripTime(addProductDto.getExamDateFrom());
-                if (!examDateTo.after(examDateFrom)){
+                if (examDateTo.before(examDateFrom)) {
                     throw new IllegalArgumentException(TENTATIVEEXAMDATETOAFTEREXAMDATEFROM);
                 }
             }
