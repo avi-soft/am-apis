@@ -1324,6 +1324,8 @@ public class CustomerEndpoint {
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
+            @RequestParam(value = "exUpdate",defaultValue = "false",required = false) Boolean extUpdate,
+            @RequestHeader(value = "extAuth",required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "qualificationDetailId", required = false) Long qualificationDetailId,
@@ -1331,7 +1333,8 @@ public class CustomerEndpoint {
             @RequestParam(value = "validUpto", required = false) String validUpto,
             @RequestParam(value = "otherDocument", required = false) String otherDocument,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization") String authHeader)
+    {
         try {
             String dateFormat = "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -1339,8 +1342,19 @@ public class CustomerEndpoint {
             }
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Integer roleId;
+            Long tokenUserId;
+            if(extAuth==null||extAuth.isEmpty()) {
+                roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            }
+            else
+            {
+                roleId = jwtTokenUtil.extractRoleId(extAuth);
+                tokenUserId = jwtTokenUtil.extractId(extAuth);
+            }
+            if(extUpdate&&(roleId!=1&&roleId!=2)&&(extAuth==null||extAuth.isEmpty()))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             String queryStringArchive = null;
             String queryStringArchiveId = null;
@@ -1481,7 +1495,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(tokenUserId)) {
+            if (!customerId.equals(tokenUserId)&&(roleId!=1&&roleId!=2)) {
                 return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
             }
 
@@ -1493,7 +1507,7 @@ public class CustomerEndpoint {
             }
             MultipartFile processedFile=null;
 
-            if (roleService.findRoleName(roleId).equals(Constant.roleUser)) {
+            if (roleService.findRoleName(roleId).equals(roleUser)||((roleService.findRoleName(roleId).equals(roleSuperAdmin)||roleService.findRoleName(roleId).equals(roleAdmin))&&extUpdate)) {
                 HashSet<Document> documentsToSave = new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
@@ -2796,7 +2810,6 @@ public class CustomerEndpoint {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleUser})
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
 
     public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id) {
