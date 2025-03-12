@@ -280,7 +280,7 @@ public class CustomerEndpoint {
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
 
-            if (roleId != 5 && !tokenUserId.equals(customerId)||(roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
+            if ((roleId == 3||roleId==4)||(roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
                 if (authToken != null && !authToken.isEmpty()) {
                     Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
                     Long userId = jwtTokenUtil.extractId(authToken);
