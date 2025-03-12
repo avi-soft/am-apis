@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
@@ -356,7 +357,7 @@ public class ServiceProviderController {
         }
     }
 
-
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
     @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(
