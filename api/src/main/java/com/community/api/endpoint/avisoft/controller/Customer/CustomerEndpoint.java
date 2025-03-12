@@ -461,6 +461,29 @@ public class CustomerEndpoint {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong((String) details.get("sportCertificateId")));
                 customCustomer.setSportCertificateId(customApplicationScope);
             }
+            if(details.containsKey("exService"))
+            {
+                Boolean exService = (Boolean) details.get("exService");
+                if(exService)
+                {
+                    customCustomer.setExService(true);
+                }
+                else {
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(15)) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
+                    customCustomer.setExService(false);
+                }
+            }
+
 
             if (details.containsKey("domicile")) {
                 Boolean domicile = (Boolean) details.get("domicile");
@@ -1186,6 +1209,17 @@ public class CustomerEndpoint {
                         errorMessages.add("disability type is mandatory when disability is given");
                     }
                 } else {
+                    List<Document> customerDocuments = customCustomer.getDocuments();
+                    for (Document document : customerDocuments) {
+                        if (document.getIsArchived().equals(false)) {
+                            if (document.getCustom_customer().getId().equals(customerId)) {
+                                if (document.getDocumentType().getDocument_type_id().equals(11) ) {
+                                    document.setIsArchived(true);
+                                    entityManager.merge(document);
+                                }
+                            }
+                        }
+                    }
                     customCustomer.setDisabilityType(null);
                     customCustomer.setDisabilityPercentage(0.0);
                 }
