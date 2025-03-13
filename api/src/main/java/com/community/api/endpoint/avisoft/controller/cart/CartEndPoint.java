@@ -567,7 +567,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
-                    Double platformFee=0;
+                    Double platformFee=0.0;
                     if(customProduct.getPlatformFee()!=null)
                         platformFee= customProduct.getPlatformFee();
                     Money subTotal=new Money(platformFee);

@@ -3114,7 +3114,7 @@ public class CustomerEndpoint {
                 if(refids.isEmpty())
                     refids=null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
@@ -3140,14 +3140,14 @@ public class CustomerEndpoint {
                 try {
                     customer = customerService.readCustomerById(id.longValue());
                 } catch (Exception e) {
-                    System.out.println(e);
+                    System.out.println("ID skipped"+id+"due to"+e);
                     continue;
                 }
                 if (customer != null) {
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
 
                     String state = null;
-                    String primaryRefName = null;
+                    String primaryRefName = "N/A";
                     Long primaryRefId = null;
                     if (customCustomer != null) {
                         if(!customCustomer.getArchived().equals(suspended))
@@ -3188,8 +3188,7 @@ public class CustomerEndpoint {
                                 primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
                                 primaryRefId = serviceProvider.getService_provider_id();
                             }
-                        } else
-                            continue;
+                        }
                         Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                         if (age != -1)
                             customerBasicDetailsDto.setAge(age);
