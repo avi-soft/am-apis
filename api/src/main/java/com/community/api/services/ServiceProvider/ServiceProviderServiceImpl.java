@@ -500,7 +500,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             continue;
                         }
                     }
-
+                    if(updates.containsKey("latitude")) {
+                        Double latitude=(Double) (updates.get("latitude"));
+                        if(latitude.intValue()>90||latitude.intValue()<-90)
+                            errorMessages.add("Invalid latitude");
+                        else
+                            existingServiceProvider.setLatitude(latitude);
+                    }
+                    if(updates.containsKey("longitude")) {
+                        Double longitude=(Double) (updates.get("longitude"));
+                        if(longitude.intValue()>180||longitude.intValue()<-180)
+                            errorMessages.add("Invalid longitude");
+                        else
+                            existingServiceProvider.setLongitude((Double) (updates.get("longitude")));
+                    }
                     if (field.isAnnotationPresent(Pattern.class)) {
                         Pattern patternAnnotation = field.getAnnotation(Pattern.class);
                         String regex = patternAnnotation.regexp();
@@ -647,6 +660,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider.getImageUploadScore() != null) {
                 totalScore = totalScore + existingServiceProvider.getImageUploadScore();
             }
+
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
             assignRank(existingServiceProvider, totalScore);
@@ -823,12 +837,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     //find service provider by phone and validate the password.
     public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
+            if(existingServiceProvider.getIsArchived())
+                return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
     //find service provider by username and validate the password.
     public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
+        if(existingServiceProvider.getIsArchived())
+            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -838,6 +856,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         if (serviceProvider == null) {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
+        if(serviceProvider.getIsArchived())
+            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
         if (passwordEncoder.matches(password, serviceProvider.getPassword())) {
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
