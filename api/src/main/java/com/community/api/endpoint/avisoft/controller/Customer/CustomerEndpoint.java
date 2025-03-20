@@ -1393,7 +1393,7 @@ public class CustomerEndpoint {
                 roleId = jwtTokenUtil.extractRoleId(extAuth);
                 tokenUserId = jwtTokenUtil.extractId(extAuth);
             }
-            if(extUpdate&&(roleId!=1&&roleId!=2)&&(extAuth==null||extAuth.isEmpty()))
+            if(extUpdate&&(roleId!=1&&roleId!=2&&roleId!=5)&&(extAuth==null||extAuth.isEmpty()))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             String role=null;
             if(extUpdate)
