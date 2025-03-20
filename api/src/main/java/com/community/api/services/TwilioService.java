@@ -146,6 +146,13 @@ public class TwilioService {
                         "message", "Otp has been sent successfully on " + maskedNumber
                 ));
             } else if (serviceProvider != null) {
+                if(serviceProvider.getIsArchived())
+                    return ResponseEntity.ok(Map.of(
+
+                        "message","Your account has been suspended ,please contact support.",
+                        "status", HttpStatus.UNAUTHORIZED,
+                        "status_code", HttpStatus.UNAUTHORIZED.value()
+                ));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "status", ApiConstants.STATUS_ERROR,
                         "status_code", HttpStatus.BAD_REQUEST,
