@@ -357,7 +357,7 @@ public class ServiceProviderController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleUser})
     @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(
