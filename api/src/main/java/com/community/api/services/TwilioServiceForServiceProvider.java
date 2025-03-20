@@ -60,6 +60,8 @@ public class TwilioServiceForServiceProvider {
                 existingServiceProvider.setOtp(otp);
                 entityManager.persist(existingServiceProvider);
             } else {
+                if(existingServiceProvider.getIsArchived())
+                    return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
                 existingServiceProvider.setOtp(null);
                 existingServiceProvider.setOtp(otp);
                 entityManager.merge(existingServiceProvider);
