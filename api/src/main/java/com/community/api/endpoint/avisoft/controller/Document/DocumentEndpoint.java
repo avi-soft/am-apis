@@ -5,6 +5,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.Privileges;
+import com.community.api.entity.Role;
 import com.community.api.entity.SuccessResponse;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -31,7 +32,10 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.community.api.component.Constant.roleServiceProvider;
 
 @RestController
 @RequestMapping(value = "/document")
@@ -131,9 +135,17 @@ public class DocumentEndpoint {
     @GetMapping("/get-document-of-customer")
     public ResponseEntity<?> getDocumentOfCustomer(
             @RequestParam Long customerId,
-            @RequestParam(required = false) Integer role,
+            @RequestParam(required = false) Integer role,@RequestHeader(value = "Authorization")String authHeader,
             HttpServletRequest request) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role roleCheck=roleService.getRoleByRoleId(roleId);
+
+            //checking for super admin and admin
+            if((roleCheck.getRole_name().equals(Constant.roleUser)&&!Objects.equals(tokenUserId, customerId))||((roleCheck.getRole_id()==4)))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             if (role != null) {
                 if (roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER)) {
 

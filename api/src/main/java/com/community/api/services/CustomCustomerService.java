@@ -152,7 +152,7 @@ public class CustomCustomerService {
         aliasQuery.put("sub_state_prov_reg","JOIN blc_customer_address cust_addr ON cust.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id ");
         aliasQuery.put("overlapping","JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id ");
         aliasQuery.put("service_provider_id","JOIN customer_referrer referrer ON cust.customer_id = referrer.customer_id ");
-        aliasQuery.put("completed","JOIN custom_customer cc ON cust.customer_id = cc.customer_id ");
+        aliasQuery.put("profile_completed","JOIN custom_customer cc ON cust.customer_id = cc.customer_id ");
         alias.put("sub_state_prov_reg", "addr");
         alias.put("county", "addr");
         alias.put("first_name", "cust");
@@ -175,7 +175,7 @@ public class CustomCustomerService {
             }
         if(completed!=null)
         {
-            generalizedQuery=generalizedQuery+aliasQuery.get("completed");
+            generalizedQuery=generalizedQuery+aliasQuery.get("profile_completed");
         }
         generalizedQuery=generalizedQuery+" WHERE ";
         String[] fieldsNames = {"sub_state_prov_reg", "county", "first_name", "last_name", "service_provider_id","overlapping","profile_completed"};
