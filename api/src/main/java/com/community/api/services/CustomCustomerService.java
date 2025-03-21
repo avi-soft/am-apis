@@ -126,6 +126,7 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
+
     public List<BigInteger> filterCustomer(List<Long> service_provider_id,String first_name,String last_name,List<String>sub_state_prov_reg,List<String> county,List<Long> qualification_name,String username,Boolean completed,String authHeader,int page,int limit,String sort)  {
             List<Map<String, Object>> response = new ArrayList<>();
         int startPosition = page * limit;
@@ -196,6 +197,8 @@ public class CustomCustomerService {
             }
 
         }
+
+
         System.out.println(generalizedQuery);
         generalizedQuery = generalizedQuery.trim();
         int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
@@ -210,10 +213,13 @@ public class CustomCustomerService {
                 query.setParameter(fieldsNames[i], fields[i]);
             }
         }
+
+
      /*   query.setFirstResult(startPosition);
         query.setMaxResults(limit);*/
         List<BigInteger>resultList=query.getResultList();
         return resultList;
     }
+
 
 }

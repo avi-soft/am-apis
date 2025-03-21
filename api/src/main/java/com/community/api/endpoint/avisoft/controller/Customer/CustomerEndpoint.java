@@ -28,6 +28,7 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import org.broadleafcommerce.common.admin.domain.AdminMainEntity;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -38,6 +39,7 @@ import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -3189,6 +3191,9 @@ public class CustomerEndpoint {
                                 primaryRefId = serviceProvider.getService_provider_id();
                             }
                         }
+
+
+
                         Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                         if (age != -1)
                             customerBasicDetailsDto.setAge(age);
