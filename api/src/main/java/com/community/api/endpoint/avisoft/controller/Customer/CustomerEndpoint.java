@@ -28,7 +28,6 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
-import org.broadleafcommerce.common.admin.domain.AdminMainEntity;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -1337,7 +1336,7 @@ public class CustomerEndpoint {
             Role role=roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
@@ -1394,9 +1393,13 @@ public class CustomerEndpoint {
                 roleId = jwtTokenUtil.extractRoleId(extAuth);
                 tokenUserId = jwtTokenUtil.extractId(extAuth);
             }
-            if(extUpdate&&(roleId!=1&&roleId!=2)&&(extAuth==null||extAuth.isEmpty()))
+            if(extUpdate&&(roleId!=1&&roleId!=2&&roleId!=5)&&(extAuth==null||extAuth.isEmpty()))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            String role=null;
+            if(extUpdate)
+                role= roleUser;
+            else
+                role = roleService.getRoleByRoleId(roleId).getRole_name();
             String queryStringArchive = null;
             String queryStringArchiveId = null;
 
