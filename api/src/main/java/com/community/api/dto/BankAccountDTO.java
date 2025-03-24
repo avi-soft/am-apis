@@ -29,10 +29,6 @@ public class BankAccountDTO {
     @Pattern(regexp = "^[0-9]{10,20}$", message = "Account number must contain only digits")
     private String accountNumber;
 
-    @NotBlank(message = "Re-entered account number is required")
-    @Size(min = 10, max = 20, message = "Re-entered account number must be between 10 and 20 characters")
-    @Pattern(regexp = "^[0-9]{10,20}$", message = "Re-entered account number must contain only digits")
-    private String reEnterAccountNumber;
 
     @NotBlank(message = "Account holder name is required")
     @Pattern(regexp = "^[A-Za-z ]{2,50}$", message = "Account holder name must contain only alphabets and spaces (2-50 characters)")

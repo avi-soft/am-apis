@@ -50,6 +50,5 @@ public class BankDetails {
     @Column(name = "upi_id", nullable = false,unique =false)
     private String upiId;
 
-
 }
 
