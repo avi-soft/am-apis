@@ -59,25 +59,24 @@ public class BankAccountController {
 
     /**
      * Add bank account response entity.
-     *
-     * @param customerId     the customer id
+    the customer id
      * @param bankAccountDTO the bank account dto
      * @return the response entity
      */
-    @PostMapping("/add/{customerId}")
+    @PostMapping("/add")
     public ResponseEntity<?> addBankAccount(
-            @PathVariable Long customerId,
             @RequestBody BankAccountDTO bankAccountDTO,
     @RequestHeader(value = "Authorization")String authHeader) {
 
         try {
+            Long customerId=bankAccountDTO.getUserId();
             String errorMessage= bankAccountService.getErrorMessage(bankAccountDTO);
             if(!errorMessage.isEmpty())
                 return ResponseService.generateErrorResponse(errorMessage,HttpStatus.BAD_REQUEST);
             if (customerId == null) {
                 return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             }
-            if(bankAccountDTO.getCustomerRole()==5) {
+            if(bankAccountDTO.getRole()==5) {
                 Customer customer = customerService.readCustomerById(customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
@@ -102,9 +101,10 @@ public class BankAccountController {
             String[] resultParts = result.split("ID: ");
             Long generatedId = Long.parseLong(resultParts[1].trim());
             BankAccountDTO responseDTO = new BankAccountDTO(
-                    bankAccountDTO.getCid(),
-                    bankAccountDTO.getCustomerName(),
-                    bankAccountDTO.getCustomerRole(),
+                    generatedId,
+                    bankAccountDTO.getUserId(),
+                    bankAccountDTO.getName(),
+                    bankAccountDTO.getRole(),
                     bankAccountDTO.getAccountNumber(),
                     bankAccountDTO.getReEnterAccountNumber(),
                     bankAccountDTO.getAccountHolder(),
@@ -142,6 +142,7 @@ public class BankAccountController {
             String jwtToken = authHeader.substring(7);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Integer roleId=jwtTokenUtil.extractRoleId(jwtToken);
+
             if(!tokenUserId.equals(customerId))
                 return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
             if (customerId == null) {
@@ -155,12 +156,16 @@ public class BankAccountController {
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
+                if(roleId==4)
+                    return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
             }
             if(role.getRole_name().equals(Constant.roleServiceProvider)) {
                 ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class,customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
+                if(roleId==5)
+                    return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
             }
             List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId,roleId);
             if (bankAccounts.isEmpty()) {
