@@ -239,7 +239,7 @@ public class BankAccountService {
      * @param accountId the ID of the account being updated (null for new accounts)
      * @return true if the account number exists, false otherwise
      */
-    private boolean doesAccountExist(String accountNumber, Long accountId,Long id) {
+    public boolean doesAccountExist(String accountNumber, Long accountId,Long id) {
         try {
             List<BankDetails> duplicateAccounts = entityManager.createQuery(
                             "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber and b.userId =:id", BankDetails.class)

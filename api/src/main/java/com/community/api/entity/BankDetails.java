@@ -47,7 +47,7 @@ public class BankDetails {
     @Column(name = "account_type", nullable = false)
     private String accountType;
 
-    @Column(name = "upi_id", nullable = false,unique = true)
+    @Column(name = "upi_id", nullable = false,unique =false)
     private String upiId;
 
 
