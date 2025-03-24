@@ -89,7 +89,8 @@ public class BankAccountController {
                     return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
                 }
             }
-
+            if(bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(),null,bankAccountDTO.getUserId()))
+                return ResponseService.generateErrorResponse("Bank account exists",HttpStatus.BAD_REQUEST);
             String result = bankAccountService.addBankAccount(authHeader,bankAccountDTO);
 
             if (result.contains("Account numbers do not match.")) {
@@ -99,6 +100,7 @@ public class BankAccountController {
                 return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
             }
             String[] resultParts = result.split("ID: ");
+            System.out.println(result);
             Long generatedId = Long.parseLong(resultParts[1].trim());
             BankAccountDTO responseDTO = new BankAccountDTO(
                     generatedId,
@@ -118,7 +120,11 @@ public class BankAccountController {
 
 
             return ResponseService.generateSuccessResponse("Bank account added successfully!", responseDTO, HttpStatus.OK);
-        }catch (ValidationException v)
+        }catch (ArrayIndexOutOfBoundsException e)
+        {
+            return ResponseService.generateErrorResponse("Account Already exists",HttpStatus.BAD_REQUEST);
+        }
+        catch (ValidationException v)
         {
             return ResponseService.generateErrorResponse("Failed Validation"+v.getMessage(),HttpStatus.BAD_REQUEST);
         }
