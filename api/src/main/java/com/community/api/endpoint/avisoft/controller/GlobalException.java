@@ -17,7 +17,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -30,6 +32,8 @@ public class GlobalException {
         return generateErrorResponse("Invalid request body", HttpStatus.BAD_REQUEST,ex.getMessage());
 
     }
+
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<String> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = "Invalid input for parameter: " + ex.getName();
