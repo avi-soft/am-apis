@@ -143,21 +143,15 @@ public class BankAccountController {
      * @return the bank accounts by customer id
      */
     @GetMapping("/get/{customerId}")
-    public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId,@RequestHeader(value = "Authorization")String authHeader) {
+    public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId,@RequestHeader(value = "Authorization")String authHeader,@RequestParam Integer role) {
         try{
             String jwtToken = authHeader.substring(7);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Integer roleId=jwtTokenUtil.extractRoleId(jwtToken);
-
-            if(!tokenUserId.equals(customerId))
-                return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
-            if (customerId == null) {
-                return ResponseService.generateErrorResponse("User Id not specified", HttpStatus.BAD_REQUEST);
-            }
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role roleToCheck=roleService.getRoleByRoleId(role);
             if(role==null)
                 return ResponseService.generateErrorResponse("Invalid role",HttpStatus.NOT_FOUND);
-            if(role.getRole_name().equals(Constant.roleUser)) {
+            if(roleToCheck.getRole_name().equals(Constant.roleUser)) {
                 Customer customer = entityManager.find(CustomCustomer.class,customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
@@ -165,7 +159,7 @@ public class BankAccountController {
                 if(roleId==4)
                     return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
             }
-            if(role.getRole_name().equals(Constant.roleServiceProvider)) {
+            if(roleToCheck.getRole_name().equals(Constant.roleServiceProvider)) {
                 ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class,customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
@@ -173,7 +167,12 @@ public class BankAccountController {
                 if(roleId==5)
                     return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
             }
-            List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId,roleId);
+            if(roleId.equals(role)&&!tokenUserId.equals(customerId))
+                return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
+            if (customerId == null) {
+                return ResponseService.generateErrorResponse("User Id not specified", HttpStatus.BAD_REQUEST);
+            }
+            List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId,role);
             if (bankAccounts.isEmpty()) {
                 return ResponseService.generateErrorResponse("No bank accounts found for this customer", HttpStatus.NOT_FOUND);
             }
