@@ -12,15 +12,17 @@ import javax.validation.constraints.*;
 @NoArgsConstructor
 public class BankAccountDTO {
 
+    private Long accountId;
+
     @NotNull(message = "Customer ID is required")
-    private Long cid;
+    private Long userId;
 
     @NotBlank(message = "Customer name is required")
-    @Pattern(regexp = "^[A-Za-z ]{2,50}$", message = "Customer name must contain only alphabets and spaces (2-50 characters)")
-    private String customerName;
+    @Pattern(regexp = "^[A-Za-z ]{2,50}$", message = "name must contain only alphabets and spaces (2-50 characters)")
+    private String name;
 
     @NotNull(message = "Customer role is required")
-    private Integer customerRole;
+    private Integer role;
 
     @NotBlank(message = "Account number is required")
     @Size(min = 10, max = 20, message = "Account number must be between 10 and 20 characters")

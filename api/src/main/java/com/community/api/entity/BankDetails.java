@@ -19,14 +19,14 @@ public class BankDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "customer_id")
-    private Long cid;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "customer_name", nullable = false)
-    private String customerName;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-    @Column(name = "customer_role", nullable = false)
-    private Integer customerRole;
+    @Column(name = "role", nullable = false)
+    private Integer role;
 
     @Column(name = "account_number", nullable = false, unique = true)
     private String accountNumber;

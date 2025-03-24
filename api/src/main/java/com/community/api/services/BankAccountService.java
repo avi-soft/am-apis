@@ -90,10 +90,10 @@ public class BankAccountService {
             }
 
             BankDetails bankDetails = new BankDetails();
-            bankDetails.setCustomerName(bankAccountDTO.getCustomerName());
+            bankDetails.setName(bankAccountDTO.getName());
             bankDetails.setAccountNumber(bankAccountDTO.getAccountNumber());
-            bankDetails.setCid(tokenUserId);
-            bankDetails.setCustomerRole(roleId);
+            bankDetails.setUserId(tokenUserId);
+            bankDetails.setRole(roleId);
             bankDetails.setIfscCode(bankAccountDTO.getIfscCode());
             bankDetails.setBankName(bankAccountDTO.getBankName());
             bankDetails.setBranchName(bankAccountDTO.getBranchName());
@@ -123,7 +123,7 @@ public class BankAccountService {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             BankDetails bankDetails = entityManager.find(BankDetails.class, accountId);
-            if(!tokenUserId.equals(bankDetails.getCid()))
+            if(!tokenUserId.equals(bankDetails.getUserId()))
             {
                 return "Unauthorized";
             }
@@ -180,7 +180,7 @@ public class BankAccountService {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             BankDetails existingAccount = entityManager.find(BankDetails.class, accountId);
-            if(!existingAccount.getCid().equals(tokenUserId))
+            if(!existingAccount.getUserId().equals(tokenUserId))
                 throw new NotAuthorizedException("NA","Forbidden");
             if (existingAccount == null) {
                 return "Account update failed. Account not found.";
@@ -222,8 +222,8 @@ public class BankAccountService {
         BankAccountDTO dto = new BankAccountDTO();
         dto.setUpiId(bankDetails.getUpiId());
         dto.setAccountHolder(bankDetails.getAccountHolder());
-        dto.setCid(bankDetails.getCid());
-        dto.setCustomerName(bankDetails.getCustomerName());
+        dto.setUserId(bankDetails.getId());
+        dto.setName(bankDetails.getName());
         dto.setAccountNumber(bankDetails.getAccountNumber());
         dto.setIfscCode(bankDetails.getIfscCode());
         dto.setBankName(bankDetails.getBankName());
@@ -242,7 +242,7 @@ public class BankAccountService {
     private boolean doesAccountExist(String accountNumber, Long accountId,Long id) {
         try {
             List<BankDetails> duplicateAccounts = entityManager.createQuery(
-                            "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber and b.cid =:id", BankDetails.class)
+                            "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber and b.userId =:id", BankDetails.class)
                     .setParameter("accountNumber", accountNumber)
                     .setParameter("id", id)
                     .getResultList();
@@ -271,7 +271,7 @@ public class BankAccountService {
         try {
             List<BankAccountDTO> bankAccountDTOList=new ArrayList<>();
             List<BigInteger> bankIds = entityManager.createNativeQuery(
-                            "SELECT b.id FROM bank_details b WHERE b.customer_id = :customerId AND b.customer_role = :roleId")
+                            "SELECT b.id FROM bank_details b WHERE b.user_id = :customerId AND b.role = :roleId")
                     .setParameter("customerId", customerId)
                     .setParameter("roleId", roleId)
                     .getResultList();
@@ -279,9 +279,10 @@ public class BankAccountService {
                 BankDetails bankDetails = entityManager.find(BankDetails.class, bankId.longValue());
                bankAccountDTOList = new ArrayList<>();
                 BankAccountDTO bankAccountDTO = new BankAccountDTO();
-                bankAccountDTO.setCustomerName(bankDetails.getCustomerName());
+                bankAccountDTO.setAccountId(bankDetails.getId());
+                bankAccountDTO.setName(bankDetails.getName());
                 bankAccountDTO.setAccountHolder(bankDetails.getAccountHolder());
-                bankAccountDTO.setCid(bankAccountDTO.getCid());
+                bankAccountDTO.setUserId(bankAccountDTO.getUserId());
                 bankAccountDTO.setUpiId(bankAccountDTO.getUpiId());
                 bankAccountDTO.setAccountNumber(bankDetails.getAccountNumber());
                 bankAccountDTO.setIfscCode(bankDetails.getIfscCode());
