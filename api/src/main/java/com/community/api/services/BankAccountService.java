@@ -85,9 +85,9 @@ public class BankAccountService {
                 return "Account already exists.";
             }
 
-            if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
+       /*     if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
                 return "Account numbers do not match.";
-            }
+            }*/
 
             BankDetails bankDetails = new BankDetails();
             bankDetails.setName(bankAccountDTO.getName());
@@ -186,9 +186,9 @@ public class BankAccountService {
                 return "Account update failed. Account not found.";
             }
 
-            if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
+          /*  if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
                 return "Account numbers do not match.";
-            }
+            }*/
             if (doesAccountExist(bankAccountDTO.getAccountNumber(),accountId,tokenUserId)) {
                 return "Account number already exists.";
             }
@@ -279,11 +279,13 @@ public class BankAccountService {
                 BankDetails bankDetails = entityManager.find(BankDetails.class, bankId.longValue());
                bankAccountDTOList = new ArrayList<>();
                 BankAccountDTO bankAccountDTO = new BankAccountDTO();
+                bankAccountDTO.setRole(bankDetails.getRole());
+                bankAccountDTO.setUserId(bankDetails.getUserId());
                 bankAccountDTO.setAccountId(bankDetails.getId());
                 bankAccountDTO.setName(bankDetails.getName());
                 bankAccountDTO.setAccountHolder(bankDetails.getAccountHolder());
-                bankAccountDTO.setUserId(bankAccountDTO.getUserId());
-                bankAccountDTO.setUpiId(bankAccountDTO.getUpiId());
+                bankAccountDTO.setUserId(bankDetails.getUserId());
+                bankAccountDTO.setUpiId(bankDetails.getUpiId());
                 bankAccountDTO.setAccountNumber(bankDetails.getAccountNumber());
                 bankAccountDTO.setIfscCode(bankDetails.getIfscCode());
                 bankAccountDTO.setBankName(bankDetails.getBankName());

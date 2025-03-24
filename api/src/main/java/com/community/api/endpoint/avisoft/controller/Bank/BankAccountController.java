@@ -108,7 +108,6 @@ public class BankAccountController {
                     bankAccountDTO.getName(),
                     bankAccountDTO.getRole(),
                     bankAccountDTO.getAccountNumber(),
-                    bankAccountDTO.getReEnterAccountNumber(),
                     bankAccountDTO.getAccountHolder(),
                     bankAccountDTO.getIfscCode(),
                     bankAccountDTO.getBankName(),
