@@ -357,7 +357,7 @@ public class ServiceProviderController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleUser})
     @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(
@@ -423,9 +423,6 @@ public class ServiceProviderController {
             int fromIndex = Math.min(offset * limit, totalItems);
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateErrorResponse("No more service provider data available", HttpStatus.NOT_FOUND);
-            }
 
             List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
@@ -435,6 +432,10 @@ public class ServiceProviderController {
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
+
+            if (fromIndex >= totalItems){
+                return ResponseService.generateSuccessResponse("No Service Providers Found",response, HttpStatus.OK);
+            }
 
             return ResponseService.generateSuccessResponse("Service Providers",response, HttpStatus.OK);
 

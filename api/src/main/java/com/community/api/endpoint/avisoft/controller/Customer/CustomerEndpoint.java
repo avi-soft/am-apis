@@ -38,6 +38,7 @@ import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -1340,12 +1341,17 @@ public class CustomerEndpoint {
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
-            if(customCustomer.getArchived()!=null)
-            {
-                if (customCustomer.getArchived().equals(true)) {
-                    return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
-                }
+
+
+
+            if (customCustomer.getArchived() != null && customCustomer.getArchived().equals(true) &&
+                    !(role.getRole_name().equals(Constant.roleSuperAdmin) ||
+                            role.getRole_name().equals(Constant.roleAdmin) ||
+                            role.getRole_name().equals(roleServiceProvider) ||
+                            role.getRole_name().equals(Constant.roleServiceProviderAdmin))) {
+                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
             }
+
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
             Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest);
 
@@ -1393,7 +1399,11 @@ public class CustomerEndpoint {
             }
             if(extUpdate&&(roleId!=1&&roleId!=2&&roleId!=5)&&(extAuth==null||extAuth.isEmpty()))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            String role=null;
+            if(extUpdate)
+                role= roleUser;
+            else
+                role = roleService.getRoleByRoleId(roleId).getRole_name();
             String queryStringArchive = null;
             String queryStringArchiveId = null;
 
@@ -3188,6 +3198,9 @@ public class CustomerEndpoint {
                                 primaryRefId = serviceProvider.getService_provider_id();
                             }
                         }
+
+
+
                         Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                         if (age != -1)
                             customerBasicDetailsDto.setAge(age);
