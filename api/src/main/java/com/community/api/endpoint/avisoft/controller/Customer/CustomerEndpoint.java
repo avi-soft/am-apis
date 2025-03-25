@@ -28,6 +28,7 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import org.apache.tomcat.util.bcel.Const;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -38,7 +39,6 @@ import org.broadleafcommerce.profile.core.service.CustomerAddressService;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -1342,17 +1342,12 @@ public class CustomerEndpoint {
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
-
-
-
-            if (customCustomer.getArchived() != null && customCustomer.getArchived().equals(true) &&
-                    !(role.getRole_name().equals(Constant.roleSuperAdmin) ||
-                            role.getRole_name().equals(Constant.roleAdmin) ||
-                            role.getRole_name().equals(roleServiceProvider) ||
-                            role.getRole_name().equals(Constant.roleServiceProviderAdmin))) {
-                return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
+            if(customCustomer.getArchived()!=null)
+            {
+                if (customCustomer.getArchived().equals(true)) {
+                    return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
+                }
             }
-
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
             Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest);
 
@@ -3199,9 +3194,6 @@ public class CustomerEndpoint {
                                 primaryRefId = serviceProvider.getService_provider_id();
                             }
                         }
-
-
-
                         Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
                         if (age != -1)
                             customerBasicDetailsDto.setAge(age);
