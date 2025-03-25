@@ -365,6 +365,8 @@ public class EarningsController {
               Earnings earnings=entityManager.find(Earnings.class,txnId);
               if(earnings==null)
                   return ResponseService.generateErrorResponse("Invalid txn id provided",HttpStatus.BAD_REQUEST);
+              if(!earnings.getProviderId().equals(transactionDTO.getUserId()))
+                  return ResponseService.generateErrorResponse("Payment with id : "+txnId+" does not belong to the selected user",HttpStatus.BAD_REQUEST);
               if(earnings.isSettled())
                   return ResponseService.generateErrorResponse("Payment with Id : "+txnId+" is already settled",HttpStatus.BAD_REQUEST);
               checkAmt+=earnings.getPending();
