@@ -56,9 +56,10 @@ public class EarningsController {
     public ResponseEntity<?> getFilteredEarnings(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(required = false, defaultValue = "false") Boolean settled,
-            @RequestParam(required = false) List<Long> spIds,
+            @RequestParam(required = true) List<Long> spIds,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from) throws Exception {
+
 
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -69,6 +70,14 @@ public class EarningsController {
             return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
 
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
+
+            if (from!=null&&!from.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                throw new IllegalArgumentException("Date must be in YYYY-MM-DD format");
+            }
+        if (to!=null&&!to.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+            throw new IllegalArgumentException("Date must be in YYYY-MM-DD format");
+        }
 
         StringBuilder generalizedQuery = new StringBuilder("SELECT id FROM earnings WHERE 1=1");
         List<Object> params = new ArrayList<>();
@@ -94,12 +103,25 @@ public class EarningsController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         if (from != null && !from.isEmpty()) {
-            Date fromDate = sdf.parse(from);
+            Date fromDate;
+            try {
+                fromDate= sdf.parse(from);
+            }catch (Exception e)
+            {
+                return ResponseService.generateErrorResponse("Invalid from date",HttpStatus.BAD_REQUEST);
+            }
             generalizedQuery.append(" AND date >= ?");
             params.add(fromDate);
         }
         if (to != null && !to.isEmpty()) {
-            Date toDate = sdf.parse(to);
+            Date toDate;
+            try {
+                toDate = sdf.parse(to);
+            }
+            catch (Exception e)
+            {
+                return ResponseService.generateErrorResponse("Invalid to date",HttpStatus.BAD_REQUEST);
+            }
             generalizedQuery.append(" AND date <= ?");
             params.add(toDate);
         }
