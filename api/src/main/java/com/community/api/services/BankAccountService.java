@@ -1,21 +1,32 @@
 package com.community.api.services;
 
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.BankAccountDTO;
 import com.community.api.entity.BankDetails;
 import com.community.api.entity.CustomCustomer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
+import org.springframework.social.NotAuthorizedException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolation;
 import javax.validation.Valid;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The type Bank account service.
@@ -29,36 +40,67 @@ public class BankAccountService {
     @Autowired
     EntityManager entityManager;
 
-    /**
-     * Add bank account string.
-     *
-     * @param customCustomer the custom customer
-     * @param bankAccountDTO the bank account dto
-     * @return the string
-     */
+    @Autowired
+    JwtUtil jwtTokenUtil;
+
+    @Autowired
+    private javax.validation.Validator validator;
+
+    public Map<String, String> validateBankAccountDTO(BankAccountDTO bankAccountDTO) {
+        Set<ConstraintViolation<BankAccountDTO>> violations = validator.validate(bankAccountDTO);
+        Map<String, String> errors = new HashMap<>();
+
+        for (ConstraintViolation<BankAccountDTO> violation : violations) {
+            String fieldName = violation.getPropertyPath().toString();  // Gets the field name
+            String message = violation.getMessage();                   // Gets the validation message
+            errors.put(fieldName, message);
+        }
+        return errors;
+    }
+    public String getErrorMessage(BankAccountDTO bankAccountDTO) {
+        Map<String, String> response = validateBankAccountDTO(bankAccountDTO);
+        if (!response.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder();
+
+            for (Map.Entry<String, String> entry : response.entrySet()) {
+                String message = entry.getValue();
+                errorMessage.append(message).append(", ");
+            }
+            // Remove the trailing comma and space
+            if (errorMessage.length() > 0) {
+                errorMessage.setLength(errorMessage.length() - 2);
+            }
+            // Return or print the final error message
+            return errorMessage.toString();
+        }
+        else return "";
+    }
     @Transactional
-    public String addBankAccount(CustomCustomer customCustomer, BankAccountDTO bankAccountDTO) {
+    public String addBankAccount(String authHeader,BankAccountDTO bankAccountDTO) {
         try {
-            if (isAccountNumberExists(bankAccountDTO.getAccountNumber(), null)) {
-                return "Account number already exists.";
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if (doesAccountExist(bankAccountDTO.getAccountNumber(), null,tokenUserId)) {
+                return "Account already exists.";
             }
 
-            if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
+       /*     if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
                 return "Account numbers do not match.";
-            }
+            }*/
 
             BankDetails bankDetails = new BankDetails();
-            bankDetails.setId(bankAccountDTO.getId());
-            bankDetails.setCustomerName(bankAccountDTO.getCustomerName());
+            bankDetails.setName(bankAccountDTO.getName());
             bankDetails.setAccountNumber(bankAccountDTO.getAccountNumber());
-            bankDetails.setCustomer(customCustomer);
+            bankDetails.setUserId(bankAccountDTO.getUserId());
+            bankDetails.setRole(roleId);
             bankDetails.setIfscCode(bankAccountDTO.getIfscCode());
             bankDetails.setBankName(bankAccountDTO.getBankName());
             bankDetails.setBranchName(bankAccountDTO.getBranchName());
             bankDetails.setAccountType(bankAccountDTO.getAccountType());
-
+            bankDetails.setUpiId(bankAccountDTO.getUpiId());
+            bankDetails.setAccountHolder(bankAccountDTO.getAccountHolder());
             entityManager.persist(bankDetails);
-
             Long generatedId = bankDetails.getId();
 
             return "Bank account added successfully! ID: " + generatedId;
@@ -75,9 +117,16 @@ public class BankAccountService {
      * @return the string
      */
     @Transactional
-    public String deleteBankAccount(Long accountId) {
+    public String deleteBankAccount(String authHeader,Long accountId) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             BankDetails bankDetails = entityManager.find(BankDetails.class, accountId);
+            if(!tokenUserId.equals(bankDetails.getUserId()))
+            {
+                return "Unauthorized";
+            }
             if (bankDetails != null) {
                 entityManager.remove(bankDetails); // Delete the bank account
                 return "Bank account deleted successfully!";
@@ -125,17 +174,22 @@ public class BankAccountService {
      * @return the string
      */
     @Transactional
-    public String updateBankAccount(Long accountId,  BankAccountDTO bankAccountDTO) {
+    public String updateBankAccount(String authHeader,Long accountId,  BankAccountDTO bankAccountDTO) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             BankDetails existingAccount = entityManager.find(BankDetails.class, accountId);
+            if(!existingAccount.getUserId().equals(tokenUserId))
+                throw new NotAuthorizedException("NA","Forbidden");
             if (existingAccount == null) {
                 return "Account update failed. Account not found.";
             }
 
-            if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
+          /*  if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
                 return "Account numbers do not match.";
-            }
-            if (isAccountNumberExists(bankAccountDTO.getAccountNumber(), accountId)) {
+            }*/
+            if (doesAccountExist(bankAccountDTO.getAccountNumber(),accountId,tokenUserId)) {
                 return "Account number already exists.";
             }
 
@@ -166,8 +220,10 @@ public class BankAccountService {
 
     public BankAccountDTO convertToDTO(BankDetails bankDetails) {
         BankAccountDTO dto = new BankAccountDTO();
-        dto.setId(bankDetails.getId());
-        dto.setCustomerName(bankDetails.getCustomerName());
+        dto.setUpiId(bankDetails.getUpiId());
+        dto.setAccountHolder(bankDetails.getAccountHolder());
+        dto.setUserId(bankDetails.getId());
+        dto.setName(bankDetails.getName());
         dto.setAccountNumber(bankDetails.getAccountNumber());
         dto.setIfscCode(bankDetails.getIfscCode());
         dto.setBankName(bankDetails.getBankName());
@@ -183,11 +239,12 @@ public class BankAccountService {
      * @param accountId the ID of the account being updated (null for new accounts)
      * @return true if the account number exists, false otherwise
      */
-    private boolean isAccountNumberExists(String accountNumber, Long accountId) {
+    public boolean doesAccountExist(String accountNumber, Long accountId,Long id) {
         try {
             List<BankDetails> duplicateAccounts = entityManager.createQuery(
-                            "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber", BankDetails.class)
+                            "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber and b.userId =:id", BankDetails.class)
                     .setParameter("accountNumber", accountNumber)
+                    .setParameter("id", id)
                     .getResultList();
 
             if (accountId != null) {
@@ -210,27 +267,33 @@ public class BankAccountService {
      */
     @Transactional
 
-    public List<BankAccountDTO> getBankAccountsByCustomerId(Long customerId) {
+    public List<BankAccountDTO> getBankAccountsByCustomerId(Long customerId,Integer roleId) {
         try {
-            List<BankDetails> bankDetailsList = entityManager.createQuery(
-                            "SELECT b FROM BankDetails b WHERE b.customer.id = :customerId", BankDetails.class)
+            List<BankAccountDTO> bankAccountDTOList=new ArrayList<>();
+            List<BigInteger> bankIds = entityManager.createNativeQuery(
+                            "SELECT b.id FROM bank_details b WHERE b.user_id = :customerId AND b.role = :roleId")
                     .setParameter("customerId", customerId)
+                    .setParameter("roleId", roleId)
                     .getResultList();
-
-            List<BankAccountDTO> bankAccountDTOList = new ArrayList<>();
-            for (BankDetails bankDetails : bankDetailsList) {
+            for (BigInteger bankId : bankIds) {
+                BankDetails bankDetails = entityManager.find(BankDetails.class, bankId.longValue());
+               bankAccountDTOList = new ArrayList<>();
                 BankAccountDTO bankAccountDTO = new BankAccountDTO();
-                bankAccountDTO.setId(bankDetails.getId());
-                bankAccountDTO.setCustomerName(bankDetails.getCustomerName());
+                bankAccountDTO.setRole(bankDetails.getRole());
+                bankAccountDTO.setUserId(bankDetails.getUserId());
+                bankAccountDTO.setAccountId(bankDetails.getId());
+                bankAccountDTO.setName(bankDetails.getName());
+                bankAccountDTO.setAccountHolder(bankDetails.getAccountHolder());
+                bankAccountDTO.setUserId(bankDetails.getUserId());
+                bankAccountDTO.setUpiId(bankDetails.getUpiId());
                 bankAccountDTO.setAccountNumber(bankDetails.getAccountNumber());
                 bankAccountDTO.setIfscCode(bankDetails.getIfscCode());
                 bankAccountDTO.setBankName(bankDetails.getBankName());
                 bankAccountDTO.setBranchName(bankDetails.getBranchName());
                 bankAccountDTO.setAccountType(bankDetails.getAccountType());
-
                 bankAccountDTOList.add(bankAccountDTO);
-            }
 
+            }
             return bankAccountDTOList;
         } catch (Exception e) {
             return Collections.emptyList();
