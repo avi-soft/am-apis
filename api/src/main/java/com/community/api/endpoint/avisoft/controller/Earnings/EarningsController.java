@@ -5,9 +5,11 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.PaymentDetailsDTO;
+import com.community.api.dto.TransactionDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Earnings;
 import com.community.api.entity.Role;
+import com.community.api.entity.Transaction;
 import com.community.api.services.PaymentService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -18,14 +20,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.math.BigInteger;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -222,6 +235,191 @@ public class EarningsController {
         dto.setThisMonthPayable(balances[1]); // Fixed the duplicate setter
         dto.setTotalBalance(balances[0] + balances[1]);
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    @GetMapping("get-transactions-history")
+    public ResponseEntity<?> getPaymentHistory(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) Long spId,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String from) {
+
+        try {
+            // Validate and extract JWT token
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseService.generateErrorResponse("Invalid authorization header", HttpStatus.BAD_REQUEST);
+            }
+            String jwtToken = authHeader.substring(7);
+
+            // Extract user info from token
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role = roleService.getRoleByRoleId(roleId);
+
+            // Validate date formats
+            if (from != null && !from.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                return ResponseService.generateErrorResponse("From date must be in YYYY-MM-DD format", HttpStatus.BAD_REQUEST);
+            }
+            if (to != null && !to.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                return ResponseService.generateErrorResponse("To date must be in YYYY-MM-DD format", HttpStatus.BAD_REQUEST);
+            }
+
+            // Authorization check
+            if (role.getRole_name().equals(Constant.roleUser)) {
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            }
+
+            // Validate service provider access
+            if (role.getRole_name().equals(Constant.roleServiceProvider)) {
+                if (spId != null && !spId.equals(tokenUserId)) {
+                    return ResponseService.generateErrorResponse("Service providers can only view their own transactions",
+                            HttpStatus.FORBIDDEN);
+                }
+                spId = tokenUserId; // Force SP to only see their own transactions
+            }
+
+            // Parse dates
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date fromDate = null;
+            Date toDate = null;
+
+            try {
+                if (from != null) fromDate = sdf.parse(from);
+                if (to != null) toDate = sdf.parse(to);
+            } catch (ParseException e) {
+                return ResponseService.generateErrorResponse("Invalid date format", HttpStatus.BAD_REQUEST);
+            }
+
+            // Build query using JPA Criteria API for type safety
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
+            Root<Transaction> transaction = cq.from(Transaction.class);
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Add SP filter if specified
+            if (spId != null) {
+                predicates.add(cb.equal(transaction.get("userId"), spId));
+            }
+
+            // Add date range filters
+            if (fromDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(transaction.get("date"), fromDate));
+            }
+            if (toDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(transaction.get("date"), toDate));
+            }
+
+            cq.where(predicates.toArray(new Predicate[0]));
+            cq.distinct(true);
+
+            // Execute query
+            List<Transaction> transactions = entityManager.createQuery(cq).getResultList();
+
+            return ResponseService.generateSuccessResponse("Transactions retrieved successfully",
+                    transactions, HttpStatus.OK);
+
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse("Error processing request",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin})
+    @Transactional
+    @PutMapping("manage/{txnId}")
+    public ResponseEntity<?> alterStatus(@PathVariable Long txnId,@RequestParam Boolean settle)
+    {
+        Earnings earnings=entityManager.find(Earnings.class,txnId);
+        if(earnings==null)
+            return ResponseService.generateErrorResponse("Invalid txn id provided",HttpStatus.BAD_REQUEST);
+        if(earnings.isSettled()==settle)
+            return ResponseService.generateErrorResponse("Transaction already has status settled :"+settle,HttpStatus.BAD_REQUEST);
+        earnings.setSettled(settle);
+        entityManager.merge(earnings);
+        return ResponseService.generateSuccessResponse("Transaction status altered",earnings,HttpStatus.OK);
+    }
+
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin})
+    @Transactional
+    @PostMapping("settle-amount")
+    public ResponseEntity<?> getFilteredEarnings(@RequestHeader(value = "Authorization")String authHeader, @RequestBody TransactionDTO transactionDTO) {
+        try {
+          if(transactionDTO.getUserId()==null)
+              return ResponseService.generateErrorResponse("User id is required",HttpStatus.BAD_REQUEST);
+          ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,transactionDTO.getUserId());
+          if(serviceProvider==null)
+              return ResponseService.generateErrorResponse("User not found",HttpStatus.NOT_FOUND);
+          double[] balances = paymentService.balances(serviceProvider.getService_provider_id());
+          if(transactionDTO.getAmountToSettle()==null||transactionDTO.getAmountToSettle()==0)
+              return ResponseService.generateErrorResponse("Amount to settle is needed",HttpStatus.BAD_REQUEST);
+          else if(transactionDTO.getAmountToSettle()<0)
+              return ResponseService.generateErrorResponse("Amount to settle cannot be negative",HttpStatus.BAD_REQUEST);
+          if(transactionDTO.getAmountToSettle()>(balances[0]+balances[1]))
+              return ResponseService.generateErrorResponse("Amount to settle cannot be more than balance",HttpStatus.BAD_REQUEST);
+          if(transactionDTO.getTxnIds()==null||transactionDTO.getTxnIds().isEmpty())
+              return ResponseService.generateErrorResponse("Transaction ids are required",HttpStatus.BAD_REQUEST);
+          double checkAmt=0.0;
+          for(Long txnId:transactionDTO.getTxnIds())
+          {
+              Earnings earnings=entityManager.find(Earnings.class,txnId);
+              if(earnings==null)
+                  return ResponseService.generateErrorResponse("Invalid txn id provided",HttpStatus.BAD_REQUEST);
+              if(earnings.isSettled())
+                  return ResponseService.generateErrorResponse("Payment with Id : "+txnId+" is already settled",HttpStatus.BAD_REQUEST);
+              checkAmt+=earnings.getPending();
+          }
+          if(transactionDTO.getAmountToSettle()>checkAmt)
+              return ResponseService.generateErrorResponse("Amount cannot be settled for selected transactions",HttpStatus.BAD_REQUEST);
+          Double amt=0.0;
+            for(Long txnId:transactionDTO.getTxnIds())
+            {
+                    Earnings earnings=entityManager.find(Earnings.class,txnId);
+                    if(earnings.getPending()+amt<=transactionDTO.getAmountToSettle())
+                    {
+                        amt=amt+earnings.getPending();
+                        earnings.setPaid(earnings.getPending());
+                        earnings.setPending(0.0);
+                        earnings.setPaymentDone(true);
+                        earnings.setSettled(true);
+                        entityManager.merge(earnings);
+                    } else if (amt==transactionDTO.getAmountToSettle()) {
+                        Transaction transaction=new Transaction();
+                        transaction.setCurrentMonthPayable(balances[1]);
+                        transaction.setLastMonthPayable(balances[0]);
+                        transaction.setSettledAmount(amt);
+                        transaction.setBalance(balances[0]+balances[1]-amt);
+                        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+                        transaction.setRole(serviceProvider.getRole());
+                        transaction.setUserId(serviceProvider.getService_provider_id());
+                        transaction.setDate(new Date());
+                        entityManager.persist(transaction);
+                        return ResponseService.generateSuccessResponse("Transaction Done",transaction,HttpStatus.OK);
+                    } else if(earnings.getPending()+amt>transactionDTO.getAmountToSettle())
+                    {
+                        earnings.setPending(earnings.getPending()-(transactionDTO.getAmountToSettle()-amt));
+                        earnings.setPaid(transactionDTO.getAmountToSettle()-amt);
+                        amt=transactionDTO.getAmountToSettle();
+                        earnings.setPaymentDone(false);
+                        earnings.setSettled(false);
+                        Transaction transaction=new Transaction();
+                        transaction.setCurrentMonthPayable(balances[1]);
+                        transaction.setLastMonthPayable(balances[0]);
+                        transaction.setSettledAmount(amt);
+                        transaction.setBalance(balances[0]+balances[1]-amt);
+                        transaction.setSettlementRemarks(transactionDTO.getSettlementRemarks());
+                        transaction.setRole(serviceProvider.getRole());
+                        transaction.setUserId(serviceProvider.getService_provider_id());
+                        transaction.setDate(new Date());
+                        entityManager.persist(transaction);
+                        entityManager.merge(earnings);
+                        return ResponseService.generateSuccessResponse("Transaction Done",transaction,HttpStatus.OK);
+                    }
+            }
+            return null;
+        } catch (Exception e) {
+           return ResponseService.generateErrorResponse("Some error occured",HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
 

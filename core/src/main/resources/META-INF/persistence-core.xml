@@ -107,6 +107,8 @@
         <class>com.community.api.entity.CustomMode</class>
         <class>com.community.api.entity.BlackListedTokens</class>
         <class>com.community.api.entity.Earnings</class>
+        <class>com.community.api.entity.Transaction</class>
+
         <exclude-unlisted-classes/>
     </persistence-unit>
 
