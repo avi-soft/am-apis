@@ -19,21 +19,15 @@ public class BankDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id")
+    private CustomCustomer customer;
 
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "role", nullable = false)
-    private Integer role;
+    @Column(name = "customer_name", nullable = false)
+    private String customerName;
 
     @Column(name = "account_number", nullable = false, unique = true)
     private String accountNumber;
-
-    @Column(name = "account_holder", nullable = false)
-    private String accountHolder;
-
 
     @Column(name = "ifsc_code", nullable = false)
     private String ifscCode;
@@ -47,8 +41,6 @@ public class BankDetails {
     @Column(name = "account_type", nullable = false)
     private String accountType;
 
-    @Column(name = "upi_id", nullable = false,unique =false)
-    private String upiId;
 
 }
 

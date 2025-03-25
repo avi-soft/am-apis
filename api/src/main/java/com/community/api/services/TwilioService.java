@@ -131,7 +131,8 @@ public class TwilioService {
                 customerDetails.setRegisteredBySp(true);
                 customerDetails.setCreatedById(tokenUserId);
                 customerDetails.setCreatedByRole(roleId);
-                customerDetails.setPrimaryRef(tokenUserId);
+                if(roleId==4)
+                    customerDetails.setPrimaryRef(tokenUserId);
                 entityManager.merge(customer);
                 }
                 else
