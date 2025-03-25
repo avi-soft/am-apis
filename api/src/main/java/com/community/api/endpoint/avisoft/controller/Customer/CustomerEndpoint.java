@@ -1334,7 +1334,7 @@ public class CustomerEndpoint {
             Role role=roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
@@ -1391,7 +1391,7 @@ public class CustomerEndpoint {
                 roleId = jwtTokenUtil.extractRoleId(extAuth);
                 tokenUserId = jwtTokenUtil.extractId(extAuth);
             }
-            if(extUpdate&&(roleId!=1&&roleId!=2)&&(extAuth==null||extAuth.isEmpty()))
+            if(extUpdate&&(roleId!=1&&roleId!=2&&roleId!=5)&&(extAuth==null||extAuth.isEmpty()))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
             String role = roleService.getRoleByRoleId(roleId).getRole_name();
             String queryStringArchive = null;
