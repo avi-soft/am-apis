@@ -375,12 +375,18 @@ public class ServiceProviderController {
 
             // Validate input
             if ((uri.containsKey("state") && state == null) ||
-                    (uri.containsKey("full_name") && full_name == null) ||
+                    (uri.containsKey("full_name") && (full_name == null || full_name.trim().isEmpty())) ||
                     (uri.containsKey("test_status_id") && test_status_id == null) ||
                     (uri.containsKey("district") && district == null) ||
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
+
+            // Validate full_name (only alphabets and spaces allowed)
+            if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
+                return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
+            }
+
 
             String first_name = null;
             String last_name = null;
