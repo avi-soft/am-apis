@@ -11,6 +11,7 @@ import com.community.api.services.BankAccountService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.mchange.util.AlreadyExistsException;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +21,14 @@ import org.springframework.social.NotAuthorizedException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityManager;
+import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.ValidationException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The type Bank account controller.
@@ -70,6 +74,11 @@ public class BankAccountController {
 
         try {
             Long customerId=bankAccountDTO.getUserId();
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(Objects.equals(roleId, bankAccountDTO.getRole()) &&!Objects.equals(tokenUserId, bankAccountDTO.getUserId()))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             String errorMessage= bankAccountService.getErrorMessage(bankAccountDTO);
             if(!errorMessage.isEmpty())
                 return ResponseService.generateErrorResponse(errorMessage,HttpStatus.BAD_REQUEST);
@@ -105,7 +114,6 @@ public class BankAccountController {
             BankAccountDTO responseDTO = new BankAccountDTO(
                     generatedId,
                     bankAccountDTO.getUserId(),
-                    bankAccountDTO.getName(),
                     bankAccountDTO.getRole(),
                     bankAccountDTO.getAccountNumber(),
                     bankAccountDTO.getAccountHolder(),
@@ -119,9 +127,9 @@ public class BankAccountController {
 
 
             return ResponseService.generateSuccessResponse("Bank account added successfully!", responseDTO, HttpStatus.OK);
-        }catch (ArrayIndexOutOfBoundsException e)
+        }catch (AlreadyExistsException e)
         {
-            return ResponseService.generateErrorResponse("Account Already exists",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Bank Account Already exists",HttpStatus.BAD_REQUEST);
         }
         catch (ValidationException v)
         {
@@ -173,7 +181,7 @@ public class BankAccountController {
             }
             List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId,role);
             if (bankAccounts.isEmpty()) {
-                return ResponseService.generateErrorResponse("No bank accounts found for this customer", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("No bank accounts found for this user", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("Bank accounts fetched successfully!", bankAccounts, HttpStatus.OK);
 
@@ -194,46 +202,42 @@ public class BankAccountController {
     @PutMapping("/update/{accountId}")
     public ResponseEntity<?> updateBankAccount(
             @PathVariable Long accountId,
-            @RequestBody  BankAccountDTO bankAccountDTO,@RequestHeader(value = "Authorization")String authHeader) {
+            @RequestBody BankAccountDTO bankAccountDTO,
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            // Validate path variable
             if (accountId == null) {
                 return ResponseService.generateErrorResponse("Account ID is required", HttpStatus.BAD_REQUEST);
             }
             String errorMessage= bankAccountService.getErrorMessage(bankAccountDTO);
             if(!errorMessage.isEmpty())
                 return ResponseService.generateErrorResponse(errorMessage,HttpStatus.BAD_REQUEST);
+            // Validate DTO (handled by @Valid and DTO annotations)
 
+            // Check if account exists
             Optional<BankDetails> existingAccount = bankAccountService.getBankAccountById(accountId);
-            if (!existingAccount.isPresent()) {
-                return ResponseService.generateErrorResponse("Bank account not found for this Id", HttpStatus.NOT_FOUND);
+            if (existingAccount.isEmpty()) {
+                return ResponseService.generateErrorResponse("Bank account not found", HttpStatus.NOT_FOUND);
             }
 
-            String result = bankAccountService.updateBankAccount(authHeader,accountId, bankAccountDTO);
-            if (result.equals("Account number already exists.")) {
-                return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
-            }
-            if (result.equals("Account numbers do not match.")) {
-                return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
-            }
-            if (result.equals("Account update failed")) {
-                return ResponseService.generateErrorResponse("Failed to update bank account", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+            // Update account
+            String result = bankAccountService.updateBankAccount(authHeader, accountId, bankAccountDTO);
 
+            // Return updated account details
             Optional<BankDetails> updatedAccount = bankAccountService.getBankAccountById(accountId);
-            if (updatedAccount.isEmpty()) {
-                return ResponseService.generateErrorResponse("Updated bank account not found", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
             BankAccountDTO updatedBankAccountDTO = bankAccountService.convertToDTO(updatedAccount.get());
 
-            return ResponseService.generateSuccessResponse("Bank account updated successfully!", updatedBankAccountDTO, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Bank account updated successfully!",
+                    updatedBankAccountDTO, HttpStatus.OK);
 
-        }catch (NotAuthorizedException e)
-        {
-           return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.UNAUTHORIZED);
+        } catch (AlreadyExistsException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+        } catch (NotAuthorizedException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Failed to update bank account",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
