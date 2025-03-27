@@ -690,6 +690,7 @@ public class ServiceProviderController {
     }
 
     @Transactional
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleAdminServiceProvider})
     @PutMapping("manage-sp")
     public ResponseEntity<?> activateOrSuspendSp(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
         //extracting info from jwt token
@@ -702,26 +703,32 @@ public class ServiceProviderController {
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
         String actionReq = null;
+
+
         if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
+        // Check if the spIds list is empty and return an error response
+        if ( ids.isEmpty()) {
+            return ResponseService.generateErrorResponse("No Service Provider IDs provided", HttpStatus.BAD_REQUEST);
+        }
+
+
         if (action.equals("suspend"))
             actionReq = action + "ed";
         else
             actionReq = action + "d";
         for (Long customerId : ids) {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
-            //checking permissions
-            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)||roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
-                skippedIds.put(customerId, "Action not Authorized");
-                continue;
-            }
+
             if (serviceProvider == null) {
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
-            if(serviceProvider.getRole()!=4)
+            if(serviceProvider.getRole()!=4) {
                 skippedIds.put(customerId, "Action not Authorized");
+                continue;
+            }
 
             //checking valid permissions
             if (action.equals(Constant.ACTION_SUSPEND)) {
@@ -762,7 +769,7 @@ public class ServiceProviderController {
         } else {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
 }
