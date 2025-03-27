@@ -22,8 +22,8 @@ public class BankDetails {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "name", nullable = false)
-    private String name;
+/*    @Column(name = "name", nullable = false)
+    private String name;*/
 
     @Column(name = "role", nullable = false)
     private Integer role;

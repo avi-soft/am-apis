@@ -4,6 +4,7 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.BankAccountDTO;
 import com.community.api.entity.BankDetails;
 import com.community.api.entity.CustomCustomer;
+import com.mchange.util.AlreadyExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -76,13 +78,13 @@ public class BankAccountService {
         else return "";
     }
     @Transactional
-    public String addBankAccount(String authHeader,BankAccountDTO bankAccountDTO) {
+    public String addBankAccount(String authHeader,BankAccountDTO bankAccountDTO) throws AlreadyExistsException {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (doesAccountExist(bankAccountDTO.getAccountNumber(), null,tokenUserId)) {
-                return "Account already exists.";
+                throw  new AlreadyExistsException( "Account already exists.");
             }
 
        /*     if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
@@ -90,7 +92,6 @@ public class BankAccountService {
             }*/
 
             BankDetails bankDetails = new BankDetails();
-            bankDetails.setName(bankAccountDTO.getName());
             bankDetails.setAccountNumber(bankAccountDTO.getAccountNumber());
             bankDetails.setUserId(bankAccountDTO.getUserId());
             bankDetails.setRole(roleId);
@@ -123,14 +124,13 @@ public class BankAccountService {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             BankDetails bankDetails = entityManager.find(BankDetails.class, accountId);
-            if(!tokenUserId.equals(bankDetails.getUserId()))
-            {
-                return "Unauthorized";
-            }
             if (bankDetails != null) {
                 entityManager.remove(bankDetails); // Delete the bank account
                 return "Bank account deleted successfully!";
-            } else {
+            } else if(!tokenUserId.equals(bankDetails.getUserId()))
+            {
+                return "Unauthorized";
+            }else {
                 return "Bank account not found!";
             }
         } catch (Exception e) {
@@ -174,44 +174,43 @@ public class BankAccountService {
      * @return the string
      */
     @Transactional
-    public String updateBankAccount(String authHeader,Long accountId,  BankAccountDTO bankAccountDTO) {
+    public String updateBankAccount(String authHeader, Long accountId, BankAccountDTO bankAccountDTO)
+            throws AlreadyExistsException, NotAuthorizedException {
         try {
+            // Validate authorization
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
+            // Verify account exists and belongs to user
             BankDetails existingAccount = entityManager.find(BankDetails.class, accountId);
-            if(!existingAccount.getUserId().equals(tokenUserId))
-                throw new NotAuthorizedException("NA","Forbidden");
             if (existingAccount == null) {
                 return "Account update failed. Account not found.";
             }
-
-          /*  if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
-                return "Account numbers do not match.";
-            }*/
-            if (doesAccountExist(bankAccountDTO.getAccountNumber(),accountId,tokenUserId)) {
-                return "Account number already exists.";
+            if (Objects.equals(existingAccount.getRole(), roleId) &&!existingAccount.getUserId().equals(tokenUserId)||roleId==5) {
+                throw new NotAuthorizedException("NA", "Forbidden");
             }
 
-            Field[] fields = bankAccountDTO.getClass().getDeclaredFields();
-            for (Field field : fields) {
-                field.setAccessible(true);
-                Object value = field.get(bankAccountDTO);
-
-                if (value != null) {
-                    String setterMethodName = "set" + StringUtils.capitalize(field.getName());
-                    try {
-                        existingAccount.getClass().getMethod(setterMethodName, field.getType()).invoke(existingAccount, value);
-                    } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                        e.printStackTrace();
-                        return "Account update failed. Error updating field: " + field.getName();
-                    }
-                }
+            // Validate account number uniqueness (excluding current account)
+            if (doesAccountExist(bankAccountDTO.getAccountNumber(), accountId, tokenUserId)) {
+                throw new AlreadyExistsException("Account number already exists.");
             }
+
+            // Update fields from DTO to entity
+            existingAccount.setRole(bankAccountDTO.getRole());
+            existingAccount.setAccountNumber(bankAccountDTO.getAccountNumber());
+            existingAccount.setAccountHolder(bankAccountDTO.getAccountHolder());
+            existingAccount.setIfscCode(bankAccountDTO.getIfscCode());
+            existingAccount.setBankName(bankAccountDTO.getBankName());
+            existingAccount.setBranchName(bankAccountDTO.getBranchName());
+            existingAccount.setAccountType(bankAccountDTO.getAccountType());
+            existingAccount.setUpiId(bankAccountDTO.getUpiId());
 
             entityManager.merge(existingAccount);
 
             return "Bank account updated successfully!";
+        } catch (AlreadyExistsException | NotAuthorizedException e) {
+            throw e; // Re-throw specific exceptions
         } catch (Exception e) {
             e.printStackTrace();
             return "Account update failed: " + e.getMessage();
@@ -223,7 +222,6 @@ public class BankAccountService {
         dto.setUpiId(bankDetails.getUpiId());
         dto.setAccountHolder(bankDetails.getAccountHolder());
         dto.setUserId(bankDetails.getId());
-        dto.setName(bankDetails.getName());
         dto.setAccountNumber(bankDetails.getAccountNumber());
         dto.setIfscCode(bankDetails.getIfscCode());
         dto.setBankName(bankDetails.getBankName());
@@ -282,7 +280,6 @@ public class BankAccountService {
                 bankAccountDTO.setRole(bankDetails.getRole());
                 bankAccountDTO.setUserId(bankDetails.getUserId());
                 bankAccountDTO.setAccountId(bankDetails.getId());
-                bankAccountDTO.setName(bankDetails.getName());
                 bankAccountDTO.setAccountHolder(bankDetails.getAccountHolder());
                 bankAccountDTO.setUserId(bankDetails.getUserId());
                 bankAccountDTO.setUpiId(bankDetails.getUpiId());
