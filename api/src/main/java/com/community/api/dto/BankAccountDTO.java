@@ -3,31 +3,39 @@ package com.community.api.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.validation.constraints.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 public class BankAccountDTO {
 
     private Long accountId;
 
     @NotNull(message = "Customer ID is required")
     private Long userId;
-
+/*
     @NotBlank(message = "Customer name is required")
     @Pattern(regexp = "^[A-Za-z ]{2,50}$", message = "name must contain only alphabets and spaces (2-50 characters)")
-    private String name;
+    private String name;*/
 
     @NotNull(message = "Customer role is required")
     private Integer role;
 
     @NotBlank(message = "Account number is required")
     @Size(min = 10, max = 20, message = "Account number must be between 10 and 20 characters")
-    @Pattern(regexp = "^[0-9]{10,20}$", message = "Account number must contain only digits")
+    @Pattern(
+            regexp = "^(?!0+$)[0-9]{10,20}$",
+            message = "Account number must contain only digits, be 10 to 20 digits long, and cannot be all zeros"
+    )
     private String accountNumber;
+
 
 
     @NotBlank(message = "Account holder name is required")
