@@ -3048,7 +3048,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) String name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
        /* try {*/
             if (!sort.equals("DESC") && !sort.equals("ASC"))
                 return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
@@ -3105,13 +3105,19 @@ public class CustomerEndpoint {
             else
                 qualificationNames=null;
 
-            if (name != null && !name.isEmpty()) {
-                names = sharedUtilityService.separateName(name);
-                if (names[0] != null)
-                    firstName = names[0];
-                if (names[1] != null)
-                    lastName = names[1];
+        List<String> firstNames = new ArrayList<>();
+        List<String> lastNames = new ArrayList<>();
+        if (name != null && !name.isEmpty()) {
+            for (String singleName : name) {
+                String[] FilterNames = sharedUtilityService.separateName(singleName.trim());
+                if (FilterNames[0] != null)
+                    firstNames.add(FilterNames[0]);
+                if (FilterNames[1] != null)
+                    lastNames.add(FilterNames[1]);
             }
+
+        }
+
 
         List<Long> refids=new ArrayList<>();
             if(refereeId!=null&&!refereeId.isEmpty()) {
@@ -3123,8 +3129,8 @@ public class CustomerEndpoint {
                 if(refids.isEmpty())
                     refids=null;
 
-            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstName, lastName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
-            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastName, firstName, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+            List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
             Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
@@ -3239,6 +3245,9 @@ public class CustomerEndpoint {
         int totalPages = (int) Math.ceil((double) totalItems / limit);
 
         List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
+
+        System.out.println("dkfjalksdjflkasdjflkajds"+offset);
+        System.out.println(offset);
 
         Map<String, Object> response = new HashMap<>();
         response.put("customers", paginatedList);       // Your paginated data
