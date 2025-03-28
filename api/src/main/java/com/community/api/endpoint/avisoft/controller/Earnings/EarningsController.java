@@ -69,12 +69,12 @@ public class EarningsController {
         this.paymentService = paymentService;
         this.sharedUtilityService=sharedUtilityService;
     }
-
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
     @GetMapping("filter")
     public ResponseEntity<?> getFilteredEarnings(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(required = false, defaultValue = "true") Boolean settled,
-            @RequestParam(required = true) Long spId,
+            @RequestParam(required = false) Long spId,
             @RequestParam(required = false) String to,
             @RequestParam(required = false) String from,
             @RequestParam(required = false,defaultValue ="0") Integer page,
@@ -105,11 +105,16 @@ public class EarningsController {
 
         // Service Provider role-specific validation
         if (role.getRole_name().equals(Constant.roleServiceProvider)) {
-            if (spId==null) {
+            if (spId!=null) {
                 return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
             } else {
                 spId=tokenUserId;
             }
+        }
+        else if(role.getRole_name().equals(Constant.roleAdmin)||role.getRole_name().equals(Constant.roleSuperAdmin))
+        {
+            if(spId==null)
+                return ResponseService.generateErrorResponse("SP Id is required",HttpStatus.BAD_REQUEST);
         }
 
         List<BigInteger> earnings = new ArrayList<>();
@@ -173,6 +178,7 @@ public class EarningsController {
         return new ResponseService().generateSuccessResponse("Payments", resultMap, HttpStatus.OK);
     }
 
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
     @Transactional(readOnly = true)
     @GetMapping("get-all")
     public ResponseEntity<?> getFilteredEarnings(@RequestHeader(value = "Authorization")String authHeader,@RequestParam(required = false) Long spId,@RequestParam(required = false,defaultValue ="0") Integer page,
@@ -245,7 +251,7 @@ public class EarningsController {
         dto.setTotalBalance(balances[0] + balances[1]);
         return dto;
     }
-
+    @Authorize(value = {Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider})
     @Transactional(readOnly = true)
     @GetMapping("get-transactions-history")
     public ResponseEntity<?> getPaymentHistory(
