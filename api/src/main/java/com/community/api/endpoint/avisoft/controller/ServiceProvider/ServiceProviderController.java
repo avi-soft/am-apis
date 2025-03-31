@@ -102,8 +102,8 @@ public class ServiceProviderController {
         try {
             Skill skill = entityManager.find(Skill.class, skillId);
             ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-            if (serviceProviderEntity.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             List<Skill> listOfSkills = serviceProviderEntity.getSkills();
             listOfSkills.add(skill);
             serviceProviderEntity.setSkills(listOfSkills);
@@ -122,8 +122,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
-            if (serviceProvider.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
@@ -145,7 +145,7 @@ public class ServiceProviderController {
                 return responseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
             else
                 serviceProviderToBeDeleted.setIsArchived(true);
-            entityManager.merge(serviceProviderToBeDeleted);
+                entityManager.merge(serviceProviderToBeDeleted);
             return responseService.generateSuccessResponse("Service Provider Archived", null, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -166,8 +166,8 @@ public class ServiceProviderController {
             passwordDetails = sanitizerService.sanitizeInputMap(passwordDetails);
             // String newPassword = (String) passwordDetails.get("newPassword");
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
-            if (serviceProvider.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
+            if(serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
             if (serviceProvider.getPassword() == null) {
@@ -199,8 +199,8 @@ public class ServiceProviderController {
     public ResponseEntity<?> getServiceProviderById(@RequestParam Long userId) throws Exception {
         try {
             ServiceProviderEntity serviceProviderEntity = serviceProviderService.getServiceProviderById(userId);
-            if (serviceProviderEntity.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
+            if(serviceProviderEntity.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived",HttpStatus.NOT_FOUND);
             if (serviceProviderEntity == null) {
                 throw new Exception("ServiceProvider with ID " + userId + " not found");
             }
@@ -260,10 +260,12 @@ public class ServiceProviderController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
-            if (offset < 0) {
+            if(offset<0)
+            {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if (limit <= 0) {
+            if(limit<=0)
+            {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             int startPosition = offset * limit;
@@ -272,7 +274,7 @@ public class ServiceProviderController {
             Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
             long totalItems = (long) countQuery.getSingleResult();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages && offset != 0) {
+            if (offset >= totalPages&& offset != 0) {
                 throw new IllegalArgumentException("No more service providers available");
             }
             // Create the query with pagination
@@ -355,7 +357,7 @@ public class ServiceProviderController {
         }
     }
 
-    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleUser})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleUser})
     @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(
@@ -373,18 +375,12 @@ public class ServiceProviderController {
 
             // Validate input
             if ((uri.containsKey("state") && state == null) ||
-                    (uri.containsKey("full_name") && (full_name == null || full_name.trim().isEmpty())) ||
+                    (uri.containsKey("full_name") && full_name == null) ||
                     (uri.containsKey("test_status_id") && test_status_id == null) ||
                     (uri.containsKey("district") && district == null) ||
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
-
-            // Validate full_name (only alphabets and spaces allowed)
-            if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
-                return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
-            }
-
 
             String first_name = null;
             String last_name = null;
@@ -427,6 +423,9 @@ public class ServiceProviderController {
             int fromIndex = Math.min(offset * limit, totalItems);
             int toIndex = Math.min(fromIndex + limit, totalItems);
 
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateErrorResponse("No more service provider data available", HttpStatus.NOT_FOUND);
+            }
 
             List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
@@ -437,11 +436,7 @@ public class ServiceProviderController {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateSuccessResponse("No Service Providers Found", response, HttpStatus.OK);
-            }
-
-            return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Service Providers",response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
@@ -472,10 +467,10 @@ public class ServiceProviderController {
             for (CustomerReferrer customerReferrer : serviceProvider.getMyReferrals()) {
                 if (registeredByMe != null && registeredByMe.equals(true)) {
                     if (customerReferrer.getCustomer().getRegisteredBySp().equals(true)) {
-                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader, httpServletRequest));
+                        customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                     }
                 } else {
-                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader, httpServletRequest));
+                    customers.add(sharedUtilityService.breakReferenceForCustomer(customerReferrer.getCustomer(), authHeader,httpServletRequest));
                 }
             }
 
@@ -500,7 +495,7 @@ public class ServiceProviderController {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse("List of referred candidates:", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("List of referred candidates:",response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -694,7 +689,6 @@ public class ServiceProviderController {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
     @PutMapping("manage-sp")
     public ResponseEntity<?> activateOrSuspendSp(@RequestBody Map<String, Object> map, @RequestParam String action, @RequestHeader(name = "Authorization") String authHeader) throws Exception {
         //extracting info from jwt token
@@ -707,32 +701,26 @@ public class ServiceProviderController {
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
         String actionReq = null;
-
-
         if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
-        // Check if the spIds list is empty and return an error response
-        if (ids.isEmpty()) {
-            return ResponseService.generateErrorResponse("No Service Provider IDs provided", HttpStatus.BAD_REQUEST);
-        }
-
-
         if (action.equals("suspend"))
             actionReq = action + "ed";
         else
             actionReq = action + "d";
         for (Long customerId : ids) {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
-
+            //checking permissions
+            if (roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleUser)||roleService.getRoleByRoleId(roleId).getRole_name().equals(Constant.roleServiceProvider)) {
+                skippedIds.put(customerId, "Action not Authorized");
+                continue;
+            }
             if (serviceProvider == null) {
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
-            if (serviceProvider.getRole() != 4) {
+            if(serviceProvider.getRole()!=4)
                 skippedIds.put(customerId, "Action not Authorized");
-                continue;
-            }
 
             //checking valid permissions
             if (action.equals(Constant.ACTION_SUSPEND)) {
@@ -750,8 +738,8 @@ public class ServiceProviderController {
                 }
                 serviceProvider.setIsArchived(false);
             }
-            if (action.equals(Constant.ACTION_SUSPEND)) {
-                sharedUtilityService.blackListToken(serviceProvider.getToken(), 4, serviceProvider.getService_provider_id());
+            if(action.equals(Constant.ACTION_SUSPEND)) {
+                sharedUtilityService.blackListToken(serviceProvider.getToken(),4,serviceProvider.getService_provider_id());
                 customerEndpoint.logout(serviceProvider.getToken());
             }
             else
@@ -773,7 +761,7 @@ public class ServiceProviderController {
         } else {
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
-            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
 }
