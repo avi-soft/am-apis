@@ -30,6 +30,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
@@ -187,7 +188,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id");
     }
 
-
+    @Transactional
     private boolean authenticateUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
         System.out.println("hiiiii");
         final String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
@@ -259,7 +260,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             else if (roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.SUPER_ADMIN) || roleService.findRoleName(jwtUtil.extractRoleId(jwt)).equals(Constant.roleAdminServiceProvider)) {
-                customAdmin=entityManager.find(ServiceProviderEntity.class,id);
+                try {
+                    System.out.println("checking");
+                    customAdmin = entityManager.find(ServiceProviderEntity.class, id);
+                    System.out.println("checked");
+                }catch (Exception e)
+                {
+                    System.out.println(e);
+                }
                 if (customAdmin != null && jwtUtil.validateToken(jwt, ipAdress, User_Agent)) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             customAdmin.getService_provider_id(), null, new ArrayList<>());
