@@ -435,10 +435,11 @@ public class EarningsController {
                     }
                     Earnings earnings = entityManager.find(Earnings.class, txnIds.get(txnIds.size()-1));
                     if(earningWithCarryOver!=null) {
-                        System.out.println(earnings);
-                        earningWithCarryOver.setCarryOver(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver());
-                        System.out.println(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver());
+                        earningWithCarryOver.setCarryOver(0.0);
+                        if(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver()<0)
+                            earnings.setCarryOver(amt - transactionDTO.getAmountToSettle()+earningWithCarryOver.getCarryOver());
                         entityManager.merge(earningWithCarryOver);
+                        entityManager.merge(earnings);
                     }
                     else
                     {
@@ -465,7 +466,7 @@ public class EarningsController {
                 {
                 for (Long txnId : txnIds) {
                     Earnings earnings = entityManager.find(Earnings.class, txnId);
-                    if (earnings.getPending() + amt <= transactionDTO.getAmountToSettle()) {
+                    if (earnings.getPending() + amt < transactionDTO.getAmountToSettle()) {
                         amt = amt + earnings.getPending();
                         earnings.setPaid(earnings.getPending());
                         earnings.setPending(0.0);
