@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.endpoint.avisoft.controller.cart.CartEndPoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomJobGroup;
@@ -11,13 +12,17 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.Earnings;
 import com.community.api.entity.ManualAssignmentDetails;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javassist.NotFoundException;
 import com.twilio.exception.ApiException;
+import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.hibernate.query.criteria.internal.expression.function.CurrentTimeFunction;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -245,6 +250,24 @@ public class TicketStateService {
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
+            //ticket completed , now payment processing
+            if(ticket.getTicketState().getTicketStateId()==5&&ticket.getTicketStatus().getTicketStatusId()==8)
+            {
+                Earnings earnings=new Earnings();
+                earnings.setProviderId(ticket.getUserId());
+                earnings.setTicketId(ticketId);
+                earnings.setPaymentDone(false);
+                earnings.setSettled(false);
+                Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                CustomProduct customProduct=entityManager.find(CustomProduct.class,product.getId());
+                earnings.setPending((customProduct.getPlatformFee()*Constant.comission)/100);
+                earnings.setPlatformFee(customProduct.getPlatformFee());
+                earnings.setCommission((Constant.comission* earnings.getPlatformFee())/100);
+                earnings.setPaid(0.0);
+                earnings.setDate(new Date());
+                earnings.setOrderId(order.getId());
+                entityManager.persist(earnings);
+            }
             updateSpTicketAvailibility(ticket,ticketState,old,newId);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
 
@@ -261,6 +284,13 @@ public class TicketStateService {
 
             return ResponseService.generateErrorResponse("Error updating ticket :" + e.getMessage(), HttpStatus.NOT_FOUND);
         }
+    }
+    @Autowired
+    CatalogService catalogService;
+    public Product findProductFromItemAttribute(OrderItem orderItem) {
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        Product product = catalogService.findProductById(productId);
+        return product;
     }
 
     public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId,String roleName, Long customTicketStatus) throws Exception {
