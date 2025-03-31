@@ -13,6 +13,8 @@ import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminP
 
 public class Constant {
 
+    public static final int comission=40;
+
     public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
