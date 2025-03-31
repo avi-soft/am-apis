@@ -1400,6 +1400,10 @@ public class CustomerEndpoint {
                 role= roleUser;
             else
                 role = roleService.getRoleByRoleId(roleId).getRole_name();
+            if(!role.equals(roleUser))
+            {
+                role=roleServiceProvider;
+            }
             String queryStringArchive = null;
             String queryStringArchiveId = null;
 

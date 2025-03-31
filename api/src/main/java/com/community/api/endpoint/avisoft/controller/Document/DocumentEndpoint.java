@@ -146,6 +146,7 @@ public class DocumentEndpoint {
             //checking for super admin and admin
             if((roleCheck.getRole_name().equals(Constant.roleUser)&&!Objects.equals(tokenUserId, customerId)))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+
             if (role != null) {
                 if (roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER)) {
 
