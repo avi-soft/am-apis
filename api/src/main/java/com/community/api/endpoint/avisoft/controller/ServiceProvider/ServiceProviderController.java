@@ -25,6 +25,7 @@ import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import lombok.SneakyThrows;
 import org.broadleafcommerce.core.order.service.OrderService;
 
 import org.broadleafcommerce.profile.core.service.CustomerService;
@@ -41,12 +42,7 @@ import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
@@ -254,43 +250,85 @@ public class ServiceProviderController {
         }
     }
 
-    @Transactional // Set readOnly for performance improvement
+
+    @Transactional // Explicitly set readOnly for queries
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) Boolean admin,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
         try {
+            // Validate parameters first
             if (offset < 0) {
-                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
             }
             if (limit <= 0) {
-                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
             }
+
+            long totalItems = 0L;
+            long totalPages = 0L;
+            List<Map<String, Object>> resultOfSp = new ArrayList<>();
             int startPosition = offset * limit;
 
-            // Count total service providers (excluding archived ones)
-            Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
-            long totalItems = (long) countQuery.getSingleResult();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more service providers available");
-            }
-            // Create the query with pagination
-            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
-            query.setFirstResult(startPosition);
-            query.setMaxResults(limit);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
 
-            // Fetch results
-            List<ServiceProviderEntity> results = query.getResultList();
+            if ((admin != null && admin)) {
+                // Only super admin (roleId=1) can access admin list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access admin service providers list", HttpStatus.FORBIDDEN);
+                }
 
-            List<Map<String, Object>> resultOfSp = new ArrayList<>();
-            for (ServiceProviderEntity serviceProvider : results) {
-                if (!serviceProvider.getIsArchived()) {
-                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                // Fixed query - changed "sp.role" to "sp.roleId"
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role = 2");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role = 2",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    if (!Boolean.TRUE.equals(serviceProvider.getIsArchived())) {
+                        resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                    }
+                }
+            } else {
+                // NULL-safe query for isArchived
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE (sp.isArchived = false OR sp.isArchived IS NULL)");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE (s.isArchived = false OR s.isArchived IS true)",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    if (!Boolean.TRUE.equals(serviceProvider.getIsArchived())) {
+                        resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                    }
                 }
             }
 
-            // Prepare response
             Map<String, Object> response = new HashMap<>();
             response.put("serviceProviders", resultOfSp);
             response.put("totalItems", totalItems);
@@ -298,62 +336,126 @@ public class ServiceProviderController {
             response.put("currentPage", offset);
 
             return ResponseService.generateSuccessResponse("List of service providers: ", response, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Transactional
-    @GetMapping("/get-all-details/{serviceProviderId}")
-    public ResponseEntity<?> getAllDetails(@PathVariable Long serviceProviderId) {
-        try {
-            ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-            if (serviceProviderEntity == null) {
-                return ResponseService.generateErrorResponse("Service provider does not found", HttpStatus.NOT_FOUND);
-            }
 
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity);
-            return ResponseService.generateSuccessResponse("Service Provider details retrieved successfully", serviceProviderMap, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @Transactional
-    @GetMapping("/get-all-service-providers-with-completed-test")
-    public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
-        try {
-            int startPosition = page * limit;
-
-            TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(
-                    "SELECT s FROM ServiceProviderEntity s WHERE s.testStatus.test_status_id = :testStatusId",
-                    ServiceProviderEntity.class);
-
-            query.setParameter("testStatusId", Constant.TEST_COMPLETED_STATUS);
-            query.setFirstResult(startPosition);
-            query.setMaxResults(limit);
-
-            List<ServiceProviderEntity> results = query.getResultList();
-            if (results.isEmpty()) {
-                return ResponseService.generateSuccessResponse("There is no any service Provider who has completed the test", results, HttpStatus.OK);
-            }
-
-            return ResponseService.generateSuccessResponse("List of service providers with completed test status: ", results, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
+//    @Transactional
+//    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider})
+//    @GetMapping("/get-all-service-providers")
+//    public ResponseEntity<?> getAllServiceProviders(
+//            @RequestHeader(value = "Authorization") String authHeader,
+//            @RequestParam(required = false) Boolean admin,
+//            @RequestParam(defaultValue = "0") int offset,
+//            @RequestParam(defaultValue = "10") int limit) {
+//        try {
+//            // Common validation
+//            if (offset < 0) {
+//                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+//            }
+//            if (limit <= 0) {
+//                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+//            }
+//            int startPosition = offset * limit;
+//
+//            String jwtToken = authHeader.substring(7);
+//            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+//            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+//
+//            // =============================================
+//            // ADMIN MODE (when admin parameter exists)
+//            // =============================================
+//            if (admin != null) {
+//                // Only super admin (roleId=1) can access admin list
+//                if (roleId != 1) {
+//                    return new ResponseEntity<>(
+//                            Collections.singletonMap("error", "Forbidden: Only super admin can access admin service providers list"),
+//                            HttpStatus.FORBIDDEN);
+//                }
+//
+//                // Count admin service providers (roleId=2)
+//                Query countQuery = entityManager.createQuery(
+//                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.roleId = 2");
+//                long totalItems = (long) countQuery.getSingleResult();
+//                int totalPages = (int) Math.ceil((double) totalItems / limit);
+//
+//                if (offset >= totalPages && offset != 0) {
+//                    throw new IllegalArgumentException("No more service providers available");
+//                }
+//
+//                // Query admin service providers
+//                Query query = entityManager.createQuery(
+//                        "SELECT s FROM ServiceProviderEntity s WHERE s.roleId = 2",
+//                        ServiceProviderEntity.class);
+//                query.setFirstResult(startPosition);
+//                query.setMaxResults(limit);
+//
+//                List<ServiceProviderEntity> results = query.getResultList();
+//                List<Map<String, Object>> resultOfSp = new ArrayList<>();
+//                for (ServiceProviderEntity serviceProvider : results) {
+//                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+//                }
+//
+//                // Prepare response
+//                Map<String, Object> response = new HashMap<>();
+//                response.put("serviceProviders", resultOfSp);
+//                response.put("totalItems", totalItems);
+//                response.put("totalPages", totalPages);
+//                response.put("currentPage", offset);
+//
+//                return new ResponseEntity<>(response, HttpStatus.OK);
+//            }
+//
+//            // =============================================
+//            // DEFAULT MODE (when admin parameter is not provided)
+//            // =============================================
+//            // Count all non-archived service providers
+//            Query countQuery = entityManager.createQuery(
+//                    "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
+//            long totalItems = (long) countQuery.getSingleResult();
+//            int totalPages = (int) Math.ceil((double) totalItems / limit);
+//
+//            if (offset >= totalPages && offset != 0) {
+//                throw new IllegalArgumentException("No more service providers available");
+//            }
+//
+//            // Query all non-archived service providers
+//            Query query = entityManager.createQuery(
+//                    "SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false",
+//                    ServiceProviderEntity.class);
+//            query.setFirstResult(startPosition);
+//            query.setMaxResults(limit);
+//
+//            List<ServiceProviderEntity> results = query.getResultList();
+//            List<Map<String, Object>> resultOfSp = new ArrayList<>();
+//            for (ServiceProviderEntity serviceProvider : results) {
+//                if (!serviceProvider.getIsArchived()) {
+//                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+//                }
+//            }
+//
+//            // Prepare response
+//            Map<String, Object> response = new HashMap<>();
+//            response.put("serviceProviders", resultOfSp);
+//            response.put("totalItems", totalItems);
+//            response.put("totalPages", totalPages);
+//            response.put("currentPage", offset);
+//
+//            return new ResponseEntity<>(response, HttpStatus.OK);
+//
+//        } catch (IllegalArgumentException e) {
+//            return new ResponseEntity<>(
+//                    Collections.singletonMap("error", e.getMessage()),
+//                    HttpStatus.BAD_REQUEST);
+//        } catch (Exception e) {
+//            return new ResponseEntity<>(
+//                    Collections.singletonMap("error", "Some issue in fetching service providers: " + e.getMessage()),
+//                    HttpStatus.BAD_REQUEST);
+//        }
+//    }
 
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleUser})
     @Transactional
