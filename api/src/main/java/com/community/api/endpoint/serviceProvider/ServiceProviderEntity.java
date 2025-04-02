@@ -179,7 +179,7 @@ public class ServiceProviderEntity  {
     private String total_marks;
     private String marks_obtained;
     private String cgpa;
-    private double latitude,longitude;
+    private Double latitude,longitude;
     private int rank;
     private int signedUp=0;
 
