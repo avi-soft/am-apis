@@ -49,10 +49,13 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            else
-            {
-                roleId=5;
-            }
+//            else
+//            {
+//                roleId=5;
+//            }
+//            System.out.println("1245"+qualificationOthers);
+//            System.out.println("dfhasdkfjhalskdjf"+userId);
+//            System.out.println("dfhasdkfjhalskdjf"+roleId);
              role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for "+role,newQualificationDetails,HttpStatus.CREATED);
