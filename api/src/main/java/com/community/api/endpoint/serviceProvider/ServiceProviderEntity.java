@@ -41,16 +41,12 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
-import javax.persistence.PrePersist;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -183,9 +179,7 @@ public class ServiceProviderEntity  {
     private String total_marks;
     private String marks_obtained;
     private String cgpa;
-
-
-    private Double latitude,longitude;
+    private double latitude,longitude;
     private int rank;
     private int signedUp=0;
 
@@ -263,16 +257,7 @@ public class ServiceProviderEntity  {
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderRequest> orderRequests;
-    @Column(name = "date_joined")
-    @Temporal(TemporalType.DATE)
-    private Date joiningDate;
 
-    @PrePersist
-    protected void onCreate() {
-        if (joiningDate == null) {
-            joiningDate = new Date(); // Sets current date if not already set
-        }
-    }
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceProviderAcceptedOrders> acceptedOrders;

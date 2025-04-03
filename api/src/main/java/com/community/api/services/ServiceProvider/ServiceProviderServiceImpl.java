@@ -31,7 +31,6 @@ import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.ehcache.spi.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -207,28 +206,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     return ResponseService.generateErrorResponse("Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.", HttpStatus.BAD_REQUEST);
                 }
                 existingServiceProvider.setPartTimeOrFullTime(partTimeOrFullTimeStr.toUpperCase());
-
             }
-
-            if (updates.containsKey("is_running_business_unit") && Boolean.FALSE.equals(updates.get("is_running_business_unit"))) {
-                    existingServiceProvider.setBusiness_name(null);
-                    existingServiceProvider.setBusiness_location(null);
-                    existingServiceProvider.setBusiness_email(null);
-                    existingServiceProvider.setNumber_of_employees(null);
-                    existingServiceProvider.setRegistration_number(null);
-                    existingServiceProvider.setLatitude(null);
-                    existingServiceProvider.setLongitude(null);
-                    existingServiceProvider.setIs_running_business_unit(false);
-                    updates.remove("business_name");
-                    updates.remove("business_location");
-                    updates.remove("business_email");
-                    updates.remove("number_of_employees");
-                    updates.remove("registration_number");
-                    updates.remove("is_running_business_unit");
-                    updates.remove("latitude");
-                    updates.remove("longitude");
-            }
-
 
             String mobileNumber = (String) updates.get("mobileNumber");
             String secondaryMobileNumber = (String) updates.get("secondary_mobile_number");
@@ -1402,7 +1380,4 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
         }
     }
-
-
-
 }

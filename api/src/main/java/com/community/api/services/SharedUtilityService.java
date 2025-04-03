@@ -792,7 +792,6 @@ public class SharedUtilityService {
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
-        serviceProviderDetails.put("archived", serviceProvider.getIsArchived());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
