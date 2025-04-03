@@ -3,13 +3,18 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketState;
+import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderRequest;
+import com.community.api.entity.Role;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.Skill;
@@ -23,6 +28,7 @@ import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TicketStateService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -42,10 +48,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -366,9 +374,11 @@ public class ServiceProviderController {
             @RequestParam(required = false) Long test_status_id,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(required = false)Long ticketId,
             HttpServletRequest request) {
 
         try {
+            System.out.println("ticketId"+ticketId);
             Map<String, String[]> uri = request.getParameterMap();
 
             // Validate input
@@ -391,7 +401,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId);
             }
 
             // Handle search by full name (split into first and last names)
@@ -403,11 +413,11 @@ public class ServiceProviderController {
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id,ticketId);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
@@ -555,101 +565,52 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    /*@Transactional
-    @PostMapping("/{serviceProviderId}/order-requests/{orderRequestId}")
-    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam String action, @RequestParam(required = false) Integer statusId) {
+    @Transactional
+    @PostMapping("/{serviceProviderId}/return-ticket/{ticketId}")
+    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long ticketId, @RequestBody CreateTicketDto createTicketDto,@RequestHeader(value = "Authorization")String authHeader) {
         try {
-            action = action.toUpperCase();
-            OrderRequest orderRequest = entityManager.find(OrderRequest.class, orderRequestId);
-            if (orderRequest == null)
-                return ResponseService.generateErrorResponse("Order Request Not found", HttpStatus.BAD_REQUEST);
-            Order order = orderService.findOrderById(orderRequest.getOrderId());
-            if (order == null)
-                return ResponseService.generateErrorResponse("Order not found", HttpStatus.NOT_FOUND);
-            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId=jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+            if(createTicketDto==null||createTicketDto.getTicketStatus()==null)
+                return ResponseService.generateErrorResponse("Return status is required",HttpStatus.BAD_REQUEST);
+            if(role.getRole_name().equals(Constant.roleUser)||((role.getRole_name().equals(Constant.roleServiceProvider)&& !Objects.equals(tokenUserId, serviceProviderId))))
+                return ResponseService.generateErrorResponse("FORBIDDEN",HttpStatus.FORBIDDEN);
+            CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            if (ticket == null)
+                return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+            if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
+                return ResponseService.generateErrorResponse("Ticket already returned",HttpStatus.BAD_REQUEST);
+            if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO))
+                return ResponseService.generateErrorResponse("Cannot return ticket after accepting",HttpStatus.BAD_REQUEST);
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-            if (!orderRequest.getServiceProvider().equals(serviceProvider))
-                return ResponseService.generateErrorResponse("Order Request does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
-            CustomOrderState orderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
-            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_ASSIGNED.getOrderStateId())) {
-                return ResponseService.generateErrorResponse("Order already Accepted/Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-            if (action.equals(Constant.SP_REQUEST_ACTION_VIEW)) {
-                Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                Map<String, Object> orderRequestDetail = new HashMap<>();
-                Long assigneeId = null;
-                if (order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
-                    assigneeId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
-                OrderDTO orderDTO = new OrderDTO(
-                        order.getId(),
-                        order.getName(),
-                        order.getTotal(),
-                        order.getSubmitDate(),
-                        order.getOrderNumber(),
-                        order.getEmailAddress(),
-                        order.getCustomer().getId(),
-                        order.getSubTotal(),
-                        orderState.getOrderStateId(),
-                        assigneeId// Ensure this matches the expected order
-                );
-
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
-                orderRequestDetail.put("order_request_details", orderRequest);
-                orderRequestDetail.put("order_details", orderDTO);
-                orderRequestDetail.put("ordered_product_details", customProductWrapper);
-                return ResponseService.generateSuccessResponse("Order Request Details :", orderRequestDetail, HttpStatus.OK);
-            } else if (action.equals(Constant.SP_REQUEST_ACTION_ACCEPT)) {
-                order.setStatus(Constant.ORDER_STATUS_IN_PROGRESS);
-                ServiceProviderAcceptedOrders serviceProviderAcceptedOrders = new ServiceProviderAcceptedOrders();
-                orderRequest.setRequestStatus("ACCEPTED");
-                orderState.setOrderStateId(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId());
-                Integer orderStatusId = orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId()).get(0).getOrderStatusId();
-                orderState.setOrderStatusId(orderStatusId);
-                orderRequest.setUpdatedAt(LocalDateTime.now());
-                entityManager.merge(orderRequest);
-                serviceProviderAcceptedOrders.setServiceProvider(serviceProvider);
-                serviceProviderAcceptedOrders.setOrderId(orderRequest.getOrderId());
-                serviceProviderAcceptedOrders.setGeneratedAt(LocalDateTime.now());
-                serviceProviderAcceptedOrders.setUpdatedAt(LocalDateTime.now());
-                entityManager.persist(serviceProviderAcceptedOrders);
-                serviceProvider.getAcceptedOrders().add(serviceProviderAcceptedOrders);
-                entityManager.merge(orderState);
-                entityManager.merge(serviceProvider);
-                return ResponseService.generateSuccessResponse("Order Accepted", null, HttpStatus.OK);
-            } else if (action.equals(Constant.SP_REQUEST_ACTION_RETURN)) {
-                orderRequest.setRequestStatus("RETURNED");
-                order.setStatus(Constant.ORDER_STATUS_UNASSIGNED);
-                if (statusId != null) {
-                    CustomOrderStatus customOrderStatus = entityManager.find(CustomOrderStatus.class, statusId);
-                    if (customOrderStatus == null) {
-                        return ResponseService.generateErrorResponse("Invalid Order Status selected", HttpStatus.BAD_REQUEST);
-                    }
-                    if (!orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId()).contains(customOrderStatus)) {
-                        return ResponseService.generateErrorResponse("Selected order Status does not belong to this action", HttpStatus.BAD_REQUEST);
-                    }
-                } else
-                    return ResponseService.generateErrorResponse("Need to provide return status", HttpStatus.BAD_REQUEST);
-                orderState.setOrderStatusId(statusId);
-                orderState.setOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId());
-                entityManager.merge(order);
-                entityManager.merge(orderRequest);
-                entityManager.merge(orderState);
-                dummyAssignerService.dummyAssigner(order);
-                return ResponseService.generateSuccessResponse("Order Returned", null, HttpStatus.OK);
-            } else
-                return ResponseService.generateErrorResponse("Invalid Action", HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
+            if (!ticket.getAssignee().equals(serviceProvider.getService_provider_id()))
+                return ResponseService.generateErrorResponse("Ticket does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
+            if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
+                    return ResponseService.generateErrorResponse("Ticket already Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
+            CustomTicketStatus customTicketStatus=entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus());
+            if(!Arrays.asList(Constant.TICKET_STATUS_BDWL,Constant.TICKET_STATUS_OTHER).contains(createTicketDto.getTicketStatus())||customTicketStatus==null)
+                return ResponseService.generateErrorResponse("Invalid status selected",HttpStatus.BAD_REQUEST);
+            if(createTicketDto.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)&&(createTicketDto.getComment()==null||createTicketDto.getComment().isEmpty()))
+                return ResponseService.generateErrorResponse("Comment is required",HttpStatus.BAD_REQUEST);
+            if(createTicketDto.getComment()==null)
+                createTicketDto.setComment("Returned by SP with ID :"+serviceProviderId);
+            ticket.setAssignee(null);
+            ticket.setAssigneeRole(null);
+            ticket.setTicketState(entityManager.find(CustomTicketState.class,Constant.TICKET_STATE_RETURNED));
+            ticket.setTicketStatus(entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus()));
+            ticket.getRejectedBy().add(serviceProviderId);
+            ticket.setComment(createTicketDto.getComment());
+            entityManager.merge(ticket);
+                return ResponseService.generateSuccessResponse("Ticket Returned", ticket, HttpStatus.OK);
+            } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching order Requests: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in returning ticket: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }*/
+    }
 
     @Transactional
     @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}", method = RequestMethod.PUT)

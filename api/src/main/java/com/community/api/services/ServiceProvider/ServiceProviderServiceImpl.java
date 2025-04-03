@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
@@ -60,6 +61,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -1243,8 +1245,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId) {
         try {
+            CustomServiceProviderTicket customServiceProviderTicket=null;
+            if(ticketId!=null)
+            {
+                customServiceProviderTicket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            }
             if (first_name == null && last_name == null && state == null && district == null && mobileNumber == null && test_status_id == null) {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity", ServiceProviderEntity.class);
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
@@ -1327,7 +1334,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (fields[i] != null)
                     query.setParameter(fieldsNames[i], fields[i]);
             }
+            System.out.println("Am here");
             List<ServiceProviderEntity> listOfSp = query.getResultList();
+            if (customServiceProviderTicket != null) {
+                Iterator<ServiceProviderEntity> iterator = listOfSp.iterator();
+                while (iterator.hasNext()) {
+                    ServiceProviderEntity serviceProvider = iterator.next();
+                    System.out.println("Am hereeeeeeeeee");
+                    if (customServiceProviderTicket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        iterator.remove();
+                    }
+                }
+            }
             List<Map<String, Object>> response = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : listOfSp) {
                 response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));

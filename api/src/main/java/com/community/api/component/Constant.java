@@ -204,6 +204,10 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATUS_BDWL = 12L;
+    public static final Long TICKET_STATUS_OTHER = 13L;
+
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
@@ -224,6 +228,7 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_FOR_QUALIFICATION = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
+    public static final Long TICKET_STATE_TO_DO=1L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";

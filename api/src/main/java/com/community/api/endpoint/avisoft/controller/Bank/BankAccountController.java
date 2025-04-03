@@ -156,6 +156,7 @@ public class BankAccountController {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Integer roleId=jwtTokenUtil.extractRoleId(jwtToken);
             Role roleToCheck=roleService.getRoleByRoleId(role);
+
             if(role==null)
                 return ResponseService.generateErrorResponse("Invalid role",HttpStatus.NOT_FOUND);
             if(roleToCheck.getRole_name().equals(Constant.roleUser)) {

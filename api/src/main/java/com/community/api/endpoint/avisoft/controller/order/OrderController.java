@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.SPDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomAdmin;
@@ -12,6 +13,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.OrderStateRef;
@@ -46,6 +48,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
@@ -329,7 +336,51 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Error fetching orders ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Transactional
+    @RequestMapping(value = "get-eligible-sp", method = RequestMethod.GET)
+    public ResponseEntity<?>getEligibleSp(@RequestParam(required = false)Long ticketId)
+    {
+        try{
+            CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            if(ticket==null)
+                return ResponseService.generateErrorResponse("Ticket not found",HttpStatus.NOT_FOUND);
+            List<Long>rejectedBy=ticket.getRejectedBy();
+            CriteriaBuilder cb=entityManager.getCriteriaBuilder();
+            CriteriaQuery<ServiceProviderEntity>cq= cb.createQuery(ServiceProviderEntity.class);
+            Root<ServiceProviderEntity> root=cq.from(ServiceProviderEntity.class);
+            Predicate condition=cb.equal(root.get("isArchived"),false);
+            Predicate notRejected = rejectedBy.isEmpty() ? cb.conjunction() : cb.not(root.get("service_provider_id").in(rejectedBy));
+            cq.where(condition,notRejected);
+            TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
+            List<ServiceProviderEntity>serviceProviderEntities= query.getResultList();
+            List<SPDto>result=new ArrayList<>();
+            for(ServiceProviderEntity sp:serviceProviderEntities)
+            {
+                SPDto spDto= new SPDto();
+                spDto.setName(sp.getFirst_name()+" "+sp.getLast_name());
+                spDto.setSpId(sp.getService_provider_id());
+                result.add(spDto);
+            }
+            return ResponseService.generateSuccessResponse("Available service providers",result,HttpStatus.OK);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @Transactional
+    @RequestMapping(value = "reassign-ticket/{ticketId}", method = RequestMethod.POST)
+    public ResponseEntity<?> reassignTicket(@PathVariable Long ticektId,@RequestParam(required = true) Long id,@RequestHeader(value = "Authorization") String authHeader) {
+        try {
+             CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticektId);
+             if(ticket.getRejectedBy().contains(id))
+                 return ResponseService.generateErrorResponse("Cannot assign : Ticket has been already returned by selected SP",HttpStatus.BAD_REQUEST);
+             else
+                 ticket.setAssignee(id);
+             entityManager.merge(ticket);
+             return ResponseService.generateSuccessResponse("Ticket assigned",ticket,HttpStatus.OK);
+        } catch (Exception e) {
+         return ResponseService.generateErrorResponse("Error assigning ticket",HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     @Transactional
     //@Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
@@ -339,9 +390,9 @@ public class OrderController {
             List<String>deleteLogs=new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
+            query.setParameter("orderId", orderId);
             if (createTicketDto.getTicketType() == 1L) {
-                Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
-                query.setParameter("orderId", orderId);
                 if (!query.getResultList().isEmpty()) {
                     return ResponseService.generateErrorResponse("Primary ticket already exists", HttpStatus.BAD_REQUEST);
                 }
