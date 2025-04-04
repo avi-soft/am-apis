@@ -28,7 +28,7 @@ public class BankDetails {
     @Column(name = "role", nullable = false)
     private Integer role;
 
-    @Column(name = "account_number", nullable = false, unique = true)
+    @Column(name = "account_number", nullable = false, unique = false)
     private String accountNumber;
 
     @Column(name = "account_holder", nullable = false)

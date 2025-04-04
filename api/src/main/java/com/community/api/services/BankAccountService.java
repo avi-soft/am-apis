@@ -187,7 +187,7 @@ public class BankAccountService {
             if (existingAccount == null) {
                 return "Account update failed. Account not found.";
             }
-            if (Objects.equals(existingAccount.getRole(), roleId) &&!existingAccount.getUserId().equals(tokenUserId)||roleId==5) {
+            if (Objects.equals(existingAccount.getRole(), roleId) &&!existingAccount.getUserId().equals(tokenUserId)) {
                 throw new NotAuthorizedException("NA", "Forbidden");
             }
 
