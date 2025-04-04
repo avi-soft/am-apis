@@ -4,6 +4,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.ScoringCriteria;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
@@ -30,7 +31,6 @@ import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.ehcache.spi.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -60,6 +60,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -205,28 +206,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     return ResponseService.generateErrorResponse("Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.", HttpStatus.BAD_REQUEST);
                 }
                 existingServiceProvider.setPartTimeOrFullTime(partTimeOrFullTimeStr.toUpperCase());
-
             }
-
-            if (updates.containsKey("is_running_business_unit") && Boolean.FALSE.equals(updates.get("is_running_business_unit"))) {
-                    existingServiceProvider.setBusiness_name(null);
-                    existingServiceProvider.setBusiness_location(null);
-                    existingServiceProvider.setBusiness_email(null);
-                    existingServiceProvider.setNumber_of_employees(null);
-                    existingServiceProvider.setRegistration_number(null);
-                    existingServiceProvider.setLatitude(null);
-                    existingServiceProvider.setLongitude(null);
-                    existingServiceProvider.setIs_running_business_unit(false);
-                    updates.remove("business_name");
-                    updates.remove("business_location");
-                    updates.remove("business_email");
-                    updates.remove("number_of_employees");
-                    updates.remove("registration_number");
-                    updates.remove("is_running_business_unit");
-                    updates.remove("latitude");
-                    updates.remove("longitude");
-            }
-
 
             String mobileNumber = (String) updates.get("mobileNumber");
             String secondaryMobileNumber = (String) updates.get("secondary_mobile_number");
@@ -258,9 +238,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 if (validateAddressFields(updates).isEmpty()) {
-                    if (existingServiceProvider.getSpAddresses().isEmpty()) {
+                    boolean flag=false;
+                    Long addId=0L;
+                    for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
+                    {
+                        if(serviceProviderAddress.getAddress_type_id()==2) {
+                            flag = true;
+                            addId=serviceProviderAddress.getAddress_id();
+                            break;
+                        }
+                    }
+                    if (!flag) {
                         ServiceProviderAddress serviceProviderAddress = new ServiceProviderAddress();
                         serviceProviderAddress.setAddress_type_id(findAddressName("CURRENT_ADDRESS").getAddress_type_Id());
+                        serviceProviderAddress.setAddress_name("CURRENT_ADDRESS");
                         serviceProviderAddress.setPincode((String) updates.get("pincode"));
                         serviceProviderAddress.setDistrict((String) updates.get("district"));
                         serviceProviderAddress.setState((String) updates.get("state"));
@@ -270,7 +261,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
                         }
                     } else {
-                        ServiceProviderAddress serviceProviderAddress = existingServiceProvider.getSpAddresses().get(0);
+                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
                         ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
                         serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
                         serviceProviderAddressDTO.setAddress_id(serviceProviderAddress.getAddress_id());
@@ -298,6 +289,72 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // Validate and check for unique constraints
             ServiceProviderEntity existingSPByUsername = null;
             ServiceProviderEntity existingSPByEmail = null;
+
+
+
+            List<String> PermanentAddressKeys = new ArrayList<>();
+            PermanentAddressKeys.add("permanent_district");
+            PermanentAddressKeys.add("permanent_city");
+            PermanentAddressKeys.add("permanent_pincode");
+            PermanentAddressKeys.add("permanent_state");
+            PermanentAddressKeys.add("permanent_residential_address");
+            int KeysCount = 0;
+            for (String key : updates.keySet()) {
+                if (PermanentAddressKeys.contains(key))
+                    KeysCount++;
+            }
+            if (KeysCount > 0 && KeysCount < addresskeys.size())
+                return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
+            if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
+                if (validatePAddressFields(updates).isEmpty()) {
+                    boolean flag=false;
+                    Long addId=0L;
+                    for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
+                    {
+                        if(serviceProviderAddress.getAddress_type_id()==5) {
+                            flag = true;
+                            addId=serviceProviderAddress.getAddress_id();
+                            break;
+                        }
+                    }
+                    if (!flag) {
+                        ServiceProviderAddress serviceProviderAddress = new ServiceProviderAddress();
+                        serviceProviderAddress.setAddress_type_id(findAddressName("PERMANENT_ADDRESS").getAddress_type_Id());
+                        serviceProviderAddress.setAddress_name("PERMANENT_ADDRESS");
+                        serviceProviderAddress.setPincode((String) updates.get("permanent_pincode"));
+                        serviceProviderAddress.setDistrict((String) updates.get("permanent_district"));
+                        serviceProviderAddress.setState((String) updates.get("permanent_state"));
+                        serviceProviderAddress.setCity((String) updates.get("permanent_city"));
+                        serviceProviderAddress.setAddress_line((String) updates.get("permanent_residential_address"));
+                        if (serviceProviderAddress.getAddress_line() != null || serviceProviderAddress.getCity() != null || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null) {
+                            addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
+                        }
+                    } else {
+                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
+                        ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
+                        serviceProviderAddress.setAddress_name("PERMANENT_ADDRESS");
+                        serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
+                        serviceProviderAddressDTO.setAddress_id(serviceProviderAddress.getAddress_id());
+                        serviceProviderAddressDTO.setState((String) updates.get("permanent_state"));
+                        serviceProviderAddressDTO.setDistrict((String) updates.get("permanent_district"));
+                        serviceProviderAddressDTO.setAddress_line((String) updates.get("permanent_residential_address"));
+                        serviceProviderAddressDTO.setPincode((String) updates.get("permanent_pincode"));
+                        serviceProviderAddressDTO.setServiceProviderEntity(existingServiceProvider);
+                        serviceProviderAddressDTO.setCity((String) updates.get("permanent_city"));
+                        for (String error : updateAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress, serviceProviderAddressDTO)) {
+                            errorMessages.add(error);
+                        }
+                    }
+                } else {
+                    errorMessages.addAll(validatePAddressFields(updates));
+                }
+            }
+
+            updates.remove("permanent_state");
+            updates.remove("permanent_district");
+            updates.remove("permanent_pincode");
+            updates.remove("permanent_residential_address");
+            updates.remove("permanent_city");
 
             if (updates.containsKey("user_name")) {
                 updates.remove("user_name");
@@ -744,6 +801,41 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         pattern = Constant.CITY_REGEXP;
         if (!java.util.regex.Pattern.matches(pattern, city))
             errorMessages.add("Field city should only contain letters");
+        String stateName = districtService.findStateById(Integer.parseInt(state));
+        if (stateName == null)
+            errorMessages.add("Invalid State");
+        String districtName = districtService.findDistrictById(Integer.parseInt(district));
+        if (districtName == null)
+            errorMessages.add("Invalid district");
+        return errorMessages;
+    }
+    public List<String> validatePAddressFields(Map<String, Object> updates) {
+        List<String> errorMessages = new ArrayList<>();
+        String state = (String) updates.get("permanent_state");
+        String district = (String) updates.get("permanent_district");
+        String pincode = (String) updates.get("permanent_pincode");
+        String city = (String) updates.get("permanent_city");
+        String residentialAddress = (String) updates.get("permanent_residential_address");
+        String[] fieldNames = {"permanent_state", "permanent_district", "permanent_pincode", "permanent_residential_address", "permanent_city"};
+        String[] fieldValues = {state, district, pincode, residentialAddress, city};
+        for (int i = 0; i < fieldValues.length; i++) {
+            if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
+                errorMessages.add(fieldNames[i] + " cannot be empty");
+            }
+        }
+        String pattern = Constant.PINCODE_REGEXP;
+        if (!java.util.regex.Pattern.matches(pattern, pincode))
+            errorMessages.add("Pincode should contain only numbers and should be of length 6");
+        pattern = Constant.CITY_REGEXP;
+        if (!java.util.regex.Pattern.matches(pattern, city))
+            errorMessages.add("Field city should only contain letters");
+        String stateName = districtService.findStateById(Integer.parseInt(state));
+        if (stateName == null)
+            errorMessages.add("Invalid State");
+        String districtName = districtService.findDistrictById(Integer.parseInt(district));
+        if (districtName == null)
+            errorMessages.add("Invalid district");
+
         return errorMessages;
     }
 
@@ -1220,7 +1312,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             field.setAccessible(true);
             Object newValue = field.get(dto);
             if (newValue == null || (newValue.toString().isEmpty())) {
-                errorList.add(field.getName() + "cannot be empty");
+//                errorList.add(field.getName() + "cannot be empty");
             }
         }
         if (!errorList.isEmpty())
@@ -1243,8 +1335,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId) {
         try {
+            CustomServiceProviderTicket customServiceProviderTicket=null;
+            if(ticketId!=null)
+            {
+                customServiceProviderTicket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            }
             if (first_name == null && last_name == null && state == null && district == null && mobileNumber == null && test_status_id == null) {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity", ServiceProviderEntity.class);
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
@@ -1327,7 +1424,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (fields[i] != null)
                     query.setParameter(fieldsNames[i], fields[i]);
             }
+            System.out.println("Am here");
             List<ServiceProviderEntity> listOfSp = query.getResultList();
+            if (customServiceProviderTicket != null) {
+                Iterator<ServiceProviderEntity> iterator = listOfSp.iterator();
+                while (iterator.hasNext()) {
+                    ServiceProviderEntity serviceProvider = iterator.next();
+                    System.out.println("Am hereeeeeeeeee");
+                    if (customServiceProviderTicket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        iterator.remove();
+                    }
+                }
+            }
             List<Map<String, Object>> response = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : listOfSp) {
                 response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
@@ -1384,7 +1492,4 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
         }
     }
-
-
-
 }

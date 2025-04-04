@@ -13,8 +13,6 @@ import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminP
 
 public class Constant {
 
-    public static final int comission=40;
-
     public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
@@ -204,6 +202,10 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATUS_BDWL = 12L;
+    public static final Long TICKET_STATUS_OTHER = 13L;
+
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
@@ -224,6 +226,7 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_FOR_QUALIFICATION = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
+    public static final Long TICKET_STATE_TO_DO=1L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";

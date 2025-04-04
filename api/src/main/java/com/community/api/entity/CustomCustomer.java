@@ -293,6 +293,8 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
+
+
     @Column(name = "order_count",columnDefinition = "BIGINT DEFAULT 0")
     private Integer numberOfOrders;
 

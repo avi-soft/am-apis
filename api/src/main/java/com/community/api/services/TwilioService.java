@@ -127,11 +127,13 @@ public class TwilioService {
                     customerReferrer.setServiceProvider(serviceProviderEntity);
                     customerReferrer.setPrimaryRef(true);
                     customerDetails.getMyReferrer().add(customerReferrer);
-
+//                    System.out.println("User id is "+tokenUserId);
+//                    System.out.println("Role id is "+roleId);
                 customerDetails.setRegisteredBySp(true);
                 customerDetails.setCreatedById(tokenUserId);
                 customerDetails.setCreatedByRole(roleId);
-                customerDetails.setPrimaryRef(tokenUserId);
+                if(roleId==4 || roleId==3 || roleId==2 || roleId ==1)
+                    customerDetails.setPrimaryRef(tokenUserId);
                 entityManager.merge(customer);
                 }
                 else

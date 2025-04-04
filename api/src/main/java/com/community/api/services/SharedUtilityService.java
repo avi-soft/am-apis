@@ -792,7 +792,6 @@ public class SharedUtilityService {
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
-        serviceProviderDetails.put("archived", serviceProvider.getIsArchived());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
@@ -803,6 +802,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("written_test_score", serviceProvider.getWrittenTestScore());
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
+        serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
