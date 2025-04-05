@@ -29,6 +29,6 @@ public class PostProjectionDTO {
     private GenderWiseDistribution genderWiseDistribution;
     @JsonProperty("reserve_category_age")
     List<ReserveCategoryAgeDto>reserveCategoryAge;
-    private QualificationEligibility qualificationEligibility;
+    private List<QualificationEligibility> qualificationEligibility;
    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements ;
 }

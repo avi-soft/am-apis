@@ -22,4 +22,8 @@ public class QualificationEligibilityDto {
     private Long percentage;
 
     private Long postId;
+
+    private Double cgpa;
+
+    private Boolean isPercentage;
 }

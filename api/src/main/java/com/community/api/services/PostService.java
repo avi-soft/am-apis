@@ -219,68 +219,59 @@ public class PostService {
             }
         }
         entityManager.persist(post);
-        entityManager.flush(); // Ensure Post is saved and has an ID
-        QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibility();
-        if (qualificationEligibilityDto!=null) {
-            if(qualificationEligibilityDto.getQualificationIds()!=null)
-            {
-                QualificationEligibility qualificationRequirement = new QualificationEligibility();
-                //set qualifications
-                List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
-                List<Qualification> qualificationsToAdd= new ArrayList<>();
-                if(qualificationIds!=null)
-                {
-                    for(Integer qualificationId: qualificationIds)
-                    {
-                        Qualification qualification= entityManager.find(Qualification.class,qualificationId);
-                        qualificationsToAdd.add(qualification);
-                    }
-                    qualificationRequirement.setQualifications(qualificationsToAdd);
-                }
-
-                //set subjects
-                List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
-                if(subjectIds!=null)
-                {
-                    if(!subjectIds.isEmpty())
-                    {
-                        List<CustomSubject> subjectsToAdd= new ArrayList<>();
-                        for(Long subjectId: subjectIds)
-                        {
-                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
-                            subjectsToAdd.add(customSubject);
+        entityManager.flush();// Ensure Post is saved and has an ID
+        for (QualificationEligibilityDto qualificationEligibilityDto:postDto.getQualificationEligibility()) {
+            if (qualificationEligibilityDto != null) {
+                if (qualificationEligibilityDto.getQualificationIds() != null) {
+                    QualificationEligibility qualificationRequirement = new QualificationEligibility();
+                    //set qualifications
+                    List<Integer> qualificationIds = qualificationEligibilityDto.getQualificationIds();
+                    List<Qualification> qualificationsToAdd = new ArrayList<>();
+                    if (qualificationIds != null) {
+                        for (Integer qualificationId : qualificationIds) {
+                            Qualification qualification = entityManager.find(Qualification.class, qualificationId);
+                            qualificationsToAdd.add(qualification);
                         }
-                        qualificationRequirement.setCustomSubjects(subjectsToAdd);
+                        qualificationRequirement.setQualifications(qualificationsToAdd);
                     }
-                }
 
-                //set streams
-                List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
-                List<CustomStream> streamsToAdd= new ArrayList<>();
-                if(streamIds!=null)
-                {
-                    for(Long streamId: streamIds)
-                    {
-                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
-                        streamsToAdd.add(customStream);
+                    //set subjects
+                    List<Long> subjectIds = qualificationEligibilityDto.getCustomSubjectIds();
+                    if (subjectIds != null) {
+                        if (!subjectIds.isEmpty()) {
+                            List<CustomSubject> subjectsToAdd = new ArrayList<>();
+                            for (Long subjectId : subjectIds) {
+                                CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
+                                subjectsToAdd.add(customSubject);
+                            }
+                            qualificationRequirement.setCustomSubjects(subjectsToAdd);
+                        }
                     }
-                    qualificationRequirement.setCustomStreams(streamsToAdd);
 
+                    //set streams
+                    List<Long> streamIds = qualificationEligibilityDto.getCustomStreamIds();
+                    List<CustomStream> streamsToAdd = new ArrayList<>();
+                    if (streamIds != null) {
+                        for (Long streamId : streamIds) {
+                            CustomStream customStream = entityManager.find(CustomStream.class, streamId);
+                            streamsToAdd.add(customStream);
+                        }
+                        qualificationRequirement.setCustomStreams(streamsToAdd);
+
+                    }
+                    if (qualificationEligibilityDto.getCustomReserveCategoryId() != null) {
+                        CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, qualificationEligibilityDto.getCustomReserveCategoryId());
+                        qualificationRequirement.setCustomReserveCategory(customReserveCategory);
+                    }
+                    qualificationRequirement.setPercentage(qualificationEligibilityDto.getPercentage());
+                    qualificationRequirement.setPost(post);
+                    qualificationRequirement.setIsPercentage(qualificationEligibilityDto.getIsPercentage());
+                    qualificationRequirement.setCgpa(qualificationEligibilityDto.getCgpa());
+                    entityManager.persist(qualificationRequirement);
                 }
-                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
-                {
-                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
-                    qualificationRequirement.setCustomReserveCategory(customReserveCategory);
-                }
-                qualificationRequirement.setPercentage(qualificationEligibilityDto.getPercentage());
-                qualificationRequirement.setPost(post);
-
-                entityManager.persist(qualificationRequirement);
+                entityManager.flush();
             }
-            entityManager.flush();
-            }
-
-
+        }
         List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
         if (!physicalRequirementDtos.isEmpty()) {
             for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {

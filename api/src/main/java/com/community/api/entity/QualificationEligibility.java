@@ -60,6 +60,11 @@ public class QualificationEligibility
     @Column(name = "percentage")
     private Long percentage;
 
+    @Column(name = "cgpa")
+    private Double cgpa;
+
+    @Column(name = "is_percentage",columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean isPercentage;
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "post_id")
