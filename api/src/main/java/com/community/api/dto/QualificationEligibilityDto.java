@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,6 +8,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class QualificationEligibilityDto {
     
     private Long qualificationEligibilityId;
@@ -22,4 +24,8 @@ public class QualificationEligibilityDto {
     private Long percentage;
 
     private Long postId;
+
+    private Double cgpa;
+
+    private Boolean isPercentage;
 }

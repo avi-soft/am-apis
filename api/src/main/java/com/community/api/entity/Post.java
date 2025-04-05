@@ -62,8 +62,8 @@ public class Post {
     @JoinColumn(name = "gender_wise_distribution_id", referencedColumnName = "id")
     private GenderWiseDistribution genderWiseDistribution;
 
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private QualificationEligibility qualificationEligibility;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QualificationEligibility>qualificationEligibility;
 
     @JsonIgnore
     @ManyToOne

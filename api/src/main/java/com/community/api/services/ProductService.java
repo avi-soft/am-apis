@@ -2630,105 +2630,113 @@ public class ProductService {
 
     public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
+            Set<QualificationEligibilityDto> seenSet = new HashSet<>();
             if (postDto.getQualificationEligibility() == null) {
                 return true;
             }
-            else {
-                QualificationEligibilityDto qualificationEligibilityDto= postDto.getQualificationEligibility();
-
-                //Validate Qualification ids
-                if(qualificationEligibilityDto.getQualificationIds()==null)
-                {
-                    throw new IllegalArgumentException("Qualification cannot be null");
-                }
-                else
-                if(qualificationEligibilityDto.getQualificationIds()!=null)
-                {
-                    if(qualificationEligibilityDto.getQualificationIds().isEmpty())
-                    {
-                        throw new IllegalArgumentException("Qualification cannot be empty");
-                    }
-                    else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()){
-                        if(qualificationEligibilityDto.getQualificationIds().size()>1)
-                        {
-                            throw new IllegalArgumentException("Enter only one qualification (Highest)");
-                        }
-                        Set<Integer> qualificationIdSet = new HashSet<>();
-                        List<Integer> qualificationIds= qualificationEligibilityDto.getQualificationIds();
-                        for(Integer qualificationId: qualificationIds)
-                        {
-                            Qualification qualification= entityManager.find(Qualification.class,qualificationId);
-                            if(qualification==null)
-                            {
-                                throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
-                            }
-                            qualificationIdSet.add(qualificationId);
-                        }
-                        if (qualificationIdSet.size() != qualificationIds.size()) {
-                            throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
-                        }
-                    }
-                }
-
-                //Validate Subjects
-                if(qualificationEligibilityDto.getCustomSubjectIds()!=null)
-                {
-                    if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()){
-                        Set<Long> subjectIdsSet = new HashSet<>();
-                        List<Long> subjectIds= qualificationEligibilityDto.getCustomSubjectIds();
-                        for(Long subjectId: subjectIds)
-                        {
-                            CustomSubject customSubject= entityManager.find(CustomSubject.class,subjectId);
-                            if(customSubject==null)
-                            {
-                                throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
-                            }
-                            subjectIdsSet.add(subjectId);
-                        }
-                        if (subjectIdsSet.size() != subjectIds.size()) {
-                            throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
-                        }
-                    }
-                }
-
-                //Validate Streams
-                if(qualificationEligibilityDto.getCustomStreamIds()!=null)
-                {
-                    if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()){
-                    Set<Long> streamIdSet = new HashSet<>();
-                    List<Long> streamIds= qualificationEligibilityDto.getCustomStreamIds();
-                    for(Long streamId: streamIds)
-                    {
-                        CustomStream customStream= entityManager.find(CustomStream.class,streamId);
-                        if(customStream==null)
-                        {
-                            throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
-                        }
-                        streamIdSet.add(streamId);
-                    }
-                    if (streamIdSet.size() != streamIds.size()) {
-                        throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
-                    }
-                   }
-                }
-
-                if(qualificationEligibilityDto.getCustomReserveCategoryId()!=null)
-                {
-                    CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,qualificationEligibilityDto.getCustomReserveCategoryId());
-                    if(customReserveCategory==null)
-                    {
-                        throw new IllegalArgumentException("Reserve Category does not exists with id "+ qualificationEligibilityDto.getCustomReserveCategoryId());
-                    }
-                }
-
-                if(qualificationEligibilityDto.getPercentage()!=null)
-                {
-                    if(qualificationEligibilityDto.getPercentage()>100 || qualificationEligibilityDto.getPercentage()<0)
-                    {
-                        throw new IllegalArgumentException("Percentage cannot be less than 0 and greater than 100");
-                    }
+            for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
+                if (!seenSet.add(dto)) {
+                    throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " +postDto.getPostName());
                 }
             }
+                for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
+
+                    if (qualificationEligibilityDto.getIsPercentage() == null)
+                        throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage.");
+                    //Validate Qualification ids
+                    if (!qualificationEligibilityDto.getIsPercentage()) {
+                        if(qualificationEligibilityDto.getPercentage()!=null)
+                            throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+                        if (qualificationEligibilityDto.getCgpa() != null) {
+                            double cgpa = qualificationEligibilityDto.getCgpa();
+                            // proceed with cgpa logic
+                        } else {
+                            // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+                            throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+                        }
+                    }
+                    else
+                    {
+                        if (qualificationEligibilityDto.getCgpa() != null)
+                            throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
+                        if(qualificationEligibilityDto.getPercentage()==null)
+                            throw new IllegalArgumentException("Need to provide percentage");
+                        else if(qualificationEligibilityDto.getPercentage()>100||qualificationEligibilityDto.getPercentage()<0)
+                            throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
+                    }
+                    if (qualificationEligibilityDto.getQualificationIds() == null) {
+                        throw new IllegalArgumentException("Qualification cannot be null");
+                    } else if (qualificationEligibilityDto.getQualificationIds() != null) {
+                        if (qualificationEligibilityDto.getQualificationIds().isEmpty()) {
+                            throw new IllegalArgumentException("Qualification cannot be empty");
+                        } else if (!qualificationEligibilityDto.getQualificationIds().isEmpty()) {
+                            if (qualificationEligibilityDto.getQualificationIds().size() > 1) {
+                                throw new IllegalArgumentException("Enter only one qualification (Highest)");
+                            }
+                            Set<Integer> qualificationIdSet = new HashSet<>();
+                            List<Integer> qualificationIds = qualificationEligibilityDto.getQualificationIds();
+                            for (Integer qualificationId : qualificationIds) {
+                                Qualification qualification = entityManager.find(Qualification.class, qualificationId);
+                                if (qualification == null) {
+                                    throw new IllegalArgumentException("Qualification with id " + qualificationId + " does not exist");
+                                }
+                                qualificationIdSet.add(qualificationId);
+                            }
+                            if (qualificationIdSet.size() != qualificationIds.size()) {
+                                throw new IllegalArgumentException("DUPLICATE QUALIFICATION NOT ALLOWED");
+                            }
+                        }
+                    }
+
+                    //Validate Subjects
+                    if (qualificationEligibilityDto.getCustomSubjectIds() != null) {
+                        if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()) {
+                            Set<Long> subjectIdsSet = new HashSet<>();
+                            List<Long> subjectIds = qualificationEligibilityDto.getCustomSubjectIds();
+                            for (Long subjectId : subjectIds) {
+                                CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
+                                if (customSubject == null) {
+                                    throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
+                                }
+                                subjectIdsSet.add(subjectId);
+                            }
+                            if (subjectIdsSet.size() != subjectIds.size()) {
+                                throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
+                            }
+                        }
+                    }
+
+                    //Validate Streams
+                    if (qualificationEligibilityDto.getCustomStreamIds() != null) {
+                        if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()) {
+                            Set<Long> streamIdSet = new HashSet<>();
+                            List<Long> streamIds = qualificationEligibilityDto.getCustomStreamIds();
+                            for (Long streamId : streamIds) {
+                                CustomStream customStream = entityManager.find(CustomStream.class, streamId);
+                                if (customStream == null) {
+                                    throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
+                                }
+                                streamIdSet.add(streamId);
+                            }
+                            if (streamIdSet.size() != streamIds.size()) {
+                                throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
+                            }
+                        }
+                    }
+
+                    if (qualificationEligibilityDto.getCustomReserveCategoryId() != null) {
+                        CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, qualificationEligibilityDto.getCustomReserveCategoryId());
+                        if (customReserveCategory == null) {
+                            throw new IllegalArgumentException("Reserve Category does not exists with id " + qualificationEligibilityDto.getCustomReserveCategoryId());
+                        }
+                    }
+
+                    if (qualificationEligibilityDto.getPercentage() != null) {
+                        if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0) {
+                            throw new IllegalArgumentException("Percentage cannot be less than 0 and greater than 100");
+                        }
+                    }
+                }
             return true;
         }
         catch (IllegalArgumentException illegalArgumentException)
@@ -2816,11 +2824,11 @@ public class ProductService {
             {
                 validatePhysicalRequirement(postDto, null);
             }
-            if(postDto.getQualificationEligibility()!=null)
-            {
-                if(postDto.getQualificationEligibility().getQualificationIds()!=null )
-                {
-                    validateQualificationRequirement(postDto);
+            if(postDto.getQualificationEligibility()!=null&&!postDto.getQualificationEligibility().isEmpty()) {
+                for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
+                    if (qualificationEligibilityDto.getQualificationIds() != null) {
+                        validateQualificationRequirement(postDto);
+                    }
                 }
             }
         }
