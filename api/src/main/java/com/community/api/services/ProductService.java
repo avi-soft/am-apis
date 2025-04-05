@@ -2630,10 +2630,15 @@ public class ProductService {
 
     public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
+            Set<QualificationEligibilityDto> seenSet = new HashSet<>();
             if (postDto.getQualificationEligibility() == null) {
                 return true;
             }
-            else {
+            for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
+                if (!seenSet.add(dto)) {
+                    throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " +postDto.getPostName());
+                }
+            }
                 for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
 
                     if (qualificationEligibilityDto.getIsPercentage() == null)
@@ -2732,7 +2737,6 @@ public class ProductService {
                         }
                     }
                 }
-            }
             return true;
         }
         catch (IllegalArgumentException illegalArgumentException)
