@@ -2578,10 +2578,8 @@ public class CustomerEndpoint {
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if (customProduct != null
-                        && ((Status) customProduct).getArchived() == 'Y'
-                        || customProduct.getActiveEndDate().before(new Date())) {
-                        continue;
+                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
+                    continue;
                 }
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
