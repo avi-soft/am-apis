@@ -23,7 +23,7 @@ public class PostDto {
     private GenderDistributionDto genderWiseDistribution;
     @JsonProperty("reserve_category_age")
     List<AddProductAgeDTO>reserveCategoryAge;
-    private QualificationEligibilityDto qualificationEligibility;
+    private List<QualificationEligibilityDto> qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
 }

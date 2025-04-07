@@ -218,7 +218,43 @@ public class OrderController {
         }
     }
 
+    @Transactional
+    @GetMapping("/details/{orderId}")
+    public ResponseEntity<?> getOrderByOrderId(@PathVariable Long orderId,@RequestHeader(value = "Authorization")String authHeader)
+    {
+        try
+        {
+            if(orderId==null)
+                return ResponseService.generateErrorResponse("Order id is required",HttpStatus.BAD_REQUEST);
+            Order order=orderService.findOrderById(orderId);
+            if(order==null)
+                return ResponseService.generateErrorResponse("Order Not found",HttpStatus.NOT_FOUND);
+            System.out.println("hello1");
+            CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+            Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
 
+            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                    customer.getId(),
+                    customer.getFirstName() + " " + customer.getLastName(),
+                    customer.getEmailAddress(),
+                    customCustomer != null ? customCustomer.getMobileNumber() : null,
+                    addressFetcher.fetch(customer),
+                    customer.getUsername()
+            );
+
+            CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
+
+            CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
+            if (dto != null) {
+                return ResponseService.generateSuccessResponse("Order details",dto,HttpStatus.OK);
+            }
+            return null;
+        }catch (Exception exception)
+        {
+          return ResponseService.generateErrorResponse("Some error occured",HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort) {
         String jwtToken = authHeader.substring(7);
