@@ -17,25 +17,7 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
-import com.community.api.entity.Advertisement;
-import com.community.api.entity.OtherItem;
-import com.community.api.entity.Qualification;
-import com.community.api.entity.Districts;
-import com.community.api.entity.CustomProductRejectionStatus;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.StateCode;
-import com.community.api.entity.Privileges;
-import com.community.api.entity.Role;
-import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomReserveCategory;
-import com.community.api.entity.CustomJobGroup;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomStream;
-import com.community.api.entity.CustomSector;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.Post;
-import com.community.api.entity.OtherDistribution;
+import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
@@ -83,7 +65,8 @@ public class ProductService {
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Resource(name = "blCatalogService")
     protected CatalogService catalogService;
-
+     @Autowired
+     QualificationDetailsService qualificationDetailsService;
     @Autowired
     ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
@@ -148,7 +131,10 @@ public class ProductService {
                 sql.append(", application_scope_id");
                 values.append(", :applicationScope");
             }
-
+            if (addProductDto.getAdditionalComments() != null) {
+                sql.append(", additional_comments");
+                values.append(", :additionalComments");
+            }
             if (addProductDto.getExamDateFrom() != null) {
                 sql.append(", exam_date_from");
                 values.append(", :examDateFrom");
@@ -261,6 +247,9 @@ public class ProductService {
 
             if (addProductDto.getApplicationScope() != null) {
                 query.setParameter("applicationScope", addProductDto.getApplicationScope());
+            }
+            if (addProductDto.getAdditionalComments() != null) {
+                query.setParameter("additionalComments", addProductDto.getAdditionalComments());
             }
 
             if (addProductDto.getExamDateFrom() != null) {
@@ -2635,34 +2624,51 @@ public class ProductService {
                 return true;
             }
             for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
+                for(Integer id:dto.getQualificationIds())
+                {
+                    Qualification qualificationDetails=entityManager.find(Qualification.class,id);
+                    if(qualificationDetails==null)
+                        throw new IllegalArgumentException("Qualification not found");
+                    if(qualificationDetails.getIs_stream_required()&&dto.getCustomStreamIds()==null)
+                    {
+                        throw new IllegalArgumentException("Stream id cannot be null for Qualification:"+qualificationDetails.getQualification_name());
+                    }
+                    if(qualificationDetails.getIs_subjects_required()&&(dto.getCustomSubjectIds()==null||dto.getCustomSubjectIds().isEmpty()))
+                    {
+                        throw new IllegalArgumentException("Subject ids cannot be null for Qualification:"+qualificationDetails.getQualification_name());
+                    }
+                }
                 if (!seenSet.add(dto)) {
                     throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " +postDto.getPostName());
                 }
             }
                 for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
-
-                    if (qualificationEligibilityDto.getIsPercentage() == null)
-                        throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage.");
-                    //Validate Qualification ids
-                    if (!qualificationEligibilityDto.getIsPercentage()) {
-                        if(qualificationEligibilityDto.getPercentage()!=null)
-                            throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                        if (qualificationEligibilityDto.getCgpa() != null) {
-                            double cgpa = qualificationEligibilityDto.getCgpa();
-                            // proceed with cgpa logic
+                    if(qualificationEligibilityDto.getIsAppearing()==null)
+                        throw new IllegalArgumentException("Need to specify whether appearing or pass");
+                    if(!qualificationEligibilityDto.getIsAppearing()) {
+                        if(qualificationEligibilityDto.getCgpa()==null&&qualificationEligibilityDto.getPercentage()==null)
+                            throw new IllegalArgumentException("Need to provide passing criteria : CGPA/Percentage");
+                        if (qualificationEligibilityDto.getIsPercentage() == null)
+                            throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage.");
+                        //Validate Qualification ids
+                        if (!qualificationEligibilityDto.getIsPercentage()) {
+                            if (qualificationEligibilityDto.getPercentage() != null)
+                                throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+                            if (qualificationEligibilityDto.getCgpa() != null) {
+                                double cgpa = qualificationEligibilityDto.getCgpa();
+                                // proceed with cgpa logic
+                            } else {
+                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+                            }
                         } else {
-                            // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
-                            throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+                            if (qualificationEligibilityDto.getCgpa() != null)
+                                throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
+                            if (qualificationEligibilityDto.getPercentage() == null)
+                                throw new IllegalArgumentException("Need to provide percentage");
+                            else if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0)
+                                throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
                         }
-                    }
-                    else
-                    {
-                        if (qualificationEligibilityDto.getCgpa() != null)
-                            throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
-                        if(qualificationEligibilityDto.getPercentage()==null)
-                            throw new IllegalArgumentException("Need to provide percentage");
-                        else if(qualificationEligibilityDto.getPercentage()>100||qualificationEligibilityDto.getPercentage()<0)
-                            throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
                     }
                     if (qualificationEligibilityDto.getQualificationIds() == null) {
                         throw new IllegalArgumentException("Qualification cannot be null");

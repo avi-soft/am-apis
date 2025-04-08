@@ -85,4 +85,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
+
+    @JsonProperty("additional_comments")
+    private String additionalComments;
 }

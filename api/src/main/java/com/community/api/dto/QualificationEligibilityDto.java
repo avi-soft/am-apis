@@ -28,4 +28,6 @@ public class QualificationEligibilityDto {
     private Double cgpa;
 
     private Boolean isPercentage;
+    private String additionalComments;
+    private Boolean isAppearing;
 }

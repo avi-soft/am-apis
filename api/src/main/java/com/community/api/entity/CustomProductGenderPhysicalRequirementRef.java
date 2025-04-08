@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -56,4 +57,7 @@ public class CustomProductGenderPhysicalRequirementRef {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
+    @Column(name = "additional_comments")
+    @JsonProperty("additional_comments")
+    private String additionalComments;
 }

@@ -26,4 +26,5 @@ public class PostDto {
     private List<QualificationEligibilityDto> qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
+    private String additionalComments;
 }

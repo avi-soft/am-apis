@@ -25,4 +25,6 @@ public class ReserveCategoryDto {
     Long genderId;
     @JsonProperty("gender_name")
     String genderName;
+    @JsonProperty("additional_comments")
+    String additionalComments;
 }

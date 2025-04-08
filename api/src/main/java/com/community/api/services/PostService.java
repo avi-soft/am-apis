@@ -191,6 +191,7 @@ public class PostService {
             }
             post.setVacancyDistributionTypes(vacancyTypes);
         }
+        post.setAdditionalComments(postDto.getAdditionalComments());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
@@ -267,6 +268,8 @@ public class PostService {
                     qualificationRequirement.setPost(post);
                     qualificationRequirement.setIsPercentage(qualificationEligibilityDto.getIsPercentage());
                     qualificationRequirement.setCgpa(qualificationEligibilityDto.getCgpa());
+                    qualificationRequirement.setAdditionalComments(qualificationEligibilityDto.getAdditionalComments());
+                    qualificationRequirement.setIsAppearing(qualificationEligibilityDto.getIsAppearing());
                     entityManager.persist(qualificationRequirement);
                 }
                 entityManager.flush();
@@ -288,6 +291,7 @@ public class PostService {
                 requirement.setWaistSize(dto.getWaistSize());
                 requirement.setChestSize(dto.getChestSize());
                 requirement.setPost(post);
+                requirement.setAdditionalComments(dto.getAdditionalComments());
 
                 entityManager.persist(requirement);
             }
@@ -324,11 +328,12 @@ public class PostService {
                 // Calculate total state vacancies from districts
                 Integer totalStateVacancies = calculateDistrictBasedStateVacancies(stateDto);
                 stateDistribution.setTotalVacanciesInState(totalStateVacancies);
-
+               stateDistribution.setAdditionalComments(stateDto.getAdditionalComments());
                 entityManager.persist(stateDistribution);
                 saveDistrictDistributions(stateDto, stateDistribution);
             } else {
                 // Calculate and set state level vacancies
+                stateDistribution.setAdditionalComments(stateDto.getAdditionalComments());
                 saveStateLevelDistribution(stateDto, stateDistribution);
                 entityManager.persist(stateDistribution);
             }
@@ -354,7 +359,6 @@ public class PostService {
             try {
                 OtherDistribution otherDistribution = new OtherDistribution();
                 otherDistribution.setPost(post);
-
                 // Validate and set total vacancy
                 Long totalVacancy = otherDistributionEntity.getTotalVacancy();
                 if (totalVacancy != null && totalVacancy >= 0) {
@@ -442,6 +446,7 @@ public class PostService {
                 } else {
                     districtDist.setTotalVacancy(districtDto.getTotalVacancy());
                 }
+                districtDist.setAdditionalComment(districtDto.getAdditionalComment());
 
                 // Persist the district distribution
                 entityManager.persist(districtDist);
@@ -488,7 +493,7 @@ public class PostService {
                 catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
                 totalVacancies += catDto.getCategoryVacancies();
-
+                catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
                 categoryDistributions.add(catDist);
             }
@@ -526,6 +531,7 @@ public class PostService {
                 throw new IllegalArgumentException("Category not found with id: " + dto.getCategoryId());
             }
             categoryDist.setCategory(category);
+            categoryDist.setAdditionalComment(dto.getAdditionalComment());
             categoryDist.setVacancyCount(dto.getVacancyCount());
 
             // Persist and add to districtDistribution
@@ -550,12 +556,12 @@ public class PostService {
 
             zoneDistribution.setIsDivisionDistribution(zoneDto.getIsDivisionDistribution());
             zoneDistribution.setIsGenderWise(zoneDto.getIsGenderWise());
-
+            zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());
             if (Boolean.TRUE.equals(zoneDto.getIsDivisionDistribution())) {
                 // Calculate total vacancies in the zone based on divisions
                 Integer totalZoneVacancies = calculateDivisionBasedZoneVacancies(zoneDto);
                 zoneDistribution.setTotalVacanciesInZone(totalZoneVacancies);
-
+                zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());
                 entityManager.persist(zoneDistribution);
                 saveDivisionDistributions(zoneDto, zoneDistribution);
             } else {
@@ -609,13 +615,14 @@ public class PostService {
                 catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
                 totalVacancies += catDto.getCategoryVacancies();
-
+                catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
                 categoryDistributions.add(catDist);
             }
 
             // Explicitly set the category distributions list
             zoneDistribution.setCategoryDistributions(categoryDistributions);
+            zoneDistribution.setAdditionalComments(zoneDistribution.getAdditionalComments());
 
             if (!Boolean.TRUE.equals(zoneDto.getIsGenderWise())) {
                 zoneDistribution.setTotalVacanciesInZone(totalVacancies);
@@ -658,6 +665,7 @@ public class PostService {
                 divisionDist.setDivisions(division);
 
                 divisionDist.setIsGenderWise(divisionDto.getIsGenderWise());
+                divisionDist.setAdditionalComment(divisionDto.getAdditionalComment());
 
                 if (Boolean.TRUE.equals(divisionDto.getIsGenderWise())) {
                     divisionDist.setMaleVacancy(divisionDto.getMaleVacancy());
@@ -688,6 +696,7 @@ public class PostService {
             }
 
             zoneDistribution.setDivisionDistributions(divisionDistributions);
+            zoneDistribution.setAdditionalComments(zoneDistribution.getAdditionalComments());
         } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
             throw new IllegalArgumentException(e.getMessage());
@@ -713,7 +722,7 @@ public class PostService {
             }
             categoryDist.setCategory(category);
             categoryDist.setVacancyCount(dto.getVacancyCount());
-
+            categoryDist.setAdditionalComment(dto.getAdditionalComment());
             entityManager.persist(categoryDist);
             categoryDistributions.add(categoryDist);
         }
@@ -748,7 +757,7 @@ public class PostService {
 
         // Update basic fields
         genderDist.setIsGenderWise(genderDto.getIsGenderWise());
-
+        genderDist.setAdditionalComments(genderDto.getAdditionalComments());
         if (Boolean.TRUE.equals(genderDto.getIsGenderWise())) {
             genderDist.setMaleVacancy(genderDto.getMaleVacancy());
             genderDist.setFemaleVacancy(genderDto.getFemaleVacancy());

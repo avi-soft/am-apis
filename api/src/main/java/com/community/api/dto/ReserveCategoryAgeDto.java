@@ -37,4 +37,6 @@ public class ReserveCategoryAgeDto {
     Integer maxAge;
     @JsonProperty("as_of_date")
     Date asOfDate;
+    @JsonProperty("additional_comments")
+    String additionalComments;
 }
