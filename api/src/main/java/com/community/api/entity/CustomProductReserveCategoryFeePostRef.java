@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -40,6 +41,7 @@ public class CustomProductReserveCategoryFeePostRef {
     @Column(name = "post")
     Integer post;
 
+    @JsonIgnore
     @Column(name = "additional_comments")
     String additionalComments;
 }

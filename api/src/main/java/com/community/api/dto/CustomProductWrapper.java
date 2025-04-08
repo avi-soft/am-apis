@@ -186,6 +186,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
                 postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
+                postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
@@ -193,7 +194,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-
+                postProjectionDTO.setStateDistributionAdditionalComments(post.getStateDistributionAdditionalComments());
+                postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
+                postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
+                postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+                postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
+                postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
+                postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
                 List<ReserveCategoryAgeDto>listD=new ArrayList<>();
                 for(AddProductAgeDTO ageRequirement:postDtos.get(postDtoIndex).getReserveCategoryAge())
                 {

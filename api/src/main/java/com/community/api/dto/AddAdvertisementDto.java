@@ -33,4 +33,7 @@ public class AddAdvertisementDto {
     @JsonProperty("notifying_authority")
     private String notifyingAuthority;
 
+    @JsonProperty("additional_comments")
+    private String additionalComments;
+
 }

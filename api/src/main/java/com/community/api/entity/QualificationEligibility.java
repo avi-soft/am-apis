@@ -75,6 +75,7 @@ public class QualificationEligibility
     @JsonProperty("isAppearing")
     private Boolean isAppearing;
 
+    @JsonIgnore
     @Column(name = "additional_comments")
     @JsonProperty("additionalComments")
     private String additionalComments;

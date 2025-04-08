@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class ReserveCategoryDto {
     Long genderId;
     @JsonProperty("gender_name")
     String genderName;
+    @JsonIgnore
     @JsonProperty("additional_comments")
     String additionalComments;
 }

@@ -191,7 +191,14 @@ public class PostService {
             }
             post.setVacancyDistributionTypes(vacancyTypes);
         }
-        post.setAdditionalComments(postDto.getAdditionalComments());
+        post.setAdditionalComments(postDto.getPostAdditionalComments());
+        post.setStateDistributionAdditionalComments(postDto.getStateDistributionAdditionalComments());
+        post.setZoneDistributionAdditionalComments(postDto.getZoneDistributionAdditionalComments());
+        post.setGenderDistributionAdditionalComments(postDto.getGenderDistributionAdditionalComments());
+        post.setQualificationAdditionalComments(postDto.getQualificationAdditionalComments());
+        post.setPhysicalAdditionalComments(postDto.getPhysicalAdditionalComments());
+        post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
+        post.setReserveCatAgeAdditionalComments(postDto.getReserveCatAgeAdditionalComments());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
