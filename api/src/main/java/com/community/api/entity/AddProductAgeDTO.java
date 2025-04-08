@@ -40,4 +40,5 @@ public class AddProductAgeDTO {
     Integer maxAge;
     @JsonProperty("gender_id")
     Long gender;
+    private String additionalComments;
 }

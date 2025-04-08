@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.broadleafcommerce.common.money.Money;
 
+import javax.lang.model.element.Name;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
@@ -38,4 +39,7 @@ public class CustomProductReserveCategoryFeePostRef {
 
     @Column(name = "post")
     Integer post;
+
+    @Column(name = "additional_comments")
+    String additionalComments;
 }

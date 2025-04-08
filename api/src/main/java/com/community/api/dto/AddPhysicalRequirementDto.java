@@ -22,5 +22,6 @@ public class AddPhysicalRequirementDto {
     Double waistSize;
     @JsonProperty("chest_size")
     Double chestSize;
+    private String additionalComments;
 
 }

@@ -9,4 +9,5 @@ public class DistrictCategoryDistributionDto {
     private Long id;
     private Long categoryId;
     private Integer vacancyCount;
+    private String additionalComment;
 }

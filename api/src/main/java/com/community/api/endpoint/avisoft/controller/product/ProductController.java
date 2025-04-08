@@ -186,7 +186,6 @@ public class ProductController extends CatalogEndpoint {
             product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
             product.setMetaDescription(addProductDto.getMetaDescription());
-
             product.setDefaultCategory(category);
             product.setCategory(category);
 

@@ -29,5 +29,8 @@ public class DistrictCategoryDistribution {
 
     @Column(name = "vacancy_count")
     private Integer vacancyCount;
+
+    @Column(name = "additional_comment")
+    private String additionalComment;
 }
 

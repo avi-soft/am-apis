@@ -69,4 +69,8 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Column(name = "additional_comments")
+    @JsonProperty("additional_comments")
+    private String additionalComments;
+
 }
