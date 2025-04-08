@@ -171,6 +171,9 @@ public class EarningsController {
         int toIndex = Math.min(fromIndex + limit, result.size());
         Map<String,Object> resultMap=new HashMap<>();
         double[]balances=paymentService.balances(spId);
+        resultMap.put("total_number_of_items",result.size());
+        resultMap.put("total_number_of_pages",result.size()/limit);
+        resultMap.put("current_page",page);
         resultMap.put("last_month_payable",balances[0]);
         resultMap.put("this_month_payable",balances[1]);
         resultMap.put("balance_amount",balances[0]+balances[1]);
@@ -214,14 +217,24 @@ public class EarningsController {
                 }
                 int fromIndex = Math.min((page) * limit,response.size());
                 int toIndex = Math.min(fromIndex + limit, response.size());
-                return ResponseService.generateSuccessResponse("Result", response.subList(fromIndex, toIndex),HttpStatus.OK);
+                Map<String,Object> resultMap=new HashMap<>();
+                resultMap.put("total_number_of_items",response.size());
+                resultMap.put("total_number_of_pages",response.size()/limit);
+                resultMap.put("current_page",page);
+                resultMap.put("result",response.subList(fromIndex, toIndex));
+                return ResponseService.generateSuccessResponse("Result",resultMap,HttpStatus.OK);
             } else {
                 ServiceProviderEntity provider = entityManager.find(ServiceProviderEntity.class, spId);
                 if (provider == null) {
                     return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
                 }
                 PaymentDetailsDTO dto = createPaymentDetailsDTO(provider, spId);
-                return ResponseService.generateSuccessResponse("Result", dto, HttpStatus.OK);
+                Map<String,Object> resultMap=new HashMap<>();
+                resultMap.put("total_number_of_items",1);
+                resultMap.put("total_number_of_pages",1);
+                resultMap.put("current_page",0);
+                resultMap.put("result",dto);
+                return ResponseService.generateSuccessResponse("Result",resultMap,HttpStatus.OK);
             }
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error processing request: " + e.getMessage(),
@@ -335,8 +348,12 @@ public class EarningsController {
             List<Transaction> transactions = entityManager.createQuery(cq).getResultList();
             int fromIndex = Math.min((page) * limit,transactions.size());
             int toIndex = Math.min(fromIndex + limit, transactions.size());
-            return ResponseService.generateSuccessResponse("Transactions retrieved successfully",
-                    transactions.subList(fromIndex,toIndex), HttpStatus.OK);
+            Map<String,Object> resultMap=new HashMap<>();
+            resultMap.put("total_number_of_items",transactions.size());
+            resultMap.put("total_number_of_pages",transactions.size()/limit);
+            resultMap.put("current_page",page);
+            resultMap.put("result",transactions.subList(fromIndex, toIndex));
+            return ResponseService.generateSuccessResponse("Result",resultMap,HttpStatus.OK);
 
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error processing request",
