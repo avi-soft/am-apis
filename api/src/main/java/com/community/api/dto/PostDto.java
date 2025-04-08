@@ -26,6 +26,7 @@ public class PostDto {
     private List<QualificationEligibilityDto> qualificationEligibility;
     private List<AddPhysicalRequirementDto> physicalRequirements = new ArrayList<>();
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
+    @JsonProperty("post_additional_comments")
     private String postAdditionalComments;
     @JsonProperty("state_distribution_additional_comments")
     private String stateDistributionAdditionalComments;
