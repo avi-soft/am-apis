@@ -2624,32 +2624,44 @@ public class ProductService {
                 return true;
             }
             for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
-                for(Integer id:dto.getQualificationIds())
+               /* for(Integer id:dto.getQualificationIds())
                 {
                     Qualification qualificationDetails=entityManager.find(Qualification.class,id);
                     if(qualificationDetails==null)
                         throw new IllegalArgumentException("Qualification not found");
-                    if(qualificationDetails.getIs_stream_required()&&dto.getCustomStreamIds()==null)
+                    *//*if(qualificationDetails.getIs_stream_required()&&dto.getCustomStreamIds()==null)
                     {
                         throw new IllegalArgumentException("Stream id cannot be null for Qualification:"+qualificationDetails.getQualification_name());
                     }
                     if(qualificationDetails.getIs_subjects_required()&&(dto.getCustomSubjectIds()==null||dto.getCustomSubjectIds().isEmpty()))
                     {
                         throw new IllegalArgumentException("Subject ids cannot be null for Qualification:"+qualificationDetails.getQualification_name());
-                    }
-                }
+                    }*//*
+                }*/
+                Qualification qualificationDetails=entityManager.find(Qualification.class,dto.getQualificationIds().get(0));
+                if(qualificationDetails==null)
+                    throw new IllegalArgumentException("Qualification not found");
                 if (!seenSet.add(dto)) {
                     throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " +postDto.getPostName());
                 }
             }
                 for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
+                    Qualification qualificationDetails=entityManager.find(Qualification.class,qualificationEligibilityDto.getQualificationIds().get(0));
                     if(qualificationEligibilityDto.getIsAppearing()==null)
-                        throw new IllegalArgumentException("Need to specify whether appearing or pass");
+                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
+                    if(qualificationEligibilityDto.getIsAppearing())
+                    {
+                        if (qualificationEligibilityDto.getIsPercentage() != null) {
+                            if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null) {
+                                throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification "+qualificationDetails.getQualification_name());
+                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
+                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification "+qualificationDetails.getQualification_name());
+                            }
+                        }
+                    }
                     if(!qualificationEligibilityDto.getIsAppearing()) {
-                        if(qualificationEligibilityDto.getCgpa()==null&&qualificationEligibilityDto.getPercentage()==null)
-                            throw new IllegalArgumentException("Need to provide passing criteria : CGPA/Percentage");
                         if (qualificationEligibilityDto.getIsPercentage() == null)
-                            throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage.");
+                            throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
                         //Validate Qualification ids
                         if (!qualificationEligibilityDto.getIsPercentage()) {
                             if (qualificationEligibilityDto.getPercentage() != null)
