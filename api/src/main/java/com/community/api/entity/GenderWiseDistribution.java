@@ -39,6 +39,7 @@ public class GenderWiseDistribution
     @OneToOne(mappedBy = "genderWiseDistribution")
     private Post post;
 
+    @JsonIgnore
     @Column(name = "additional_comments")
     @JsonProperty("additional_comments")
     private String additionalComments;

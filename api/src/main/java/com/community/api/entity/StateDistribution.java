@@ -59,6 +59,7 @@ private Long id;
     @OneToMany(mappedBy = "stateDistribution", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<CategoryDistribution> categoryDistributions = new ArrayList<>();
 
+    @JsonIgnore
     @Column(name = "additional_comments")
     @JsonProperty("additional_comments")
     private String additionalComments;

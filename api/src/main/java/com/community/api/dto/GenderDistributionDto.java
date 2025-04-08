@@ -1,6 +1,7 @@
 package com.community.api.dto;
 
 import com.community.api.entity.CategoryDistribution;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,5 +19,6 @@ public class GenderDistributionDto
     Long femaleVacancy;
     Long totalVacancy;
     private List<CategoryDistributionDto> categoryDistributionDtos = new ArrayList<>();
+    @JsonIgnore
     private String additionalComments;
 }

@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -270,7 +271,7 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
+    @Authorize(value = {Constant.roleUser})
     @GetMapping("/get-all-advertisement-by-categoryId")
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "category", required = false) String categories,
@@ -318,6 +319,11 @@ public class AdvertisementController {
                                     (((Status) customProduct).getArchived() != 'Y' &&
                                             customProduct.getDefaultSku().getActiveEndDate().after(new Date())))
                             .collect(Collectors.toList());
+
+                    String customCustomerCategory =   customCustomer.getCategory();
+
+
+
 
                     // **Skip this advertisement if all products are expired**
                     if (activeProducts.isEmpty()) {
