@@ -88,4 +88,21 @@ public class Post {
 
     @JsonProperty("additional_comments")
     private String additionalComments;
+
+    @JsonProperty("state_distribution_additional_comments")
+    private String stateDistributionAdditionalComments;
+    @JsonProperty("zone_distribution_additional_comments")
+    private String zoneDistributionAdditionalComments;
+    @JsonProperty("gender_distribution_additional_comments")
+    private String genderDistributionAdditionalComments;
+    @JsonProperty("reserve_category_age_additional_comments")
+    private String reserveCatAgeAdditionalComments;
+    @JsonProperty("qualification_additional_comments")
+    private String qualificationAdditionalComments;
+    @JsonProperty("physical_additional_comments")
+    private String physicalAdditionalComments;
+    @JsonProperty("other_distribution_additional_comments")
+    private String otherDistributionAdditionalComments;
+
+
 }

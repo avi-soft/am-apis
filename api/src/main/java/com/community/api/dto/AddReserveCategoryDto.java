@@ -24,6 +24,6 @@ public class AddReserveCategoryDto {
     Date bornAfter;*/
     @JsonProperty("gender_id")
     Long gender;
-    @JsonProperty("additional_comment")
+    @JsonProperty("fee_additional_comments")
     String additionalComment;
 }

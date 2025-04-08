@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +29,7 @@ public class QualificationEligibilityDto {
     private Double cgpa;
 
     private Boolean isPercentage;
+    @JsonIgnore
     private String additionalComments;
     private Boolean isAppearing;
 }

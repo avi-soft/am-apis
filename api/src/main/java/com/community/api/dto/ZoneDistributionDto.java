@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,5 +20,6 @@ public class ZoneDistributionDto
     private Integer totalVacanciesInZone;
     private List<CategoryDistributionDto> categoryDistributions = new ArrayList<>();
     private List<DivisionDistributionDto> divisionDistributions = new ArrayList<>();
+    @JsonIgnore
     private String additionalComments;
 }
