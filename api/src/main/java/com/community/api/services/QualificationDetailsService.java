@@ -1183,20 +1183,20 @@ public class QualificationDetailsService {
 
     public void validateQualificationDetail(QualificationDetails qualificationDetails)
     {
-        Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
-        Boolean streamValidationCheck= null;
-        if(qualificationToSearch!=null)
+        Qualification qualification=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+        if(qualification==null)
+            throw new IllegalArgumentException("Qualification not found");
+        System.out.println("yoyoyo");
+        System.out.println(qualification.getIs_subjects_required());
+        System.out.println(qualification.getIs_stream_required());
+        if(qualification.getIs_stream_required()&&qualificationDetails.getStream_id()==null)
         {
-            streamValidationCheck=qualificationToSearch.getIs_stream_required();
+            throw new IllegalArgumentException("Stream id cannot be null");
         }
-        if(streamValidationCheck.equals(true))
+        if(qualification.getIs_subjects_required()&&(qualificationDetails.getSubject_details()==null||qualificationDetails.getSubject_details().isEmpty()))
         {
-            if(qualificationDetails.getStream_id()==null)
-            {
-                throw new IllegalArgumentException("Stream id cannot be null");
-            }
+            throw new IllegalArgumentException("Subject ids cannot be null");
         }
-
         if(qualificationDetails.getTotal_marks_type()==null)
         {
             throw new IllegalArgumentException("You have to select whether the you want to add the total marks in percentage or cgpa ");

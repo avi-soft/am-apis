@@ -39,6 +39,9 @@ public class DistrictDistribution {
     @Column(name = "total_vacancy")
     private Integer totalVacancy;
 
+    @Column(name = "additional_comment")
+    private String additionalComment;
+
     @OneToMany(mappedBy = "districtDistribution", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DistrictCategoryDistribution> categoryDistributions = new ArrayList<>();
 }

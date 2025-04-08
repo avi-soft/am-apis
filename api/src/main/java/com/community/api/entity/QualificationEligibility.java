@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -70,4 +71,11 @@ public class QualificationEligibility
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Column(name = "is_appearing")
+    @JsonProperty("isAppearing")
+    private Boolean isAppearing;
+
+    @Column(name = "additional_comments")
+    @JsonProperty("additionalComments")
+    private String additionalComments;
 }

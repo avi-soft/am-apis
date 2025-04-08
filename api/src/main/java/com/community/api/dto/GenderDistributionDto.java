@@ -18,4 +18,5 @@ public class GenderDistributionDto
     Long femaleVacancy;
     Long totalVacancy;
     private List<CategoryDistributionDto> categoryDistributionDtos = new ArrayList<>();
+    private String additionalComments;
 }

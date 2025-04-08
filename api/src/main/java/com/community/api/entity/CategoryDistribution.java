@@ -56,4 +56,7 @@ public class CategoryDistribution {
     @ManyToOne
     @JoinColumn(name = "gender_wise_distribution")
     private GenderWiseDistribution genderWiseDistribution;
+
+    @Column(name = "additional_comment")
+    private String additionalComment;
 }
