@@ -133,7 +133,7 @@ public class OrderController {
             totalPages = BigInteger.valueOf((int) Math.ceil((double) totalItems.intValue() / limit));
 
             if (offset >= totalPages.intValue() && offset != 0) {
-                return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("No Orders Available", HttpStatus.BAD_REQUEST);
             }
 
 
