@@ -154,6 +154,14 @@ public class EarningsController {
             generalizedQuery.append(" AND settled = ?");
             params.add(settled);
         }
+        if(Boolean.FALSE.equals(settled))
+        {
+            generalizedQuery.append(" Order by date ASC");
+        }
+        else
+        {
+            generalizedQuery.append(" Order by date DESC");
+        }
         // Create the query and set parameters properly
         Query query = entityManager.createNativeQuery(generalizedQuery.toString());
         for (int i = 0; i < params.size(); i++) {
