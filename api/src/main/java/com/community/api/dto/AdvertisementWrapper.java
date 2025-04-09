@@ -66,6 +66,9 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
     @JsonProperty("products")
     private List<CustomProductWrapper> productWrapperList = null;
 
+    @JsonProperty("adv_additional_comments")
+    private String advertisementAdditionalComments;
+
     @Override
     public void wrapDetails(Advertisement advertisement, HttpServletRequest httpServletRequest) {
         this.advertisementId = advertisement.getAdvertisementId();
@@ -82,6 +85,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         this.modifierId = advertisement.getModifierId();
         this.modifierRole = advertisement.getModifierRole();
         this.modifiedDate = advertisement.getModifiedDate();
+        this.advertisementAdditionalComments=advertisement.getAdditionalComments();
         CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
@@ -102,6 +106,7 @@ public class AdvertisementWrapper extends BaseWrapper implements APIWrapper<Adve
         this.modifierId = advertisement.getModifierId();
         this.modifierRole = advertisement.getModifierRole();
         this.modifiedDate = advertisement.getModifiedDate();
+        this.advertisementAdditionalComments=advertisement.getAdditionalComments();
         CustomCategoryWrapper categoryWrapper = new CustomCategoryWrapper();
         categoryWrapper.wrapSummary((Category) advertisement.getCategory(), null);
         this.category = categoryWrapper;
