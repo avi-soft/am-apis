@@ -2,6 +2,7 @@
 package com.community.api.services;
 import javax.persistence.EntityManager;
 import javax.validation.ConstraintViolationException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,18 +31,21 @@ public class PostService {
     private final ReserveCategoryService reserveCategoryService;
     private final GenderService genderService;
     private final QualificationDetailsService qualificationDetailsService;
+    private final SharedUtilityService sharedUtilityService;
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    protected SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd");
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService reserveCategoryBornBeforeAfterRefService;
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
 
-    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService,QualificationDetailsService qualificationDetailsService) {
+    public PostService(EntityManager entityManager, ExceptionHandlingService exceptionHandlingService,ReserveCategoryService reserveCategoryService,GenderService genderService,QualificationDetailsService qualificationDetailsService,SharedUtilityService sharedUtilityService) {
         this.entityManager = entityManager;
         this.exceptionHandlingService = exceptionHandlingService;
         this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
         this.qualificationDetailsService=qualificationDetailsService;
+        this.sharedUtilityService=sharedUtilityService;
     }
 
 
@@ -99,11 +103,37 @@ public class PostService {
 
                     qualificationDetailsService.validateDate(addProductAgeDTO.getAsOfDate(),"As of Date");
                 }
-                else
-                {
-                    addProductAgeDTO.setAsOfDate(null);
-                    addProductAgeDTO.setMaxAge(0);
-                    addProductAgeDTO.setMinAge(0);
+                else {
+                    if (addProductAgeDTO.getAsOfDate() == null) {
+                        calendar = Calendar.getInstance();
+                        calendar.set(Calendar.MONTH, Calendar.JANUARY);
+                        calendar.set(Calendar.DAY_OF_MONTH, 1);
+                        calendar.set(Calendar.HOUR_OF_DAY, 0);
+                        calendar.set(Calendar.MINUTE, 0);
+                        calendar.set(Calendar.SECOND, 0);
+                        calendar.set(Calendar.MILLISECOND, 0);
+
+// Use your date format pattern
+                        String formattedDate = dateFormat.format(calendar.getTime());
+
+                        addProductAgeDTO.setAsOfDate(formattedDate);
+                    } /*else
+                    {
+                        String input = addProductAgeDTO.getAsOfDate(); // "2006-01-16"
+                        LocalDate localDate = LocalDate.parse(input); // parses ISO date
+                         = java.sql.Date.valueOf(localDate);
+                    }*/
+                    try {
+                        assert addProductAgeDTO.getBornBefore() != null;
+                        assert addProductAgeDTO.getBornAfter() != null;
+                    }catch (AssertionError e)
+                    {
+                        throw new IllegalArgumentException("Both born before and after dates are required");
+                    }
+                    int[]maxMin;
+                        maxMin=sharedUtilityService.calculateAgeRange(addProductAgeDTO.getBornBefore(),addProductAgeDTO.getBornAfter(),dateFormat2.parse(addProductAgeDTO.getAsOfDate()));
+                    addProductAgeDTO.setMaxAge(maxMin[1]);
+                    addProductAgeDTO.setMinAge(maxMin[0]);
                 }
                 if (addProductAgeDTO.getReserveCategory() == null || addProductAgeDTO.getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");

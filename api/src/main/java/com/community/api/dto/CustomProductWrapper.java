@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.community.api.entity.*;
 
 import com.community.api.services.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -134,7 +136,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long numberOfPosts;
     @JsonProperty("additional_comments")
     String additionalComments;
-
+    @JsonIgnore
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
 
         this.id = product.getId();
@@ -207,10 +210,15 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                     System.out.println("PID"+ageRequirement);
                     AddProductAgeDTO refDetails=ageRequirement;
                     ReserveCategoryAgeDto reserveCategoryAgeDto=new ReserveCategoryAgeDto();
+
                     if(refDetails.getBornBeofreAfter().equals(true))
                     {
+                        java.util.Date utilDate = dateFormat.parse(refDetails.getAsOfDate());
                         reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
                         reserveCategoryAgeDto.setBornAfter(refDetails.getBornAfter());
+                        reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
+                        reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
+                        reserveCategoryAgeDto.setAsOfDate(utilDate);
                     }
                     else {
                         reserveCategoryAgeDto.setAsOfDate(convertStringToDate(refDetails.getAsOfDate(),"yyyy-MM-dd"));
