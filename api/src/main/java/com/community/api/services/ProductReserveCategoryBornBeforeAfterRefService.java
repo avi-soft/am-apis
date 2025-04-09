@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToSQLDate;
 
@@ -77,13 +78,18 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 {
                     if(addReserveCategoryDto.getAsOfDate()==null)
                     {
-                        Calendar calendar = Calendar.getInstance();
+                        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                        int currentYear = calendar.get(Calendar.YEAR);
+
+                        calendar.set(Calendar.YEAR, currentYear);
                         calendar.set(Calendar.MONTH, Calendar.JANUARY);
                         calendar.set(Calendar.DAY_OF_MONTH, 1);
                         calendar.set(Calendar.HOUR_OF_DAY, 0);
                         calendar.set(Calendar.MINUTE, 0);
                         calendar.set(Calendar.SECOND, 0);
                         calendar.set(Calendar.MILLISECOND, 0);
+
+                        Date asOfDate = calendar.getTime();
 
 // Use your date format pattern
                         String formattedDate = dateFormat.format(calendar.getTime());
