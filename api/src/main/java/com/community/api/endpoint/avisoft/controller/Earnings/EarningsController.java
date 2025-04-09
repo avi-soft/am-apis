@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static antlr.build.ANTLR.root;
+
 @Controller
 @RequestMapping("/payments")
 public class EarningsController {
@@ -343,9 +345,10 @@ public class EarningsController {
 
             cq.where(predicates.toArray(new Predicate[0]));
             cq.distinct(true);
-
+            cq.select(transaction).orderBy(cb.desc(transaction.get("txnId")));
             // Execute query
             List<Transaction> transactions = entityManager.createQuery(cq).getResultList();
+
             int fromIndex = Math.min((page) * limit,transactions.size());
             int toIndex = Math.min(fromIndex + limit, transactions.size());
             Map<String,Object> resultMap=new HashMap<>();
