@@ -2649,15 +2649,22 @@ public class ProductService {
                     Qualification qualificationDetails=entityManager.find(Qualification.class,qualificationEligibilityDto.getQualificationIds().get(0));
                     if(qualificationEligibilityDto.getIsAppearing()==null)
                         throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
-                    if(qualificationEligibilityDto.getIsAppearing())
-                    {
+                    if(qualificationEligibilityDto.getIsAppearing()) {
                         if (qualificationEligibilityDto.getIsPercentage() != null) {
+                            if (!qualificationEligibilityDto.getIsPercentage()) {
+                                if (qualificationEligibilityDto.getPercentage() != null)
+                                    throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+                            } else {
+                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+                            }
                             if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null) {
-                                throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification "+qualificationDetails.getQualification_name());
+                                throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
                             } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
-                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification "+qualificationDetails.getQualification_name());
+                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
                             }
                         }
+
                     }
                     if(!qualificationEligibilityDto.getIsAppearing()) {
                         if (qualificationEligibilityDto.getIsPercentage() == null)

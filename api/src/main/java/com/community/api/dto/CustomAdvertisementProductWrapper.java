@@ -196,7 +196,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
 // Extract age limits
         int[] ageLimits = null;
         if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
-            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter());
+            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
         }
 
 // Set ageLimit value
