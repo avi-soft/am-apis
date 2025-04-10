@@ -78,21 +78,21 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 {
                     if(addReserveCategoryDto.getAsOfDate()==null)
                     {
-                        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+                        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
                         int currentYear = calendar.get(Calendar.YEAR);
 
                         calendar.set(Calendar.YEAR, currentYear);
                         calendar.set(Calendar.MONTH, Calendar.JANUARY);
                         calendar.set(Calendar.DAY_OF_MONTH, 1);
-                        calendar.set(Calendar.HOUR_OF_DAY, 0);
-                        calendar.set(Calendar.MINUTE, 0);
+                        calendar.set(Calendar.HOUR_OF_DAY, 5);
+                        calendar.set(Calendar.MINUTE, 30);
                         calendar.set(Calendar.SECOND, 0);
                         calendar.set(Calendar.MILLISECOND, 0);
 
                         Date asOfDate = calendar.getTime();
 
 // Use your date format pattern
-                        String formattedDate = dateFormat.format(calendar.getTime());
+                        String formattedDate = dateFormat.format(asOfDate);
 
                         addReserveCategoryDto.setAsOfDate(formattedDate);
                     }
@@ -108,9 +108,10 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     ref.setBornAfter(bornAfter);
                     ref.setMaximumAge(maxMin[1]);
                     ref.setMinimumAge(maxMin[0]);
+                    System.out.println("aod"+addReserveCategoryDto.getAsOfDate());
                     java.util.Date utilDate = dateFormat2.parse(addReserveCategoryDto.getAsOfDate());
                     java.sql.Date sqlDate = new java.sql.Date(utilDate.getTime());
-                    ref.setAsOfDate(sqlDate);
+                    ref.setAsOfDate(dateFormat.parse(addReserveCategoryDto.getAsOfDate()));
                 }
                 else{
                     ref.setBornBefore(null);
