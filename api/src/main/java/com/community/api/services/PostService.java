@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 import com.community.api.dto.*;
 import com.community.api.entity.*;
@@ -105,16 +106,22 @@ public class PostService {
                 }
                 else {
                     if (addProductAgeDTO.getAsOfDate() == null) {
-                        calendar = Calendar.getInstance();
+                        calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
+                        int currentYear = calendar.get(Calendar.YEAR);
+
+                        calendar.set(Calendar.YEAR, currentYear);
                         calendar.set(Calendar.MONTH, Calendar.JANUARY);
-                        calendar.set(Calendar.DAY_OF_MONTH, 1);
-                        calendar.set(Calendar.HOUR_OF_DAY, 0);
-                        calendar.set(Calendar.MINUTE, 0);
+                        calendar.set(Calendar.DAY_OF_MONTH, 2);
+                        calendar.set(Calendar.HOUR_OF_DAY, 6);
+                        calendar.set(Calendar.MINUTE, 30);
                         calendar.set(Calendar.SECOND, 0);
                         calendar.set(Calendar.MILLISECOND, 0);
 
-// Use your date format pattern
-                        String formattedDate = dateFormat.format(calendar.getTime());
+                        Date asOfDate = calendar.getTime();
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-dd-MM");
+                        sdf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
+
+                        String formattedDate = sdf.format(asOfDate);
 
                         addProductAgeDTO.setAsOfDate(formattedDate);
                     } /*else
