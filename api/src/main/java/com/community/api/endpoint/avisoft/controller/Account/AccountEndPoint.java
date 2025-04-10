@@ -360,7 +360,7 @@ public class AccountEndPoint {
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.ADMIN)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
@@ -378,7 +378,7 @@ public class AccountEndPoint {
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
@@ -396,7 +396,7 @@ public class AccountEndPoint {
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.roleAdminServiceProvider)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
