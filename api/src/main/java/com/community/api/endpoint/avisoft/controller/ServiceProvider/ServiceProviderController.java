@@ -266,57 +266,176 @@ public class ServiceProviderController {
         }
     }
 
-    @Transactional // Set readOnly for performance improvement
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
+    @Transactional
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) String spAdmin,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest request) {
         try {
+            // Validate parameters first
             if (offset < 0) {
-                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
             }
             if (limit <= 0) {
-                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
             }
+
+            String successMessage = "";
+            long totalItems = 0L;
+            long totalPages = 0L;
+            List<Map<String, Object>> resultOfSp = new ArrayList<>();
             int startPosition = offset * limit;
 
-            // Count total service providers (excluding archived ones)
-            Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
-            long totalItems = (long) countQuery.getSingleResult();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more service providers available");
-            }
-            // Create the query with pagination
-            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
-            query.setFirstResult(startPosition);
-            query.setMaxResults(limit);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
 
-            // Fetch results
-            List<ServiceProviderEntity> results = query.getResultList();
 
-            List<Map<String, Object>> resultOfSp = new ArrayList<>();
-            for (ServiceProviderEntity serviceProvider : results) {
-                if (!serviceProvider.getIsArchived()) {
-                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+            // Get raw parameter values to validate boolean params
+            Map<String, String[]> params = request.getParameterMap();
+
+            // Validate admin parameter if present
+            if (params.containsKey("admin") && admin !=null ) {
+                String adminValue = request.getParameter("admin");
+                if (!"true".equalsIgnoreCase(adminValue) && !"false".equalsIgnoreCase(adminValue) ) {
+                    return ResponseService.generateErrorResponse(
+                            "Invalid value '" + adminValue + "' for parameter 'admin'. Must be 'true' or 'false'",
+                            HttpStatus.BAD_REQUEST);
                 }
             }
 
-            // Prepare response
+            // Validate spAdmin parameter if present
+            if (params.containsKey("spAdmin") && admin != null) {
+                String spAdminValue = request.getParameter("spAdmin");
+                if (!"true".equalsIgnoreCase(spAdminValue) && !"false".equalsIgnoreCase(spAdminValue)) {
+                    return ResponseService.generateErrorResponse(
+                            "Invalid value '" + spAdminValue + "' for parameter 'spAdmin'. Must be 'true' or 'false'",
+                            HttpStatus.BAD_REQUEST);
+                }
+            }
+
+            // Check for invalid parameter combinations
+            if (admin != null && admin.equals("true") && spAdmin != null && spAdmin.equals("true")) {
+                // Both admin and spAdmin are true - get combined list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role IN (2, 3)"); // 2=admin, 3=sp-admin
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role IN (2, 3)",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Admin and SP-Admin";
+
+            } else if (admin != null && admin.equals("true")) {
+                // Only admin is true - get admin list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role = 2");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role = 2",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Admin";
+            } else if (spAdmin != null && spAdmin.equals("true")) {
+                // Only spAdmin is true - get sp-admin list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access sp-admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role = 3");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role = 3",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of SP-Admin";
+            } else {
+                // Both are false or null - get regular service providers
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE (sp.isArchived = false AND sp.role = 4)");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE (s.isArchived = false AND s.role = 4)",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Service Providers";
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("serviceProviders", resultOfSp);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("List of service providers: ", response, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @Transactional
     @GetMapping("/get-all-details/{serviceProviderId}")

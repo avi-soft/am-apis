@@ -85,7 +85,7 @@ public class QualificationDetailsService {
             allOtherItemsToSave.add(qualificationOtherItemToAdd);
             qualificationDetails.setQualification_id(qualificationToAdd);
 
-            validateQualificationDetail(qualificationDetails);
+            validateQualificationDetail(qualificationDetails,roleId);
             List<Institution> institutions = institutionService.getAllInstitutions();
             Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
             OtherItem institutionOtherItemToAdd=handleOtherCaseForInstitution(institutionToAdd.getInstitution_id(),institutionOthers,roleId,userId,sourceName);
@@ -206,7 +206,7 @@ public class QualificationDetailsService {
                 throw new IllegalArgumentException("Duration of course is required only for diploma and ITI");
             }
         }
-        validateQualificationDetail(qualificationDetails);
+        validateQualificationDetail(qualificationDetails,roleId);
         List<Institution> institutions = institutionService.getAllInstitutions();
         Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(),  institutions);
         OtherItem institutionOtherItemToAdd=handleOtherCaseForInstitution(institutionToAdd.getInstitution_id(),institutionOthers,roleId,userId,sourceName);
@@ -1181,7 +1181,7 @@ public class QualificationDetailsService {
         return entityManager.merge(qualificationDetailsToUpdate);
     }
 
-    public void validateQualificationDetail(QualificationDetails qualificationDetails)
+    public void validateQualificationDetail(QualificationDetails qualificationDetails, Integer roleId)
     {
         Qualification qualification=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
         if(qualification==null)
@@ -1193,9 +1193,10 @@ public class QualificationDetailsService {
         {
             throw new IllegalArgumentException("Stream id cannot be null");
         }
-        if(qualification.getIs_subjects_required()&&(qualificationDetails.getSubject_details()==null||qualificationDetails.getSubject_details().isEmpty()))
-        {
-            throw new IllegalArgumentException("Subject ids cannot be null");
+        if(roleId==5) {
+            if (qualification.getIs_subjects_required() && (qualificationDetails.getSubject_details() == null || qualificationDetails.getSubject_details().isEmpty())) {
+                throw new IllegalArgumentException("Subject ids cannot be null");
+            }
         }
         if(qualificationDetails.getTotal_marks_type()==null)
         {
