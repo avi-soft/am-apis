@@ -111,14 +111,14 @@ public class PostService {
 
                         calendar.set(Calendar.YEAR, currentYear);
                         calendar.set(Calendar.MONTH, Calendar.JANUARY);
-                        calendar.set(Calendar.DAY_OF_MONTH, 2);
-                        calendar.set(Calendar.HOUR_OF_DAY, 6);
-                        calendar.set(Calendar.MINUTE, 30);
+                        calendar.set(Calendar.DAY_OF_MONTH, 1);
+                        calendar.set(Calendar.HOUR_OF_DAY, 0);
+                        calendar.set(Calendar.MINUTE, 0);
                         calendar.set(Calendar.SECOND, 0);
                         calendar.set(Calendar.MILLISECOND, 0);
 
                         Date asOfDate = calendar.getTime();
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-dd-MM");
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                         sdf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
 
                         String formattedDate = sdf.format(asOfDate);
