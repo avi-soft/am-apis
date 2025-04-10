@@ -168,7 +168,6 @@ public class OtpEndpoint {
             String countryCode = (String) loginDetails.get("countryCode");
             String username = (String) loginDetails.get("username");
             String mobileNumber = (String) loginDetails.get("mobileNumber");
-
             if (role == null) {
                 return responseService.generateErrorResponse(ApiConstants.ROLE_EMPTY, HttpStatus.BAD_REQUEST);
             }
@@ -242,13 +241,13 @@ public class OtpEndpoint {
                 }} else {
                     return responseService.generateErrorResponse(ApiConstants.INVALID_DATA, HttpStatus.UNAUTHORIZED);
                 }
-            } else if (roleService.findRoleName(role).equals(Constant.roleServiceProvider)) {
+            } else if (!roleService.findRoleName(role).equals(Constant.roleUser)) {
                 return serviceProviderService.verifyOtp(loginDetails, session, request);
             }
 
-            else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
+        /*    else if(roleService.findRoleName(role).equals(Constant.ADMIN) ||roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
                 return adminService.verifyOtpForAdmin(loginDetails,session,request);
-            }
+            }*/
             else {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_ROLE, HttpStatus.BAD_REQUEST);
             }
