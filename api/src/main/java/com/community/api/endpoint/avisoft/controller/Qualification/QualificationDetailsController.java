@@ -97,12 +97,15 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            else
-            {
-                roleId=5;
-            }
+//            else
+//            {
+//                roleId=5;
+//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             List<Map<String, Object>> qualificationDetails = qualificationDetailsService.getQualificationDetailsByCustomerId(id,role);
+
+
+
             if(qualificationDetails.isEmpty())
             {
                 return ResponseService.generateSuccessResponse("Qualification Details list is empty for "+role,qualificationDetails,HttpStatus.OK);
@@ -137,10 +140,10 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            else
-            {
-                roleId=5;
-            }
+//            else
+//            {
+//                roleId=5;
+//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails qualificationDetailsToDelete = qualificationDetailsService.deleteQualificationDetail(id,qualificationDetailId,role);
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is deleted successfully for "+ role, qualificationDetailsToDelete);
@@ -178,10 +181,10 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-            else
-            {
-                roleId=5;
-            }
+//            else
+//            {
+//                roleId=5;
+//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is updated successfully for "+ role, qualificationDetailsToUpdate);

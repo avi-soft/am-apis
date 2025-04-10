@@ -108,15 +108,36 @@ public class OrderController {
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int limit) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
                 throw new NotFoundException("Customer with the provided Id not found");
             if (customCustomer.getNumberOfOrders() == 0)
                 return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);
-            String orderNumber = "O-" + customerId + "%"; // Use % for wildcard search
-            int startPosition = page * limit;
+            // Validate parameters first
+            if (offset < 0) {
+                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
+            }
+            if (limit <= 0) {
+                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
+            }
+
+            BigInteger totalItems ;
+            BigInteger totalPages;
+            String orderNumber = "O-" + customerId + "%";
+            Query countQuery = entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM blc_order o WHERE o.order_number LIKE :orderNumber and tax_override is null");
+            countQuery.setParameter("orderNumber", orderNumber);
+            totalItems = (BigInteger) countQuery.getSingleResult();
+            totalPages = BigInteger.valueOf((int) Math.ceil((double) totalItems.intValue() / limit));
+
+            if (offset >= totalPages.intValue() && offset != 0) {
+                return ResponseService.generateErrorResponse("No Orders Available", HttpStatus.BAD_REQUEST);
+            }
+
+
+            int startPosition = offset * limit;
             String queryString = Constant.GET_ORDERS_USING_CUSTOMER_ID;
             if (sort.equals("latest-to-oldest"))
                 queryString = queryString + " ORDER BY order_id DESC";
@@ -125,7 +146,7 @@ public class OrderController {
             query.setMaxResults(limit);
             query.setParameter("orderNumber", orderNumber);
             List<BigInteger> orders = query.getResultList();
-            return generateCombinedDTO(authHeader, orders, sort);
+            return generateCombinedDTO(authHeader, orders, sort,totalItems.intValue(),totalPages.intValue(),offset);
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
@@ -328,11 +349,12 @@ public class OrderController {
 
 
     @Transactional
-    public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort) {
+    public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort,long totalItems,long totalPages,long offset) {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
         try {
+            System.out.println("Order size is"+orders.size());
             Map<String, Object> orderMap = new HashMap<>();
             List<CombinedOrderDTO> orderDetails = new ArrayList<>();
             OrderDTO orderDTO = null;
@@ -355,18 +377,25 @@ public class OrderController {
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
+                        orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
                     } catch (NoResultException e) {
                         //the case where no result is found
                         customServiceProviderTicket = null;
                     }
-                    orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
+
+
                     System.out.println("end");
                 } catch (NullPointerException e) {
                     exceptionHandling.handleException(e);
                     continue;
                 }
             }
-            return ResponseService.generateSuccessResponse("Orders", orderDetails, HttpStatus.OK);
+            Map<String, Object> response = new HashMap<>();
+            response.put("orders", orderDetails);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+            return ResponseService.generateSuccessResponse("Orders", response, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error fetching orders ", HttpStatus.INTERNAL_SERVER_ERROR);
