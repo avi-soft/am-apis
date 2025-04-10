@@ -1335,14 +1335,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved) {
         try {
             CustomServiceProviderTicket customServiceProviderTicket=null;
             if(ticketId!=null)
             {
                 customServiceProviderTicket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
             }
-            if (first_name == null && last_name == null && state == null && district == null && mobileNumber == null && test_status_id == null) {
+            if (first_name == null && last_name == null && state == null && district == null && mobileNumber == null && test_status_id == null&&role==null&&completed==null&&archived==null&&approved==null) {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity", ServiceProviderEntity.class);
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
@@ -1372,11 +1372,23 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("district", 'a');
             alias.put("first_name", 's');
             alias.put("last_name", 's');
-            alias.put("test_status_id", 's');
-            String generalizedQuery = "SELECT s.*\n" +
-                    "FROM service_provider s\n" +
-                    "JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id\n" +
-                    "WHERE ";
+            alias.put("role",'s');
+            alias.put("completed", 's');
+            alias.put("archived", 's');
+            alias.put("approved", 's');
+            String generalizedQuery=null;
+            if(state!=null||district!=null) {
+                 generalizedQuery = "SELECT s.*\n" +
+                        "FROM service_provider s\n" +
+                        "JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id\n" +
+                        "WHERE ";
+            }
+            else
+            {
+                generalizedQuery = "SELECT s.*\n" +
+                        "FROM service_provider s\n" +
+                        "WHERE ";
+            }
             if (mobileNumber != null) {
                 ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
@@ -1398,8 +1410,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     throw new IllegalArgumentException("No Test Status is found with this id");
                 }
             }
-            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id"};
-            Object[] fields = {state, district, first_name, last_name, test_status_id};
+            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved"};
+            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved};
+            System.out.println("role"+role);
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {
                     if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
@@ -1415,6 +1428,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
+            System.out.println(generalizedQuery);
             generalizedQuery = generalizedQuery.trim();
             int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
             generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
