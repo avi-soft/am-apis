@@ -10,4 +10,5 @@ public class CategoryDistributionDto {
     private Long id;
     private Long categoryId;
     private Integer categoryVacancies;
+    private String additionalComment;
 }

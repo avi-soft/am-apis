@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.community.api.entity.*;
 
 import com.community.api.services.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -132,7 +134,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     String otherInfo;
     @JsonProperty("number_of_posts")
     Long numberOfPosts;
-
+    @JsonProperty("additional_comments")
+    String additionalComments;
+    @JsonIgnore
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
 
         this.id = product.getId();
@@ -152,7 +157,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
-
+        this.additionalComments=addProductDto.getAdditionalComments();
 
         if(addProductDto.getReservedCategory()!=null)
         {
@@ -166,6 +171,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
+                reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());
                 /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
                 reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
                 reserveCategoryDto.setGenderId(addProductDto.getReservedCategory().get(i).getGender());
@@ -183,6 +189,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
                 postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
+                postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
                 postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
@@ -190,17 +197,28 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
                 postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
-
+                postProjectionDTO.setStateDistributionAdditionalComments(post.getStateDistributionAdditionalComments());
+                postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
+                postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
+                postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+                postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
+                postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
+                postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
                 List<ReserveCategoryAgeDto>listD=new ArrayList<>();
                 for(AddProductAgeDTO ageRequirement:postDtos.get(postDtoIndex).getReserveCategoryAge())
                 {
                     System.out.println("PID"+ageRequirement);
                     AddProductAgeDTO refDetails=ageRequirement;
                     ReserveCategoryAgeDto reserveCategoryAgeDto=new ReserveCategoryAgeDto();
+
                     if(refDetails.getBornBeofreAfter().equals(true))
                     {
+                        java.util.Date utilDate = dateFormat.parse(refDetails.getAsOfDate());
                         reserveCategoryAgeDto.setBornBefore(refDetails.getBornBefore());
                         reserveCategoryAgeDto.setBornAfter(refDetails.getBornAfter());
+                        reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
+                        reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
+                        reserveCategoryAgeDto.setAsOfDate(utilDate);
                     }
                     else {
                         reserveCategoryAgeDto.setAsOfDate(convertStringToDate(refDetails.getAsOfDate(),"yyyy-MM-dd"));
@@ -209,6 +227,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                     }
                     reserveCategoryAgeDto.setReserveCategoryId(refDetails.getReserveCategory());
                     reserveCategoryAgeDto.setBornBeforeAfter(refDetails.getBornBeofreAfter());
+                    reserveCategoryAgeDto.setAdditionalComments(refDetails.getAdditionalComments());
                     CustomReserveCategory customReserveCategory= entityManager.find(CustomReserveCategory.class,refDetails.getReserveCategory());
                     if(customReserveCategory==null)
                     {
@@ -285,7 +304,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
         this.numberOfPosts =(long)customProduct.getPosts().size();
-
+        this.additionalComments=customProduct.getAdditionalComments();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
@@ -333,6 +352,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
+        this.additionalComments=customProduct.getAdditionalComments();
        this.numberOfPosts= (long) customProduct.getPosts().size();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
@@ -349,6 +369,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
+                reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
             /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
             reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
                 if(fee.getGender()!=null)
@@ -423,7 +444,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaDescription = customProduct.getMetaDescription();
         this.otherInfo=customProduct.getOtherInfo();
         this.numberOfPosts =(long)customProduct.getPosts().size();
-
+        this.additionalComments=customProduct.getAdditionalComments();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
 

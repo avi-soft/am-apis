@@ -62,8 +62,8 @@ public class Post {
     @JoinColumn(name = "gender_wise_distribution_id", referencedColumnName = "id")
     private GenderWiseDistribution genderWiseDistribution;
 
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private QualificationEligibility qualificationEligibility;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QualificationEligibility>qualificationEligibility;
 
     @JsonIgnore
     @ManyToOne
@@ -85,4 +85,24 @@ public class Post {
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
+
+    @JsonProperty("additional_comments")
+    private String additionalComments;
+
+    @JsonProperty("state_distribution_additional_comments")
+    private String stateDistributionAdditionalComments;
+    @JsonProperty("zone_distribution_additional_comments")
+    private String zoneDistributionAdditionalComments;
+    @JsonProperty("gender_distribution_additional_comments")
+    private String genderDistributionAdditionalComments;
+    @JsonProperty("reserve_category_age_additional_comments")
+    private String reserveCatAgeAdditionalComments;
+    @JsonProperty("qualification_additional_comments")
+    private String qualificationAdditionalComments;
+    @JsonProperty("physical_additional_comments")
+    private String physicalAdditionalComments;
+    @JsonProperty("other_distribution_additional_comments")
+    private String otherDistributionAdditionalComments;
+
+
 }

@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -50,5 +51,10 @@ import java.util.List;
         // Category distributions
         @OneToMany(mappedBy = "zoneDistribution", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.EAGER)
         private List<CategoryDistribution> categoryDistributions = new ArrayList<>();
+
+        @JsonIgnore
+        @Column(name = "additional_comments")
+        @JsonProperty("additional_comments")
+        private String additionalComments;
 }
 

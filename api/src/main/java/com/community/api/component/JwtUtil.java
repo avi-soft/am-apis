@@ -250,12 +250,12 @@ public class JwtUtil {
                     return false;
                 }
             }
-            else if(roleService.findRoleName(role).equals(Constant.roleServiceProvider)) {
+            else if(roleService.findRoleName(role).equals(Constant.roleServiceProvider)||roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider)) {
                 existingServiceProvider = entityManager.find(ServiceProviderEntity.class, id);
                 if(existingServiceProvider==null)
                     return false;
             }
-            else if(roleService.findRoleName(role).equals(Constant.ADMIN) || roleService.findRoleName(role).equals(Constant.SERVICE_PROVIDER) || roleService.findRoleName(role).equals(Constant.roleAdminServiceProvider))
+            else if(roleService.findRoleName(role).equals(Constant.ADMIN)  || roleService.findRoleName(role).equals(Constant.roleSuperAdmin))
             {
                 existingAdmin= entityManager.find(ServiceProviderEntity.class, id);
                 if(existingAdmin==null)
@@ -271,10 +271,10 @@ public class JwtUtil {
         } catch (ExpiredJwtException e) {
             logoutUser(token);
             return false;
-        } catch (MalformedJwtException | IllegalArgumentException e) {
+         /*catch (MalformedJwtException | IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return false;
-        } catch (Exception e) {
+        */} catch (Exception e) {
             exceptionHandling.handleException(e);
             return false;
         }

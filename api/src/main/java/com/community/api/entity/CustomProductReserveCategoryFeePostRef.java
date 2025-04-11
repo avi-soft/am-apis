@@ -1,10 +1,12 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.broadleafcommerce.common.money.Money;
 
+import javax.lang.model.element.Name;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
@@ -38,4 +40,7 @@ public class CustomProductReserveCategoryFeePostRef {
 
     @Column(name = "post")
     Integer post;
+
+    @Column(name = "fee_additional_comments")
+    String additionalComments;
 }

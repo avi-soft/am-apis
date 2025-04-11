@@ -186,7 +186,6 @@ public class ProductController extends CatalogEndpoint {
             product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
             product.setMetaDescription(addProductDto.getMetaDescription());
-
             product.setDefaultCategory(category);
             product.setCategory(category);
 
@@ -974,6 +973,14 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
             postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
             postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
+            postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
+            postProjectionDTO.setStateDistributionAdditionalComments(post.getStateDistributionAdditionalComments());
+            postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
+            postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
+            postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+            postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
+            postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
+            postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {

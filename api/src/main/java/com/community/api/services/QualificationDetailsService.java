@@ -85,7 +85,7 @@ public class QualificationDetailsService {
             allOtherItemsToSave.add(qualificationOtherItemToAdd);
             qualificationDetails.setQualification_id(qualificationToAdd);
 
-            validateQualificationDetail(qualificationDetails);
+            validateQualificationDetail(qualificationDetails,roleId);
             List<Institution> institutions = institutionService.getAllInstitutions();
             Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(), institutions);
             OtherItem institutionOtherItemToAdd=handleOtherCaseForInstitution(institutionToAdd.getInstitution_id(),institutionOthers,roleId,userId,sourceName);
@@ -206,7 +206,7 @@ public class QualificationDetailsService {
                 throw new IllegalArgumentException("Duration of course is required only for diploma and ITI");
             }
         }
-        validateQualificationDetail(qualificationDetails);
+        validateQualificationDetail(qualificationDetails,roleId);
         List<Institution> institutions = institutionService.getAllInstitutions();
         Institution institutionToAdd = findInstitutionId(qualificationDetails.getInstitution().getInstitution_id(),  institutions);
         OtherItem institutionOtherItemToAdd=handleOtherCaseForInstitution(institutionToAdd.getInstitution_id(),institutionOthers,roleId,userId,sourceName);
@@ -1181,22 +1181,23 @@ public class QualificationDetailsService {
         return entityManager.merge(qualificationDetailsToUpdate);
     }
 
-    public void validateQualificationDetail(QualificationDetails qualificationDetails)
+    public void validateQualificationDetail(QualificationDetails qualificationDetails, Integer roleId)
     {
-        Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
-        Boolean streamValidationCheck= null;
-        if(qualificationToSearch!=null)
+        Qualification qualification=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+        if(qualification==null)
+            throw new IllegalArgumentException("Qualification not found");
+        System.out.println("yoyoyo");
+        System.out.println(qualification.getIs_subjects_required());
+        System.out.println(qualification.getIs_stream_required());
+        if(qualification.getIs_stream_required()&&qualificationDetails.getStream_id()==null)
         {
-            streamValidationCheck=qualificationToSearch.getIs_stream_required();
+            throw new IllegalArgumentException("Stream id cannot be null");
         }
-        if(streamValidationCheck.equals(true))
-        {
-            if(qualificationDetails.getStream_id()==null)
-            {
-                throw new IllegalArgumentException("Stream id cannot be null");
+        if(roleId==5) {
+            if (qualification.getIs_subjects_required() && (qualificationDetails.getSubject_details() == null || qualificationDetails.getSubject_details().isEmpty())) {
+                throw new IllegalArgumentException("Subject ids cannot be null");
             }
         }
-
         if(qualificationDetails.getTotal_marks_type()==null)
         {
             throw new IllegalArgumentException("You have to select whether the you want to add the total marks in percentage or cgpa ");

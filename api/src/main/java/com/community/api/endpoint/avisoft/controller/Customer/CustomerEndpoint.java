@@ -2578,8 +2578,10 @@ public class CustomerEndpoint {
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
-                    continue;
+                if (customProduct != null
+                        && ((Status) customProduct).getArchived() == 'Y'
+                        || customProduct.getActiveEndDate().before(new Date())) {
+                        continue;
                 }
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
@@ -3150,7 +3152,7 @@ public class CustomerEndpoint {
         Qualificationorder.put(5, 7);
         Qualificationorder.put(8, 8);
         for (BigInteger id : uniqueResultList) {
-            System.out.println("fetchedId:"+id);
+            System.out.println("fetchedId: by the querry "+id);
             Customer customer = null;
             try {
                 customer = customerService.readCustomerById(id.longValue());
@@ -3160,24 +3162,67 @@ public class CustomerEndpoint {
             }
             if (customer != null) {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, id.longValue());
-
+                CustomerBasicDetailsDto customerBasicDetailsDto = new CustomerBasicDetailsDto();
                 String state = null;
                 String primaryRefName = "N/A";
                 Long primaryRefId = null;
                 if (customCustomer != null) {
                     if(!customCustomer.getArchived().equals(suspended))
                         continue;
-                    CustomerBasicDetailsDto customerBasicDetailsDto = new CustomerBasicDetailsDto();
-                    if (stateName != null)
-                        customerBasicDetailsDto.setState(stateName);
+
+                    if (stateNames != null) {
+//                            for (CustomerAddress customerAddress : customer.getCustomerAddresses())
+//                                state = customerAddress.getAddress().getStateProvinceRegion();
+//                        customerBasicDetailsDto.setState(state);
+//                    }
+//                        else {
+//
+//                            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+//                                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS") ||customerAddress.getAddressName().equals("CURRENT_ADDRESS"))
+//                                    state = customerAddress.getAddress().getStateProvinceRegion();
+//                            }
+//                            customerBasicDetailsDto.setState(state);
+//                        }
+
+                        String matchingState = null;
+
+                        // 1. Get all valid customer states (PERMANENT/CURRENT addresses)
+                        List<String> customerStates = new ArrayList<>();
+                        if (customer.getCustomerAddresses() != null) {
+                            for (CustomerAddress address : customer.getCustomerAddresses()) {
+                                if (address == null || address.getAddress() == null) continue;
+
+                                if ("PERMANENT_ADDRESS".equals(address.getAddressName()) ||
+                                        "CURRENT_ADDRESS".equals(address.getAddressName())) {
+                                    state = address.getAddress().getStateProvinceRegion();
+                                    if (state != null) {
+                                        customerStates.add(state);
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Find first match with stateNames (if stateId was provided)
+                        if (!stateNames.isEmpty()) {
+                            for (String customerState : customerStates) {
+                                if (stateNames.contains(customerState)) {
+                                    matchingState = customerState;
+                                    break;
+                                }
+                            }
+
+                            customerBasicDetailsDto.setState(matchingState);
+
+                        }
+                    }
                     else {
 
-                        for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
-                            if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS"))
-                                state = customerAddress.getAddress().getStateProvinceRegion();
+                            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS") ||customerAddress.getAddressName().equals("CURRENT_ADDRESS"))
+                                    state = customerAddress.getAddress().getStateProvinceRegion();
+                            }
+                            customerBasicDetailsDto.setState(state);
                         }
-                        customerBasicDetailsDto.setState(state);
-                    }
                     customerBasicDetailsDto.setCustomerId(id.longValue());
                     customerBasicDetailsDto.setEmail(customer.getEmailAddress());
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
@@ -3229,7 +3274,9 @@ public class CustomerEndpoint {
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
-                    if (!customCustomer.getHidePhoneNumber())
+                    if(roleId==1 || roleId ==2 )
+                    customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
+                    else if (!customCustomer.getHidePhoneNumber())
                         customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
                     else
                         customerBasicDetailsDto.setPhone(null);

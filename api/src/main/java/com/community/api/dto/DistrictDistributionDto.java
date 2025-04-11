@@ -15,4 +15,5 @@ public class DistrictDistributionDto {
     private Integer femaleVacancy;
     private Integer totalVacancy;
     private List<DistrictCategoryDistributionDto> categoryDistributions = new ArrayList<>();
+    private String additionalComment;
 }
