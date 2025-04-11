@@ -356,7 +356,7 @@ public class AccountEndPoint {
             }
 
             else if (roleService.findRoleName(role).equals(Constant.ADMIN) ) {
-                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                ServiceProviderEntity customAdmin = serviceProviderService.findServiceProviderByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.ADMIN)) {
@@ -374,7 +374,7 @@ public class AccountEndPoint {
                 }
             }
             else if (roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ) {
-                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                ServiceProviderEntity customAdmin = serviceProviderService.findServiceProviderByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
