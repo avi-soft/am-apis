@@ -3273,7 +3273,9 @@ public class CustomerEndpoint {
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
-                    if (!customCustomer.getHidePhoneNumber())
+                    if(roleId==1 || roleId ==2 )
+                    customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
+                    else if (!customCustomer.getHidePhoneNumber())
                         customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
                     else
                         customerBasicDetailsDto.setPhone(null);

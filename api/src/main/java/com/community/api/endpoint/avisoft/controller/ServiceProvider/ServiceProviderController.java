@@ -44,6 +44,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
@@ -491,12 +495,21 @@ public class ServiceProviderController {
             @RequestParam(required = false) String full_name,
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) Long test_status_id,
-            @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization")String authHeader,
+            @RequestParam(required = false)Boolean completed,
+            @RequestParam(required = false)Boolean archived,
+            @RequestParam(required = false)Boolean approved,
+            @RequestParam(required = false) Integer role,
+            @RequestParam(value = "offset",defaultValue = "0") int offset,
+            @RequestParam(value = "limit",defaultValue = "10") int limit,
             @RequestParam(required = false)Long ticketId,
             HttpServletRequest request) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role roleName=roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId"+ticketId);
             Map<String, String[]> uri = request.getParameterMap();
 
@@ -508,7 +521,13 @@ public class ServiceProviderController {
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
-
+            if(role!=null&&role==2&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
+            {
+                  return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }if(role!=null&&role==1&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
+            {
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }
             // Validate full_name (only alphabets and spaces allowed)
             if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
                 return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
@@ -520,7 +539,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
             }
 
             // Handle search by full name (split into first and last names)
@@ -532,11 +551,11 @@ public class ServiceProviderController {
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id,ticketId);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
@@ -856,4 +875,33 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
+    @Transactional
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @GetMapping("get-admins")
+    public ResponseEntity<?>returnAdmins(@RequestParam(defaultValue = "30",required = false)int limit,@RequestParam(defaultValue = "0",required = false)int page) throws Exception {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
+        Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);
+
+        // Predicate for role = 1
+        Predicate rolePredicate = cb.equal(root.get("role"), 2);
+        cq.where(rolePredicate);
+
+        TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (ServiceProviderEntity serviceProvider:query.getResultList()) {
+            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+        }
+        int totalItems = query.getResultList().size();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+        int fromIndex = page * limit;
+        int toIndex = Math.min(fromIndex + limit, totalItems);
+        Map<String,Object>result=new HashMap<>();
+        result.put("totalItems",totalItems);
+        result.put("currentPage",page);
+        result.put("totalPages",totalPages);
+        result.put("Admins",res.subList(fromIndex,toIndex));
+        return ResponseService.generateSuccessResponse("Admins fetched successfully",res.subList(fromIndex,toIndex),HttpStatus.OK);
+    }
+
 }

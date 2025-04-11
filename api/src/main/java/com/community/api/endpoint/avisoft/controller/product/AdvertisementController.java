@@ -271,7 +271,7 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-    @Authorize(value = {Constant.roleUser})
+
     @GetMapping("/get-all-advertisement-by-categoryId")
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "category", required = false) String categories,
@@ -319,11 +319,6 @@ public class AdvertisementController {
                                     (((Status) customProduct).getArchived() != 'Y' &&
                                             customProduct.getDefaultSku().getActiveEndDate().after(new Date())))
                             .collect(Collectors.toList());
-
-                    String customCustomerCategory =   customCustomer.getCategory();
-
-
-
 
                     // **Skip this advertisement if all products are expired**
                     if (activeProducts.isEmpty()) {
