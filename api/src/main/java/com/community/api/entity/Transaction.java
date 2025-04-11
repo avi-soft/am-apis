@@ -1,5 +1,7 @@
 package com.community.api.entity;
 
+
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
