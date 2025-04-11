@@ -15,7 +15,9 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.util.Date;
+import java.util.Optional;
 
 public class CustomAdvertisementProductWrapper extends BaseWrapper implements APIWrapper<Product> {
     @JsonProperty("product_id")
@@ -178,15 +180,29 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
                 categoryId=1L;
         }
 
-        this.fee =(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L) != null
-                ? reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L)
-                : 0);
-        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L,1L);
-        int[]ageLimits=null;
-        if(ageLimitResult!=null&&(ageLimitResult.getBornBefore()!=null&&ageLimitResult.getBornAfter()!=null))
-            ageLimits=(sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(),ageLimitResult.getBornAfter()));
-        this.ageLimit = (ageLimitResult != null && (ageLimitResult.getMaximumAge() != null &&ageLimitResult.getMaximumAge()!=0 && ageLimitResult.getMinimumAge() != null &&ageLimitResult.getMinimumAge()!=0))
-                ? ageLimitResult.getMinimumAge().toString() + "-" + ageLimitResult.getMaximumAge().toString()
+        Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
+                .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+
+// Set fee as "N/A" if no fee is found
+        this.fee = (feeValue != null) ? feeValue : 0.0;
+
+        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+
+// If age limit is null, fetch with default values (1L, 1L)
+        if (ageLimitResult == null) {
+            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+        }
+
+// Extract age limits
+        int[] ageLimits = null;
+        if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
+            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
+        }
+
+// Set ageLimit value
+        this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
+                && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
                 : (ageLimits != null && ageLimits.length >= 2)
                 ? ageLimits[0] + "-" + ageLimits[1]
                 : "N/A";

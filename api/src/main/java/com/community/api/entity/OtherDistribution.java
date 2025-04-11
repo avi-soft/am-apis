@@ -30,4 +30,9 @@ public class OtherDistribution {
     @ManyToOne
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
+    @JsonIgnore
+    @Column(name = "additional_comments")
+    @JsonProperty("additional_comments")
+    private String additionalComments;
 }

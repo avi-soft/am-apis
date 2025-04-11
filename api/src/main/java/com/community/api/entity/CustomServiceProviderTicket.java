@@ -7,16 +7,21 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "custom_service_provider_ticket")
@@ -102,4 +107,10 @@ public class CustomServiceProviderTicket {
     @Column(name = "task_desc")
     @JsonProperty("task_desc")
     private String desc;
+
+    @ElementCollection
+    @CollectionTable(name = "ticket_rejected_by",
+            joinColumns = @JoinColumn(name = "ticket_id"))
+    @Column(name = "rejected_by_id")
+    private List<Long>rejectedBy = new ArrayList<>();
 }

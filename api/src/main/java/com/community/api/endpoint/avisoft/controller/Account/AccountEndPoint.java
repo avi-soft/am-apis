@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Account;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 
@@ -11,6 +12,7 @@ import com.community.api.services.*;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import io.swagger.models.auth.In;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,6 +116,32 @@ public class AccountEndPoint {
                 return ResponseService.generateErrorResponse("Invalid Request Body", HttpStatus.UNPROCESSABLE_ENTITY);
             }
             String roleName = roleService.findRoleName((Integer) loginDetails.get("role"));
+            if (!roleName.equals(Constant.roleUser)) {
+                ServiceProviderEntity sp=null;
+                if(loginDetails.containsKey("mobileNumber")) {
+                    sp = serviceProviderService.findServiceProviderByPhone((String) loginDetails.get("mobileNumber"), "+91");
+                }
+                else if(loginDetails.containsKey("username"))
+                {
+                    sp = serviceProviderService.findServiceProviderByUserName((String) loginDetails.get("username"));
+                }
+                else
+                    return ResponseService.generateErrorResponse("Invalid data provided : Need to provide username/number",HttpStatus.BAD_REQUEST);
+                    if (sp == null)
+                        return ResponseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                    Integer spRole = sp.getRole();
+                    Integer loginRole = (Integer) loginDetails.get("role");
+
+                    if (!spRole.equals(loginRole)) {
+                        if (spRole == 4 && loginRole != 4) {
+                            return ResponseService.generateErrorResponse("SP cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
+                        } else if (loginRole == 4 && spRole != 4) {
+                            return ResponseService.generateErrorResponse("Admins cannot log in into Service provider portal", HttpStatus.BAD_REQUEST);
+                        }
+                    }
+                    loginDetails.put("role", 4);
+            }
+
             if (roleName.equals("EMPTY"))
                 return ResponseService.generateErrorResponse("Role not found", HttpStatus.NOT_FOUND);
 
@@ -213,7 +241,31 @@ public class AccountEndPoint {
             String roleName = roleService.findRoleName((Integer) loginDetails.get("role"));
             if (roleName.equals("EMPTY"))
                 return ResponseService.generateErrorResponse("Role not found", HttpStatus.NOT_FOUND);
+            if (!roleName.equals(Constant.roleUser)) {
+                ServiceProviderEntity sp=null;
+                if(loginDetails.containsKey("mobileNumber")) {
+                    sp = serviceProviderService.findServiceProviderByPhone((String) loginDetails.get("mobileNumber"), "+91");
+                }
+                else if(loginDetails.containsKey("username"))
+                {
+                    sp = serviceProviderService.findServiceProviderByUserName((String) loginDetails.get("username"));
+                }
+                else
+                    return ResponseService.generateErrorResponse("Invalid data provided : Need to provide username/number",HttpStatus.BAD_REQUEST);
+                if (sp == null)
+                    return ResponseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
+                Integer spRole = sp.getRole();
+                Integer loginRole = (Integer) loginDetails.get("role");
 
+                if (!spRole.equals(loginRole)) {
+                    if (spRole == 4 && loginRole != 4) {
+                        return ResponseService.generateErrorResponse("SP cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
+                    } else if (loginRole == 4 && spRole != 4) {
+                        return ResponseService.generateErrorResponse("Admins cannot log in into Service provider portal", HttpStatus.BAD_REQUEST);
+                    }
+                }
+                loginDetails.put("role", 4);
+            }
             String mobileNumber = (String) loginDetails.get("mobileNumber");
             String username = (String) loginDetails.get("username");
             if (mobileNumber != null) {
@@ -304,11 +356,11 @@ public class AccountEndPoint {
             }
 
             else if (roleService.findRoleName(role).equals(Constant.ADMIN) ) {
-                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                ServiceProviderEntity customAdmin = serviceProviderService.findServiceProviderByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.ADMIN)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
@@ -322,11 +374,11 @@ public class AccountEndPoint {
                 }
             }
             else if (roleService.findRoleName(role).equals(Constant.SUPER_ADMIN) ) {
-                CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber,countryCode);
+                ServiceProviderEntity customAdmin = serviceProviderService.findServiceProviderByPhone(mobileNumber,countryCode);
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.SUPER_ADMIN)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);
@@ -344,7 +396,7 @@ public class AccountEndPoint {
                 if (customAdmin != null) {
                     roleToCheck=roleService.findRoleName(customAdmin.getRole());
                     if (roleToCheck.equals(Constant.roleAdminServiceProvider)) {
-                        if (adminService.findAdminByPhone(mobileNumber, countryCode).getOtp() != null) {
+                        if (serviceProviderService.findServiceProviderByPhone(mobileNumber, countryCode).getOtp() != null) {
                             responseService.generateErrorResponse(ApiConstants.NO_RECORDS_FOUND, HttpStatus.NOT_FOUND);
                         }
                         return adminService.sendOtpForAdmin(mobileNumber, countryCode, session);

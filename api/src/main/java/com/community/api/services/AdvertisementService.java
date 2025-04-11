@@ -195,6 +195,7 @@ public class AdvertisementService {
             advertisement.setNotificationEndDate(addAdvertisementDto.getNotificationEndDate());
             advertisement.setCategory(category);
             advertisement.setUserId(creatorUserId);
+            advertisement.setAdditionalComments(addAdvertisementDto.getAdditionalComments());
             advertisement.setCreatorRole(role);
 
             return entityManager.merge(advertisement);
@@ -266,6 +267,7 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
         if(Objects.nonNull(advertisementDto.getTitle()))
         {
             if(advertisementDto.getTitle().trim().isEmpty()) {

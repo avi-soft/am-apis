@@ -1,5 +1,7 @@
 package com.community.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,6 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class QualificationEligibilityDto {
     
     private Long qualificationEligibilityId;
@@ -22,4 +25,11 @@ public class QualificationEligibilityDto {
     private Long percentage;
 
     private Long postId;
+
+    private Double cgpa;
+
+    private Boolean isPercentage;
+    @JsonIgnore
+    private String additionalComments;
+    private Boolean isAppearing;
 }
