@@ -3,13 +3,18 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketState;
+import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomerReferrer;
 import com.community.api.entity.OrderRequest;
+import com.community.api.entity.Role;
 import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.Skill;
@@ -23,6 +28,7 @@ import com.community.api.services.RoleService;
 import com.community.api.services.SanitizerService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TicketStateService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -38,14 +44,20 @@ import org.springframework.web.bind.annotation.*;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -254,57 +266,176 @@ public class ServiceProviderController {
         }
     }
 
-    @Transactional // Set readOnly for performance improvement
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
+    @Transactional
     @GetMapping("/get-all-service-providers")
     public ResponseEntity<?> getAllServiceProviders(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) String spAdmin,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest request) {
         try {
+            // Validate parameters first
             if (offset < 0) {
-                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
+                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
             }
             if (limit <= 0) {
-                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
             }
+
+            String successMessage = "";
+            long totalItems = 0L;
+            long totalPages = 0L;
+            List<Map<String, Object>> resultOfSp = new ArrayList<>();
             int startPosition = offset * limit;
 
-            // Count total service providers (excluding archived ones)
-            Query countQuery = entityManager.createQuery("SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.isArchived = false");
-            long totalItems = (long) countQuery.getSingleResult();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more service providers available");
-            }
-            // Create the query with pagination
-            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s WHERE s.isArchived = false", ServiceProviderEntity.class);
-            query.setFirstResult(startPosition);
-            query.setMaxResults(limit);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
 
-            // Fetch results
-            List<ServiceProviderEntity> results = query.getResultList();
 
-            List<Map<String, Object>> resultOfSp = new ArrayList<>();
-            for (ServiceProviderEntity serviceProvider : results) {
-                if (!serviceProvider.getIsArchived()) {
-                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+            // Get raw parameter values to validate boolean params
+            Map<String, String[]> params = request.getParameterMap();
+
+            // Validate admin parameter if present
+            if (params.containsKey("admin") && admin !=null ) {
+                String adminValue = request.getParameter("admin");
+                if (!"true".equalsIgnoreCase(adminValue) && !"false".equalsIgnoreCase(adminValue) ) {
+                    return ResponseService.generateErrorResponse(
+                            "Invalid value '" + adminValue + "' for parameter 'admin'. Must be 'true' or 'false'",
+                            HttpStatus.BAD_REQUEST);
                 }
             }
 
-            // Prepare response
+            // Validate spAdmin parameter if present
+            if (params.containsKey("spAdmin") && admin != null) {
+                String spAdminValue = request.getParameter("spAdmin");
+                if (!"true".equalsIgnoreCase(spAdminValue) && !"false".equalsIgnoreCase(spAdminValue)) {
+                    return ResponseService.generateErrorResponse(
+                            "Invalid value '" + spAdminValue + "' for parameter 'spAdmin'. Must be 'true' or 'false'",
+                            HttpStatus.BAD_REQUEST);
+                }
+            }
+
+            // Check for invalid parameter combinations
+            if (admin != null && admin.equals("true") && spAdmin != null && spAdmin.equals("true")) {
+                // Both admin and spAdmin are true - get combined list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role IN (2, 3)"); // 2=admin, 3=sp-admin
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role IN (2, 3)",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Admin and SP-Admin";
+
+            } else if (admin != null && admin.equals("true")) {
+                // Only admin is true - get admin list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role = 2");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role = 2",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Admin";
+            } else if (spAdmin != null && spAdmin.equals("true")) {
+                // Only spAdmin is true - get sp-admin list
+                if (roleId != 1) {
+                    return ResponseService.generateErrorResponse("Only super admin can access sp-admin service providers list", HttpStatus.FORBIDDEN);
+                }
+
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.role = 3");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE s.role = 3",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of SP-Admin";
+            } else {
+                // Both are false or null - get regular service providers
+                Query countQuery = entityManager.createQuery(
+                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE (sp.isArchived = false AND sp.role = 4)");
+                totalItems = (long) countQuery.getSingleResult();
+                totalPages = (int) Math.ceil((double) totalItems / limit);
+
+                if (offset >= totalPages && offset != 0) {
+                    return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
+                }
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s WHERE (s.isArchived = false AND s.role = 4)",
+                        ServiceProviderEntity.class);
+                query.setFirstResult(startPosition);
+                query.setMaxResults(limit);
+
+                List<ServiceProviderEntity> results = query.getResultList();
+                for (ServiceProviderEntity serviceProvider : results) {
+                    resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                }
+                successMessage = "List of Service Providers";
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("serviceProviders", resultOfSp);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("List of service providers: ", response, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @Transactional
     @GetMapping("/get-all-details/{serviceProviderId}")
@@ -364,11 +495,22 @@ public class ServiceProviderController {
             @RequestParam(required = false) String full_name,
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) Long test_status_id,
-            @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization")String authHeader,
+            @RequestParam(required = false)Boolean completed,
+            @RequestParam(required = false)Boolean archived,
+            @RequestParam(required = false)Boolean approved,
+            @RequestParam(required = false) Integer role,
+            @RequestParam(value = "offset",defaultValue = "0") int offset,
+            @RequestParam(value = "limit",defaultValue = "10") int limit,
+            @RequestParam(required = false)Long ticketId,
             HttpServletRequest request) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role roleName=roleService.getRoleByRoleId(roleId);
+            System.out.println("ticketId"+ticketId);
             Map<String, String[]> uri = request.getParameterMap();
 
             // Validate input
@@ -379,7 +521,13 @@ public class ServiceProviderController {
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
-
+            if(role!=null&&role==2&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
+            {
+                  return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }if(role!=null&&role==1&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
+            {
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }
             // Validate full_name (only alphabets and spaces allowed)
             if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
                 return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
@@ -391,7 +539,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
             }
 
             // Handle search by full name (split into first and last names)
@@ -403,11 +551,11 @@ public class ServiceProviderController {
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
@@ -555,101 +703,52 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    /*@Transactional
-    @PostMapping("/{serviceProviderId}/order-requests/{orderRequestId}")
-    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long orderRequestId, @RequestParam String action, @RequestParam(required = false) Integer statusId) {
+    @Transactional
+    @PostMapping("/{serviceProviderId}/return-ticket/{ticketId}")
+    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long ticketId, @RequestBody CreateTicketDto createTicketDto,@RequestHeader(value = "Authorization")String authHeader) {
         try {
-            action = action.toUpperCase();
-            OrderRequest orderRequest = entityManager.find(OrderRequest.class, orderRequestId);
-            if (orderRequest == null)
-                return ResponseService.generateErrorResponse("Order Request Not found", HttpStatus.BAD_REQUEST);
-            Order order = orderService.findOrderById(orderRequest.getOrderId());
-            if (order == null)
-                return ResponseService.generateErrorResponse("Order not found", HttpStatus.NOT_FOUND);
-            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId=jwtTokenUtil.extractId(jwtToken);
+            Role role=roleService.getRoleByRoleId(roleId);
+            if(createTicketDto==null||createTicketDto.getTicketStatus()==null)
+                return ResponseService.generateErrorResponse("Return status is required",HttpStatus.BAD_REQUEST);
+            if(role.getRole_name().equals(Constant.roleUser)||((role.getRole_name().equals(Constant.roleServiceProvider)&& !Objects.equals(tokenUserId, serviceProviderId))))
+                return ResponseService.generateErrorResponse("FORBIDDEN",HttpStatus.FORBIDDEN);
+            CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            if (ticket == null)
+                return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+            if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
+                return ResponseService.generateErrorResponse("Ticket already returned",HttpStatus.BAD_REQUEST);
+            if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO))
+                return ResponseService.generateErrorResponse("Cannot return ticket after accepting",HttpStatus.BAD_REQUEST);
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-            if (!orderRequest.getServiceProvider().equals(serviceProvider))
-                return ResponseService.generateErrorResponse("Order Request does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
-            CustomOrderState orderState = entityManager.find(CustomOrderState.class, orderRequest.getOrderId());
-            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_ASSIGNED.getOrderStateId())) {
-                return ResponseService.generateErrorResponse("Order already Accepted/Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-            if (action.equals(Constant.SP_REQUEST_ACTION_VIEW)) {
-                Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                Map<String, Object> orderRequestDetail = new HashMap<>();
-                Long assigneeId = null;
-                if (order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
-                    assigneeId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("assigneeSPId").getValue());
-                OrderDTO orderDTO = new OrderDTO(
-                        order.getId(),
-                        order.getName(),
-                        order.getTotal(),
-                        order.getSubmitDate(),
-                        order.getOrderNumber(),
-                        order.getEmailAddress(),
-                        order.getCustomer().getId(),
-                        order.getSubTotal(),
-                        orderState.getOrderStateId(),
-                        assigneeId// Ensure this matches the expected order
-                );
-
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<ReserveCategoryDto> reserveCategoryDtoList = reserveCategoryDtoService.getReserveCategoryDto(productId);
-                List<PhysicalRequirementDto> physicalRequirementDtoList = physicalRequirementDtoService.getPhysicalRequirementDto(productId);
-                customProductWrapper.wrapDetails(customProduct, reserveCategoryDtoList, physicalRequirementDtoList);
-                orderRequestDetail.put("order_request_details", orderRequest);
-                orderRequestDetail.put("order_details", orderDTO);
-                orderRequestDetail.put("ordered_product_details", customProductWrapper);
-                return ResponseService.generateSuccessResponse("Order Request Details :", orderRequestDetail, HttpStatus.OK);
-            } else if (action.equals(Constant.SP_REQUEST_ACTION_ACCEPT)) {
-                order.setStatus(Constant.ORDER_STATUS_IN_PROGRESS);
-                ServiceProviderAcceptedOrders serviceProviderAcceptedOrders = new ServiceProviderAcceptedOrders();
-                orderRequest.setRequestStatus("ACCEPTED");
-                orderState.setOrderStateId(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId());
-                Integer orderStatusId = orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_IN_PROGRESS.getOrderStateId()).get(0).getOrderStatusId();
-                orderState.setOrderStatusId(orderStatusId);
-                orderRequest.setUpdatedAt(LocalDateTime.now());
-                entityManager.merge(orderRequest);
-                serviceProviderAcceptedOrders.setServiceProvider(serviceProvider);
-                serviceProviderAcceptedOrders.setOrderId(orderRequest.getOrderId());
-                serviceProviderAcceptedOrders.setGeneratedAt(LocalDateTime.now());
-                serviceProviderAcceptedOrders.setUpdatedAt(LocalDateTime.now());
-                entityManager.persist(serviceProviderAcceptedOrders);
-                serviceProvider.getAcceptedOrders().add(serviceProviderAcceptedOrders);
-                entityManager.merge(orderState);
-                entityManager.merge(serviceProvider);
-                return ResponseService.generateSuccessResponse("Order Accepted", null, HttpStatus.OK);
-            } else if (action.equals(Constant.SP_REQUEST_ACTION_RETURN)) {
-                orderRequest.setRequestStatus("RETURNED");
-                order.setStatus(Constant.ORDER_STATUS_UNASSIGNED);
-                if (statusId != null) {
-                    CustomOrderStatus customOrderStatus = entityManager.find(CustomOrderStatus.class, statusId);
-                    if (customOrderStatus == null) {
-                        return ResponseService.generateErrorResponse("Invalid Order Status selected", HttpStatus.BAD_REQUEST);
-                    }
-                    if (!orderStatusByStateService.getOrderStatusByOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId()).contains(customOrderStatus)) {
-                        return ResponseService.generateErrorResponse("Selected order Status does not belong to this action", HttpStatus.BAD_REQUEST);
-                    }
-                } else
-                    return ResponseService.generateErrorResponse("Need to provide return status", HttpStatus.BAD_REQUEST);
-                orderState.setOrderStatusId(statusId);
-                orderState.setOrderStateId(Constant.ORDER_STATE_RETURNED.getOrderStateId());
-                entityManager.merge(order);
-                entityManager.merge(orderRequest);
-                entityManager.merge(orderState);
-                dummyAssignerService.dummyAssigner(order);
-                return ResponseService.generateSuccessResponse("Order Returned", null, HttpStatus.OK);
-            } else
-                return ResponseService.generateErrorResponse("Invalid Action", HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
+            if (!ticket.getAssignee().equals(serviceProvider.getService_provider_id()))
+                return ResponseService.generateErrorResponse("Ticket does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
+            if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
+                    return ResponseService.generateErrorResponse("Ticket already Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
+            CustomTicketStatus customTicketStatus=entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus());
+            if(!Arrays.asList(Constant.TICKET_STATUS_BDWL,Constant.TICKET_STATUS_OTHER).contains(createTicketDto.getTicketStatus())||customTicketStatus==null)
+                return ResponseService.generateErrorResponse("Invalid status selected",HttpStatus.BAD_REQUEST);
+            if(createTicketDto.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)&&(createTicketDto.getComment()==null||createTicketDto.getComment().isEmpty()))
+                return ResponseService.generateErrorResponse("Comment is required",HttpStatus.BAD_REQUEST);
+            if(createTicketDto.getComment()==null)
+                createTicketDto.setComment("Returned by SP with ID :"+serviceProviderId);
+            ticket.setAssignee(null);
+            ticket.setAssigneeRole(null);
+            ticket.setTicketState(entityManager.find(CustomTicketState.class,Constant.TICKET_STATE_RETURNED));
+            ticket.setTicketStatus(entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus()));
+            ticket.getRejectedBy().add(serviceProviderId);
+            ticket.setComment(createTicketDto.getComment());
+            entityManager.merge(ticket);
+                return ResponseService.generateSuccessResponse("Ticket Returned", ticket, HttpStatus.OK);
+            } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Some issue in fetching order Requests: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Some issue in returning ticket: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }*/
+    }
 
     @Transactional
     @RequestMapping(value = "/{serviceProviderId}/completeOrder/{orderRequestId}", method = RequestMethod.PUT)
@@ -776,4 +875,33 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
+    @Transactional
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @GetMapping("get-admins")
+    public ResponseEntity<?>returnAdmins(@RequestParam(defaultValue = "30",required = false)int limit,@RequestParam(defaultValue = "0",required = false)int page) throws Exception {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
+        Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);
+
+        // Predicate for role = 1
+        Predicate rolePredicate = cb.equal(root.get("role"), 2);
+        cq.where(rolePredicate);
+
+        TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (ServiceProviderEntity serviceProvider:query.getResultList()) {
+            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+        }
+        int totalItems = query.getResultList().size();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+        int fromIndex = page * limit;
+        int toIndex = Math.min(fromIndex + limit, totalItems);
+        Map<String,Object>result=new HashMap<>();
+        result.put("totalItems",totalItems);
+        result.put("currentPage",page);
+        result.put("totalPages",totalPages);
+        result.put("Admins",res.subList(fromIndex,toIndex));
+        return ResponseService.generateSuccessResponse("Admins fetched successfully",res.subList(fromIndex,toIndex),HttpStatus.OK);
+    }
+
 }

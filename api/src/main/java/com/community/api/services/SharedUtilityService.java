@@ -792,6 +792,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
+        serviceProviderDetails.put("archived",serviceProvider.getIsArchived());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());
@@ -803,6 +804,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("written_test_score", serviceProvider.getWrittenTestScore());
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
+        serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
@@ -1300,15 +1302,29 @@ public class SharedUtilityService {
             throw new IllegalArgumentException("Value is neither a valid String nor a Number");
         }
     }
-    public int[] calculateAgeRange(Date bornBeforeDate, Date bornAfterDate) {
+    public int[] calculateAgeRange(Date bornBeforeDate, Date bornAfterDate,Date asOfDate) {
         // Convert Date to ZonedDateTime in the IST (India Standard Time) time zone
         ZoneId indiaZone = ZoneId.of("Asia/Kolkata");
         ZonedDateTime bornBeforeZoned = bornBeforeDate.toInstant().atZone(indiaZone);
         ZonedDateTime bornAfterZoned = bornAfterDate.toInstant().atZone(indiaZone);
+        System.out.println("recieved date is "+asOfDate);
+        ZonedDateTime today=null;
+        if(asOfDate==null) {
+            // Get today's date in the same time zone (IST)
+             today = ZonedDateTime.now(indiaZone);
+        }
+        else
+        {
+            ZoneId zone = ZoneId.of("Asia/Calcutta");
 
-        // Get today's date in the same time zone (IST)
-        ZonedDateTime today = ZonedDateTime.now(indiaZone);
-
+            if (asOfDate instanceof java.sql.Date) {
+                today=((java.sql.Date) asOfDate).toLocalDate().atStartOfDay(zone);
+            } else if (asOfDate instanceof java.util.Date) {
+                today= ((java.util.Date) asOfDate).toInstant().atZone(zone);
+            } else {
+                throw new IllegalArgumentException("Unsupported date type: " + asOfDate.getClass());
+            }
+        }
         // Calculate max age (from bornBeforeDate)
         int maxAge = calculateAge(bornBeforeZoned, today);
 

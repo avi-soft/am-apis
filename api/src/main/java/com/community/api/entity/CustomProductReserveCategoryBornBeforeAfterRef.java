@@ -62,11 +62,16 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @Column(name = "born_before_after")
     protected Boolean bornBeforeAfter;
     @Column(name = "as_of_date")
-    java.sql.Date asOfDate;
+    Date asOfDate;
 
     @JsonIgnore
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "post_id")
     private Post post;
+
+    @JsonIgnore
+    @Column(name = "additional_comments")
+    @JsonProperty("additional_comments")
+    private String additionalComments;
 
 }

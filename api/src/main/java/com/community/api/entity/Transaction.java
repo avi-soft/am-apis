@@ -2,6 +2,7 @@ package com.community.api.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -22,6 +23,7 @@ import java.util.Date;
 public class Transaction {
     @Id
     @GeneratedValue
+    @JsonProperty("paymentId")
     @Column(name = "transaction_id")
     Long txnId;
 

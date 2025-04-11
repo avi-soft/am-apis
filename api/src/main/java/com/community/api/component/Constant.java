@@ -177,7 +177,7 @@ public class Constant {
     public static final String CITY_REGEXP="^[A-Za-z\\\\s]+$";
     public static final String EMAIL_REGEXP="^[\\w-\\.]+@[\\w-]+\\.[a-zA-Z]{2,}$";
     public static final String GET_ALL_ORDERS_OF_ONE_CUSTOMER="SELECT o from blc_ ";
-    public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber";;
+    public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber and  tax_override is NULL";;
     public static final String CHECK_FOR_REPEATED_REF="SELECT COUNT(*) FROM customer_referrer c WHERE c.customer_id = :customerId AND c.service_provider_id = :spId";
     public static final String GET_ALL_ORDERS="SELECT order_id FROM order_state";
     public static final String SEARCH_ORDER_QUERY="SELECT o.order_id FROM order_state o WHERE o.order_state_id =:orderStateId";
@@ -202,6 +202,10 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATUS_BDWL = 12L;
+    public static final Long TICKET_STATUS_OTHER = 13L;
+
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
     public static final CustomOrderState ORDER_STATE_UNASSIGNED = new CustomOrderState(3);
@@ -222,6 +226,7 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_FOR_QUALIFICATION = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
+    public static final Long TICKET_STATE_TO_DO=1L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";

@@ -2,6 +2,7 @@ package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -37,4 +38,9 @@ public class GenderWiseDistribution
     @JsonIgnore
     @OneToOne(mappedBy = "genderWiseDistribution")
     private Post post;
+
+    @JsonIgnore
+    @Column(name = "additional_comments")
+    @JsonProperty("additional_comments")
+    private String additionalComments;
 }

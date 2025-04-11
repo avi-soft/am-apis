@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,4 +38,7 @@ public class ReserveCategoryAgeDto {
     Integer maxAge;
     @JsonProperty("as_of_date")
     Date asOfDate;
+    @JsonIgnore
+    @JsonProperty("additional_comments")
+    String additionalComments;
 }

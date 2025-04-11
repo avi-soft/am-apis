@@ -20,9 +20,12 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import static com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint.convertStringToSQLDate;
 
@@ -33,7 +36,8 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
     private final ProductService productService;
     private final ReserveCategoryService reserveCategoryService;
     private final GenderService genderService;
-
+    @Autowired
+    private SharedUtilityService sharedUtilityService;
     @PersistenceContext
     protected EntityManager entityManager;
 
@@ -44,7 +48,8 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
     }
-
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    protected SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd");
     public List<CustomProductReserveCategoryBornBeforeAfterRef> getProductReserveCategoryBornBeforeAfterByProductId(Long productId) {
         try {
             CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
@@ -71,11 +76,42 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 CustomProductReserveCategoryBornBeforeAfterRef ref = new CustomProductReserveCategoryBornBeforeAfterRef();
                 if(addReserveCategoryDto.getBornBeofreAfter().equals(true))
                 {
+                    if(addReserveCategoryDto.getAsOfDate()==null)
+                    {
+                        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
+                        int currentYear = calendar.get(Calendar.YEAR);
+
+                        calendar.set(Calendar.YEAR, currentYear);
+                        calendar.set(Calendar.MONTH, Calendar.JANUARY);
+                        calendar.set(Calendar.DAY_OF_MONTH, 1);
+                        calendar.set(Calendar.HOUR_OF_DAY, 5);
+                        calendar.set(Calendar.MINUTE, 30);
+                        calendar.set(Calendar.SECOND, 0);
+                        calendar.set(Calendar.MILLISECOND, 0);
+
+                        Date asOfDate = calendar.getTime();
+
+// Use your date format pattern
+                        String formattedDate = dateFormat.format(asOfDate);
+
+                        addReserveCategoryDto.setAsOfDate(formattedDate);
+                    }
+                    try {
+                        assert addReserveCategoryDto.getBornBefore() != null;
+                        assert addReserveCategoryDto.getBornAfter() != null;
+                    }catch (AssertionError e)
+                    {
+                        throw new IllegalArgumentException("Both born before and after dates are required");
+                    }
+                    int[]maxMin=sharedUtilityService.calculateAgeRange(addReserveCategoryDto.getBornBefore(),addReserveCategoryDto.getBornAfter(),dateFormat2.parse(addReserveCategoryDto.getAsOfDate()));
                     ref.setBornBefore(bornBefore);
                     ref.setBornAfter(bornAfter);
-                    ref.setMaximumAge(null);
-                    ref.setMinimumAge(null);
-                    ref.setAsOfDate(null);
+                    ref.setMaximumAge(maxMin[1]);
+                    ref.setMinimumAge(maxMin[0]);
+                    System.out.println("aod"+addReserveCategoryDto.getAsOfDate());
+                    java.util.Date utilDate = dateFormat2.parse(addReserveCategoryDto.getAsOfDate());
+                    java.sql.Date sqlDate = new java.sql.Date(utilDate.getTime());
+                    ref.setAsOfDate(dateFormat.parse(addReserveCategoryDto.getAsOfDate()));
                 }
                 else{
                     ref.setBornBefore(null);

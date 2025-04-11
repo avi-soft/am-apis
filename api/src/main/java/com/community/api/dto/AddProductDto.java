@@ -94,5 +94,6 @@ public class AddProductDto {
     Long advertisement;
     @JsonProperty("posts")
     private List<PostDto> posts;
+    private String additionalComments;
 
 }

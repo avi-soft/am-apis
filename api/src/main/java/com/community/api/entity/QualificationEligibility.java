@@ -1,6 +1,7 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -60,9 +61,22 @@ public class QualificationEligibility
     @Column(name = "percentage")
     private Long percentage;
 
+    @Column(name = "cgpa")
+    private Double cgpa;
+
+    @Column(name = "is_percentage",columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean isPercentage;
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Column(name = "is_appearing")
+    @JsonProperty("isAppearing")
+    private Boolean isAppearing;
+
+    @JsonIgnore
+    @Column(name = "additional_comments")
+    @JsonProperty("additionalComments")
+    private String additionalComments;
 }
