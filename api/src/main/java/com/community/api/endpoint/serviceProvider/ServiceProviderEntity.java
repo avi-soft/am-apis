@@ -106,6 +106,10 @@ public class ServiceProviderEntity  {
     @Pattern(regexp = "^[A-Z]{5}\\d{4}[A-Z]{1}$", message = "Invalid format. Use 5 uppercase letters, 4 digits, and 1 uppercase letter.")
 
     private String pan_number;
+    @Column(name = "completed",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean completed;
+    @Column(name = "approved",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean approved;
 
     @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isArchived = false;
