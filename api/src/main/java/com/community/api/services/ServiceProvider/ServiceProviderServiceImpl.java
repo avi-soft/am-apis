@@ -356,6 +356,67 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             updates.remove("permanent_residential_address");
             updates.remove("permanent_city");
 
+            // running business unit
+            List<String> businessKeys = new ArrayList<>();
+            businessKeys.add("business_name");
+            businessKeys.add("business_location");
+            businessKeys.add("business_email");
+            businessKeys.add("number_of_employees");
+            businessKeys.add("registration_number");
+            businessKeys.add("latitude");
+            businessKeys.add("longitude");
+
+
+            if(updates.containsKey("is_running_business_unit")) {
+                Object isRunningObj = updates.get("is_running_business_unit");
+
+                int keysPresent = 0;
+                for (String key : updates.keySet()) {
+                    if (businessKeys.contains(key))
+                        keysPresent++;
+                }
+
+                if (Boolean.parseBoolean(isRunningObj.toString())) {
+                    if (keysPresent > 0 && keysPresent < businessKeys.size()) {
+                        return ResponseService.generateErrorResponse(
+                                "Need all business fields to add or update business profile", HttpStatus.BAD_REQUEST
+                        );
+                    }
+                } else if (keysPresent > 0) {
+                    return ResponseService.generateErrorResponse(
+                            "is_running_business_unit should be true to add business details",
+                            HttpStatus.BAD_REQUEST
+                    );
+                } else if (keysPresent == 0) {
+                    existingServiceProvider.setIs_running_business_unit(false);
+                    existingServiceProvider.setBusiness_name(null);
+                    existingServiceProvider.setBusiness_location(null);
+                    existingServiceProvider.setBusiness_email(null);
+                    existingServiceProvider.setNumber_of_employees(null);
+                    existingServiceProvider.setRegistration_number(null);
+                    existingServiceProvider.setLatitude(null);
+                    existingServiceProvider.setLongitude(null);
+                    existingServiceProvider.setBusiness_geo_location(null);
+                }
+            }
+
+//            if (keysPresent == businessKeys.size()) {
+//                Object isRunningObj = updates.get("is_running_business_unit");
+//                if (isRunningObj != null && Boolean.parseBoolean(isRunningObj.toString())) {
+//                    return ResponseService.generateErrorResponse(
+//                            "is_running_business_unit should be true to add business details",
+//                            HttpStatus.BAD_REQUEST
+//                    );
+//                }
+//                else if (isRunningObj != null && !Boolean.parseBoolean(isRunningObj.toString())) {
+//                    return ResponseService.generateErrorResponse(
+//                            "is_running_business_unit should be true to add business details",
+//                            HttpStatus.BAD_REQUEST
+//                    );
+//                }
+//            }
+
+
             if (updates.containsKey("user_name")) {
                 updates.remove("user_name");
             }
