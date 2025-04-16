@@ -465,8 +465,8 @@ public ResponseEntity<?> getAllServiceProviders(
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role roleName=roleService.getRoleByRoleId(roleId);
-            System.out.println("ticketId"+ticketId);
+            Role roleName = roleService.getRoleByRoleId(roleId);
+            System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
 
             // Validate input
@@ -477,12 +477,11 @@ public ResponseEntity<?> getAllServiceProviders(
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
-            if(role!=null&&role==2&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
-            {
-                  return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            }if(role!=null&&role==1&&(!roleName.getRole_name().equals(Constant.roleSuperAdmin)))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if (role != null && role == 2 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            }
+            if (role != null && role == 1 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             }
             // Validate full_name (only alphabets and spaces allowed)
             if (full_name != null && !full_name.matches("^[a-zA-Z ]+$")) {
@@ -495,7 +494,7 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
             }
 
             // Handle search by full name (split into first and last names)
@@ -507,11 +506,11 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id,ticketId,role,completed,archived,approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
@@ -536,17 +535,21 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Construct response
             Map<String, Object> response = new HashMap<>();
-            response.put("serviceProviders", paginatedList);
+            Map<Integer,String>resp=new HashMap<>();
+            resp.put(1,"Super Admins");
+            resp.put(2,"Admins");
+            resp.put(3,"Service Provider Admins");
+            resp.put(4,"Service Providers");
+            if(role==null)
+                role=4;
+            response.put(resp.get(role), paginatedList);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
-
-            if (fromIndex >= totalItems) {
-                return ResponseService.generateSuccessResponse("No Service Providers Found", response, HttpStatus.OK);
-            }
-
-            return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
-
+                if (fromIndex >= totalItems) {
+                    return ResponseService.generateSuccessResponse("No "+resp.get(role)+" Found", response, HttpStatus.OK);
+                }
+                return ResponseService.generateSuccessResponse(resp.get(role),response,HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
