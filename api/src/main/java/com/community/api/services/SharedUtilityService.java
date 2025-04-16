@@ -815,6 +815,7 @@ public class SharedUtilityService {
                 serviceProviderDetails.put("infra_scores", serviceProvider.getInfraScore());
             }
         }
+        serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());

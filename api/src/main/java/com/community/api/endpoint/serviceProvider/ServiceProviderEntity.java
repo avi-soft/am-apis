@@ -186,6 +186,8 @@ public class ServiceProviderEntity  {
     private Double latitude,longitude;
     private int rank;
     private int signedUp=0;
+    private String business_geo_location;
+
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "service_provider_id")
