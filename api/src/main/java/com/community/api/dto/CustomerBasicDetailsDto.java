@@ -35,4 +35,6 @@ public class CustomerBasicDetailsDto {
     Long primaryRefId;
     @JsonProperty("age")
     Integer age;
+    @JsonProperty("secondary_mobile_number")
+    String secondaryMobileNumber;
 }

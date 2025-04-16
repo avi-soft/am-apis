@@ -135,7 +135,9 @@ public class AccountEndPoint {
                     if (!spRole.equals(loginRole)) {
                         if (spRole == 4 && loginRole != 4) {
                             return ResponseService.generateErrorResponse("SP cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
-                        } else if (loginRole == 4 && spRole != 4) {
+                        } else if (spRole == 3 && loginRole == 4) {
+                            return ResponseService.generateErrorResponse("Service Provider Admins cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
+                        } else if (loginRole == 4 && (spRole != 4&&spRole != 3)) {
                             return ResponseService.generateErrorResponse("Admins cannot log in into Service provider portal", HttpStatus.BAD_REQUEST);
                         }
                     }
@@ -260,7 +262,9 @@ public class AccountEndPoint {
                 if (!spRole.equals(loginRole)) {
                     if (spRole == 4 && loginRole != 4) {
                         return ResponseService.generateErrorResponse("SP cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
-                    } else if (loginRole == 4 && spRole != 4) {
+                    } else if (spRole == 3 && loginRole == 4) {
+                        return ResponseService.generateErrorResponse("Service Provider Admins cannot log in into Admin portal", HttpStatus.BAD_REQUEST);
+                    } else if (loginRole == 4 && (spRole != 4&&spRole != 3)) {
                         return ResponseService.generateErrorResponse("Admins cannot log in into Service provider portal", HttpStatus.BAD_REQUEST);
                     }
                 }
