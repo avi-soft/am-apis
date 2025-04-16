@@ -468,7 +468,7 @@ public ResponseEntity<?> getAllServiceProviders(
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if(role<roleId)
+            if(role!=null&&(role<roleId||role==5))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             // Validate input
             if ((uri.containsKey("state") && state == null) ||
@@ -538,12 +538,13 @@ public ResponseEntity<?> getAllServiceProviders(
             Map<String, Object> response = new HashMap<>();
             Map<Integer,String>resp=new HashMap<>();
             resp.put(1,"Super Admins");
+            resp.put(0,"All users");
             resp.put(2,"Admins");
             resp.put(3,"Service Provider Admins");
             resp.put(4,"Service Providers");
             if(role==null)
-                role=4;
-            response.put(resp.get(role), paginatedList);
+                role=0;
+            response.put("response", paginatedList);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
