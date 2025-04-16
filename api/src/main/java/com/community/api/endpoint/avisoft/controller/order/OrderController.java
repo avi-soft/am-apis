@@ -432,10 +432,16 @@ public class OrderController {
         }
     }
     @Transactional
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "reassign-ticket/{ticketId}", method = RequestMethod.POST)
-    public ResponseEntity<?> reassignTicket(@PathVariable Long ticektId,@RequestParam(required = true) Long id,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> reassignTicket(@PathVariable Long ticketId,@RequestParam(required = true) Long id,@RequestHeader(value = "Authorization") String authHeader) {
         try {
-             CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticektId);
+             CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+             ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,id);
+             if(serviceProvider==null)
+                 return ResponseService.generateErrorResponse("Service Provider not found",HttpStatus.BAD_REQUEST);
+             if(serviceProvider.getRole()==1)
+                 return ResponseService.generateErrorResponse("Cannot assign ticket to Super admin",HttpStatus.BAD_REQUEST);
              if(ticket.getRejectedBy().contains(id))
                  return ResponseService.generateErrorResponse("Cannot assign : Ticket has been already returned by selected SP",HttpStatus.BAD_REQUEST);
              else
