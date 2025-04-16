@@ -783,6 +783,9 @@ public class SharedUtilityService {
         serviceProviderDetails.put("business_email", serviceProvider.getBusiness_email());
         serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
         serviceProviderDetails.put("has_technical_knowledge", serviceProvider.getHas_technical_knowledge());
+        serviceProviderDetails.put("approved",serviceProvider.getApproved());
+        serviceProviderDetails.put("completed",serviceProvider.getCompleted());
+        serviceProviderDetails.put("is_active",serviceProvider.getIsActive());
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
         serviceProviderDetails.put("latitude", serviceProvider.getLatitude());
         serviceProviderDetails.put("longitude", serviceProvider.getLongitude());
