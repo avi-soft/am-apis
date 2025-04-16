@@ -3281,6 +3281,8 @@ public class CustomerEndpoint {
                     else
                         customerBasicDetailsDto.setPhone(null);
                     customerList.add(customerBasicDetailsDto);
+
+                    customerBasicDetailsDto.setSecondaryMobileNumber(customCustomer.getSecondaryMobileNumber());
                 }
             }
         }
