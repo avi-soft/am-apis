@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
@@ -11,7 +12,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
@@ -60,6 +63,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("task_description")
     protected String task_desc;
 
+    @Autowired
+    private EntityManager entityManager;
+
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
@@ -79,7 +85,18 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
-        this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
+        ServiceProviderEntity serviceProvider=null;
+        try {
+            System.out.println("id is"+customServiceProviderTicket.getAssignee());
+            serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
+            System.out.println("name is"+serviceProvider.getFirst_name());
+            this.assigneeName = serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
+        }
+        catch (Exception e)
+        {
+            this.assigneeName = "-";
+        }
+
     }
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
