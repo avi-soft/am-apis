@@ -14,6 +14,7 @@ import com.community.api.services.PrivilegeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.twilio.rest.proxy.v1.service.ShortCodeUpdater;
 import org.apache.commons.io.FilenameUtils;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -79,8 +80,13 @@ public class ServiceProviderActionController {
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
             @FormDataOnly CommunicationRequest request,
+            @RequestParam Integer role,
             @RequestHeader(value = "Authorization") String authHeader){
         try {
+            if(role==null)
+                return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
+            if(roleService.findRoleName(role)==null)
+                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.BAD_REQUEST);
             // Validate service provider
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -88,75 +94,72 @@ public class ServiceProviderActionController {
             if (!actionAccess(authHeader)) {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO COMMUNICATE WITH CUSTOMER", HttpStatus.FORBIDDEN);
             }
-            ServiceProviderEntity serviceProvider=null;
-            CustomAdmin customAdmin=null;
-            if(roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER))
-            {
-                 serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            ServiceProviderEntity serviceProvider = null;
+            ServiceProviderEntity customAdmin = null;
+            if (roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER)) {
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
                 if (serviceProvider == null) {
                     return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
                 }
 
-                if(serviceProvider.getMyReferrals()==null)
-                {
-                    throw new IllegalArgumentException("Service Provider with id "+ serviceProvider.getService_provider_id()+ " do not have referred customers");
-                }
-                else if(serviceProvider.getMyReferrals().isEmpty())
-                {
-                    throw new IllegalArgumentException("Service Provider with id "+ serviceProvider.getService_provider_id()+ " do not have referred customers");
+                if (serviceProvider.getMyReferrals() == null) {
+                    throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
+                } else if (serviceProvider.getMyReferrals().isEmpty()) {
+                    throw new IllegalArgumentException("Service Provider with id " + serviceProvider.getService_provider_id() + " do not have referred customers");
                 }
             }
-            if(roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider))
-            {
-                customAdmin=entityManager.find(CustomAdmin.class,userId);
-                if(customAdmin==null)
-                {
-                    return ResponseService.generateErrorResponse("Custom Admin with id" + userId+ " does not exist",HttpStatus.NOT_FOUND);
+            if (roleService.findRoleName(roleId).equals(Constant.roleAdmin) || roleService.findRoleName(roleId).equals(Constant.roleSuperAdmin) || roleService.findRoleName(roleId).equals(Constant.roleAdminServiceProvider)) {
+                customAdmin = entityManager.find(ServiceProviderEntity.class, userId);
+                if (customAdmin == null) {
+                    return ResponseService.generateErrorResponse("Custom Admin with id" + userId + " does not exist", HttpStatus.NOT_FOUND);
                 }
             }
 
             // Process comma-separated modes if needed
             List<Integer> modesList = getModesListFromRequest(request);
-            if(modesList == null)
-            {
+            if (modesList == null) {
                 throw new IllegalArgumentException("Modes cannot be null");
             }
-            if(modesList.isEmpty())
-            {
+            if (modesList.isEmpty()) {
                 throw new IllegalArgumentException("You have to select atleast one mode");
             }
 
             // Process comma-separated customerIds if needed
             List<Long> customerIdsList = getCustomerIdsListFromRequest(request);
-            if(customerIdsList == null || customerIdsList.isEmpty())
-            {
-                return ResponseService.generateErrorResponse("You have to select atleast one customer to communicate with", HttpStatus.BAD_REQUEST);
+            if (customerIdsList == null || customerIdsList.isEmpty()) {
+                return ResponseService.generateErrorResponse("You have to select atleast one user to communicate with", HttpStatus.BAD_REQUEST);
             }
-
-            for(Long customerId: customerIdsList)
-            {
-                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-                if(customCustomer==null)
-                {
-                    return ResponseService.generateErrorResponse("Customer with id "+ customerId +" does not exist",HttpStatus.NOT_FOUND);
+            for (Long customerId : customerIdsList) {
+                if (roleId >= role)
+                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                if (role!= 1 && role != 5) {
+                    ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
+                    if (serviceProviderEntity == null||serviceProviderEntity.getRole()!=role) {
+                        if (role == 2)
+                            return ResponseService.generateErrorResponse("Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
+                        if (role== 3)
+                            return ResponseService.generateErrorResponse("Service Provider Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
+                        if (role == 4)
+                            return ResponseService.generateErrorResponse("Service Provider with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
+                    }
+                } else if (role == 5) {
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                    if (customCustomer == null) {
+                        return ResponseService.generateErrorResponse("Customer with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
+                    }
                 }
             }
-            if(roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER))
-            {
+            if (roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER)) {
                 assert serviceProvider != null;
-                if(!serviceProvider.getMyReferrals().isEmpty())
-                {
-                    List<CustomerReferrer> referrers= serviceProvider.getMyReferrals();
-                    List<Long> referrerIds= new ArrayList<>();
-                    for(CustomerReferrer customerReferrer: referrers)
-                    {
+                if (!serviceProvider.getMyReferrals().isEmpty()) {
+                    List<CustomerReferrer> referrers = serviceProvider.getMyReferrals();
+                    List<Long> referrerIds = new ArrayList<>();
+                    for (CustomerReferrer customerReferrer : referrers) {
                         referrerIds.add(customerReferrer.getCustomer().getId());
                     }
-                    for(Long customerId: customerIdsList)
-                    {
-                        if(!referrerIds.contains(customerId))
-                        {
-                            return ResponseService.generateErrorResponse("Customer with id " + customerId+ " is not the referrer of Service provider",HttpStatus.BAD_REQUEST);
+                    for (Long customerId : customerIdsList) {
+                        if (!referrerIds.contains(customerId)) {
+                            return ResponseService.generateErrorResponse("Customer with id " + customerId + " is not the referrer of Service provider", HttpStatus.BAD_REQUEST);
                         }
                     }
                 }
@@ -170,19 +173,16 @@ public class ServiceProviderActionController {
             {
                 return ResponseService.generateErrorResponse("subject/title of message cannot be empty",HttpStatus.BAD_REQUEST);
             }*/
-            if(request.getContentText()==null && (request.getFiles()==null || request.getFiles().isEmpty()))
-            {
-                return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null",HttpStatus.BAD_REQUEST);
+            if (request.getContentText() == null && (request.getFiles() == null || request.getFiles().isEmpty())) {
+                return ResponseService.generateErrorResponse("Either you have to provide text or any file.Both cannot be null", HttpStatus.BAD_REQUEST);
             }
-            String contentTextTrimmed=null;
-            if(request.getContentText()!=null)
-            {
-                contentTextTrimmed=request.getContentText().trim();
+            String contentTextTrimmed = null;
+            if (request.getContentText() != null) {
+                contentTextTrimmed = request.getContentText().trim();
             }
-            String subjectTrimmed=null;
-            if(request.getSubject()!=null)
-            {
-                subjectTrimmed=request.getSubject().trim();
+            String subjectTrimmed = null;
+            if (request.getSubject() != null) {
+                subjectTrimmed = request.getSubject().trim();
             }
 
             boolean hasValidContent = contentTextTrimmed != null && !contentTextTrimmed.isEmpty();
@@ -208,42 +208,31 @@ public class ServiceProviderActionController {
             }
             // Create communication content
             CommunicationContent content = new CommunicationContent();
-            if(serviceProvider!=null)
-            {
+            if (serviceProvider != null) {
                 content.setServiceProvider(serviceProvider);
             }
-            if(customAdmin!=null)
-            {
+            if (customAdmin != null) {
                 content.setAdmin(customAdmin);
             }
-            if(contentTextTrimmed!=null)
-            {
+            if (contentTextTrimmed != null) {
                 content.setContentText(contentTextTrimmed);
-            }
-            else{
+            } else {
                 content.setContentText(null);
             }
-            if(subjectTrimmed!=null )
-            {
+            if (subjectTrimmed != null) {
                 content.setSubject(subjectTrimmed);
-            }
-            else{
+            } else {
                 content.setSubject(null);
             }
 
             List<ContentFile> contentFiles = new ArrayList<>();
             if (request.getFiles() != null && !request.getFiles().isEmpty()) {
-                if(request.getFiles().size()==1)
-                {
-                    if( request.getFiles().get(0).getContentType()!=null)
-                    {
+                if (request.getFiles().size() == 1) {
+                    if (request.getFiles().get(0).getContentType() != null) {
                         contentFiles = processFiles(request.getFiles(), content);
                         content.setContentFiles(contentFiles);
                     }
-                }
-
-                else if(request.getFiles().size()>1)
-                {
+                } else if (request.getFiles().size() > 1) {
                     contentFiles = processFiles(request.getFiles(), content);
                     content.setContentFiles(contentFiles);
                 }
@@ -254,12 +243,10 @@ public class ServiceProviderActionController {
 
             // Create a single action log for all customers
             ActionLog actionLog = new ActionLog();
-            if(serviceProvider!=null)
-            {
+            if (serviceProvider != null) {
                 actionLog.setServiceProvider(serviceProvider);
             }
-            if(customAdmin!=null)
-            {
+            if (customAdmin != null) {
                 actionLog.setAdmin(customAdmin);
             }
             actionLog.setRole(roleService.getRoleByRoleId(roleId));
@@ -280,121 +267,231 @@ public class ServiceProviderActionController {
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
 
-            List<CustomCustomer> allCustomers = customerIdsList.stream()
-                    .map(id -> entityManager.find(CustomCustomer.class, id))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            if (role == 5) {
+                List<CustomCustomer> allCustomers = customerIdsList.stream()
+                        .map(id -> entityManager.find(CustomCustomer.class, id))
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
 
-            // Separate customers based on email availability
-            List<CustomCustomer> customersWithEmail = new ArrayList<>();
-            List<CustomCustomer> customersWithoutEmail = new ArrayList<>();
+                // Separate customers based on email availability
+                List<CustomCustomer> customersWithEmail = new ArrayList<>();
+                List<CustomCustomer> customersWithoutEmail = new ArrayList<>();
 
-            for (CustomCustomer customer : allCustomers) {
-                if (customer.getEmailAddress() != null && !customer.getEmailAddress().trim().isEmpty()) {
-                    customersWithEmail.add(customer);
-                } else {
-                    customersWithoutEmail.add(customer);
+                for (CustomCustomer customer : allCustomers) {
+                    if (customer.getEmailAddress() != null && !customer.getEmailAddress().trim().isEmpty()) {
+                        customersWithEmail.add(customer);
+                    } else {
+                        customersWithoutEmail.add(customer);
+                    }
                 }
-            }
 
-            // Check if any customer has an email address before proceeding
-            if (customersWithEmail.isEmpty()) {
-                return ResponseService.generateErrorResponse(
-                        "Communication is not done via Email.Not even a single selected customer has an email address to receive communication",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
+                // Check if any customer has an email address before proceeding
+                if (customersWithEmail.isEmpty()) {
+                    return ResponseService.generateErrorResponse(
+                            "Communication is not done via Email.Not even a single selected customer has an email address to receive communication",
+                            HttpStatus.BAD_REQUEST
+                    );
+                }
 
-            // Set both lists in action log
-            actionLog.setCustomersWithEmail(customersWithEmail);
-            actionLog.setCustomersWithoutEmail(customersWithoutEmail);
+                // Set both lists in action log
+                actionLog.setCustomersWithEmail(customersWithEmail);
+                actionLog.setCustomersWithoutEmail(customersWithoutEmail);
 
-            StringBuilder deliveryStatus = new StringBuilder();
+                StringBuilder deliveryStatus = new StringBuilder();
 
-            // Send communications based on selected modes
-            List<File> tempFiles = new ArrayList<>();
-            if (request.getFiles() != null && !request.getFiles().isEmpty()) {
-                if (request.getFiles().size() == 1) {
-                    if (request.getFiles().get(0).getContentType() != null) {
+                // Send communications based on selected modes
+                List<File> tempFiles = new ArrayList<>();
+                if (request.getFiles() != null && !request.getFiles().isEmpty()) {
+                    if (request.getFiles().size() == 1) {
+                        if (request.getFiles().get(0).getContentType() != null) {
+                            tempFiles = createTemporaryFiles(request.getFiles());
+                        }
+                    } else if (request.getFiles().size() > 1) {
                         tempFiles = createTemporaryFiles(request.getFiles());
                     }
-                } else if (request.getFiles().size() > 1) {
-                    tempFiles = createTemporaryFiles(request.getFiles());
                 }
-            }
 
-            try {
-                for (CustomMode mode : modeList) {
-                    try {
-                        if (mode.getCustomModeId().equals(1)) { // Email mode
-                            if (!customersWithEmail.isEmpty()) {
-                                List<String> emailAddresses = customersWithEmail.stream()
-                                        .map(CustomCustomer::getEmailAddress)
-                                        .collect(Collectors.toList());
+                try {
+                    for (CustomMode mode : modeList) {
+                        try {
+                            if (mode.getCustomModeId().equals(1)) { // Email mode
+                                if (!customersWithEmail.isEmpty()) {
+                                    List<String> emailAddresses = customersWithEmail.stream()
+                                            .map(CustomCustomer::getEmailAddress)
+                                            .collect(Collectors.toList());
 
-                                emailService.sendEmailWithAttachments(
-                                        emailAddresses,
-                                        content.getSubject(),
-                                        content.getContentText(),
-                                        tempFiles
-                                );
+                                    emailService.sendEmailWithAttachments(
+                                            emailAddresses,
+                                            content.getSubject(),
+                                            content.getContentText(),
+                                            tempFiles
+                                    );
+                                }
                             }
+                            // Add other communication modes here...
+                        } catch (Exception e) {
+                            deliveryStatus.append(String.format("Failed for mode %d: %s; ",
+                                    mode.getCustomModeId(), e.getMessage()));
                         }
-                        // Add other communication modes here...
-                    } catch (Exception e) {
-                        deliveryStatus.append(String.format("Failed for mode %d: %s; ",
-                                mode.getCustomModeId(), e.getMessage()));
+                    }
+
+                    String finalStatus = deliveryStatus.length() > 0 ?
+                            deliveryStatus.toString() :
+                            (customersWithoutEmail.isEmpty() ? "SUCCESS" : "PARTIALLY_FAILED: Some customers don't have email addresses");
+
+                    actionLog.setDeliveryStatus(finalStatus);
+
+                } finally {
+                    cleanupTemporaryFiles(tempFiles);
+                }
+                entityManager.persist(actionLog);
+                entityManager.flush();
+
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("customersWithEmail", customersWithEmail.stream()
+                        .map(customer -> Map.of(
+                                "id", customer.getId(),
+                                "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
+                                        + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                                "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
+                        ))
+                        .collect(Collectors.toList()));
+
+                responseData.put("customersWithoutEmail", customersWithoutEmail.stream()
+                        .map(customer -> Map.of(
+                                "id", customer.getId(),
+                                // Safely handle first and last name concatenation
+                                "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
+                                        + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                                "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
+                        ))
+                        .collect(Collectors.toList()));
+                responseData.put("actionLog", convertToDTO(actionLog));
+                responseData.put("totalCustomersEmailed", customersWithEmail.size());
+
+                return ResponseService.generateSuccessResponse(
+                        "Communication processed",
+                        responseData,
+                        HttpStatus.OK
+                );
+
+            }else
+            {
+                List<ServiceProviderEntity> allCustomers = customerIdsList.stream()
+                        .map(id -> entityManager.find(ServiceProviderEntity.class, id))
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+                // Separate customers based on email availability
+                List<ServiceProviderEntity> customersWithEmail = new ArrayList<>();
+                List<ServiceProviderEntity> customersWithoutEmail = new ArrayList<>();
+
+                for (ServiceProviderEntity customer : allCustomers) {
+                    if (customer.getPrimary_email() != null && !customer.getPrimary_email().trim().isEmpty()) {
+                        customersWithEmail.add(customer);
+                    } else {
+                        customersWithoutEmail.add(customer);
                     }
                 }
 
-                String finalStatus = deliveryStatus.length() > 0 ?
-                        deliveryStatus.toString() :
-                        (customersWithoutEmail.isEmpty() ? "SUCCESS" : "PARTIALLY_FAILED: Some customers don't have email addresses");
+                // Check if any customer has an email address before proceeding
+                if (customersWithEmail.isEmpty()) {
+                    return ResponseService.generateErrorResponse(
+                            "Communication is not done via Email.Not even a single selected user has an email address to receive communication",
+                            HttpStatus.BAD_REQUEST
+                    );
+                }
 
-                actionLog.setDeliveryStatus(finalStatus);
+                // Set both lists in action log
+                actionLog.setSpwithEmail(customersWithEmail);
+                actionLog.setSpWithoutEmail(customersWithoutEmail);
 
-            } finally {
-                cleanupTemporaryFiles(tempFiles);
+                StringBuilder deliveryStatus = new StringBuilder();
+
+                // Send communications based on selected modes
+                List<File> tempFiles = new ArrayList<>();
+                if (request.getFiles() != null && !request.getFiles().isEmpty()) {
+                    if (request.getFiles().size() == 1) {
+                        if (request.getFiles().get(0).getContentType() != null) {
+                            tempFiles = createTemporaryFiles(request.getFiles());
+                        }
+                    } else if (request.getFiles().size() > 1) {
+                        tempFiles = createTemporaryFiles(request.getFiles());
+                    }
+                }
+
+                try {
+                    for (CustomMode mode : modeList) {
+                        try {
+                            if (mode.getCustomModeId().equals(1)) { // Email mode
+                                if (!customersWithEmail.isEmpty()) {
+                                    List<String> emailAddresses = customersWithEmail.stream()
+                                            .map(ServiceProviderEntity::getPrimary_email)
+                                            .collect(Collectors.toList());
+
+                                    emailService.sendEmailWithAttachments(
+                                            emailAddresses,
+                                            content.getSubject(),
+                                            content.getContentText(),
+                                            tempFiles
+                                    );
+                                }
+                            }
+                            // Add other communication modes here...
+                        } catch (Exception e) {
+                            deliveryStatus.append(String.format("Failed for mode %d: %s; ",
+                                    mode.getCustomModeId(), e.getMessage()));
+                        }
+                    }
+
+                    String finalStatus = deliveryStatus.length() > 0 ?
+                            deliveryStatus.toString() :
+                            (customersWithoutEmail.isEmpty() ? "SUCCESS" : "PARTIALLY_FAILED: Some users don't have email addresses");
+
+                    actionLog.setDeliveryStatus(finalStatus);
+
+                } finally {
+                    cleanupTemporaryFiles(tempFiles);
+                }
+                entityManager.persist(actionLog);
+                entityManager.flush();
+
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("usersWithEmail", customersWithEmail.stream()
+                        .map(customer -> Map.of(
+                                "id", customer.getService_provider_id(),
+                                "name", (customer.getFirst_name() != null ? customer.getFirst_name() : "")
+                                        + " " + (customer.getLast_name() != null ? customer.getLast_name() : ""),
+                                "emailAddress", customer.getPrimary_email() != null ? customer.getPrimary_email() : ""
+                        ))
+                        .collect(Collectors.toList()));
+
+                responseData.put("usersWithoutEmail", customersWithoutEmail.stream()
+                        .map(customer -> Map.of(
+                                "id", customer.getService_provider_id(),
+                                // Safely handle first and last name concatenation
+                                "name", (customer.getFirst_name() != null ? customer.getFirst_name() : "")
+                                        + " " + (customer.getLast_name() != null ? customer.getLast_name() : ""),
+                                "emailAddress", customer.getPrimary_email() != null ? customer.getPrimary_email() : ""
+                        ))
+                        .collect(Collectors.toList()));
+                responseData.put("actionLog", convertToDTO(actionLog));
+                responseData.put("totalUsersEmailed", customersWithEmail.size());
+
+                return ResponseService.generateSuccessResponse(
+                        "Communication processed",
+                        responseData,
+                        HttpStatus.OK
+                );
+
+
             }
-
-            entityManager.persist(actionLog);
-            entityManager.flush();
-
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("customersWithEmail", customersWithEmail.stream()
-                    .map(customer -> Map.of(
-                            "id", customer.getId(),
-                            "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
-                                    + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
-                            "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
-                    ))
-                    .collect(Collectors.toList()));
-
-            responseData.put("customersWithoutEmail", customersWithoutEmail.stream()
-                    .map(customer -> Map.of(
-                            "id", customer.getId(),
-                            // Safely handle first and last name concatenation
-                            "name", (customer.getFirstName() != null ? customer.getFirstName() : "")
-                                    + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
-                            "emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : ""
-                    ))
-                    .collect(Collectors.toList()));
-            responseData.put("actionLog", convertToDTO(actionLog));
-            responseData.put("totalCustomersEmailed", customersWithEmail.size());
-
-            return ResponseService.generateSuccessResponse(
-                    "Communication processed",
-                    responseData,
-                    HttpStatus.OK
-            );
-
         }
         catch (IllegalArgumentException e)
         {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Failed to process communication: " + e.getMessage(),
@@ -408,13 +505,13 @@ public class ServiceProviderActionController {
         List<Long> result = new ArrayList<>();
 
         // Handle the case where customerIds is already a List<Long>
-        if (request.getCustomerIds() instanceof List) {
-            return (List<Long>) request.getCustomerIds();
+        if (request.getUserIds() instanceof List) {
+            return (List<Long>) request.getUserIds();
         }
 
         // Handle string representation (comma-separated values)
-        if (request.getCustomerIds() instanceof String) {
-            String customerIdsStr = (String) request.getCustomerIds();
+        if (request.getUserIds() instanceof String) {
+            String customerIdsStr = (String) request.getUserIds();
             if (customerIdsStr != null && !customerIdsStr.trim().isEmpty()) {
                 String[] idsArray = customerIdsStr.split(",");
                 for (String id : idsArray) {
@@ -571,12 +668,21 @@ public class ServiceProviderActionController {
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
-        List<Long> customerIds = Stream.concat(
-                actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId),
-                actionLog.getCustomersWithoutEmail().stream().map(CustomCustomer::getId)
-        ).collect(Collectors.toList());
-
-        dto.put("customerIds", customerIds);
+        if(actionLog.getCustomersWithEmail()!=null||actionLog.getCustomersWithoutEmail()!=null) {
+            List<Long> customerIds = Stream.concat(
+                    actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId),
+                    actionLog.getCustomersWithoutEmail().stream().map(CustomCustomer::getId)
+            ).collect(Collectors.toList());
+            dto.put("customerIds", customerIds);
+        }
+        else
+        {
+            List<Long> customerIds = Stream.concat(
+                    actionLog.getSpwithEmail().stream().map(ServiceProviderEntity::getService_provider_id),
+                    actionLog.getSpWithoutEmail().stream().map(ServiceProviderEntity::getService_provider_id)
+            ).collect(Collectors.toList());
+            dto.put("userIds", customerIds);
+        }
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
         if(actionLog.getServiceProvider()!=null)
         {
@@ -584,7 +690,7 @@ public class ServiceProviderActionController {
         }
         if(actionLog.getAdmin()!=null)
         {
-            dto.put("adminId", actionLog.getAdmin().getAdmin_id());
+            dto.put("adminId", actionLog.getAdmin().getService_provider_id());
         }
         dto.put("roleId",actionLog.getRole().getRole_id());
         dto.put("actionTimestamp", actionLog.getActionTimestamp());
@@ -729,7 +835,7 @@ public class ServiceProviderActionController {
         List<Map<String, Object>> customersWithoutEmail = actionLog.getCustomersWithoutEmail().stream()
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
-                    recipientInfo.put("customerId", customer.getId());
+                    recipientInfo.put("userId", customer.getId());
                     String name = (customer.getFirstName() != null ? customer.getFirstName() : "")
                             + " " + (customer.getLastName() != null ? customer.getLastName() : "");
                     recipientInfo.put("name", name.trim()); // Remove unnecessary whitespace
@@ -742,15 +848,15 @@ public class ServiceProviderActionController {
         List<Map<String, Object>> customersWithEmail = actionLog.getCustomersWithEmail().stream()
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
-                    recipientInfo.put("customerId", customer.getId());
+                    recipientInfo.put("userId", customer.getId());
                     String name=(customer.getFirstName()!=null ?customer.getFirstName() : "") + " " + (customer.getLastName()!=null ? customer.getLastName():"");
                     recipientInfo.put("name",name.trim());
                     recipientInfo.put("emailAddress", customer.getEmailAddress()!=null ? customer.getEmailAddress():"");
                     return recipientInfo;
                 })
                 .collect(Collectors.toList());
-        dto.put("customersWithEmail", customersWithEmail);
-        dto.put("customersWithoutEmail", customersWithoutEmail);
+        dto.put("userWithEmail", customersWithEmail);
+        dto.put("userWithoutEmail", customersWithoutEmail);
         dto.put("timestamp", actionLog.getActionTimestamp());
         dto.put("actionLogId", actionLog.getActionLogId());
         dto.put("modes", actionLog.getCustomModes().stream().map(CustomMode::getCustomModeId).collect(Collectors.toList()));
