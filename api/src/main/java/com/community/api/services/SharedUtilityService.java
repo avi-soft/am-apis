@@ -763,6 +763,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("service_provider_id", serviceProvider.getService_provider_id());
         serviceProviderDetails.put("user_name", serviceProvider.getUser_name());
         serviceProviderDetails.put("first_name", serviceProvider.getFirst_name());
+        serviceProviderDetails.put("profile_pic_NA", serviceProvider.getPfpNa());
+        serviceProviderDetails.put("is_CForm_available", serviceProvider.getIsCFormAvailable());
         serviceProviderDetails.put("last_name", serviceProvider.getLast_name());
         serviceProviderDetails.put("full_name", serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name());
         serviceProviderDetails.put("country_code", serviceProvider.getCountry_code());
