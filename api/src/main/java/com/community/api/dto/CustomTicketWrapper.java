@@ -14,6 +14,8 @@ import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 
+
+import javax.persistence.Access;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
@@ -62,9 +64,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     protected CombinedOrderDTO order;
     @JsonProperty("task_description")
     protected String task_desc;
-
     @Autowired
     private EntityManager entityManager;
+
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
         this.id = customServiceProviderTicket.getTicketId();
@@ -90,6 +92,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             System.out.println("id is"+customServiceProviderTicket.getAssignee());
             serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
             System.out.println("name is"+serviceProvider.getFirst_name());
+            serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
             this.assigneeName = serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
         }
         catch (Exception e)
