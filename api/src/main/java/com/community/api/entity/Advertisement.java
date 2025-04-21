@@ -113,5 +113,4 @@ public class Advertisement {
     @Column(name = "additional_comments")
     @JsonProperty("adv_additional_comments")
     private String additionalComments;
-
 }

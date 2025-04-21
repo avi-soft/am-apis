@@ -26,6 +26,7 @@ import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.community.api.utils.ServiceProviderDocument;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
@@ -497,7 +498,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-
+            if(updates.containsKey("isCFormAvailable"))
+                existingServiceProvider.setIsCFormAvailable((Boolean)updates.get("isCFormAvailable"));
             if (!infraList.isEmpty()) {
                 for (int infra_id : infraList) {
                     ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);
@@ -508,6 +510,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } else {
                 serviceProviderInfras = existingServiceProvider.getInfra();
+            }
+            if(updates.containsKey("pfpNa")&& (Boolean) updates.get("pfpNa"))
+            {
+                System.out.println("hii");
+                    Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
+                    while (iterator.hasNext()) {
+                        ServiceProviderDocument document = iterator.next();
+                        if (document.getDocumentType().getDocument_type_id() == 17) {
+                            iterator.remove();
+                        }
+                    }
             }
             if (!languageList.isEmpty()) {
                 for (int language_id : languageList) {

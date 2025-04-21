@@ -71,7 +71,8 @@ public class ServiceProviderEntity  {
 
     private String user_name;
 
-
+    @Column(name = "profile_pic_req",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean pfpNa;
     /*@Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "businessPhoto", columnDefinition="BLOB")
@@ -82,35 +83,28 @@ public class ServiceProviderEntity  {
 
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "First name must contain only alphabets")
-    @NotEmpty
     private String first_name;
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Last name must contain only alphabets")
-    @NotEmpty
     private String last_name;
     //@TODO-countryCode to country_code for both customer and service provider
     private String country_code;
 
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
-    @NotEmpty
     private String father_name;
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
-    @NotEmpty
     @Column(name = "mother_name")
     private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
-@NotEmpty
     private String date_of_birth;
 
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be a 12-digit numeric value")
     @Size(min = 12, max = 12, message = "Aadhaar number must be exactly 12 digits long")
     @Size(min = 12, max = 12)
-    @NotEmpty
     private String aadhaar_number;
 
     @Nullable
     @Size(min = 10, max = 10)
-    @NotEmpty
     @Pattern(regexp = "^[A-Z]{5}\\d{4}[A-Z]{1}$", message = "Invalid format. Use 5 uppercase letters, 4 digits, and 1 uppercase letter.")
 
     private String pan_number;
@@ -131,11 +125,9 @@ public class ServiceProviderEntity  {
     private int role;
     @Size(min = 9, max = 13)
     @Pattern(regexp = "^\\d{9,13}$", message = "WhatsApp number should be between 9 and 13 digits in length")
-    @NotEmpty
     public String whatsapp_number;
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
-    @NotEmpty
     public String primary_email;
 
     @Nullable
@@ -143,10 +135,8 @@ public class ServiceProviderEntity  {
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Please enter a valid email address.")*/
     public String secondary_email;
     @JsonIgnore
-    @NotEmpty
     private String password;
     @Nullable
-    @NotEmpty
     private Boolean is_running_business_unit=false;
 
     @Nullable
