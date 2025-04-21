@@ -117,7 +117,7 @@ public class FormDataArgumentResolver implements HandlerMethodArgumentResolver {
     }
 
     private void validateRequiredFields(Map<String, String[]> formData) {
-        if (!formData.containsKey("customerIds")) {
+        if (!formData.containsKey("userIds")) {
             throw new IllegalArgumentException("Customer IDs are required");
         }
         if (!formData.containsKey("modes")) {

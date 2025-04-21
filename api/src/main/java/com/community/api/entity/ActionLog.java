@@ -33,13 +33,15 @@ public class ActionLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long actionLogId;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = true)
+    @JoinColumn(name = "service_provider_id", nullable = true)
     private ServiceProviderEntity serviceProvider;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "admin_id", referencedColumnName = "admin_id", nullable = true)
-    private CustomAdmin admin;
+    @JoinColumn(name = "service_provider_id", insertable = false, updatable = false, nullable = true)
+    private ServiceProviderEntity admin;
 
     @ManyToOne
     @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = true)
@@ -60,6 +62,22 @@ public class ActionLog {
             inverseJoinColumns = @JoinColumn(name = "customer_id")
     )
     private List<CustomCustomer> customersWithoutEmail;
+
+    @ManyToMany
+    @JoinTable(
+            name = "action_log_sp_with_email",
+            joinColumns = @JoinColumn(name = "action_log_id"),
+            inverseJoinColumns = @JoinColumn(name = "service_provider_id")
+    )
+    private List<ServiceProviderEntity> spwithEmail;
+
+    @ManyToMany
+    @JoinTable(
+            name = "action_log_sp_without_email",
+            joinColumns = @JoinColumn(name = "action_log_id"),
+            inverseJoinColumns = @JoinColumn(name = "service_provider_id")
+    )
+    private List<ServiceProviderEntity> spWithoutEmail;
 
     @ManyToMany
     @JoinTable(
