@@ -71,7 +71,8 @@ public class ServiceProviderEntity  {
 
     private String user_name;
 
-
+    @Column(name = "profile_pic_req",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean pfpNa;
     /*@Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "businessPhoto", columnDefinition="BLOB")
@@ -84,7 +85,6 @@ public class ServiceProviderEntity  {
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "First name must contain only alphabets")
     private String first_name;
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Last name must contain only alphabets")
-
     private String last_name;
     //@TODO-countryCode to country_code for both customer and service provider
     private String country_code;
@@ -96,13 +96,11 @@ public class ServiceProviderEntity  {
     private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
-
     private String date_of_birth;
 
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be a 12-digit numeric value")
     @Size(min = 12, max = 12, message = "Aadhaar number must be exactly 12 digits long")
     @Size(min = 12, max = 12)
-
     private String aadhaar_number;
 
     @Nullable
@@ -137,10 +135,8 @@ public class ServiceProviderEntity  {
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "Please enter a valid email address.")*/
     public String secondary_email;
     @JsonIgnore
-
     private String password;
     @Nullable
-
     private Boolean is_running_business_unit=false;
 
     @Nullable

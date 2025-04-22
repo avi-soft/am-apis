@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
 import java.util.Date;
 
 @Data
@@ -26,4 +27,9 @@ public class AddReserveCategoryDto {
     Long gender;
     @JsonProperty("fee_additional_comments")
     String additionalComment;
+    @Column(name = "is_other_or_state_category")
+    private Boolean isOtherOrStateCategory;
+
+    @Column(name = "other_or_state_category", columnDefinition = "text")
+    private String otherOrStateCategory;
 }
