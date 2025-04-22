@@ -992,9 +992,8 @@ public ResponseEntity<?> getAllServiceProviders(
         ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,spId);
         if(serviceProvider==null)
             return ResponseService.generateErrorResponse("User not found",HttpStatus.NOT_FOUND);
-        Role role=roleService.getRoleByRoleId(serviceProvider.getRole());
-        if(!Constant.roleServiceProvider.equals(role.getRole_name()))
-            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        if(serviceProvider.getCompleted())
+            return ResponseService.generateErrorResponse("Profile already completed",HttpStatus.BAD_REQUEST);
         serviceProvider.setCompleted(true);
         try {
             return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
