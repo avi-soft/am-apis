@@ -3,9 +3,11 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.BankAccountDTO;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.BankDetails;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
@@ -19,7 +21,9 @@ import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.Skill;
 import com.community.api.entity.SuccessResponse;
+import com.community.api.services.BankAccountService;
 import com.community.api.services.DistrictService;
+import com.community.api.services.DocumentStorageService;
 import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.ReserveCategoryDtoService;
@@ -31,6 +35,8 @@ import com.community.api.services.SharedUtilityService;
 import com.community.api.services.TicketStateService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.community.api.utils.Document;
+import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.order.service.OrderService;
 
 import org.broadleafcommerce.profile.core.service.CustomerService;
@@ -50,17 +56,21 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.community.api.component.Constant.CURRENT_ADDRESS_ID;
+import static com.community.api.component.Constant.PERMANENT_ADDRESS_ID;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @RestController
@@ -69,6 +79,9 @@ public class ServiceProviderController {
 
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
+
+    @Autowired
+    private BankAccountService bankAccountService;
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -83,6 +96,8 @@ public class ServiceProviderController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private TwilioServiceForServiceProvider twilioService;
+    @Autowired
+    private DocumentStorageService documentStorageService;
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
     @Autowired
@@ -147,7 +162,123 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Authorize(value = {Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin})
+    @Transactional
+    @PutMapping("{spId}/submit-profile")
+    public ResponseEntity<?>submitProfie(@PathVariable Long spId,@RequestHeader (value = "AuthHeader")String authHeader) throws Exception {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
+        if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId, spId))
+            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        if (serviceProvider == null)
+            return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
 
+
+        // List of required fields
+        List<String> REQUIRED_FIELDS = Arrays.asList(
+                "first_name",                   // @NotEmpty + @Pattern
+                "last_name",                    // @NotEmpty + @Pattern
+                "father_name",                 // @NotEmpty + @Pattern
+                "mother_name",                 // @NotEmpty + @Pattern
+                "date_of_birth",              // @NotEmpty
+                "aadhaar_number",             // @NotEmpty + @Size + @Pattern
+                "pan_number",                 // @NotEmpty + @Size + @Pattern (despite @Nullable)
+                "mobileNumber",               // @Size(min=9, max=13)
+                "whatsapp_number",           // @NotEmpty + @Size + @Pattern
+                "primary_email",             // @NotEmpty + @Email
+                "password",                  // @NotEmpty + @JsonIgnore
+                "is_running_business_unit"// @NotEmpty (despite @Nullable)
+        );
+        //validating all required fields
+        for (String fieldName : REQUIRED_FIELDS) {
+            try {
+                Field field = ServiceProviderEntity.class.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                if (field.get(serviceProvider) == null) {
+                    return ResponseService.generateErrorResponse(fieldName + " is not filled", HttpStatus.BAD_REQUEST);
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+            }
+        }
+/*        if(serviceProvider.getQualificationDetailsList().isEmpty())
+            return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
+        boolean hasCurrent = false;
+        boolean hasPermanent = false;
+
+        for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
+            if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
+                hasCurrent = true;
+            } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
+                hasPermanent = true;
+            }
+        }
+
+        if (!hasCurrent && !hasPermanent)
+            return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
+        else if (!hasPermanent)
+            return ResponseService.generateErrorResponse("Permanent address is not filled", HttpStatus.BAD_REQUEST);
+        else if (!hasCurrent)
+            return ResponseService.generateErrorResponse("Current address is not filled", HttpStatus.BAD_REQUEST);
+
+        if (serviceProvider.getIs_running_business_unit().equals(true)) {
+            REQUIRED_FIELDS = Arrays.asList(
+                    "business_name",
+                    "business_location",
+                    "business_email",
+                    "number_of_employees",
+                    "isCFormAvailable",
+                    "latitude",
+                    "longitude",
+                    "has_technical_knowledge",
+                    "work_experience_in_months"
+            );
+            for (String fieldName : REQUIRED_FIELDS) {
+                try {
+                    Field field = ServiceProviderEntity.class.getDeclaredField(fieldName);
+                    field.setAccessible(true);
+                    if (field.get(serviceProvider) == null) {
+                        return ResponseService.generateErrorResponse(fieldName + " is not filled", HttpStatus.BAD_REQUEST);
+                    }
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+                }
+            }
+            if (serviceProvider.getIsCFormAvailable() && serviceProvider.getRegistration_number() == null)
+                return ResponseService.generateErrorResponse("Registeration number is not filled", HttpStatus.BAD_REQUEST);
+            if (serviceProvider.getInfra().isEmpty())
+                return ResponseService.generateErrorResponse("Infra list cannot be empty", HttpStatus.BAD_REQUEST);
+            if (serviceProvider.getHas_technical_knowledge() && serviceProvider.getSkills().isEmpty())
+                return ResponseService.generateErrorResponse("Skill list cannot be empty", HttpStatus.BAD_REQUEST);
+            if(bankAccountService.getBankAccountsByCustomerId(serviceProvider.getService_provider_id(),4).isEmpty())
+                return ResponseService.generateErrorResponse("Bank account Not added",HttpStatus.BAD_REQUEST);
+            Map<String, Integer> docMap = new HashMap<>();
+
+            docMap.put("Aadhaar_Card_Front", 1);
+            docMap.put("Aadhaar_Card_Backside", 1);
+            docMap.put("Signature", 1);
+            docMap.put("Pan_Card", 1);
+            if(!serviceProvider.getPfpNa()) {
+                docMap.put("Personal_Photo", 1);
+            }
+            for(ServiceProviderDocument document:serviceProvider.getDocuments())
+            {
+                System.out.println(document.getDocumentType().getDocument_type_name());
+                if(docMap.containsKey(document.getDocumentType().getDocument_type_name())) {
+                    docMap.put(document.getDocumentType().getDocument_type_name(), 0);
+                }
+            }
+            for (Map.Entry<String, Integer> entry : docMap.entrySet()) {
+                if(entry.getValue()==1)
+                    return ResponseService.generateErrorResponse(entry.getKey()+" is not uploaded",HttpStatus.BAD_REQUEST);
+            }
+        }
+        serviceProvider.setCompleted(true);
+        entityManager.merge(serviceProvider);
+        return ResponseService.generateSuccessResponse("Details validated Successfully",sharedUtilityService.serviceProviderDetailsMap(serviceProvider),HttpStatus.OK);
+    }
     @Transactional
     @DeleteMapping("delete")
     public ResponseEntity<?> deleteServiceProvider(@RequestParam Long userId) {
@@ -836,6 +967,8 @@ public ResponseEntity<?> getAllServiceProviders(
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
+
+
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
