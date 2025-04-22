@@ -450,4 +450,62 @@ public class CategoryController extends CatalogEndpoint {
         }
     }
 
+    @GetMapping(value = "/get-all-categories-info")
+    public ResponseEntity<?> getCategoriesInfo(
+            HttpServletRequest request,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        try {
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Category> categories = this.catalogService.findAllCategories();
+            List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
+
+            for (Category category : categories) {
+                if (category.getDefaultParentCategory() == null) {
+                    if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
+                            (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
+
+                        // Create the wrapper without products
+                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
+                        wrapper.wrapDetailsCategory(category, null, request); // Passing null for products
+                        activeCategories.add(wrapper);
+                    }
+                }
+            }
+
+            // Pagination logic
+            int totalItems = activeCategories.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("PAGE INDEX OUT OF RANGE", HttpStatus.BAD_REQUEST);
+            }
+
+            List<CustomCategoryWrapper> paginatedCategories = (totalItems > 0) ? activeCategories.subList(fromIndex, toIndex) : new ArrayList<>();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("categories", paginatedCategories);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            String message = totalItems > 0 ? "CATEGORIES INFO FOUND SUCCESSFULLY" : "CATEGORIES INFO IS EMPTY";
+
+            return ResponseService.generateSuccessResponse(message, response, HttpStatus.OK);
+
+        } catch (IllegalArgumentException exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
 }
