@@ -900,7 +900,7 @@ public ResponseEntity<?> getAllServiceProviders(
         String actionReq = null;
 
 
-        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
+        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)&&(!action.equals(Constant.ACTION_APPROVE))) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
         // Check if the spIds list is empty and return an error response
@@ -924,9 +924,27 @@ public ResponseEntity<?> getAllServiceProviders(
                 skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
+            if (action.equals(Constant.ACTION_APPROVE)) {
+                Role role=roleService.getRoleByRoleId(roleId);
+                if(!Constant.roleSuperAdmin.equals(role.getRole_name()))
+                {
+                    return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
+                }
+                if (serviceProvider.getApproved().equals(true)) {
+                    skippedIds.put(customerId, "User Already approved");
+                    ++actionCount;
+                    continue;
+                }
+                if(!serviceProvider.getCompleted())
+                {
+                        skippedIds.put(customerId, "Profile not completed");
+                        continue;
+                }
+                serviceProvider.setApproved(true);
+            }
 
             //checking valid permissions
-            if (action.equals(Constant.ACTION_SUSPEND)) {
+            else if (action.equals(Constant.ACTION_SUSPEND)) {
                 if (serviceProvider.getIsArchived().equals(true)) {
                     skippedIds.put(customerId, "User Already Suspended");
                     ++actionCount;
@@ -965,6 +983,24 @@ public ResponseEntity<?> getAllServiceProviders(
             response.put(actionReq + " Ids:", actionedIds);
             response.put("Skipped Ids:", skippedIds);
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
+        }
+    }
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @Transactional
+    @PutMapping("{spId}/force-complete")
+    public ResponseEntity<?> completeSp(@PathVariable Long spId,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
+        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,spId);
+        if(serviceProvider==null)
+            return ResponseService.generateErrorResponse("User not found",HttpStatus.NOT_FOUND);
+        Role role=roleService.getRoleByRoleId(serviceProvider.getRole());
+        if(!Constant.roleServiceProvider.equals(role.getRole_name()))
+            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        serviceProvider.setCompleted(true);
+        try {
+            return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
+        }catch (Exception exception)
+        {
+            return ResponseService.generateErrorResponse("Could not complete profile due to an error",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

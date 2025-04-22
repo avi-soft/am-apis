@@ -449,7 +449,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("dateUpdated", customer.getAuditable().getDateUpdated());
             customerDetailsForDesktop.put("updatedBy", customer.getAuditable().getUpdatedBy());
             customerDetailsForDesktop.put("username", customer.getUsername());
-            customerDetailsForDesktop.put("password", customer.getPassword());
+        /*    customerDetailsForDesktop.put("password", customer.getPassword());*/
             customerDetailsForDesktop.put("emailAddress", customer.getEmailAddress());
             customerDetailsForDesktop.put("firstName", customer.getFirstName());
             customerDetailsForDesktop.put("lastName", customer.getLastName());
@@ -778,7 +778,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("whatsapp_number", serviceProvider.getWhatsapp_number());
         serviceProviderDetails.put("primary_email", serviceProvider.getPrimary_email());
         serviceProviderDetails.put("secondary_email", serviceProvider.getSecondary_email());
-        serviceProviderDetails.put("password", serviceProvider.getPassword());
+       /* serviceProviderDetails.put("password", serviceProvider.getPassword());*/
         serviceProviderDetails.put("is_running_business_unit", serviceProvider.getIs_running_business_unit());
         serviceProviderDetails.put("business_name", serviceProvider.getBusiness_name());
         serviceProviderDetails.put("business_location", serviceProvider.getBusiness_location());
