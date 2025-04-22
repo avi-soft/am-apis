@@ -2655,6 +2655,8 @@ public class ProductService {
                                 if (qualificationEligibilityDto.getPercentage() != null)
                                     throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
                             } else {
+                                if (qualificationEligibilityDto.getCgpa() != null)
+                                    throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
                                 // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
                                 throw new IllegalArgumentException("Percentage is required when isPercentage is true");
                             }
