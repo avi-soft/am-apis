@@ -162,10 +162,16 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Authorize(value = {Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
-    public ResponseEntity<?>submitProfie(@PathVariable Long spId) throws Exception {
+    public ResponseEntity<?>submitProfie(@PathVariable Long spId,@RequestHeader (value = "AuthHeader")String authHeader) throws Exception {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
+        if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId, spId))
+            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
         if (serviceProvider == null)
             return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
 
@@ -269,6 +275,8 @@ public class ServiceProviderController {
                     return ResponseService.generateErrorResponse(entry.getKey()+" is not uploaded",HttpStatus.BAD_REQUEST);
             }
         }
+        serviceProvider.setCompleted(true);
+        entityManager.merge(serviceProvider);
         return ResponseService.generateSuccessResponse("Details validated Successfully",sharedUtilityService.serviceProviderDetailsMap(serviceProvider),HttpStatus.OK);
     }
     @Transactional
@@ -959,6 +967,8 @@ public ResponseEntity<?> getAllServiceProviders(
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
+
+
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
