@@ -179,6 +179,7 @@ public class ServiceProviderEntity  {
     private Integer work_experience_in_months;
 
     @Nullable
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean rejected=false;
 
     private String highest_qualification;
