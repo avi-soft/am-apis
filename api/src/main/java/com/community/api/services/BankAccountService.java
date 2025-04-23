@@ -94,7 +94,7 @@ public class BankAccountService {
             BankDetails bankDetails = new BankDetails();
             bankDetails.setAccountNumber(bankAccountDTO.getAccountNumber());
             bankDetails.setUserId(bankAccountDTO.getUserId());
-            bankDetails.setRole(roleId);
+            bankDetails.setRole(bankAccountDTO.getRole());
             bankDetails.setIfscCode(bankAccountDTO.getIfscCode());
             bankDetails.setBankName(bankAccountDTO.getBankName());
             bankDetails.setBranchName(bankAccountDTO.getBranchName());
