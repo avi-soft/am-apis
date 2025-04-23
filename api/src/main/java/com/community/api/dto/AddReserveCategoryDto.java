@@ -27,9 +27,8 @@ public class AddReserveCategoryDto {
     Long gender;
     @JsonProperty("fee_additional_comments")
     String additionalComment;
-    @Column(name = "is_other_or_state_category")
-    private Boolean isOtherOrStateCategory;
-
-    @Column(name = "other_or_state_category", columnDefinition = "text")
-    private String otherOrStateCategory;
+    @JsonProperty("is_other_or_state_category")
+     Boolean isOtherOrStateCategory;
+    @JsonProperty("other_or_state_category")
+     String otherOrStateCategory;
 }
