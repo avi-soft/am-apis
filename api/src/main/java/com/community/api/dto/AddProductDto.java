@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
@@ -61,6 +62,12 @@ public class AddProductDto {
     String displayTemplate;
     @JsonProperty("other_info")
     String otherInfo;
+    @Column(name = "answer_key_available_date")
+    protected Date answerKeyAvailableDate;
+    @Column(name = "result_declaration_date")
+    protected Date resultDeclarationDate;
+    @Column(name = "counselling_date")
+    protected Date counsellingDate;
     @JsonProperty("rejection_status_id")
     Long rejectionStatus;
     @Temporal(TemporalType.TIMESTAMP)
