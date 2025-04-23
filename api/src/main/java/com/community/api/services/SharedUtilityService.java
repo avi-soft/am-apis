@@ -803,7 +803,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("qualification_score", serviceProvider.getQualificationScore());
         serviceProviderDetails.put("technical_expertise_score", serviceProvider.getTechnicalExpertiseScore());
         serviceProviderDetails.put("work_experience_score", serviceProvider.getWorkExperienceScore());
-        serviceProviderDetails.put("archived",serviceProvider.getIsArchived());
+        serviceProviderDetails.put("suspended",serviceProvider.getIsArchived());
         serviceProviderDetails.put("written_test_score", serviceProvider.getWrittenTestScore());
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());

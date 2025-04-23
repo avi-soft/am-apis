@@ -453,7 +453,7 @@ public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(required = false) Long test_status_id,
             @RequestHeader(value = "Authorization")String authHeader,
             @RequestParam(required = false)Boolean completed,
-            @RequestParam(required = false)Boolean archived,
+            @RequestParam(required = false)Boolean suspended,
             @RequestParam(required = false)Boolean approved,
             @RequestParam(required = false) Integer role,
             @RequestParam(value = "offset",defaultValue = "0") int offset,
@@ -495,7 +495,7 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
             }
 
             // Handle search by full name (split into first and last names)
@@ -507,11 +507,11 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, archived, approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
