@@ -1409,7 +1409,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved,Boolean rejected) {
         try {
             CustomServiceProviderTicket customServiceProviderTicket=null;
             if(ticketId!=null)
@@ -1450,6 +1450,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("completed", 's');
             alias.put("archived", 's');
             alias.put("approved", 's');
+            alias.put("rejected", 's');
             String generalizedQuery=null;
             if(state!=null||district!=null) {
                  generalizedQuery = "SELECT s.*\n" +
@@ -1484,8 +1485,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     throw new IllegalArgumentException("No Test Status is found with this id");
                 }
             }
-            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved"};
-            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved};
+            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved","rejected"};
+            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved,rejected};
             System.out.println("role"+role);
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {

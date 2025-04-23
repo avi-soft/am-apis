@@ -178,6 +178,9 @@ public class ServiceProviderEntity  {
     @Min(0)
     private Integer work_experience_in_months;
 
+    @Nullable
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean rejected=false;
 
     private String highest_qualification;
     private String name_of_institute;
@@ -195,6 +198,7 @@ public class ServiceProviderEntity  {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "service_provider_id")
     private List<ServiceProviderAddress> spAddresses;
+
 
     @OneToOne(cascade = CascadeType.ALL,orphanRemoval = true)
     @JoinColumn(name = "status_id", referencedColumnName = "status_id")
