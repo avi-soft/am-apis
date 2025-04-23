@@ -106,6 +106,9 @@ public class PostService {
                 }
                 else {
                     if (addProductAgeDTO.getAsOfDate() == null) {
+                        throw new IllegalArgumentException("As of date is required");
+                    }
+                    /*
                         calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
                         int currentYear = calendar.get(Calendar.YEAR);
 
@@ -124,7 +127,7 @@ public class PostService {
                         String formattedDate = sdf.format(asOfDate);
 
                         addProductAgeDTO.setAsOfDate(formattedDate);
-                    } /*else
+                    }*/ /*else
                     {
                         String input = addProductAgeDTO.getAsOfDate(); // "2006-01-16"
                         LocalDate localDate = LocalDate.parse(input); // parses ISO date

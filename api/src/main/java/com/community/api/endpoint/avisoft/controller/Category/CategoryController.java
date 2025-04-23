@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Category;
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddCategoryDto;
+import com.community.api.dto.CategoryDto;
 import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.entity.CustomProduct;
 import com.community.api.dto.CustomProductWrapper;
@@ -24,6 +25,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import com.community.api.dto.CategoryDto;
+
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -460,18 +463,16 @@ public class CategoryController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Category> categories = this.catalogService.findAllCategories();
-            List<CustomCategoryWrapper> activeCategories = new ArrayList<>();
+            List<Category> categories = catalogService.findAllCategories();
+            List<CategoryDto> activeCategories = new ArrayList<>();
 
             for (Category category : categories) {
                 if (category.getDefaultParentCategory() == null) {
                     if ((((Status) category).getArchived() != 'Y' && category.getActiveEndDate() == null) ||
                             (((Status) category).getArchived() != 'Y' && category.getActiveEndDate().after(new Date()))) {
 
-                        // Create the wrapper without products
-                        CustomCategoryWrapper wrapper = new CustomCategoryWrapper();
-                        wrapper.wrapDetailsCategory(category, null, request); // Passing null for products
-                        activeCategories.add(wrapper);
+                        CategoryDto dto = new CategoryDto(category);
+                        activeCategories.add(dto);
                     }
                 }
             }
@@ -486,7 +487,9 @@ public class CategoryController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse("PAGE INDEX OUT OF RANGE", HttpStatus.BAD_REQUEST);
             }
 
-            List<CustomCategoryWrapper> paginatedCategories = (totalItems > 0) ? activeCategories.subList(fromIndex, toIndex) : new ArrayList<>();
+            List<CategoryDto> paginatedCategories = (totalItems > 0)
+                    ? activeCategories.subList(fromIndex, toIndex)
+                    : new ArrayList<>();
 
             Map<String, Object> response = new HashMap<>();
             response.put("categories", paginatedCategories);
@@ -506,6 +509,7 @@ public class CategoryController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(SOMEEXCEPTIONOCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
 
 
 }

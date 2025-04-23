@@ -3317,7 +3317,7 @@ public class CustomerEndpoint {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-        List<Long> ids = getLongList(map, "customerIds");
+        List<Long> ids = getLongList(map, "userIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
         String actionReq = null;
