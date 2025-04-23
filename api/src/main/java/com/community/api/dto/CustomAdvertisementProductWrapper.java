@@ -14,6 +14,7 @@ import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.persistence.Column;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -86,6 +87,12 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
     Long totalVacancies;
     @JsonProperty("fee")
     Double fee;
+    @Column(name = "answer_key_available_date")
+    protected Date answerKeyAvailableDate;
+    @Column(name = "result_declaration_date")
+    protected Date resultDeclarationDate;
+    @Column(name = "counselling_date")
+    protected Date counsellingDate;
     @JsonProperty("age_limit")
     String ageLimit;
     @JsonProperty("number_of_posts")
@@ -124,7 +131,9 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.downloadNotificationLink = product.getDownloadNotificationLink();
         this.downloadSyllabusLink = product.getDownloadSyllabusLink();
         this.formComplexity = product.getFormComplexity();
-
+        this.resultDeclarationDate=product.getResultDeclarationDate();
+        this.counsellingDate=product.getCounsellingDate();
+        this.answerKeyAvailableDate=product.getAnswerKeyAvailableDate();
         this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacancies = product.getTotalVacanciesInProduct();
@@ -140,7 +149,9 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.metaDescription = product.getMetaDescription();
-
+        this.resultDeclarationDate=product.getResultDeclarationDate();
+        this.counsellingDate=product.getCounsellingDate();
+        this.answerKeyAvailableDate=product.getAnswerKeyAvailableDate();
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
 
