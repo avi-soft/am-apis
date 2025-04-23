@@ -28,4 +28,8 @@ public class ReserveCategoryDto {
     String genderName;
     @JsonProperty("fee_additional_comments")
     String additionalComments;
+    @JsonProperty("is_other_or_state_category")
+    Boolean isOtherOrStateCategory;
+    @JsonProperty("other_or_state_category")
+    String otherOrStateCategory;
 }

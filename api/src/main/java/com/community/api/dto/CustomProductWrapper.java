@@ -176,6 +176,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
                 reserveCategoryDto.setGenderId(addProductDto.getReservedCategory().get(i).getGender());
                 reserveCategoryDto.setGenderName(genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(i).getGender()).getGenderName());
+                reserveCategoryDto.setIsOtherOrStateCategory(addProductDto.getReservedCategory().get(i).getIsOtherOrStateCategory());
+                reserveCategoryDto.setOtherOrStateCategory(addProductDto.getReservedCategory().get(i).getOtherOrStateCategory());
                 reserveCategoryDtoList.add(reserveCategoryDto);
             }
         }
