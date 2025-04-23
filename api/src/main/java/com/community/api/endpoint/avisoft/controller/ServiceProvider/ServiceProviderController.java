@@ -586,6 +586,7 @@ public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(required = false)Boolean completed,
             @RequestParam(required = false)Boolean suspended,
             @RequestParam(required = false)Boolean approved,
+            @RequestParam(required = false)Boolean rejected,
             @RequestParam(required = false) Integer role,
             @RequestParam(value = "offset",defaultValue = "0") int offset,
             @RequestParam(value = "limit",defaultValue = "10") int limit,
@@ -626,7 +627,7 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
             }
 
             // Handle search by full name (split into first and last names)
@@ -638,11 +639,11 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
@@ -897,10 +898,11 @@ public ResponseEntity<?> getAllServiceProviders(
         List<Long> ids = getLongList(map, "spIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
+        action=action.toLowerCase();
         String actionReq = null;
 
 
-        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)&&(!action.equals(Constant.ACTION_APPROVE))) {
+        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)&&(!action.equals(Constant.ACTION_APPROVE))&&(!action.equals(Constant.ACTION_REJECT))) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
         // Check if the spIds list is empty and return an error response
@@ -909,7 +911,7 @@ public ResponseEntity<?> getAllServiceProviders(
         }
 
 
-        if (action.equals("suspend"))
+        if (action.equals("suspend")||action.equals("reject"))
             actionReq = action + "ed";
         else
             actionReq = action + "d";
@@ -941,6 +943,30 @@ public ResponseEntity<?> getAllServiceProviders(
                         continue;
                 }
                 serviceProvider.setApproved(true);
+            }
+            else if(Constant.ACTION_REJECT.equals(action))
+            {
+                Role role=roleService.getRoleByRoleId(roleId);
+                if(!Constant.roleSuperAdmin.equals(role.getRole_name()))
+                {
+                    return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
+                }
+                if (serviceProvider.getRejected()!=null&&serviceProvider.getRejected().equals(true)) {
+                    skippedIds.put(customerId, "User Already rejected");
+                    ++actionCount;
+                    continue;
+                }
+                if (serviceProvider.getRejected()!=null&&serviceProvider.getApproved()) {
+                    skippedIds.put(customerId, "Cannot reject,User is approved");
+                    ++actionCount;
+                    continue;
+                }
+/*                if(!serviceProvider.getCompleted())
+                {
+                    skippedIds.put(customerId, "Profile not completed");
+                    continue;
+                }*/
+                serviceProvider.setRejected(true);
             }
 
             //checking valid permissions
