@@ -317,7 +317,8 @@ public class AdvertisementController {
                     List<CustomProduct> activeProducts = customProducts.stream()
                             .filter(customProduct -> customProduct != null &&
                                     (((Status) customProduct).getArchived() != 'Y' &&
-                                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())))
+                                            customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                             && customProduct.getGoLiveDate().before(new Date()))
                             .collect(Collectors.toList());
 
                     // **Skip this advertisement if all products are expired**

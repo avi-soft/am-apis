@@ -154,6 +154,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         List<Pattern> bypassPatterns = Arrays.asList(
                 Pattern.compile("^/api/v1/category-custom/get-products-by-category-id/\\d+$"),
                 Pattern.compile("^/api/v1/category-custom/get-all-categories$"),
+                Pattern.compile("^/api/v1/category-custom/get-all-categories-info$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
                 Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$")
@@ -172,6 +173,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return requestURI.startsWith("/api/v1/account")
                 || requestURI.startsWith("/api/v1/otp")
                 || requestURI.startsWith("/api/v1/category-custom/get-all-categories")
+                || requestURI.startsWith("/api/v1/category-custom/get-all-categories-info")
                 || requestURI.startsWith("/api/v1/test")
                 || requestURI.startsWith("/api/v1/files/avisoftdocument/**")
                 || requestURI.startsWith("/api/v1/files/**")

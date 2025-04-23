@@ -14,6 +14,8 @@ import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminP
 public class Constant {
 
     public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
+    public static final Integer PERMANENT_ADDRESS_ID=5;
+    public static final Integer CURRENT_ADDRESS_ID=2;
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
     public static final long MAX_SIGNATURE_IMAGE_SIZE= 1 * 1024 * 1024;
@@ -240,7 +242,9 @@ public class Constant {
 
     //public static final String CUSTOMER_FILTER_REFERRER= "SELECT DISTINCT cust.customer_id FROM customer_referrer referrer JOIN blc_customer cust ON referrer.customer_id = cust.customer_id JOIN blc_customer_address cust_addr ON referrer.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id AND qual_details.date_of_passing = (SELECT MAX(date_of_passing) FROM qualification_details WHERE custom_customer_id = cust.customer_id) WHERE addr.country ='ADD-P'";
     public static final String ACTION_ACTIVATE="activate";
+    public static final String ACTION_REJECT="reject";
     public static final String ACTION_SUSPEND="suspend";
+    public static final String ACTION_APPROVE="approve";
     public static final String CUSTOMER_FILTER= "SELECT cust.customer_id FROM blc_customer cust ";
     public static final String WELCOME_BODY_TEMPLATE = "Hello, %s!\n" +
             "Welcome to Application Marketplace. Explore forms and get them filled effortlessly.\n\n" +
