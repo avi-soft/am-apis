@@ -76,9 +76,9 @@ public class AdvertisementService {
                 addAdvertisementDto.setDescription(addAdvertisementDto.getDescription().trim());
             }
 
-            if(addAdvertisementDto.getUrl() == null || addAdvertisementDto.getUrl().trim().isEmpty()) {
+          /*  if(addAdvertisementDto.getUrl() == null || addAdvertisementDto.getUrl().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Url cannot be null or empty");
-            }
+            }*/
             if (!isValidUrl(addAdvertisementDto.getUrl().trim())) {
                 throw new IllegalArgumentException("Invalid Advertisement URL format");
             }
@@ -282,9 +282,9 @@ public class AdvertisementService {
             advertisementToUpdate.setDescription(advertisementDto.getDescription().trim());
         }
         if (Objects.nonNull(advertisementDto.getUrl())) {
-            if(advertisementDto.getUrl().trim().isEmpty()) {
+          /*  if(advertisementDto.getUrl().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Url cannot be empty");
-            }
+            }*/
             // URL validation using regex
             if (!isValidUrl(advertisementDto.getUrl().trim())) {
                 throw new IllegalArgumentException("Invalid Advertisement URL format");
@@ -299,9 +299,9 @@ public class AdvertisementService {
         }
 
         if (Objects.nonNull(advertisementDto.getNumber())) {
-            if(advertisementDto.getNumber().trim().isEmpty()) {
+           /* if(advertisementDto.getNumber().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Number cannot be empty");
-            }
+            }*/
             advertisementToUpdate.setNumber(advertisementDto.getNumber().trim());
         }
 
