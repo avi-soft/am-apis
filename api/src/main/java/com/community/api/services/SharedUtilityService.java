@@ -449,7 +449,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("dateUpdated", customer.getAuditable().getDateUpdated());
             customerDetailsForDesktop.put("updatedBy", customer.getAuditable().getUpdatedBy());
             customerDetailsForDesktop.put("username", customer.getUsername());
-            customerDetailsForDesktop.put("password", customer.getPassword());
+        /*    customerDetailsForDesktop.put("password", customer.getPassword());*/
             customerDetailsForDesktop.put("emailAddress", customer.getEmailAddress());
             customerDetailsForDesktop.put("firstName", customer.getFirstName());
             customerDetailsForDesktop.put("lastName", customer.getLastName());
@@ -763,6 +763,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("service_provider_id", serviceProvider.getService_provider_id());
         serviceProviderDetails.put("user_name", serviceProvider.getUser_name());
         serviceProviderDetails.put("first_name", serviceProvider.getFirst_name());
+        serviceProviderDetails.put("profile_pic_NA", serviceProvider.getPfpNa());
+        serviceProviderDetails.put("is_CForm_available", serviceProvider.getIsCFormAvailable());
         serviceProviderDetails.put("last_name", serviceProvider.getLast_name());
         serviceProviderDetails.put("full_name", serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name());
         serviceProviderDetails.put("country_code", serviceProvider.getCountry_code());
@@ -776,7 +778,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("whatsapp_number", serviceProvider.getWhatsapp_number());
         serviceProviderDetails.put("primary_email", serviceProvider.getPrimary_email());
         serviceProviderDetails.put("secondary_email", serviceProvider.getSecondary_email());
-        serviceProviderDetails.put("password", serviceProvider.getPassword());
+       /* serviceProviderDetails.put("password", serviceProvider.getPassword());*/
         serviceProviderDetails.put("is_running_business_unit", serviceProvider.getIs_running_business_unit());
         serviceProviderDetails.put("business_name", serviceProvider.getBusiness_name());
         serviceProviderDetails.put("business_location", serviceProvider.getBusiness_location());
@@ -795,7 +797,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
-        serviceProviderDetails.put("archived",serviceProvider.getIsArchived());
+        serviceProviderDetails.put("suspended",serviceProvider.getIsArchived());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("mothers_name", serviceProvider.getMother_name());

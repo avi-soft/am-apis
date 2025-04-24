@@ -37,13 +37,13 @@ public class CommunicationContent {
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "service_provider_id", referencedColumnName = "service_provider_id", nullable = true)
+    @JoinColumn(name = "service_provider_id", nullable = true)
     private ServiceProviderEntity serviceProvider;
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "admin_id", referencedColumnName = "admin_id", nullable = true)
-    private CustomAdmin admin;
+    @JoinColumn(name = "service_provider_id", insertable = false, updatable = false, nullable = true)
+    private ServiceProviderEntity admin;
 
     @Column(name = "content_text", columnDefinition = "text", nullable = true)
     private String contentText;

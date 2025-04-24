@@ -12,6 +12,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.ProductWrapper;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -52,11 +54,15 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
     protected Character archived;
     @JsonProperty("display_template")
     protected String displayTemplate;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("total_products")
     Integer totalProducts;
 
     @JsonProperty("products")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     List<CustomProductWrapper> products;
+
 
     public void wrapDetailsCategory(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
 
@@ -73,7 +79,7 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         this.archived = ((Status) category).getArchived();
         this.products = products;
         if (products == null) {
-            this.totalProducts = 0;
+            this.totalProducts = null;
         } else {
             this.totalProducts = products.size();
         }
@@ -100,7 +106,6 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         }
 
     }
-
     @Override
     public void wrapDetails(Category category, HttpServletRequest httpServletRequest) {
 

@@ -26,6 +26,7 @@ import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
 import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.community.api.utils.ServiceProviderDocument;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
@@ -497,7 +498,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-
+            if(updates.containsKey("isCFormAvailable"))
+                existingServiceProvider.setIsCFormAvailable((Boolean)updates.get("isCFormAvailable"));
             if (!infraList.isEmpty()) {
                 for (int infra_id : infraList) {
                     ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);
@@ -508,6 +510,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             } else {
                 serviceProviderInfras = existingServiceProvider.getInfra();
+            }
+            if(updates.containsKey("pfpNa")&& (Boolean) updates.get("pfpNa"))
+            {
+                System.out.println("hii");
+                    Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
+                    while (iterator.hasNext()) {
+                        ServiceProviderDocument document = iterator.next();
+                        if (document.getDocumentType().getDocument_type_id() == 17) {
+                            iterator.remove();
+                        }
+                    }
             }
             if (!languageList.isEmpty()) {
                 for (int language_id : languageList) {
@@ -1396,7 +1409,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved,Boolean rejected) {
         try {
             CustomServiceProviderTicket customServiceProviderTicket=null;
             if(ticketId!=null)
@@ -1437,6 +1450,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("completed", 's');
             alias.put("archived", 's');
             alias.put("approved", 's');
+            alias.put("rejected", 's');
             String generalizedQuery=null;
             if(state!=null||district!=null) {
                  generalizedQuery = "SELECT s.*\n" +
@@ -1471,8 +1485,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     throw new IllegalArgumentException("No Test Status is found with this id");
                 }
             }
-            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved"};
-            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved};
+            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved","rejected"};
+            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved,rejected};
             System.out.println("role"+role);
             for (int i = 0; i < fields.length; i++) {
                 if (fields[i] != null) {
