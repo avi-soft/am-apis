@@ -922,7 +922,7 @@ public ResponseEntity<?> getAllServiceProviders(
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
-            if (serviceProvider.getRole() != 4) {
+            if (serviceProvider.getRole() ==1) {
                 skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
