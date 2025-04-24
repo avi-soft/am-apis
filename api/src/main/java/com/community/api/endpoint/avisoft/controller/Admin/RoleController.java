@@ -3,6 +3,8 @@ package com.community.api.endpoint.avisoft.controller.Admin;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CommunicationRequest;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.ParameterResolutionDelegate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.social.NotAuthorizedException;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,7 +27,9 @@ import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/roles",
@@ -41,6 +46,8 @@ public class RoleController {
     private ResponseService responseService;
     @Autowired
     private SharedUtilityService sharedUtilityService;
+    @Autowired
+    ServiceProviderActionController serviceProviderActionController;
     @Autowired
     private JwtUtil jwtTokenUtil;
     @PostMapping("add-role")
@@ -73,11 +80,12 @@ public class RoleController {
         }
     }
     @Transactional
-    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleAdminServiceProvider})
+    @Authorize(value = {/*Constant.roleServiceProvider,*/Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleAdminServiceProvider})
     @PostMapping("/change-role/{id}/{roleToBeId}")
     public ResponseEntity<?> changeRole(@RequestHeader(value = "Authorization") String authHeader,@PathVariable Long id,@PathVariable Integer roleToBeId)
     {
         try{
+            ResponseEntity<?> response;
         ServiceProviderEntity user=entityManager.find(ServiceProviderEntity.class,id);
         if(user==null)
              return ResponseService.generateErrorResponse("User not found",HttpStatus.BAD_REQUEST);
@@ -102,7 +110,8 @@ public class RoleController {
                 user.getPrivileges().add(privileges);
                 user.setToken(null);
                 entityManager.merge(user);
-                return ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                break;
             case 2:
                 user.getPrivileges().clear();
                 user.setRole(roleToBeId);
@@ -116,26 +125,48 @@ public class RoleController {
                 }
                 user.setToken(null);
                 entityManager.merge(user);
-                return ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                break;
             case 3:
                 user.getPrivileges().clear();
                 user.setRole(roleToBeId);
                 user.setToken(null);
                 entityManager.merge(user);
-                return ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                break;
             case 4:
                 user.getPrivileges().clear();
                 user.setRole(roleToBeId);
                 user.setToken(null);
                 entityManager.merge(user);
-                return ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                break;
             default:
-                return ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
-
+                response= ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
         }
+            // Call communicate only if status is 200 OK
+            if (response.getStatusCode() == HttpStatus.OK) {
+                CommunicationRequest communicationRequest = new CommunicationRequest();
+                communicationRequest.setSubject("Role Change");
+                communicationRequest.setUserIds(id.toString());
+                communicationRequest.setModes("1");
+                communicationRequest.setContentText(
+                        "Hello " + user.getFirst_name() + " " + user.getLast_name() + ",\n\n" +
+                                "We would like to inform you that your role has been updated by the system administrator.\n\n" +
+                                "Previous Role: " + prevRole.getRole_name() + "\n" +
+                                "New Role: " + role.getRole_name() + "\n\n" +
+                                "Please log in to the respective portal to continue with your updated responsibilities.\n\n" +
+                                "Best regards,\n" +
+                                "System Administrator"
+                );
+                sharedUtilityService.communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+            }
+            return response;
     }catch (Exception exception)
         {
             return ResponseService.generateErrorResponse("Some error occured"+exception.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 }
