@@ -83,9 +83,9 @@ public class BankAccountService {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if (doesAccountExist(bankAccountDTO.getAccountNumber(), null,tokenUserId)) {
+       /*     if (doesAccountExist(bankAccountDTO.getAccountNumber(), null,tokenUserId)) {
                 throw  new AlreadyExistsException( "Account already exists.");
-            }
+            }*/
 
        /*     if (!bankAccountDTO.getAccountNumber().equals(bankAccountDTO.getReEnterAccountNumber())) {
                 return "Account numbers do not match.";
