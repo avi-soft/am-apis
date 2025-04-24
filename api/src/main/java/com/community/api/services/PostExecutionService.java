@@ -57,7 +57,8 @@ public class PostExecutionService {
     public void savePostsWithoutAgeRequirement(CustomProduct customProduct, List<Post> postList) {
         Long totalPostInProduct=0L;
         for (Post post : postList) {
-            totalPostInProduct+=post.getPostTotalVacancies();
+            if(post.getPostTotalVacancies()!=null)
+                totalPostInProduct+=post.getPostTotalVacancies();
             post.setProduct(customProduct);
             customProduct.getPosts().add(post);
             entityManager.merge(customProduct);
