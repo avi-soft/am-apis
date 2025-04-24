@@ -15,6 +15,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.InvalidFileTypeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.ParameterResolutionDelegate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -159,7 +160,7 @@ public class RoleController {
                                 "Best regards,\n" +
                                 "System Administrator"
                 );
-                sharedUtilityService.communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+               communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
             }
             return response;
     }catch (Exception exception)
@@ -168,5 +169,13 @@ public class RoleController {
         }
     }
 
-
+    @Async
+    public void communicateWithCustomersAsync(CommunicationRequest communicationRequest, Integer roleToBeId, String authHeader) {
+        try {
+            ResponseEntity<?> response=serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, roleToBeId, authHeader,true);
+            System.out.println(response);
+        } catch (Exception e) {
+            // Log the error or handle it as necessary
+        }
+    }
 }

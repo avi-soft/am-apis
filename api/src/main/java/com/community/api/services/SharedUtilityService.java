@@ -1917,15 +1917,6 @@ public class SharedUtilityService {
         }
         return true;
     }
-    @Async
-    public void communicateWithCustomersAsync(CommunicationRequest communicationRequest, Integer roleToBeId, String authHeader) {
-        try {
-            ResponseEntity<?> response=serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, roleToBeId, authHeader,true);
-            System.out.println(response);
-        } catch (Exception e) {
-            // Log the error or handle it as necessary
-        }
-    }
 
 }
 
