@@ -3,12 +3,7 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.PostProjectionDTO;
-import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.dto.AddProductDto;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.*;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
@@ -225,6 +220,31 @@ public class ProductController extends CatalogEndpoint {
 
                 if(!saveDraft)
                 {
+                    List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
+                    if (reservedCategories != null && !reservedCategories.isEmpty()) {
+                        for (AddReserveCategoryDto dto : reservedCategories) {
+                            Boolean isOther = dto.getIsOtherOrStateCategory();
+                            String otherText = dto.getOtherOrStateCategory();
+
+                            if (Boolean.TRUE.equals(isOther)) {
+                                // If true, field must be filled
+                                if (otherText == null || otherText.trim().isEmpty()) {
+                                    return ResponseService.generateErrorResponse(
+                                            "Other_or_state_category must be provided when is_other_or_state_category is true.",
+                                            HttpStatus.BAD_REQUEST
+                                    );
+                                }
+                            } else {
+                                // If false/null, field must NOT be filled
+                                if (otherText != null && !otherText.trim().isEmpty()) {
+                                    return ResponseService.generateErrorResponse(
+                                            "other_or_state_category should not be provided when is_other_or_state_category is false.",
+                                            HttpStatus.BAD_REQUEST
+                                    );
+                                }
+                            }
+                        }
+                    }
                     productService.validateReserveCategory(addProductDto);
                 }
                 else if(saveDraft)
@@ -315,7 +335,8 @@ public class ProductController extends CatalogEndpoint {
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
                 {
-                    totalVacanciesInProduct+=post.getPostTotalVacancies();
+                    if(post.getPostTotalVacancies()!=null)
+                        totalVacanciesInProduct+=post.getPostTotalVacancies();
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }

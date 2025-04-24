@@ -43,4 +43,10 @@ public class CustomProductReserveCategoryFeePostRef {
 
     @Column(name = "fee_additional_comments")
     String additionalComments;
+
+    @Column(name = "is_other_or_state_category")
+    private Boolean isOtherOrStateCategory;
+
+    @Column(name = "other_or_state_category", columnDefinition = "text")
+    private String otherOrStateCategory;
 }

@@ -84,14 +84,14 @@ public class AdvertisementService {
             }
             addAdvertisementDto.setUrl(addAdvertisementDto.getUrl().trim());
 
-            if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+            /*if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Notifying Authority cannot be null or empty");
-            }
+            }*/
             addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
 
-            if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
+         /*   if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Number cannot be null or empty");
-            }
+            }*/
             addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
 
             if(addAdvertisementDto.getNotificationStartDate() == null) {
@@ -292,9 +292,9 @@ public class AdvertisementService {
             advertisementToUpdate.setUrl(advertisementDto.getUrl().trim());
         }
         if (Objects.nonNull(advertisementDto.getNotifyingAuthority())) {
-            if(advertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+           /* if(advertisementDto.getNotifyingAuthority().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Notifying Authority cannot be empty");
-            }
+            }*/
             advertisementToUpdate.setNotifyingAuthority(advertisementDto.getNotifyingAuthority().trim());
         }
 
@@ -339,7 +339,7 @@ public class AdvertisementService {
     }
 
     private boolean isValidUrl(String url) {
-        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*\\/?$";
+        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*(\\?[\\w=&]+(&[\\w=&]+)*)?$";
         Pattern pattern = Pattern.compile(urlRegex);
         Matcher matcher = pattern.matcher(url);
         return matcher.matches();
