@@ -38,7 +38,7 @@ public class Post {
     @Column(name = "post_name",nullable = false)
     private String postName;
 
-    @Column(name = "post_total_vacancies",nullable = false)
+    @Column(name = "post_total_vacancies",nullable = true)
     private Long postTotalVacancies;
 
     @Column(name = "post_code")
