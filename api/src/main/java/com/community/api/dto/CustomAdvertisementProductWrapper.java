@@ -14,6 +14,7 @@ import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.persistence.Column;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -124,7 +125,6 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.downloadNotificationLink = product.getDownloadNotificationLink();
         this.downloadSyllabusLink = product.getDownloadSyllabusLink();
         this.formComplexity = product.getFormComplexity();
-
         this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacancies = product.getTotalVacanciesInProduct();
@@ -140,7 +140,6 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.metaDescription = product.getMetaDescription();
-
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
 

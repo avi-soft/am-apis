@@ -3,12 +3,7 @@ package com.community.api.endpoint.avisoft.controller.product;
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.PostProjectionDTO;
-import com.community.api.dto.ReserveCategoryDto;
-import com.community.api.dto.AddProductDto;
-import com.community.api.dto.PhysicalRequirementDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.*;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
@@ -225,6 +220,31 @@ public class ProductController extends CatalogEndpoint {
 
                 if(!saveDraft)
                 {
+                    List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
+                    if (reservedCategories != null && !reservedCategories.isEmpty()) {
+                        for (AddReserveCategoryDto dto : reservedCategories) {
+                            Boolean isOther = dto.getIsOtherOrStateCategory();
+                            String otherText = dto.getOtherOrStateCategory();
+
+                            if (Boolean.TRUE.equals(isOther)) {
+                                // If true, field must be filled
+                                if (otherText == null || otherText.trim().isEmpty()) {
+                                    return ResponseService.generateErrorResponse(
+                                            "Other_or_state_category must be provided when is_other_or_state_category is true.",
+                                            HttpStatus.BAD_REQUEST
+                                    );
+                                }
+                            } else {
+                                // If false/null, field must NOT be filled
+                                if (otherText != null && !otherText.trim().isEmpty()) {
+                                    return ResponseService.generateErrorResponse(
+                                            "other_or_state_category should not be provided when is_other_or_state_category is false.",
+                                            HttpStatus.BAD_REQUEST
+                                    );
+                                }
+                            }
+                        }
+                    }
                     productService.validateReserveCategory(addProductDto);
                 }
                 else if(saveDraft)
@@ -315,7 +335,8 @@ public class ProductController extends CatalogEndpoint {
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
                 {
-                    totalVacanciesInProduct+=post.getPostTotalVacancies();
+                    if(post.getPostTotalVacancies()!=null)
+                        totalVacanciesInProduct+=post.getPostTotalVacancies();
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
@@ -847,10 +868,16 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
+            @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -858,6 +885,13 @@ public class ProductController extends CatalogEndpoint {
             if(limit<=0)
             {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
+
+            if (isExpired && (roleId != 1 && roleId != 2)) {
+                return ResponseService.generateErrorResponse(
+                        "You are not authorized to view expired products.",
+                        HttpStatus.BAD_REQUEST
+                );
             }
             // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -869,8 +903,10 @@ public class ProductController extends CatalogEndpoint {
             }
 
             // Fetch filtered products
-            List<CustomProduct> products = productService.filterProducts(state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
-
+            List<CustomProduct> products = productService.filterProducts(
+                    state, rejection_status, categories, reserveCategories,
+                    title, fee, post, dateFrom, dateTo, isExpired
+            );
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
@@ -878,8 +914,7 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y'&&
-                        customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList= customProduct.getPosts();
                     List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());

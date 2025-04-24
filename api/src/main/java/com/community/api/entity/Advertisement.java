@@ -97,7 +97,7 @@ public class Advertisement {
 
     @NotNull
     @NotEmpty
-    @Column(name = "url", unique = true)
+    @Column(name = "url")
     @JsonProperty("url")
     private String url;
 

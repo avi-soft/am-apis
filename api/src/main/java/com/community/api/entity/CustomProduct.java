@@ -46,6 +46,15 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "exam_date_from")
     protected Date examDateFrom;
 
+    @Column(name = "answer_key_available_date")
+    protected Date answerKeyAvailableDate;
+
+    @Column(name = "result_declaration_date")
+    protected Date resultDeclarationDate;
+
+    @Column(name = "counselling_date")
+    protected Date counsellingDate;
+
     @Column(name = "exam_date_to")
     protected Date examDateTo;
 
