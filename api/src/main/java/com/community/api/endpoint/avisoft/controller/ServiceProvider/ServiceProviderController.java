@@ -922,13 +922,13 @@ public ResponseEntity<?> getAllServiceProviders(
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
-            if (serviceProvider.getRole() != 4) {
+            if (serviceProvider.getRole() ==1) {
                 skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
             if (action.equals(Constant.ACTION_APPROVE)) {
                 Role role=roleService.getRoleByRoleId(roleId);
-                if(!Constant.roleSuperAdmin.equals(role.getRole_name()))
+                if(!Constant.roleSuperAdmin.equals(role.getRole_name())&&!Constant.roleAdmin.equals(role.getRole_name()))
                 {
                     return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
                 }
@@ -943,11 +943,12 @@ public ResponseEntity<?> getAllServiceProviders(
                         continue;
                 }
                 serviceProvider.setApproved(true);
+                serviceProvider.setRejected(false);
             }
             else if(Constant.ACTION_REJECT.equals(action))
             {
                 Role role=roleService.getRoleByRoleId(roleId);
-                if(!Constant.roleSuperAdmin.equals(role.getRole_name()))
+                if(!Constant.roleSuperAdmin.equals(role.getRole_name())&&!Constant.roleAdmin.equals(role.getRole_name()))
                 {
                     return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
                 }
@@ -967,6 +968,7 @@ public ResponseEntity<?> getAllServiceProviders(
                     continue;
                 }*/
                 serviceProvider.setRejected(true);
+                serviceProvider.setApproved(false);
             }
 
             //checking valid permissions
