@@ -165,7 +165,7 @@ public class ServiceProviderController {
     @Authorize(value = {Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
-    public ResponseEntity<?>submitProfie(@PathVariable Long spId,@RequestHeader (value = "AuthHeader")String authHeader) throws Exception {
+    public ResponseEntity<?>submitProfie(@PathVariable Long spId,@RequestHeader (value = "Authorization")String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);

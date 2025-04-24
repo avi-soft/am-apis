@@ -367,12 +367,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
-       this.numberOfPosts= (long) customProduct.getPosts().size();
+        this.numberOfPosts= (long) customProduct.getPosts().size();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
         this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
         this.isMultiplePostSameFee=customProduct.getIsMultiplePostSameFee();
+        System.out.println("hello jatt");
         List<CustomProductReserveCategoryFeePostRef>feeList=feeService.getProductReserveCategoryFeeAndPostByProductId(customProduct.getId());
         List<ReserveCategoryDto>feeDto=new ArrayList<>();
         if(feeList!=null) {
