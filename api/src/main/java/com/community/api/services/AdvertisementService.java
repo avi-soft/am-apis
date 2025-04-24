@@ -70,9 +70,9 @@ public class AdvertisementService {
             addAdvertisementDto.setTitle(addAdvertisementDto.getTitle().trim());
 
             if(addAdvertisementDto.getDescription() != null) {
-                if (addAdvertisementDto.getDescription().trim().isEmpty()) {
+           /*     if (addAdvertisementDto.getDescription().trim().isEmpty()) {
                     throw new IllegalArgumentException("Advertisement Description cannot be Empty");
-                }
+                }*/
                 addAdvertisementDto.setDescription(addAdvertisementDto.getDescription().trim());
             }
 
@@ -276,9 +276,9 @@ public class AdvertisementService {
             advertisementToUpdate.setTitle(advertisementDto.getTitle().trim());
         }
         if(advertisementDto.getDescription() != null) {
-            if (advertisementDto.getDescription().trim().isEmpty()) {
+           /* if (advertisementDto.getDescription().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Description cannot be Empty");
-            }
+            }*/
             advertisementToUpdate.setDescription(advertisementDto.getDescription().trim());
         }
         if (Objects.nonNull(advertisementDto.getUrl())) {
