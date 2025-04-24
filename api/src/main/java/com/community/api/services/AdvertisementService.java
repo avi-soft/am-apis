@@ -339,7 +339,7 @@ public class AdvertisementService {
     }
 
     private boolean isValidUrl(String url) {
-        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*\\/?$";
+        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*(\\?[\\w=&]+(&[\\w=&]+)*)?$";
         Pattern pattern = Pattern.compile(urlRegex);
         Matcher matcher = pattern.matcher(url);
         return matcher.matches();
