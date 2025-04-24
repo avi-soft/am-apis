@@ -207,7 +207,7 @@ public class AdvertisementService {
             return entityManager.merge(advertisement);
         } catch (PersistenceException persistenceException) {
             exceptionHandlingService.handleException(persistenceException);
-            throw new DataIntegrityViolationException("Data Constraint Violation number and url must be unique");
+            throw new DataIntegrityViolationException("Data Constraint Violation adv number must be unique");
         }
         catch (Exception e) {
             exceptionHandlingService.handleException(e);

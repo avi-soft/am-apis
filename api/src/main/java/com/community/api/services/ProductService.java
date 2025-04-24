@@ -3516,7 +3516,7 @@ public class ProductService {
         }
 
         // Check if the sum matches postTotalVacancies
-        if (totalVacanciesSum != postDto.getPostTotalVacancies()) {
+        if (postDto.getPostTotalVacancies()!=null&&totalVacanciesSum != postDto.getPostTotalVacancies()) {
             throw new IllegalArgumentException("The sum of total vacancies in OtherDistributions must equal PostTotalVacancies.");
         }
     }
