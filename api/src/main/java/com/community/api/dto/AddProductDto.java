@@ -62,11 +62,11 @@ public class AddProductDto {
     String displayTemplate;
     @JsonProperty("other_info")
     String otherInfo;
-    @Column(name = "answer_key_available_date")
+    @JsonProperty("answer_key_available_date")
     protected Date answerKeyAvailableDate;
-    @Column(name = "result_declaration_date")
+    @JsonProperty("result_declaration_date")
     protected Date resultDeclarationDate;
-    @Column(name = "counselling_date")
+    @JsonProperty("counselling_date")
     protected Date counsellingDate;
     @JsonProperty("rejection_status_id")
     Long rejectionStatus;
