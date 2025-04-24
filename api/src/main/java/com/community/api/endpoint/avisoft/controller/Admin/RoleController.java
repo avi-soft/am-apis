@@ -159,7 +159,7 @@ public class RoleController {
                                 "Best regards,\n" +
                                 "System Administrator"
                 );
-                sharedUtilityService.communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+                communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
             }
             return response;
     }catch (Exception exception)
@@ -167,6 +167,14 @@ public class RoleController {
             return ResponseService.generateErrorResponse("Some error occured"+exception.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Async
+    public void communicateWithCustomersAsync(CommunicationRequest communicationRequest, Integer roleToBeId, String authHeader) {
+        try {
+            ResponseEntity<?> response=serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, roleToBeId, authHeader,true);
+            System.out.println(response);
+        } catch (Exception e) {
+            // Log the error or handle it as necessary
+        }
+    }
 
 }
