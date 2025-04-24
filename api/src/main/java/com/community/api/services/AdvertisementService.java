@@ -79,20 +79,26 @@ public class AdvertisementService {
           /*  if(addAdvertisementDto.getUrl() == null || addAdvertisementDto.getUrl().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Url cannot be null or empty");
             }*/
-            if (!isValidUrl(addAdvertisementDto.getUrl().trim())) {
-                throw new IllegalArgumentException("Invalid Advertisement URL format");
+            if(addAdvertisementDto.getUrl()!=null) {
+                if ((!isValidUrl(addAdvertisementDto.getUrl().trim()))) {
+                    throw new IllegalArgumentException("Invalid Advertisement URL format");
+                }
+                if (addAdvertisementDto.getUrl() != null || !addAdvertisementDto.getUrl().trim().isEmpty()) {
+                    addAdvertisementDto.setUrl(addAdvertisementDto.getUrl().trim());
+                }
             }
-            addAdvertisementDto.setUrl(addAdvertisementDto.getUrl().trim());
-
             /*if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Notifying Authority cannot be null or empty");
             }*/
+            if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
             addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
+            }
 
          /*   if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Number cannot be null or empty");
             }*/
-            addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());
+            if(addAdvertisementDto.getNumber() != null && addAdvertisementDto.getNumber().trim().isEmpty()){
+            addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());}
 
             if(addAdvertisementDto.getNotificationStartDate() == null) {
                 throw new IllegalArgumentException("Notification Start Date is required");
@@ -286,10 +292,14 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Advertisement Url cannot be empty");
             }*/
             // URL validation using regex
+            System.out.println("***1`");
             if (!isValidUrl(advertisementDto.getUrl().trim())) {
+                System.out.println("***2`");
                 throw new IllegalArgumentException("Invalid Advertisement URL format");
             }
+            System.out.println("***3`");
             advertisementToUpdate.setUrl(advertisementDto.getUrl().trim());
+            System.out.println("***4`");
         }
         if (Objects.nonNull(advertisementDto.getNotifyingAuthority())) {
            /* if(advertisementDto.getNotifyingAuthority().trim().isEmpty()) {
