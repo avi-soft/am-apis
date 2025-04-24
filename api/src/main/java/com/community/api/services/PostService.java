@@ -74,9 +74,9 @@ public class PostService {
         try {
             for(AddProductAgeDTO addProductAgeDTO:addProductDto.getReserveCategoryAge())
             {
-            if (addProductDto.getReserveCategoryAge()==null) {
+            /*if (addProductDto.getReserveCategoryAge()==null) {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
-            }
+            }*/
             Set<Long> reserveCategoryId = new HashSet<>();
             Set<Integer>genderCategoryComboSet=new HashSet<>();
 
