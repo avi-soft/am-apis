@@ -78,7 +78,8 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                 {
                     if(addReserveCategoryDto.getAsOfDate()==null)
                     {
-                        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
+                        throw new IllegalArgumentException("As of date is required");
+                        /*Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
                         int currentYear = calendar.get(Calendar.YEAR);
 
                         calendar.set(Calendar.YEAR, currentYear);
@@ -94,7 +95,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
 // Use your date format pattern
                         String formattedDate = dateFormat.format(asOfDate);
 
-                        addReserveCategoryDto.setAsOfDate(formattedDate);
+                        addReserveCategoryDto.setAsOfDate(formattedDate);*/
                     }
                     try {
                         assert addReserveCategoryDto.getBornBefore() != null;

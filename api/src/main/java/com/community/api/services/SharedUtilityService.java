@@ -3,9 +3,11 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -19,6 +21,8 @@ import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -64,6 +68,8 @@ public class SharedUtilityService {
     DocumentStorageService documentStorageService;
     @Autowired
     HttpServletRequest request;
+    @Autowired
+    ServiceProviderActionController serviceProviderActionController;
     @Autowired
     DeviceDetectorService deviceDetectorService;
     private EntityManager entityManager;
@@ -1911,6 +1917,7 @@ public class SharedUtilityService {
         }
         return true;
     }
+
 
 }
 
