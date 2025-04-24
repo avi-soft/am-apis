@@ -398,7 +398,8 @@ public class ProductService {
 
     public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
-                                              Integer post, Date startRange, Date endRange) throws Exception {
+                                              Integer post, Date startRange, Date endRange,
+                                              Boolean isExpired) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
@@ -500,6 +501,15 @@ public class ProductService {
                 jpql.append("AND p.examDateTo IS NOT NULL ");
                 jpql.append("AND FUNCTION('DATE', p.examDateTo) = FUNCTION('DATE', :endRange) ");
             }
+
+            if (Boolean.TRUE.equals(isExpired)) {
+                // Only expired products
+                jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
+            } else {
+                // Only non-expired products
+                jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
+            }
+
 
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
