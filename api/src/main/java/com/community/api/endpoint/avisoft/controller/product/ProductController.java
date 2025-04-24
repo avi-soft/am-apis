@@ -335,7 +335,8 @@ public class ProductController extends CatalogEndpoint {
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
                 {
-                    totalVacanciesInProduct+=post.getPostTotalVacancies();
+                    if(post.getPostTotalVacancies()!=null)
+                        totalVacanciesInProduct+=post.getPostTotalVacancies();
                 }
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }

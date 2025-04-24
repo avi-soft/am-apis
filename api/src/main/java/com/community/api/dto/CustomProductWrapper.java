@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 
@@ -136,6 +137,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long numberOfPosts;
     @JsonProperty("additional_comments")
     String additionalComments;
+    @JsonProperty("answer_key_available_date")
+    protected Date answerKeyAvailableDate;
+    @JsonProperty("result_declaration_date")
+    protected Date resultDeclarationDate;
+    @JsonProperty("counselling_date")
+    protected Date counsellingDate;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
@@ -153,6 +160,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.metaDescription = product.getMetaDescription();
+        this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
+        this.counsellingDate=addProductDto.getCounsellingDate();
+        this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
 
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
@@ -310,7 +320,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
-
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
+        this.counsellingDate=customProduct.getCounsellingDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
