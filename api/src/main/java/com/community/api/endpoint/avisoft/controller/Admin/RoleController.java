@@ -160,7 +160,9 @@ public class RoleController {
                                 "Best regards,\n" +
                                 "System Administrator"
                 );
-               communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+
+                communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+
             }
             return response;
     }catch (Exception exception)
@@ -177,5 +179,5 @@ public class RoleController {
         } catch (Exception e) {
             // Log the error or handle it as necessary
         }
-    }
+}
 }
