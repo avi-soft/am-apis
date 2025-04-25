@@ -64,6 +64,7 @@ public class ProductReserveCategoryFeePostRefService {
         try {
 
             for (AddReserveCategoryDto addReserveCategoryDto : addReserveCategoryDtoList) {
+                System.out.println("Number of post are :"+addReserveCategoryDto.getPost());
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_FEE_POST);
