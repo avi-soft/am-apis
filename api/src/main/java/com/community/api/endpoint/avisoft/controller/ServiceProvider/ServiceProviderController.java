@@ -174,7 +174,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
         if (serviceProvider == null)
             return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
-g
+
 
         // List of required fields
         List<String> REQUIRED_FIELDS = Arrays.asList(

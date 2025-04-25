@@ -199,84 +199,84 @@ public class ProductController extends CatalogEndpoint {
             sku.setDefaultProduct(product);
 
             CustomProductState customProductState=null;
-                if(!saveDraft)
+            if(!saveDraft)
+            {
+                customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
+                if (customProductState == null) {
+                    return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                }
+            }
+            else if(saveDraft)
+            {
+                customProductState= productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
                 {
-                    customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
                     if (customProductState == null) {
                         return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
                     }
                 }
-                else if(saveDraft)
-                {
-                     customProductState= productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
-                    {
-                        if (customProductState == null) {
-                            return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
-                        }
-                    }
-                }
+            }
 
-                product.setDefaultSku(sku);
+            product.setDefaultSku(sku);
 
-                if(!saveDraft)
-                {
-                    List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
-                    if (reservedCategories != null && !reservedCategories.isEmpty()) {
-                        for (AddReserveCategoryDto dto : reservedCategories) {
-                            Boolean isOther = dto.getIsOtherOrStateCategory();
-                            String otherText = dto.getOtherOrStateCategory();
+            if(!saveDraft)
+            {
+                List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
+                if (reservedCategories != null && !reservedCategories.isEmpty()) {
+                    for (AddReserveCategoryDto dto : reservedCategories) {
+                        Boolean isOther = dto.getIsOtherOrStateCategory();
+                        String otherText = dto.getOtherOrStateCategory();
 
-                            if (Boolean.TRUE.equals(isOther)) {
-                                // If true, field must be filled
-                                if (otherText == null || otherText.trim().isEmpty()) {
-                                    return ResponseService.generateErrorResponse(
-                                            "Other_or_state_category must be provided when is_other_or_state_category is true.",
-                                            HttpStatus.BAD_REQUEST
-                                    );
-                                }
-                            } else {
-                                // If false/null, field must NOT be filled
-                                if (otherText != null && !otherText.trim().isEmpty()) {
-                                    return ResponseService.generateErrorResponse(
-                                            "other_or_state_category should not be provided when is_other_or_state_category is false.",
-                                            HttpStatus.BAD_REQUEST
-                                    );
-                                }
+                        if (Boolean.TRUE.equals(isOther)) {
+                            // If true, field must be filled
+                            if (otherText == null || otherText.trim().isEmpty()) {
+                                return ResponseService.generateErrorResponse(
+                                        "Other_or_state_category must be provided when is_other_or_state_category is true.",
+                                        HttpStatus.BAD_REQUEST
+                                );
+                            }
+                        } else {
+                            // If false/null, field must NOT be filled
+                            if (otherText != null && !otherText.trim().isEmpty()) {
+                                return ResponseService.generateErrorResponse(
+                                        "other_or_state_category should not be provided when is_other_or_state_category is false.",
+                                        HttpStatus.BAD_REQUEST
+                                );
                             }
                         }
                     }
+                }
+                productService.validateReserveCategory(addProductDto);
+            }
+            else if(saveDraft)
+            {
+                if(addProductDto.getReservedCategory()!=null)
+                {
                     productService.validateReserveCategory(addProductDto);
                 }
-                else if(saveDraft)
-                {
-                    if(addProductDto.getReservedCategory()!=null)
-                    {
-                        productService.validateReserveCategory(addProductDto);
-                    }
-                }
-                CustomSector customSector = productService.validateSector(addProductDto);
+            }
+            CustomSector customSector = productService.validateSector(addProductDto);
 
-                productService.validateSelectionCriteria(addProductDto);
+            productService.validateSelectionCriteria(addProductDto);
 
-                productService.validateAdmitCardDates(addProductDto);
-                productService.validateModificationDates(addProductDto);
-                productService.validateLastDateToPayFee(addProductDto);
+            productService.validateAdmitCardDates(addProductDto);
+            productService.validateModificationDates(addProductDto);
+            productService.validateLastDateToPayFee(addProductDto);
 
-                if(!saveDraft)
+            if(!saveDraft)
+            {
+                productService.validateLinks(addProductDto);
+            }
+            else if(saveDraft)
+            {
+                if(addProductDto.getDownloadNotificationLink()!=null)
                 {
-                    productService.validateLinks(addProductDto);
+                    addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                 }
-                else if(saveDraft)
+                if(addProductDto.getDownloadSyllabusLink()!=null)
                 {
-                    if(addProductDto.getDownloadNotificationLink()!=null)
-                    {
-                        addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
-                    }
-                    if(addProductDto.getDownloadSyllabusLink()!=null)
-                    {
-                        addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
-                    }
+                    addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                 }
+            }
 
             productService.validateFormComplexity(addProductDto);
 
@@ -314,7 +314,7 @@ public class ProductController extends CatalogEndpoint {
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
             Long totalVacanciesInProduct=0L;
-             if(saveDraft)
+            if(saveDraft)
             {
                 if (postList != null && !postList.isEmpty()) {
                     for(Post post: postList)
@@ -330,7 +330,7 @@ public class ProductController extends CatalogEndpoint {
                     wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }
                 ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
-                 return response;
+                return response;
             }
             if (postList != null && !postList.isEmpty()) {
                 for(Post post: postList)
@@ -341,8 +341,8 @@ public class ProductController extends CatalogEndpoint {
                 postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
             }
             wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
-             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
-             return response;
+            ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+            return response;
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
