@@ -1437,10 +1437,10 @@ public class CustomerEndpoint {
                     }
                     if(documentTypeObj.getDocument_type_id().equals(13))
                     {
-                        if(otherDocument==null)
+                        /*if(otherDocument==null)
                         {
                             throw new IllegalArgumentException("other document is required to delete a other document");
-                        }
+                        }*/
                     }
                     boolean isQualificationDocumentToDelete=false;
                     boolean isOtherDocumentToDelete=false;
