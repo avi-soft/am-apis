@@ -121,7 +121,7 @@ public class Constant {
     public static String GET_PRODUCT_RESERVECATEGORY_BORNBEFORE_BORNAFTER = "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct";
     public static String GET_PRODUCT_RESERVECATEGORY_FEE_POST = "SELECT c FROM CustomProductReserveCategoryFeePostRef c WHERE c.customProduct = :customProduct";
     public static String ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER = "INSERT INTO custom_product_reserve_category_born_before_after_reference (product_id, reserve_category_id, born_before, born_after, gender_id, born_before_after, maximum_age, minimum_age) VALUES (:productId, :reserveCategoryId, :bornBefore, :bornAfter, :genderId, :bornBeforeAfter, :maximumAge, :minimumAge) RETURNING product_reserve_category_id";
-    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post ,gender_id,additional_comments) VALUES (:productId, :reserveCategoryId, :fee, :post ,:genderId,:additional_comments)";
+    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post ,gender_id,fee_additional_comments) VALUES (:productId, :reserveCategoryId, :fee, :post ,:genderId,:fee_additional_comments)";
     public static String GET_RESERVED_CATEGORY_BY_ID = "SELECT c FROM CustomReserveCategory c WHERE c.reserveCategoryId = :reserveCategoryId";
     public static String APPLICATION_SCOPE_STATE = "STATE";
     public static String PRIVILEGE_UPDATE_PRODUCT = "UPDATE_PRODUCT";

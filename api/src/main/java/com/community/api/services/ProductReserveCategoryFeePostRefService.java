@@ -72,7 +72,7 @@ public class ProductReserveCategoryFeePostRefService {
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
                 query.setParameter("genderId",gender.getGenderId());
-                query.setParameter("additional_comments",addReserveCategoryDto.getAdditionalComment());
+                query.setParameter("fee_additional_comments",addReserveCategoryDto.getAdditionalComment());
                 int affectedRows = query.executeUpdate();
                 if (affectedRows == 0) {
                     throw new RuntimeException("Error inserting values in mapping table of CustomProductReserveCategoryFeePostRef");
