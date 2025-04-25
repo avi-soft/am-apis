@@ -2538,11 +2538,11 @@ public class ProductService {
                     throw new IllegalArgumentException("Result declaration date cannot be before answer key available date");
                 }
             }
-            if (addProductDto.getResultDeclarationDate() != null && addProductDto.getCounsellingDate() != null) {
+            /*if (addProductDto.getResultDeclarationDate() != null && addProductDto.getCounsellingDate() != null) {
                 if (addProductDto.getResultDeclarationDate().before(addProductDto.getCounsellingDate())) {
                     throw new IllegalArgumentException("Result declaration date cannot be before counselling date");
                 }
-            }
+            }*/
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
