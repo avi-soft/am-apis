@@ -1141,6 +1141,7 @@ public class ProductService {
     public boolean validateReserveCategory(AddProductDto addProductDto) throws Exception {
         try {
 
+
           /*  if (addProductDto.getReservedCategory().isEmpty()) {
                 throw new IllegalArgumentException("Reserve category cannot be empty.");
             }*/
@@ -1157,6 +1158,7 @@ public class ProductService {
             Date maxBornBeforeDate = calendar.getTime();
 
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
+                System.out.println("Validating, no of post are"+addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost());
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
                 }if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() <= 0) {
@@ -1202,7 +1204,7 @@ public class ProductService {
                 }
 
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost() == null) {
-                    addProductDto.getReservedCategory().get(reserveCategoryIndex).setPost(Constant.DEFAULT_QUANTITY);
+                    addProductDto.getReservedCategory().get(reserveCategoryIndex).setPost(0);
                 }/* else if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost() <= 0) {
                     throw new IllegalArgumentException(POSTLESSTHANORZERO);
                 }*/
