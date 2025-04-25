@@ -1691,7 +1691,7 @@ public class CustomerEndpoint {
                                     .orElse(null);
 
                             if (existingDocument13 == null) {
-                                Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                                 createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
                                 if (documentTypeObj.getDocument_type_id().equals(13)) {
                                     createdDocument.setOtherDocument(otherDocument);
                                     entityManager.merge(createdDocument);
