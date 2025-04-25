@@ -1642,7 +1642,7 @@ public class CustomerEndpoint {
                         //*****
                         Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
                         if (documentTypeObj.getDocument_type_id().equals(3)) {
-                            createdDocument.setOtherDocument(otherDocument);
+
                             entityManager.merge(createdDocument);
                         }
                         documentsToSave.add(createdDocument);
