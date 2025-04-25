@@ -1638,7 +1638,14 @@ public class CustomerEndpoint {
                                     .findFirst()
                                     .orElse(null);
                         }
+                        //*****
+                        Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {
 
+                            entityManager.merge(createdDocument);
+                        }
+                        documentsToSave.add(createdDocument);
+                        //******
                         if (documentTypeObj.getDocument_type_id().equals(3)) {
                             fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                         } else {
