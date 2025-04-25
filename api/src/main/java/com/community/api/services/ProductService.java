@@ -1621,12 +1621,12 @@ public class ProductService {
                             !addProductDto.getActiveEndDate().equals(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("active end date must be before or equal to the last date to pay fee.");
                     }
-                } else if (addProductDto.getModificationDateFrom() != null) {
+                } /*else if (addProductDto.getModificationDateFrom() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getModificationDateFrom()));
                     if (!addProductDto.getActiveEndDate().before(addProductDto.getModificationDateFrom())) {
                         throw new IllegalArgumentException("active end date have to be before of modification date from.");
                     }
-                } else if (addProductDto.getAdmitCardDateFrom() != null) {
+                }*/ else if (addProductDto.getAdmitCardDateFrom() != null) {
                     dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateFrom()));
                     if (!addProductDto.getActiveEndDate().before(addProductDto.getAdmitCardDateFrom())) {
                         throw new IllegalArgumentException("active end date have to be before of admit card from.");
@@ -1640,11 +1640,11 @@ public class ProductService {
                     if (!addProductDto.getActiveEndDate().before(addProductDto.getLastDateToPayFee()) && !addProductDto.getActiveEndDate().equals(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("active end date must be before or equal to the last date to pay fee.");
                     }
-                } else if (customProduct.getModificationDateFrom() != null) {
+                } /*else if (customProduct.getModificationDateFrom() != null) {
                     if (!addProductDto.getActiveEndDate().before(customProduct.getModificationDateFrom())) {
                         throw new IllegalArgumentException("active end date have to be before of modification date from.");
                     }
-                } else if (customProduct.getAdmitCardDateFrom() != null) {
+                }*/ else if (customProduct.getAdmitCardDateFrom() != null) {
                     if (!addProductDto.getActiveEndDate().before(customProduct.getAdmitCardDateFrom())) {
                         throw new IllegalArgumentException("active end date have to be before of admit card from.");
                     }
