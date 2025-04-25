@@ -1843,9 +1843,15 @@ public class CustomerEndpoint {
 
                                 documentDetails.put("documentValidity", validityDetails); // Include as nested map
                             }
-
+                            String filePath;
                             // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            try {
+                                filePath = documentStorageService.encrypt(document.getFilePath());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            String fileUrl = fileService.getFileUrl(filePath, request);
+                           /* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*/
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
                             if (otherDocument != null && !otherDocument.trim().isEmpty()) {
@@ -2141,9 +2147,14 @@ public class CustomerEndpoint {
 
                                 documentDetails.put("documentValidity", validityDetails);
                             }
-
-                            // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            String filePath;
+                            try {
+                                filePath = documentStorageService.encrypt(document.getFilePath());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            String fileUrl = fileService.getFileUrl(filePath, request);
+                            // Generate a file URL for the documen
                             documentDetails.put("fileUrl", fileUrl);
 
                             Map<String, Object> documentTypeResponse = new HashMap<>();
