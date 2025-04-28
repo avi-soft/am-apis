@@ -135,6 +135,11 @@ public class ProductService {
                 sql.append(", additional_comments");
                 values.append(", :additionalComments");
             }
+            if (addProductDto.getExamCenterAvailableDate() != null) {
+                sql.append(", exam_center_available_date");
+                values.append(", :examCenterAvailableDate");
+            }
+
             if (addProductDto.getExamDateFrom() != null) {
                 sql.append(", exam_date_from");
                 values.append(", :examDateFrom");
@@ -146,6 +151,14 @@ public class ProductService {
             if (addProductDto.getResultDeclarationDate() != null) {
                 sql.append(", result_declaration_date");
                 values.append(", :resultDeclarationDate");
+            }
+            if (addProductDto.getTentativeVerificationFrom() != null) {
+                sql.append(", tentative_document_verification_from");
+                values.append(", :tentativeVerificationFrom");
+            }
+            if (addProductDto.getTentativeVerificationTo() != null) {
+                sql.append(", tentative_document_verification_to");
+                values.append(", :tentativeVerificationTo");
             }
             if (addProductDto.getCounsellingDate() != null) {
                 sql.append(", counselling_date");
@@ -284,6 +297,18 @@ public class ProductService {
             if(addProductDto.getResultDeclarationDate()!=null)
             {
                 query.setParameter("resultDeclarationDate", new Timestamp(addProductDto.getResultDeclarationDate().getTime()));
+            }
+            if(addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                query.setParameter("tentativeVerificationFrom", new Timestamp(addProductDto.getTentativeVerificationFrom().getTime()));
+            }
+            if(addProductDto.getTentativeVerificationTo()!=null)
+            {
+                query.setParameter("tentativeVerificationTo", new Timestamp(addProductDto.getTentativeVerificationTo().getTime()));
+            }
+            if(addProductDto.getExamCenterAvailableDate()!=null)
+            {
+                query.setParameter("examCenterAvailableDate",(addProductDto.getExamCenterAvailableDate()));
             }
             if (addProductDto.getExamDateTo() != null) {
                 query.setParameter("examDateTo", new Timestamp(addProductDto.getExamDateTo().getTime()));
@@ -2540,6 +2565,139 @@ public class ProductService {
                     throw new IllegalArgumentException("Result declaration date cannot be before answer key available date");
                 }
             }
+            //*********
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getExamDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getExamDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be available before exam concludes");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getAdmitCardDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getAdmitCardDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before admit cards release date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getModificationDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getModificationDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Tentative correction last date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getLastDateToPayFee()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getLastDateToPayFee()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before last day to pay fee");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getActiveEndDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getActiveEndDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before active end date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Result declaration date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getAnswerKeyAvailableDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getAnswerKeyAvailableDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before answer key available date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Counselling");
+            }
+            //****
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getExamDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getExamDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be available before exam concludes");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getAdmitCardDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getAdmitCardDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before admit cards release date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getModificationDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getModificationDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Tentative correction last date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getLastDateToPayFee()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getLastDateToPayFee()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before last day to pay fee");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getActiveEndDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getActiveEndDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before active end date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Result declaration date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getAnswerKeyAvailableDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getAnswerKeyAvailableDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before answer key available date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Counselling");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getTentativeVerificationFrom()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before tentative verification date from");
+            }
+            //***********
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getExamDateTo() != null) {
+                if (addProductDto.getExamCenterAvailableDate().after(addProductDto.getExamDateTo())) {
+                    throw new IllegalArgumentException("Exam dates cannot be after exam center available date");
+                }
+            }
+           /* if (addProductDto.getResultDeclarationDate() != null && addProductDto.getAdmitCardDateTo() != null) {
+                if (addProductDto.getResultDeclarationDate().before(addProductDto.getAdmitCardDateTo())) {
+                    throw new IllegalArgumentException("Result declaration date cannot be before admit cards release date");
+                }
+            }*/
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getModificationDateTo() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getModificationDateTo())) {
+                    throw new IllegalArgumentException("exam center available date cannot be before Tentative correction last date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getLastDateToPayFee() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getLastDateToPayFee())) {
+                    throw new IllegalArgumentException("Exam center available date cannot be before last day to pay fee");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getActiveEndDate() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Exam center available date cannot be before active end date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getAnswerKeyAvailableDate() != null) {
+                if (addProductDto.getExamCenterAvailableDate().after(addProductDto.getAnswerKeyAvailableDate())) {
+                    throw new IllegalArgumentException("answer key available date cannot be after exam center available date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Exam center available date cannot be after Result declaration date");
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Counselling date cannot be after exam center available date");
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getTentativeVerificationFrom()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Exam center available date");
+            }
             /*if (addProductDto.getResultDeclarationDate() != null && addProductDto.getCounsellingDate() != null) {
                 if (addProductDto.getResultDeclarationDate().before(addProductDto.getCounsellingDate())) {
                     throw new IllegalArgumentException("Result declaration date cannot be before counselling date");
@@ -3005,6 +3163,8 @@ public class ProductService {
         if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
         }
+       /* if(postDto.getDuration()<0)
+            throw new IllegalArgumentException("Post duration cannot be < 0");*/
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }

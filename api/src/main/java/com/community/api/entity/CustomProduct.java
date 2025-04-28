@@ -54,10 +54,14 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "counselling_date")
     protected Date counsellingDate;
-
+    @Column(name = "tentative_document_verification_from")
+    Date tentativeVerificationFrom;
+    @Column(name = "tentative_document_verification_to")
+    Date tentativeVerificationTo;
     @Column(name = "exam_date_to")
     protected Date examDateTo;
-
+    @Column(name = "exam_center_available_date")
+    Date examCenterAvailableDate;
     @Column(name = "last_modified")
     protected Date modifiedDate;
 

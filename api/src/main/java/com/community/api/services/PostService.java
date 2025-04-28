@@ -232,6 +232,7 @@ public class PostService {
             post.setVacancyDistributionTypes(vacancyTypes);
         }
         post.setAdditionalComments(postDto.getPostAdditionalComments());
+        post.setDuration(postDto.getDuration());
         post.setStateDistributionAdditionalComments(postDto.getStateDistributionAdditionalComments());
         post.setZoneDistributionAdditionalComments(postDto.getZoneDistributionAdditionalComments());
         post.setGenderDistributionAdditionalComments(postDto.getGenderDistributionAdditionalComments());
