@@ -27,6 +27,7 @@ public class PostProjectionDTO {
     private List<ZoneDistribution> zoneDistributions;
     private List<OtherDistribution> otherDistributions;
     private GenderWiseDistribution genderWiseDistribution;
+    private String duration;
     @JsonProperty("reserve_category_age")
     List<ReserveCategoryAgeDto>reserveCategoryAge;
     private List<QualificationEligibility> qualificationEligibility;

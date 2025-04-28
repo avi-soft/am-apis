@@ -67,8 +67,12 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
     }
     public void saveBornBeforeAndBornAfter(List<AddProductAgeDTO> addReserveCategoryDtos, CustomProduct product, Post post) {
         try {
+            if(addReserveCategoryDtos==null||addReserveCategoryDtos.isEmpty())
+                return;
             List<CustomProductReserveCategoryBornBeforeAfterRef>resultList=new ArrayList<>();
             for(AddProductAgeDTO addReserveCategoryDto:addReserveCategoryDtos) {
+                if(addReserveCategoryDto==null)
+                    continue;
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 Date bornAfter = addReserveCategoryDto.getBornAfter();
                 Date bornBefore = addReserveCategoryDto.getBornBefore();
