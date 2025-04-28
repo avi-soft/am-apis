@@ -44,6 +44,9 @@ public class Post {
     @Column(name = "post_code")
     private String postCode;
 
+    @Column(name = "duration")
+    private String duration;
+
     @ManyToMany
     @JoinTable(
             name = "post_vacancy_distribution_type",
