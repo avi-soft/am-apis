@@ -143,6 +143,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Date resultDeclarationDate;
     @JsonProperty("counselling_date")
     protected Date counsellingDate;
+    @JsonProperty("tentative_document_verification_from")
+    Date tentativeVerificationFrom;
+    @JsonProperty("tentative_document_verification_to")
+    Date tentativeVerificationTo;
+    @JsonProperty("exam_center_available_date")
+    Date examCenterAvailableDate;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
@@ -156,6 +162,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.archived = 'N';
         this.createdDate = currentDate;
+        this.examCenterAvailableDate=addProductDto.getExamCenterAvailableDate();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
@@ -163,7 +170,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
         this.counsellingDate=addProductDto.getCounsellingDate();
         this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
-
+        this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
+        this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
@@ -198,6 +206,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
             {
                 PostProjectionDTO postProjectionDTO=new PostProjectionDTO();
                 postProjectionDTO.setPostId(post.getPostId());
+                postProjectionDTO.setDuration(post.getDuration());
                 postProjectionDTO.setPostCode(post.getPostCode());
                 postProjectionDTO.setPostName(post.getPostName());
                 postProjectionDTO.setOtherDistributions(post.getOtherDistributions());
@@ -308,6 +317,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
@@ -327,7 +337,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
         this.modifiedDate = customProduct.getModifiedDate();
-
+        this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
+        this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.creatorUserId = customProduct.getUserId();
         this.creatorRoleId = customProduct.getCreatoRole();
         this.modifierUserId = customProduct.getModifierUserId();
@@ -364,10 +375,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
         this.displayTemplate = customProduct.getDisplayTemplate();
+        this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
+        this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
+        this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
-       this.numberOfPosts= (long) customProduct.getPosts().size();
+        this.numberOfPosts= (long) customProduct.getPosts().size();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -449,6 +463,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.createdDate = customProduct.getCreatedDate();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
@@ -469,7 +484,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.creatorRoleId = customProduct.getCreatoRole();
         this.modifierUserId = customProduct.getModifierUserId();
         this.modifierRoleId = customProduct.getModifierRole();
-
+        this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
+        this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
 
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();

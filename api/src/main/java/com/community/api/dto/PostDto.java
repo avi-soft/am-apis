@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,8 @@ public class PostDto {
     private String postAdditionalComments;
     @JsonProperty("state_distribution_additional_comments")
     private String stateDistributionAdditionalComments;
-    @JsonProperty("zone_distribution_additional_comments")
+    @JsonProperty("duration")
+    private String duration;
     private String zoneDistributionAdditionalComments;
     @JsonProperty("gender_distribution_additional_comments")
     private String genderDistributionAdditionalComments;

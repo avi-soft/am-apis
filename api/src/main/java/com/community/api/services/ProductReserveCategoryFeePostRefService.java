@@ -64,6 +64,7 @@ public class ProductReserveCategoryFeePostRefService {
         try {
 
             for (AddReserveCategoryDto addReserveCategoryDto : addReserveCategoryDtoList) {
+                System.out.println("Number of post are :"+addReserveCategoryDto.getPost());
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
                 CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_FEE_POST);
@@ -72,9 +73,8 @@ public class ProductReserveCategoryFeePostRefService {
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
                 query.setParameter("genderId",gender.getGenderId());
-                query.setParameter("additional_comments",addReserveCategoryDto.getAdditionalComment());
+                query.setParameter("fee_additional_comments",addReserveCategoryDto.getAdditionalComment());
                 int affectedRows = query.executeUpdate();
-
                 if (affectedRows == 0) {
                     throw new RuntimeException("Error inserting values in mapping table of CustomProductReserveCategoryFeePostRef");
                 }

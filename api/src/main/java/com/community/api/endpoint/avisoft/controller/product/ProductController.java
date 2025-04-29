@@ -868,10 +868,16 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
+            @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -879,6 +885,13 @@ public class ProductController extends CatalogEndpoint {
             if(limit<=0)
             {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
+            }
+
+            if (isExpired && (roleId != 1 && roleId != 2)) {
+                return ResponseService.generateErrorResponse(
+                        "You are not authorized to view expired products.",
+                        HttpStatus.BAD_REQUEST
+                );
             }
             // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -890,8 +903,10 @@ public class ProductController extends CatalogEndpoint {
             }
 
             // Fetch filtered products
-            List<CustomProduct> products = productService.filterProducts(state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo);
-
+            List<CustomProduct> products = productService.filterProducts(
+                    state, rejection_status, categories, reserveCategories,
+                    title, fee, post, dateFrom, dateTo, isExpired
+            );
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
@@ -899,8 +914,7 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y'&&
-                        customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList= customProduct.getPosts();
                     List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());

@@ -42,7 +42,7 @@ public class Advertisement {
     @JsonProperty("advertisement_id")
     private Long advertisementId;
 
-    @Column(name = "number", nullable = false, unique = true)
+    @Column(name = "number",unique = true)
     @JsonProperty("number")
     private String number;
 
@@ -95,9 +95,8 @@ public class Advertisement {
     @JsonProperty("active_end_date")
     private Date notificationEndDate;
 
-    @NotNull
-    @NotEmpty
-    @Column(name = "url", unique = true)
+
+    @Column(name = "url",unique = false)
     @JsonProperty("url")
     private String url;
 

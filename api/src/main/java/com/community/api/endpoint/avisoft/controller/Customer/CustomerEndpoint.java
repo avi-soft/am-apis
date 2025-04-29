@@ -1438,10 +1438,10 @@ public class CustomerEndpoint {
                     }
                     if(documentTypeObj.getDocument_type_id().equals(13))
                     {
-                        if(otherDocument==null)
+                        /*if(otherDocument==null)
                         {
                             throw new IllegalArgumentException("other document is required to delete a other document");
-                        }
+                        }*/
                     }
                     boolean isQualificationDocumentToDelete=false;
                     boolean isOtherDocumentToDelete=false;
@@ -1639,7 +1639,6 @@ public class CustomerEndpoint {
                                     .findFirst()
                                     .orElse(null);
                         }
-
                         if (documentTypeObj.getDocument_type_id().equals(3)) {
                             fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                         } else {
@@ -1712,6 +1711,7 @@ public class CustomerEndpoint {
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
                             if (documentTypeObj.getDocument_type_id().equals(3)) {
+                                processedFile = documentStorageService.convertToJpg(file);
                                 customCustomer.setIsLivePhotoNa(false);
                             }
                             if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1762,7 +1762,7 @@ public class CustomerEndpoint {
 
                                 // Get the expected filename after any conversion
                                 boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
-                                String newFileName = documentStorageService.getConvertedFilename(file, isLivePhoto);
+                                String newFileName = documentStorageService.getConvertedFilename(processedFile, isLivePhoto);
 
                                 existingDocument.setIsArchived(false);
 
@@ -1844,9 +1844,15 @@ public class CustomerEndpoint {
 
                                 documentDetails.put("documentValidity", validityDetails); // Include as nested map
                             }
-
+                            String filePath;
                             // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            try {
+                                filePath = documentStorageService.encrypt(document.getFilePath());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            String fileUrl = fileService.getFileUrl(filePath, request);
+                           /* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*/
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
                             if (otherDocument != null && !otherDocument.trim().isEmpty()) {
@@ -2142,9 +2148,14 @@ public class CustomerEndpoint {
 
                                 documentDetails.put("documentValidity", validityDetails);
                             }
-
-                            // Generate a file URL for the document
-                            String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                            String filePath;
+                            try {
+                                filePath = documentStorageService.encrypt(document.getFilePath());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            String fileUrl = fileService.getFileUrl(filePath, request);
+                            // Generate a file URL for the documen
                             documentDetails.put("fileUrl", fileUrl);
 
                             Map<String, Object> documentTypeResponse = new HashMap<>();
