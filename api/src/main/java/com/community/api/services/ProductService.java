@@ -19,6 +19,7 @@ import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
+import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -444,16 +445,32 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
+    public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
                                               Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired) throws Exception {
+                                              Boolean isExpired, Integer offset,Integer limit) throws Exception {
         try {
-            // Initialize the JPQL query
-            StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
-                    .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
+            StringBuilder result=new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
+            StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
+            StringBuilder jpql = new StringBuilder("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
                     .append("JOIN SkuImpl s ON s.defaultProduct = p ")
                     .append("WHERE 1=1 "); // Use this to simplify appending conditions
+            Map<String ,Object>response=new HashMap<>();
+            /*if(all)
+            {
+                TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+                int res=queryToCount.getSingleResult().intValue();
+                jpql=result.append(jpql);
+                // Create the query with the final JPQL string
+                TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+                query.setFirstResult(offset*limit);     // e.g., offset = 20
+                query.setMaxResults(limit);// e.g., limit = 10
+                response.put("count",res);
+                response.put("products",query.getResultList());
+                return response;
+            }*/
+            // Initialize the JPQL query
+
 
             // List to hold query parameters
             List<CustomProductState> customProductStates = new ArrayList<>();
@@ -553,15 +570,18 @@ public class ProductService {
             if (Boolean.TRUE.equals(isExpired)) {
                 // Only expired products
                 jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
-            } else {
+            } else if(Boolean.FALSE.equals(isExpired)) {
                 // Only non-expired products
                 jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+            int res=queryToCount.getSingleResult().intValue();
+            jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-
+            query.setFirstResult(offset*limit);     // e.g., offset = 20
+            query.setMaxResults(limit);// e.g., limit = 10
             // Set parameters
             if (!customProductStates.isEmpty()) {
                 query.setParameter("states", customProductStates);
@@ -593,9 +613,10 @@ public class ProductService {
             if (endRange != null) {
                 query.setParameter("endRange", endRange);
             }
-
+             response.put("count",res);
+             response.put("products",query.getResultList());
             // Execute and return the result
-            return query.getResultList();
+            return response;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
