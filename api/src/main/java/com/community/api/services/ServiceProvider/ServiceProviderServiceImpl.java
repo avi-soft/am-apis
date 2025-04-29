@@ -1488,15 +1488,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             queryBuilder.append("SELECT s.* FROM service_provider s ");
                     if(state!=null||district!=null) {
                         queryBuilder.append("JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id ")
-                                .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ")
-                                .append("WHERE ");
+                                .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
                     }
                     if(qualificationType!=null) {
-                        queryBuilder.append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ")
-                                .append("WHERE ");
+                        queryBuilder.append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
                     }
-
-
+                   queryBuilder.append("WHERE ");
 
             // Add qualificationType filter
             if (qualificationType != null && !qualificationType.isEmpty()) {
