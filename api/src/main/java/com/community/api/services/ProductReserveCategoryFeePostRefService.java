@@ -69,7 +69,9 @@ public class ProductReserveCategoryFeePostRefService {
                 CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_FEE_POST);
                 query.setParameter("productId", product.getId());
-                query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
+                if (reserveCategory != null) {
+                    query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
+                }
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
                 query.setParameter("genderId",gender.getGenderId());
