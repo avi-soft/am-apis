@@ -21,19 +21,8 @@ import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.Skill;
 import com.community.api.entity.SuccessResponse;
-import com.community.api.services.BankAccountService;
-import com.community.api.services.DistrictService;
-import com.community.api.services.DocumentStorageService;
-import com.community.api.services.OrderStatusByStateService;
-import com.community.api.services.PhysicalRequirementDtoService;
-import com.community.api.services.ReserveCategoryDtoService;
-import com.community.api.services.ResponseService;
-import com.community.api.services.RoleService;
-import com.community.api.services.SanitizerService;
+import com.community.api.services.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
-import com.community.api.services.SharedUtilityService;
-import com.community.api.services.TicketStateService;
-import com.community.api.services.TwilioServiceForServiceProvider;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
@@ -120,6 +109,9 @@ public class ServiceProviderController {
     private JwtUtil jwtTokenUtil;
     @Autowired
     private RoleService roleService;
+
+    @Autowired
+    QualificationService qualificationService;
     /*@Autowired
     private DummyAssignerService dummyAssignerService;*/
 
@@ -577,11 +569,13 @@ public ResponseEntity<?> getAllServiceProviders(
     @Transactional
     @GetMapping("/filter-service-provider")
     public ResponseEntity<?> filterServiceProvider(
-            @RequestParam(required = false) String state,
-            @RequestParam(required = false) String district,
+            @RequestParam(required = false) List<String> state,
+            @RequestParam(required = false) List<String> district,
             @RequestParam(required = false) String full_name,
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) Long test_status_id,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) List<Integer> qualificationType,
             @RequestHeader(value = "Authorization")String authHeader,
             @RequestParam(required = false)Boolean completed,
             @RequestParam(required = false)Boolean suspended,
@@ -603,10 +597,12 @@ public ResponseEntity<?> getAllServiceProviders(
             if(role!=null&&(role<=roleId||role==5))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             // Validate input
-            if ((uri.containsKey("state") && state == null) ||
-                    (uri.containsKey("full_name") && (full_name == null || full_name.trim().isEmpty())) ||
+            if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
+                    (uri.containsKey("district") && (district == null || district.isEmpty())) ||
                     (uri.containsKey("test_status_id") && test_status_id == null) ||
                     (uri.containsKey("district") && district == null) ||
+                    (uri.containsKey("userName") && userName == null) ||
+                    (uri.containsKey("qualificationType") && qualificationType == null) ||
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
@@ -621,13 +617,28 @@ public ResponseEntity<?> getAllServiceProviders(
                 return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
             }
 
+            if (userName != null && !userName.matches("^[a-zA-Z0-9]+$")) {
+                return ResponseService.generateErrorResponse("Username can only contain letters and numbers", HttpStatus.BAD_REQUEST);
+            }
+
 
             String first_name = null;
             String last_name = null;
 
+            System.out.println("hello 1");
+
+
+            List<Long>qualificationNames=new ArrayList<>();
+            List<String>qualificationStrings=new ArrayList<>();
+
+
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+            }
+
+            if (userName != null && !userName.isEmpty()) {
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
             }
 
             // Handle search by full name (split into first and last names)
@@ -637,13 +648,27 @@ public ResponseEntity<?> getAllServiceProviders(
                 if (!name[1].equals("")) last_name = name[1];
             }
 
+            System.out.println("hello 2 ");
+
+            if (qualificationType != null) {
+                for (Integer id : qualificationType) {
+                    if (qualificationService.getQualificationByQualificationId(id) == null)
+                        return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+                    qualificationStrings.add(qualificationService.getQualificationByQualificationId(id).getQualification_name());
+                    qualificationNames.add(qualificationService.getQualificationByQualificationId(id).getOverlap());
+
+                }
+            }
+
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved,rejected);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+
+            System.out.println("hello 3");
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
