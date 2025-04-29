@@ -821,7 +821,7 @@ public class ProductController extends CatalogEndpoint {
                 if (customProduct != null) {
                     boolean isActive = ((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date());
-                    boolean isLive = !customProduct.getGoLiveDate().after(new Date());
+                    boolean isLive = customProduct.getGoLiveDate().before(new Date());
 
                     if (isActive && isLive) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();

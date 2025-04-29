@@ -1205,26 +1205,32 @@ public class ProductService {
 
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
                 System.out.println("Validating, no of post are"+addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost());
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()){
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }
                 }if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() <= 0) {
                     throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
                 }
                 CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender());
                 if(gender==null)
                     throw new NotFoundException("Invalid gender id");
-                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
-                if(category==null)
-                    throw new NotFoundException("Invalid category id");
+
+                CustomReserveCategory category = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()) {
+//                    CustomReserveCategory category = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                    if (category == null)
+                        throw new NotFoundException("Invalid category id");
+                } if(category!=null){
                 int genderAndCategoryCombo=(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender().intValue());
-                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReservedCategory().size()>1)
-                {
-                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
-                }
-                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
-                {
-                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
-                }
+                if (gender.getGenderName().equals(Constant.NO_GENDER) && category.getReserveCategoryName().equals(Constant.NO_CATEGORY) && addProductDto.getReservedCategory().size() > 1) {
+                     throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
+                 }
+                 if (!genderCategoryComboSet.add(genderAndCategoryCombo)) {
+                     throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                 }
+             }
                 /*if(gender.getGenderName().equals(Constant.NO_GENDER))
                 {
                     Boolean result=checkForOpenGender(gender,addProductDto);
@@ -1241,8 +1247,10 @@ public class ProductService {
                 reserveCategoryId.add(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
 
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
-                if (reserveCategory == null) {
-                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()) {
+                    if (reserveCategory == null) {
+                        throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                    }
                 }
 
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getFee() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getFee() < 0) {
