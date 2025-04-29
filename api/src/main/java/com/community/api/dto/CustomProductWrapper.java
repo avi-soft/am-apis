@@ -186,7 +186,18 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
                 reserveCategoryDto.setProductId(product.getId());
                 reserveCategoryDto.setReserveCategoryId(addProductDto.getReservedCategory().get(i).getReserveCategory());
-                reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                if(!addProductDto.getReservedCategory().get(i).getIsOtherOrStateCategory()) {
+                    reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                }
+                else{
+                    Long id =addProductDto.getReservedCategory().get(i).getReserveCategory();
+                    if(id!=null)
+                     reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                    else
+                        reserveCategoryDto.setReserveCategory(null);
+                }
+
+
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
                 reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());

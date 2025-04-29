@@ -669,7 +669,6 @@ public ResponseEntity<?> getAllServiceProviders(
                     serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
 
             System.out.println("hello 3");
-
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
             if (response1.getBody() != null && response1.getBody().getData() != null) {
