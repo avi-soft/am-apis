@@ -2905,42 +2905,52 @@ public class ProductService {
             }
             if (!postDto.getPhysicalRequirements().isEmpty()) {
                 Set<Long> genderId = new HashSet<>();
+                int nullGenderIdCount = 0;
 
                 for (int physicalAttributeIndex = 0; physicalAttributeIndex < postDto.getPhysicalRequirements().size(); physicalAttributeIndex++) {
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() <= 0) {
-                        throw new IllegalArgumentException("GENDER ID CANNOT BE NULL OR <= 0");
-                    }
-                    genderId.add(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
+                    Long genderIdValue = postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId();
 
-                    CustomGender customGender = genderService.getGenderByGenderId(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
-                    if (customGender == null) {
-                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
-                    }
+                    if (genderIdValue == null) {
+                        nullGenderIdCount++;
+                        continue;
+                    } else
+                        if (!genderId.add(genderIdValue)){
+                        throw new IllegalArgumentException("DUPLICATE GENDER ID FOUND: " + genderIdValue);
+                }
 
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
-                        throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
-                    }
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
-                        throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
-                    }
-
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
-                        throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
-                    }
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
-                        throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
-                    }
-
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
-                        throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
-                    }
+                CustomGender customGender = genderService.getGenderByGenderId(genderIdValue);
+                if (customGender == null) {
+                    throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + genderIdValue);
+                }
 
                 }
 
-                if (genderId.size() != postDto.getPhysicalRequirements().size()) {
-                    throw new IllegalArgumentException("DUPLICATE GENDER NOT ALLOWED");
+
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
+//                        throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
+//                    }
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
+//                        throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
+//                    }
+//
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
+//                        throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
+//                    }
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
+//                        throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
+//                    }
+//
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
+//                        throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
+//                    }
+
+
+                if (nullGenderIdCount > 1) {
+                    throw new IllegalArgumentException("DUPLICATE NULL GENDER ID ENTRIES FOUND");
                 }
             }
+
+
 
             return true;
         } catch (Exception exception) {
@@ -2981,23 +2991,27 @@ public class ProductService {
                     Qualification qualificationDetails=entityManager.find(Qualification.class,qualificationEligibilityDto.getQualificationIds().get(0));
                     if(qualificationEligibilityDto.getIsAppearing()==null)
                         throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
-                    if(qualificationEligibilityDto.getIsAppearing()) {
-                        if (qualificationEligibilityDto.getIsPercentage() != null) {
-                            if (!qualificationEligibilityDto.getIsPercentage()) {
-                                if (qualificationEligibilityDto.getPercentage() != null)
-                                    throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                            } else {
-                                if (qualificationEligibilityDto.getCgpa() != null)
-                                    throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
-                            }
-                            if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null) {
-                                throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
-                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
-                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
-                            }
-                        }
+                  if(qualificationEligibilityDto.getIsAppearing()) {
+                      if (qualificationEligibilityDto.getIsPercentage() != null) {
+                          if (!qualificationEligibilityDto.getIsPercentage()) {
+                              if (qualificationEligibilityDto.getPercentage() != null)
+                                  throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+                          } else {
+                              if (qualificationEligibilityDto.getCgpa() != null)
+                                  throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
+                          }
+                          if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null ) {
+                              throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
+                          }
 
-                    }
+                      }
+                  }
+//                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
+//                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
+//                            }
+//                        }
+//
+//                    }
                     if(!qualificationEligibilityDto.getIsAppearing()) {
                         if (qualificationEligibilityDto.getIsPercentage() == null)
                             throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
@@ -3007,11 +3021,12 @@ public class ProductService {
                                 throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
                             if (qualificationEligibilityDto.getCgpa() != null) {
                                 double cgpa = qualificationEligibilityDto.getCgpa();
-                                // proceed with cgpa logic
-                            } else {
-                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
-                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
                             }
+                                // proceed with cgpa logic
+//                             else {
+//                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+//                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+//                            }
                         } else {
                             if (qualificationEligibilityDto.getCgpa() != null)
                                 throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
