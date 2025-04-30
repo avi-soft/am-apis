@@ -37,6 +37,7 @@ import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefServic
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -64,6 +65,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
@@ -869,6 +875,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
@@ -877,7 +884,7 @@ public class ProductController extends CatalogEndpoint {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
+            Role role=roleService.getRoleByRoleId(roleId);
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -890,7 +897,7 @@ public class ProductController extends CatalogEndpoint {
             if (isExpired && (roleId != 1 && roleId != 2)) {
                 return ResponseService.generateErrorResponse(
                         "You are not authorized to view expired products.",
-                        HttpStatus.BAD_REQUEST
+                        HttpStatus.FORBIDDEN
                 );
             }
             // Date formatting
@@ -901,12 +908,27 @@ public class ProductController extends CatalogEndpoint {
             if (dateTo != null) {
                 dateTo = dateFormat.parse(dateFormat.format(dateTo));
             }
-
-            // Fetch filtered products
-            List<CustomProduct> products = productService.filterProducts(
-                    state, rejection_status, categories, reserveCategories,
-                    title, fee, post, dateFrom, dateTo, isExpired
-            );
+            List<CustomProduct> products=null;
+            Map<String,Object> opresponse=new HashMap<>();
+            if(all&&!(roleAdmin.equals(role.getRole_name())||roleSuperAdmin.equals(role.getRole_name())))
+            {
+                return ResponseService.generateErrorResponse("You are not authorized to view all products.",HttpStatus.FORBIDDEN);
+            }
+            if(!all) {
+                // Fetch filtered products
+                opresponse = productService.filterProducts(
+                        state, rejection_status, categories, reserveCategories,
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit
+                );
+            }
+            else
+            {
+                opresponse = productService.filterProducts(
+                        state, rejection_status, categories, reserveCategories,
+                        title, fee, post, dateFrom, dateTo, null, offset, limit
+                );
+            }
+            products=(List<CustomProduct>)opresponse.get("products");
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
@@ -923,8 +945,18 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
+           /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+
+            Root<CustomProduct> root = countQuery.from(CustomProduct.class);
+
+// SELECT COUNT(p) FROM CustomProduct p
+            countQuery.select(criteriaBuilder.count(root));
+
+            TypedQuery<Long> query = entityManager.createQuery(countQuery);*/
+
             // Pagination logic
-            int totalItems = responses.size();
+            int totalItems = (Integer)opresponse.get("count");
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
@@ -937,11 +969,11 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
-            List<CustomProductWrapper> paginatedList = responses.subList(fromIndex, toIndex);
+
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("products", paginatedList);
+            response.put("products", responses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
