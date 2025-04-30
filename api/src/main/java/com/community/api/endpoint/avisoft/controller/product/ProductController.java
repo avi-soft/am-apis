@@ -918,14 +918,14 @@ public class ProductController extends CatalogEndpoint {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all
                 );
             }
             else
             {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit
+                        title, fee, post, dateFrom, dateTo, null, offset, limit,all
                 );
             }
             products=(List<CustomProduct>)opresponse.get("products");
@@ -936,13 +936,13 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+                /*if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {*/
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList= customProduct.getPosts();
                     List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
                     wrapper.wrapDetails(customProduct,postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
                     responses.add(wrapper);
-                }
+                //}
             }
 
            /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
