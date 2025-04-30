@@ -30,15 +30,13 @@ public class CustomProductGenderPhysicalRequirementRef {
     Long physicalRequirementId;
 
     @ManyToOne
-    @NotNull
     @JoinColumn(name = "gender_id")
     protected CustomGender customGender;
 
-    @NotNull
     @Column(name = "height")
     Double height;
 
-    @NotNull
+
     @Column(name = "weight")
     Double weight;
 

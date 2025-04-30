@@ -327,9 +327,9 @@ public class PostService {
         if (!physicalRequirementDtos.isEmpty()) {
             for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
                 CustomGender customGender = genderService.getGenderByGenderId(dto.getGenderId());
-                if (customGender == null) {
-                    throw new IllegalArgumentException("Gender not found for ID: " + dto.getGenderId());
-                }
+//                if (customGender == null) {
+//                    throw new IllegalArgumentException("Gender not found for ID: " + dto.getGenderId());
+//                }
 
                 CustomProductGenderPhysicalRequirementRef requirement = new CustomProductGenderPhysicalRequirementRef();
                 requirement.setCustomGender(customGender);
