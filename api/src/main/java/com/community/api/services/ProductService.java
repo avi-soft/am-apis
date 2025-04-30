@@ -24,6 +24,7 @@ import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -448,13 +449,14 @@ public class ProductService {
     public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
                                               Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired, Integer offset,Integer limit) throws Exception {
+                                              Boolean isExpired, Integer offset,Integer limit,Boolean all) throws Exception {
         try {
-            StringBuilder result=new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
             StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
-            StringBuilder jpql = new StringBuilder("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
-                    .append("JOIN SkuImpl s ON s.defaultProduct = p ")
-                    .append("WHERE 1=1 "); // Use this to simplify appending conditions
+            StringBuilder result = new StringBuilder("SELECT  p FROM CustomProduct p ");
+            StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
+                    if(!all)
+                        jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
+                    .append("WHERE 1=1 ");  // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
             {
@@ -575,7 +577,7 @@ public class ProductService {
                 jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.toString(),Long.class);
             int res=queryToCount.getSingleResult().intValue();
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
@@ -614,6 +616,7 @@ public class ProductService {
                 query.setParameter("endRange", endRange);
             }
              response.put("count",res);
+            System.out.println(jpql.toString());
              response.put("products",query.getResultList());
             // Execute and return the result
             return response;
