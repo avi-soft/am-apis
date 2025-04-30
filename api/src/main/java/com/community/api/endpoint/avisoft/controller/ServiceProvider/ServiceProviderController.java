@@ -574,7 +574,7 @@ public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(required = false) String full_name,
             @RequestParam(required = false) String mobileNumber,
             @RequestParam(required = false) Long test_status_id,
-            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String user_name,
             @RequestParam(required = false) List<Integer> qualificationType,
             @RequestHeader(value = "Authorization")String authHeader,
             @RequestParam(required = false)Boolean completed,
@@ -601,7 +601,7 @@ public ResponseEntity<?> getAllServiceProviders(
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
                     (uri.containsKey("test_status_id") && test_status_id == null) ||
                     (uri.containsKey("district") && district == null) ||
-                    (uri.containsKey("userName") && userName == null) ||
+                    (uri.containsKey("userName") && user_name == null) ||
                     (uri.containsKey("qualificationType") && qualificationType == null) ||
                     (uri.containsKey("mobileNumber") && mobileNumber == null)) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
@@ -617,7 +617,7 @@ public ResponseEntity<?> getAllServiceProviders(
                 return ResponseService.generateErrorResponse("Full name cannot contain digits or special characters", HttpStatus.BAD_REQUEST);
             }
 
-            if (userName != null && !userName.matches("^[a-zA-Z0-9]+$")) {
+            if (user_name != null && !user_name.matches("^[a-zA-Z0-9]+$")) {
                 return ResponseService.generateErrorResponse("Username can only contain letters and numbers", HttpStatus.BAD_REQUEST);
             }
 
@@ -634,11 +634,11 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
             }
 
-            if (userName != null && !userName.isEmpty()) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+            if (user_name != null && !user_name.isEmpty()) {
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
             }
 
             // Handle search by full name (split into first and last names)
@@ -662,11 +662,11 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,userName,qualificationType);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
 
             System.out.println("hello 3");
             // Merge results and remove duplicates
