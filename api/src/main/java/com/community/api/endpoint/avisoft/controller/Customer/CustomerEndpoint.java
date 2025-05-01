@@ -1710,7 +1710,7 @@ public class CustomerEndpoint {
                         else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                             String filePath = existingDocument.getFilePath();
                             if (documentTypeObj.getDocument_type_id().equals(3)) {
-                                processedFile = documentStorageService.convertToJpg(file);
+//                                processedFile = documentStorageService.convertToJpg(file);
                                 customCustomer.setIsLivePhotoNa(false);
                             }
                             if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -1761,7 +1761,7 @@ public class CustomerEndpoint {
 
                                 // Get the expected filename after any conversion
                                 boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
-                                String newFileName = documentStorageService.getConvertedFilename(processedFile, isLivePhoto);
+                                String newFileName = documentStorageService.getConvertedFilename(file, isLivePhoto);
 
                                 existingDocument.setIsArchived(false);
 
