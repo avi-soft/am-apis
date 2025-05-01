@@ -885,6 +885,16 @@ public class ProductController extends CatalogEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role=roleService.getRoleByRoleId(roleId);
+            Long createdById=null;
+            Role roleEntity=roleService.getRoleByRoleId(roleId);
+            if(Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))
+            {
+                createdById=null;
+            }
+            else
+            {
+                createdById=tokenUserId;
+            }
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -894,12 +904,12 @@ public class ProductController extends CatalogEndpoint {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
 
-            if (isExpired && (roleId != 1 && roleId != 2)) {
+          /*  if (isExpired && (roleId != 1 && roleId != 2)) {
                 return ResponseService.generateErrorResponse(
                         "You are not authorized to view expired products.",
                         HttpStatus.FORBIDDEN
                 );
-            }
+            }*/
             // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
@@ -910,22 +920,22 @@ public class ProductController extends CatalogEndpoint {
             }
             List<CustomProduct> products=null;
             Map<String,Object> opresponse=new HashMap<>();
-            if(all&&!(roleAdmin.equals(role.getRole_name())||roleSuperAdmin.equals(role.getRole_name())))
+           /* if(all&&!(roleAdmin.equals(role.getRole_name())||roleSuperAdmin.equals(role.getRole_name())))
             {
                 return ResponseService.generateErrorResponse("You are not authorized to view all products.",HttpStatus.FORBIDDEN);
-            }
+            }*/
             if(!all) {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all,createdById
                 );
             }
             else
             {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit,all
+                        title, fee, post, dateFrom, dateTo, null, offset, limit,all,createdById
                 );
             }
             products=(List<CustomProduct>)opresponse.get("products");
