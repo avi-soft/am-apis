@@ -449,7 +449,7 @@ public class ProductService {
     public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
                                               Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired, Integer offset,Integer limit,Boolean all) throws Exception {
+                                              Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
         try {
             StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
             StringBuilder result = new StringBuilder("SELECT  p FROM CustomProduct p ");
@@ -504,7 +504,9 @@ public class ProductService {
                 // Explicitly filter for non-null rejection status that matches the specified values
                 jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
-
+            if (createdById != null) {
+                jpql.append(" AND p.userId = :creatorUserId");
+            }
             if (categories != null && !categories.isEmpty()) {
                 boolean anyValidCategory = false;
                 for (Long id : categories) {
@@ -577,8 +579,7 @@ public class ProductService {
                 jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-            TypedQuery<Long> queryToCount = entityManager.createQuery(count.toString(),Long.class);
-            int res=queryToCount.getSingleResult().intValue();
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
@@ -587,34 +588,48 @@ public class ProductService {
             // Set parameters
             if (!customProductStates.isEmpty()) {
                 query.setParameter("states", customProductStates);
+                queryToCount.setParameter("states", customProductStates);
             }
             if (!productRejectionStatuses.isEmpty()) {
                 query.setParameter("statuses", productRejectionStatuses);
+                queryToCount.setParameter("statuses", productRejectionStatuses);
             }
             if (!categoryList.isEmpty()) {
                 query.setParameter("categories", categoryList);
+                queryToCount.setParameter("categories", categoryList);
             }
             if (!customReserveCategoryList.isEmpty()) {
                 query.setParameter("reserveCategories", customReserveCategoryList);
+                queryToCount.setParameter("reserveCategories", customReserveCategoryList);
             }
             if (title != null && !title.isEmpty()) {
                 String[] words = title.split("\\s+");
                 for (int i = 0; i < words.length; i++) {
                     query.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
+                    queryToCount.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
                 }
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
+                queryToCount.setParameter("fee", fee);
+            }
+            if (createdById != null) {
+                query.setParameter("creatorUserId", createdById);
+                queryToCount.setParameter("creatorUserId", createdById);
             }
             if (post != null) {
                 query.setParameter("post", post);
+                queryToCount.setParameter("post", post);
             }
             if (startRange != null) {
                 query.setParameter("startRange", startRange);
+                queryToCount.setParameter("startRange", startRange);
             }
             if (endRange != null) {
                 query.setParameter("endRange", endRange);
+                queryToCount.setParameter("endRange", endRange);
             }
+            int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
             System.out.println(jpql.toString());
              response.put("products",query.getResultList());

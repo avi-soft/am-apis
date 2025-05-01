@@ -157,6 +157,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Pattern.compile("^/api/v1/category-custom/get-all-categories-info$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
                 Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
+                Pattern.compile("^/api/v1/advertisement/get-advertisement-by-id/\\d+$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$")
         );
 
@@ -184,6 +185,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/images")
                 || requestURI.startsWith("/api/v1/webjars")
                 || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
+                || requestURI.matches("^/api/v1/advertisement/get-advertisement-by-id/\\d+$")
                 || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
                 || requestURI.matches("^/api/v1/category-custom/get-sub-categories(/.*)?$")
                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
