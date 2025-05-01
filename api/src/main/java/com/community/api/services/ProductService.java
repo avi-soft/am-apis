@@ -2989,53 +2989,87 @@ public class ProductService {
             }
                 for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
                     Qualification qualificationDetails=entityManager.find(Qualification.class,qualificationEligibilityDto.getQualificationIds().get(0));
-                    if(qualificationEligibilityDto.getIsAppearing()==null)
-                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
-                  if(qualificationEligibilityDto.getIsAppearing()) {
-                      if (qualificationEligibilityDto.getIsPercentage() != null) {
-                          if (!qualificationEligibilityDto.getIsPercentage()) {
-                              if (qualificationEligibilityDto.getPercentage() != null)
-                                  throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                          } else {
-                              if (qualificationEligibilityDto.getCgpa() != null)
-                                  throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
-                          }
-                          if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null ) {
-                              throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
-                          }
 
-                      }
-                  }
+                    if (qualificationEligibilityDto.getIsAppearing() == null) {
+                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
+                    }
+
+// Common validation for isAppearing == true or false
+                    if (!qualificationEligibilityDto.getIsAppearing() || qualificationEligibilityDto.getIsAppearing()) {
+                        Boolean isPercentage = qualificationEligibilityDto.getIsPercentage();
+
+                        if (isPercentage != null) {
+                            if (isPercentage) {
+                                // isPercentage == true: percentage is required, CGPA must NOT be provided
+                                if (qualificationEligibilityDto.getCgpa() != null) {
+                                    throw new IllegalArgumentException("CGPA should not be provided when selecting percentage for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                if (qualificationEligibilityDto.getPercentage() == null) {
+                                    throw new IllegalArgumentException("Percentage is required when 'isPercentage' is true for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                double percentage = qualificationEligibilityDto.getPercentage();
+                                if (percentage < 0 || percentage > 100) {
+                                    throw new IllegalArgumentException("Percentage must be between 0 and 100 for qualification " + qualificationDetails.getQualification_name());
+                                }
+                            } else {
+                                // isPercentage == false: CGPA is optional, but percentage must NOT be provided
+                                if (qualificationEligibilityDto.getPercentage() != null) {
+                                    throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                // CGPA can be provided or left null
+                            }
+                        }
+                        // If isPercentage is null => only qualification selected => skip percentage/CGPA validation
+                    }
+
+
+   //                 if(qualificationEligibilityDto.getIsAppearing()==null)
+ //                       throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
+//                  if(qualificationEligibilityDto.getIsAppearing()) {
+//                      if (qualificationEligibilityDto.getIsPercentage() != null) {
+//                          if (!qualificationEligibilityDto.getIsPercentage()) {
+//                              if (qualificationEligibilityDto.getPercentage() != null)
+//                                  throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+//                          } else {
+//                              if (qualificationEligibilityDto.getCgpa() != null)
+//                                  throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
+//                          }
+//                          if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null ) {
+//                              throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
+//                          }
+//
+//                      }
+//                  }
 //                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
 //                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
 //                            }
 //                        }
 //
 //                    }
-                    if(!qualificationEligibilityDto.getIsAppearing()) {
-                        if (qualificationEligibilityDto.getIsPercentage() == null)
-                            throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
-                        //Validate Qualification ids
-                        if (!qualificationEligibilityDto.getIsPercentage()) {
-                            if (qualificationEligibilityDto.getPercentage() != null)
-                                throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                            if (qualificationEligibilityDto.getCgpa() != null) {
-                                double cgpa = qualificationEligibilityDto.getCgpa();
-                            }
-                                // proceed with cgpa logic
-//                             else {
-//                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
-//                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+//                    if(!qualificationEligibilityDto.getIsAppearing()) {
+//  //                      if (qualificationEligibilityDto.getIsPercentage() == null)
+//      //                      throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
+//                        //Validate Qualification ids
+//                        if (!qualificationEligibilityDto.getIsPercentage()) {
+//                            if (qualificationEligibilityDto.getPercentage() != null)
+//                                throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+//                            if (qualificationEligibilityDto.getCgpa() != null) {
+//                                double cgpa = qualificationEligibilityDto.getCgpa();
 //                            }
-                        } else {
-                            if (qualificationEligibilityDto.getCgpa() != null)
-                                throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
-                            if (qualificationEligibilityDto.getPercentage() == null)
-                                throw new IllegalArgumentException("Need to provide percentage");
-                            else if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0)
-                                throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
-                        }
-                    }
+//                                // proceed with cgpa logic
+////                             else {
+////                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+////                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+////                            }
+//                        } else {
+//                            if (qualificationEligibilityDto.getCgpa() != null)
+//                                throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
+//                            if (qualificationEligibilityDto.getPercentage() == null)
+//                                throw new IllegalArgumentException("Need to provide percentage");
+//                            else if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0)
+//                                throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
+//                        }
+//                    }
                     if (qualificationEligibilityDto.getQualificationIds() == null) {
                         throw new IllegalArgumentException("Qualification cannot be null");
                     } else if (qualificationEligibilityDto.getQualificationIds() != null) {
