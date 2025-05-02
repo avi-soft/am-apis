@@ -72,6 +72,9 @@ public class ProductReserveCategoryFeePostRefService {
                 if (reserveCategory != null) {
                     query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
                 }
+                else
+                    query.setParameter("reserveCategoryId",0);
+
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
                 query.setParameter("genderId",gender.getGenderId());

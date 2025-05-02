@@ -249,6 +249,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForMobile.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForMobile.put("categoryIssueDate", customCustomer.getCategoryIssueDate());
+            customerDetailsForMobile.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
                 customerDetailsForMobile.put("heightCms", customCustomer.getHeightCms().toString());
@@ -530,6 +531,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
+            customerDetailsForDesktop.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
                 customerDetailsForDesktop.put("height_cms", customCustomer.getHeightCms().toString());
