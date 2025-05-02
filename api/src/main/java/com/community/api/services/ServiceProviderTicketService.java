@@ -755,8 +755,8 @@ public class ServiceProviderTicketService {
 
             // List to hold query parameters
             List<CustomTicketState> customTicketStates = new ArrayList<>();
-            List<CustomTicketStatus> customTicketStatuses = new ArrayList<>();
             List<CustomTicketType> customTicketTypes = new ArrayList<>();
+            List<CustomTicketStatus> customTicketStatuses = new ArrayList<>();
 
             // Conditionally build the query
             if (states != null && !states.isEmpty()) {
