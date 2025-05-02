@@ -174,7 +174,7 @@ public class TicketController {
             @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
             @RequestParam(value = "ticket_state", required = false) List<Long> state,
             @RequestParam(value = "ticket_type", required = false) List<Long> type,
-            @RequestParam(value = "ticket_status", required = false) Long status,
+            @RequestParam(value = "ticket_status", required = false) List<Long> status,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit)
     {
