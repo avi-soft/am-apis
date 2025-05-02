@@ -409,6 +409,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
                 reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
+                reserveCategoryDto.setIsOtherOrStateCategory(fee.getIsOtherOrStateCategory());
+                reserveCategoryDto.setOtherOrStateCategory(fee.getOtherOrStateCategory());
             /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
             reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
                 if(fee.getGender()!=null)
