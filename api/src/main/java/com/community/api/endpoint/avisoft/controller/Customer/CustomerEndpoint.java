@@ -308,6 +308,40 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+
+            if (details.containsKey("familyIncome")) {
+                Object incomeObj = details.get("familyIncome");
+                if (incomeObj == null || incomeObj.toString().trim().isEmpty()) {
+                    customCustomer.setFamilyIncome(null); // Clear the value
+                } else {
+                    try {
+                        Long familyIncomeValue = Long.parseLong(incomeObj.toString().trim());
+                        if (familyIncomeValue <= 0) {
+                            return ResponseService.generateErrorResponse("FamilyIncome must be greater than 0", HttpStatus.BAD_REQUEST);
+                        }
+                        customCustomer.setFamilyIncome(familyIncomeValue);
+                    } catch (NumberFormatException e) {
+                        return ResponseService.generateErrorResponse("Invalid value for familyIncome", HttpStatus.BAD_REQUEST);
+                    }
+                }
+            }
+            if(customCustomer.getFamilyIncome() == null) {
+                List<Document> customerDocuments = customCustomer.getDocuments();
+                for (Document document : customerDocuments) {
+                    if (document.getIsArchived().equals(false)) {
+                        if (document.getCustom_customer().getId().equals(customerId)) {
+                            if (document.getDocumentType().getDocument_type_id().equals(8)) {
+                                document.setIsArchived(true);
+                                entityManager.merge(document);
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            details.remove("familyIncome");
+
             // physical attributes locale variables.
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
