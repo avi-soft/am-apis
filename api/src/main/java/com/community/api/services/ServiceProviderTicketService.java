@@ -747,7 +747,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> status) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -769,22 +769,18 @@ public class ServiceProviderTicketService {
                 }
                 jpql.append("AND c.ticketState IN :states ");
             }
-            /*if (status != null) {
-                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
-                if (customTicketStatus == null)
-                    throw new IllegalArgumentException("No ticket state found");
-                jpql.append("AND c.ticketStatus = :status ");
-            }*/
-            if (status != null && !status.isEmpty()) {
-                for (Long id : status) {
+
+            if (statuses != null && !statuses.isEmpty()) {
+                for(Long id: statuses) {
                     CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(id);
-                    if (ticketStatus == null) {
-                        throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
+                    if(ticketStatus == null) {
+                        throw new IllegalArgumentException("No ticket status found with ID: " + id);
                     }
                     customTicketStatuses.add(ticketStatus);
                 }
                 jpql.append("AND c.ticketStatus IN :statuses ");
             }
+
             if (types != null && !types.isEmpty()) {
                 for (Long id : types) {
                     CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(id);
@@ -797,7 +793,7 @@ public class ServiceProviderTicketService {
             }
 
             if (dateFrom != null && dateTo != null) {
-                jpql.append("AND c.createdDate >= :dateFrom AND c.createdDate <= :dateTo ");
+                jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom) AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
             }
 
             if (userId != null && role != null) {
@@ -811,18 +807,15 @@ public class ServiceProviderTicketService {
             if (!customTicketStates.isEmpty()) {
                 query.setParameter("states", customTicketStates);
             }
+
             if (!customTicketStatuses.isEmpty()) {
                 query.setParameter("statuses", customTicketStatuses);
             }
-            /*if (status != null) {
-                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
-                query.setParameter("status", customTicketStatus);
-            }*/
 
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
-            if (dateFrom != null && dateTo != null) {
+            if (dateFrom != null ) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
             }
