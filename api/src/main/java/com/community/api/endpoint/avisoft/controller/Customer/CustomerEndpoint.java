@@ -2061,24 +2061,64 @@ public class CustomerEndpoint {
                                     entityManager.merge(documentValidity);
                                 }
                             }
-                            if (filePath != null) {
 
-                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                File oldFile = new File(absolutePath);
-                                String oldFileName = oldFile.getName();
-                                String newFileName = file.getOriginalFilename();
+                            if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
+//                                String filePath = existingDocument.getFilePath();
+                                String fileName = existingDocument.getName();
+                                boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
+
+                                // Additional validation before attempting to delete
+                                if (filePath != null && fileName != null && !fileName.isEmpty()) {
+                                    try {
+                                        // For live photos, ensure consistent naming across both systems
+                                        if (isLivePhoto) {
+                                            // Extract file extension from the name if possible
+                                            String extension = "";
+                                            int lastDotIndex = fileName.lastIndexOf('.');
+                                            if (lastDotIndex > 0) {
+                                                extension = fileName.substring(lastDotIndex);
+                                            }
+
+                                            // Ensure we're using consistent naming format for live photos
+                                            // This assumes the same naming convention as used in documentStorageService.convertToJpg()
+                                            String expectedFileName = "live_photo" + extension;
+
+                                            if (!fileName.equals(expectedFileName)) {
+                                                System.out.println("Warning: Live photo name mismatch. Expected: " + expectedFileName + ", Actual: " + fileName);
+                                                // Use the expected name if they differ
+                                                fileName = expectedFileName;
+                                            }
+                                        }
+
+                                        // Call the delete method with properly validated parameters
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), fileName, role);
+                                        System.out.println("File successfully deleted");
+
+                                    } catch (Exception e) {
+                                        System.err.println("Error deleting file: " + e.getMessage());
+                                    }
+                                } else {
+                                    System.out.println("Skipping file deletion - missing path or filename information");
+                                }
+
+                                // Continue with updating the document
                                 existingDocument.setIsArchived(false);
-                                if (!newFileName.equals(oldFileName)) {
-//                                    oldFile.delete();
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
-                                    if(documentTypeObj.getDocument_type_id().equals(3))
-                                    {
+                                try {
+                                    // Always proceed with the document update regardless of delete success
+                                    if (isLivePhoto) {
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
                                     }
                                     else {
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                     }
+
+                                    entityManager.merge(existingDocument);
+                                    serviceProviderDocumentToSave.add(existingDocument);
+
+                                } catch (Exception e) {
+                                    System.err.println("Error updating document: " + e.getMessage());
+                                    throw e; // Rethrow this exception as it's a critical failure
                                 }
                             }
                             entityManager.merge(existingDocument);
