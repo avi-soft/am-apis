@@ -60,6 +60,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("ticket_status")
     protected CustomTicketStatus customTicketStatus;
 
+    @JsonProperty("comment")
+    protected String comment;
+
     @JsonProperty("order")
     protected CombinedOrderDTO order;
     @JsonProperty("task_description")
@@ -80,6 +83,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.modifierUserId = customServiceProviderTicket.getModifierId();
         this.modifierRole = customServiceProviderTicket.getModifierRole();
         this.customTicketState = customServiceProviderTicket.getTicketState();
+        this.comment = customServiceProviderTicket.getComment();
         if(customServiceProviderTicket.getTicketType().getTicketTypeId()==3)
         {
             this.task_desc=customServiceProviderTicket.getDesc();
