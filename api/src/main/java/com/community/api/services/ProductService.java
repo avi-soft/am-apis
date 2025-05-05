@@ -451,8 +451,8 @@ public class ProductService {
                                               Integer post, Date startRange, Date endRange,
                                               Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
         try {
-            StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
-            StringBuilder result = new StringBuilder("SELECT  p FROM CustomProduct p ");
+            StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
+            StringBuilder result = new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
                     if(!all)
                         jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
