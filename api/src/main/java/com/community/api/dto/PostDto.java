@@ -33,6 +33,7 @@ public class PostDto {
     private String stateDistributionAdditionalComments;
     @JsonProperty("duration")
     private String duration;
+    @JsonProperty("zone_distribution_additional_comments")
     private String zoneDistributionAdditionalComments;
     @JsonProperty("gender_distribution_additional_comments")
     private String genderDistributionAdditionalComments;
