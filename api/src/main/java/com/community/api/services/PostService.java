@@ -240,6 +240,7 @@ public class PostService {
         post.setPhysicalAdditionalComments(postDto.getPhysicalAdditionalComments());
         post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
         post.setReserveCatAgeAdditionalComments(postDto.getReserveCatAgeAdditionalComments());
+        post.setTotalSeatsVisible(postDto.getTotalSeatsVisible());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
