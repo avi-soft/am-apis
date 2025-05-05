@@ -877,7 +877,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
             @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
-            @RequestHeader(name ="myProducts",defaultValue = "false",required = false) Boolean myProducts,
+            @RequestHeader(name ="myProducts",defaultValue = "true",required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
