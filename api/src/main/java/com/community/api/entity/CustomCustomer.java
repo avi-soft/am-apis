@@ -91,6 +91,11 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean hidePhoneNumber = false;
 
     @Nullable
+    @Column(name = "family_income")
+    private Long familyIncome;
+
+
+    @Nullable
     @Column(name = "category_issue_date")
     private String categoryIssueDate;
     @Nullable

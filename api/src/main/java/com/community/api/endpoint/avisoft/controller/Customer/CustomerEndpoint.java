@@ -308,6 +308,40 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+
+            if (details.containsKey("familyIncome")) {
+                Object incomeObj = details.get("familyIncome");
+                if (incomeObj == null || incomeObj.toString().trim().isEmpty()) {
+                    customCustomer.setFamilyIncome(null); // Clear the value
+                } else {
+                    try {
+                        Long familyIncomeValue = Long.parseLong(incomeObj.toString().trim());
+                        if (familyIncomeValue <= 0) {
+                            return ResponseService.generateErrorResponse("FamilyIncome must be greater than 0", HttpStatus.BAD_REQUEST);
+                        }
+                        customCustomer.setFamilyIncome(familyIncomeValue);
+                    } catch (NumberFormatException e) {
+                        return ResponseService.generateErrorResponse("Invalid value for familyIncome", HttpStatus.BAD_REQUEST);
+                    }
+                }
+            }
+            if(customCustomer.getFamilyIncome() == null) {
+                List<Document> customerDocuments = customCustomer.getDocuments();
+                for (Document document : customerDocuments) {
+                    if (document.getIsArchived().equals(false)) {
+                        if (document.getCustom_customer().getId().equals(customerId)) {
+                            if (document.getDocumentType().getDocument_type_id().equals(8)) {
+                                document.setIsArchived(true);
+                                entityManager.merge(document);
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            details.remove("familyIncome");
+
             // physical attributes locale variables.
             double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
 
@@ -2062,24 +2096,64 @@ public class CustomerEndpoint {
                                     entityManager.merge(documentValidity);
                                 }
                             }
-                            if (filePath != null) {
 
-                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                File oldFile = new File(absolutePath);
-                                String oldFileName = oldFile.getName();
-                                String newFileName = file.getOriginalFilename();
+                            if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
+//                                String filePath = existingDocument.getFilePath();
+                                String fileName = existingDocument.getName();
+                                boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
+
+                                // Additional validation before attempting to delete
+                                if (filePath != null && fileName != null && !fileName.isEmpty()) {
+                                    try {
+                                        // For live photos, ensure consistent naming across both systems
+                                        if (isLivePhoto) {
+                                            // Extract file extension from the name if possible
+                                            String extension = "";
+                                            int lastDotIndex = fileName.lastIndexOf('.');
+                                            if (lastDotIndex > 0) {
+                                                extension = fileName.substring(lastDotIndex);
+                                            }
+
+                                            // Ensure we're using consistent naming format for live photos
+                                            // This assumes the same naming convention as used in documentStorageService.convertToJpg()
+                                            String expectedFileName = "live_photo" + extension;
+
+                                            if (!fileName.equals(expectedFileName)) {
+                                                System.out.println("Warning: Live photo name mismatch. Expected: " + expectedFileName + ", Actual: " + fileName);
+                                                // Use the expected name if they differ
+                                                fileName = expectedFileName;
+                                            }
+                                        }
+
+                                        // Call the delete method with properly validated parameters
+                                        fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), fileName, role);
+                                        System.out.println("File successfully deleted");
+
+                                    } catch (Exception e) {
+                                        System.err.println("Error deleting file: " + e.getMessage());
+                                    }
+                                } else {
+                                    System.out.println("Skipping file deletion - missing path or filename information");
+                                }
+
+                                // Continue with updating the document
                                 existingDocument.setIsArchived(false);
-                                if (!newFileName.equals(oldFileName)) {
-//                                    oldFile.delete();
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
 
-                                    if(documentTypeObj.getDocument_type_id().equals(3))
-                                    {
+                                try {
+                                    // Always proceed with the document update regardless of delete success
+                                    if (isLivePhoto) {
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
                                     }
                                     else {
                                         documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                                     }
+
+                                    entityManager.merge(existingDocument);
+                                    serviceProviderDocumentToSave.add(existingDocument);
+
+                                } catch (Exception e) {
+                                    System.err.println("Error updating document: " + e.getMessage());
+                                    throw e; // Rethrow this exception as it's a critical failure
                                 }
                             }
                             entityManager.merge(existingDocument);

@@ -268,6 +268,7 @@ public class ServiceProviderController {
             }
         }
         serviceProvider.setCompleted(true);
+        serviceProvider.setRejected(false);
         entityManager.merge(serviceProvider);
         return ResponseService.generateSuccessResponse("Details validated Successfully",sharedUtilityService.serviceProviderDetailsMap(serviceProvider),HttpStatus.OK);
     }
