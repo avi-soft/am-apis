@@ -490,7 +490,6 @@ public class ProductService {
                     }
                     customProductStates.add(productState);
                     if (id == 5L) {
-                        System.out.println("Yes live");
                         containsStateLive = true;
                     }
                 }
