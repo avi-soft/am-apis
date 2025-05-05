@@ -821,7 +821,7 @@ public class ProductController extends CatalogEndpoint {
                 if (customProduct != null) {
                     boolean isActive = ((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date());
-                    boolean isLive = customProduct.getGoLiveDate().before(new Date());
+                    boolean isLive = !customProduct.getGoLiveDate().after(new Date()) && customProduct.getProductState().getProductState().equals(PRODUCT_STATE_LIVE);
 
                     if (isActive && isLive) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
@@ -1063,6 +1063,7 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
+            postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {
