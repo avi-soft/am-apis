@@ -1408,16 +1408,44 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return errorList;
     }
 
+
     @Transactional
-    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(String state, String district, String first_name, String last_name, String mobileNumber, Long test_status_id,Long ticketId,Integer role,Boolean completed,Boolean archived,Boolean approved,Boolean rejected) {
+    public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(
+            List<String> state,
+            List<String> district,
+            String first_name,
+            String last_name,
+            String mobileNumber,
+            Long test_status_id,
+            Long ticketId,
+            Integer role,
+            Boolean completed,
+            Boolean archived,
+            Boolean approved,
+            Boolean rejected,
+            String userName,
+            List<Integer> qualificationType) {
+
         try {
-            CustomServiceProviderTicket customServiceProviderTicket=null;
-            if(ticketId!=null)
-            {
-                customServiceProviderTicket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            CustomServiceProviderTicket customServiceProviderTicket = null;
+            if (ticketId != null) {
+                customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
             }
-            if (first_name == null && last_name == null && state == null && district == null && mobileNumber == null && test_status_id == null&&role==null&&completed==null&&archived==null&&approved==null) {
-                Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity", ServiceProviderEntity.class);
+
+            // If all filter values are null/empty, return all service providers
+            if (first_name == null && last_name == null &&
+                    (state == null || state.isEmpty()) &&
+                    (district == null || district.isEmpty()) &&
+                    mobileNumber == null &&
+                    userName == null &&
+                    test_status_id == null &&
+                    role == null && completed == null &&
+                    archived == null && approved == null && rejected == null &&
+                    (qualificationType == null || qualificationType.isEmpty())) {
+
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity",
+                        ServiceProviderEntity.class);
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
@@ -1426,44 +1454,52 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
             }
 
+            // Validate mobile number format
             if (mobileNumber != null && !isNumeric(mobileNumber)) {
                 throw new IllegalArgumentException("Mobile number is not in correct format.");
             }
-            if ((state != null && !isAlphabetOnly(state)) || (district != null && !isAlphabetOnly(district)) || (first_name != null && !isAlphabetOnly(first_name)) || (last_name != null && !isAlphabetOnly(last_name))) {
-                throw new IllegalArgumentException("String values are not in right format.");
+
+            // Validate string fields for correct format
+            if ((state != null && containsNonAlphabet(state)) ||
+                    (district != null && containsNonAlphabet(district)) ||
+                    (first_name != null && !isAlphabetOnly(first_name)) ||
+                    (last_name != null && !isAlphabetOnly(last_name))) {
+                throw new IllegalArgumentException("String values are not in the right format.");
             }
 
             Map<String, Character> alias = new HashMap<>();
-            if (first_name != null) {
-                first_name = first_name.trim();
-                first_name = first_name.toLowerCase();
-            }
-            if (last_name != null) {
-                last_name = last_name.trim();
-                last_name = last_name.toLowerCase();
-            }
             alias.put("state", 'a');
             alias.put("district", 'a');
             alias.put("first_name", 's');
             alias.put("last_name", 's');
-            alias.put("role",'s');
+            alias.put("role", 's');
             alias.put("completed", 's');
             alias.put("archived", 's');
             alias.put("approved", 's');
             alias.put("rejected", 's');
-            String generalizedQuery=null;
-            if(state!=null||district!=null) {
-                 generalizedQuery = "SELECT s.*\n" +
-                        "FROM service_provider s\n" +
-                        "JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id\n" +
-                        "WHERE ";
+
+
+            // Trim and lowercase
+            if (first_name != null) first_name = first_name.trim().toLowerCase();
+            if (last_name != null) last_name = last_name.trim().toLowerCase();
+
+            // Start building query
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("SELECT s.* FROM service_provider s ");
+                    if(state!=null||district!=null) {
+                        queryBuilder.append("JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id ")
+                                .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
+                    }
+                    if(qualificationType!=null) {
+                        queryBuilder.append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
+                    }
+                   queryBuilder.append("WHERE ");
+
+            // Add qualificationType filter
+            if (qualificationType != null && !qualificationType.isEmpty()) {
+                queryBuilder.append("qd.qualification_id IN :qualificationType AND ");
             }
-            else
-            {
-                generalizedQuery = "SELECT s.*\n" +
-                        "FROM service_provider s\n" +
-                        "WHERE ";
-            }
+
             if (mobileNumber != null) {
                 ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
@@ -1476,60 +1512,109 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 else
                     throw new PersistenceException("No results found for your input");
             }
+
+            System.out.println(userName);
+
+            if (userName != null && !userName.trim().isEmpty()) {
+                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(
+                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) = LOWER(:user_name)", ServiceProviderEntity.class)
+                        .setParameter("user_name", userName.trim().toLowerCase())
+                        .getResultStream()
+                        .findFirst()
+                        .orElse(null);
+                if (serviceProviderEntity != null)
+                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
+                else
+                    throw new PersistenceException("No results found for your input username");
+            }
+
             if (test_status_id != null) {
                 Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
                 query.setParameter("test_status_id", test_status_id);
-                List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
-                if (serviceProviderTestStatus.size() == 0) {
-
+                if (query.getResultList().isEmpty()) {
                     throw new IllegalArgumentException("No Test Status is found with this id");
                 }
             }
-            String[] fieldsNames = {"state", "district", "first_name", "last_name", "test_status_id","role","completed","archived","approved","rejected"};
-            Object[] fields = {state, district, first_name, last_name, test_status_id,role,completed,archived,approved,rejected};
-            System.out.println("role"+role);
-            for (int i = 0; i < fields.length; i++) {
-                if (fields[i] != null) {
-                    if (fieldsNames[i].equals("first_name") || fieldsNames[i].equals("last_name")) {
-                        String fieldValue = fields[i].toString().toLowerCase(); // Convert input to lower case
-                        // Check if the field value is longer than 2 characters (to avoid unnecessary wildcard matching)
-                        if (fieldValue.length() > 2) {
-                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
-                        } else {
-                            generalizedQuery += "LOWER(" + alias.get(fieldsNames[i]) + "." + fieldsNames[i] + ") LIKE LOWER(:" + fieldsNames[i] + ") || '%' AND ";
-                        }
+
+            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected"};
+            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected, };
+
+            // Add fields dynamically
+            for (int i = 0; i < fieldValues.length; i++) {
+                if (fieldValues[i] != null) {
+                    if (fieldNames[i].equals("first_name") || fieldNames[i].equals("last_name") || fieldNames[i].equals("user_name")) {
+                        queryBuilder.append("LOWER(")
+                                .append(alias.get(fieldNames[i])).append(".").append(fieldNames[i])
+                                .append(") LIKE :").append(fieldNames[i]).append(" AND ");
                     } else {
-                        generalizedQuery += alias.get(fieldsNames[i]) + "." + fieldsNames[i] + " = :" + fieldsNames[i] + " AND ";
+                        queryBuilder.append(alias.get(fieldNames[i])).append(".").append(fieldNames[i])
+                                .append(" = :").append(fieldNames[i]).append(" AND ");
                     }
                 }
             }
-            System.out.println(generalizedQuery);
-            generalizedQuery = generalizedQuery.trim();
-            int lastSpaceIndex = generalizedQuery.lastIndexOf(" ");
-            generalizedQuery = generalizedQuery.substring(0, lastSpaceIndex);
-            Query query;
-            query = entityManager.createNativeQuery(generalizedQuery, ServiceProviderEntity.class);
-            for (int i = 0; i < fields.length; i++) {
-                if (fields[i] != null)
-                    query.setParameter(fieldsNames[i], fields[i]);
+
+            // Add state and district filters
+            if (state != null && !state.isEmpty()) {
+                queryBuilder.append("a.state IN :states AND ");
             }
-            System.out.println("Am here");
-            List<ServiceProviderEntity> listOfSp = query.getResultList();
+            if (district != null && !district.isEmpty()) {
+                queryBuilder.append("a.district IN :districts AND ");
+            }
+
+            // Remove last AND
+            String queryString = queryBuilder.toString();
+            if (queryString.endsWith(" AND ")) {
+                queryString = queryString.substring(0, queryString.length() - 5);
+            }
+
+            // Final query
+            Query finalQuery = entityManager.createNativeQuery(queryString, ServiceProviderEntity.class);
+
+            // Bind parameters
+            for (int i = 0; i < fieldValues.length; i++) {
+                if (fieldValues[i] != null) {
+                    if (fieldNames[i].equals("first_name") || fieldNames[i].equals("last_name") || fieldNames[i].equals("user_name")) {
+                        finalQuery.setParameter(fieldNames[i], fieldValues[i] + "%"); // LIKE search
+                    } else {
+                        finalQuery.setParameter(fieldNames[i], fieldValues[i]);
+                    }
+                }
+            }
+
+            if (state != null && !state.isEmpty()) {
+                finalQuery.setParameter("states", state);
+            }
+            if (district != null && !district.isEmpty()) {
+                finalQuery.setParameter("districts", district);
+            }
+            if (qualificationType != null && !qualificationType.isEmpty()) {
+                finalQuery.setParameter("qualificationType", qualificationType);
+            }
+
+            // Execute query
+            List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
+            System.out.println(queryString);
+            System.out.println("size of list is"+listOfSp.size());
+
+            // Ticket rejection filter
             if (customServiceProviderTicket != null) {
                 Iterator<ServiceProviderEntity> iterator = listOfSp.iterator();
                 while (iterator.hasNext()) {
                     ServiceProviderEntity serviceProvider = iterator.next();
-                    System.out.println("Am hereeeeeeeeee");
                     if (customServiceProviderTicket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
                         iterator.remove();
                     }
                 }
             }
+
+            // Prepare response
             List<Map<String, Object>> response = new ArrayList<>();
-            for (ServiceProviderEntity serviceProvider : listOfSp) {
-                response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+            for (ServiceProviderEntity sp : listOfSp) {
+                response.add(sharedUtilityService.serviceProviderDetailsMap(sp));
             }
+
             return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+
         } catch (PersistenceException e) {
             return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException e) {
@@ -1537,6 +1622,21 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.EXPECTATION_FAILED);
         }
+    }
+
+
+
+
+
+
+
+    private boolean containsNonAlphabet(List<String> list) {
+        for (String s : list) {
+            if (!isAlphabetOnly(s)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<ServiceProviderEntity> getAllSp(int page, int limit) {

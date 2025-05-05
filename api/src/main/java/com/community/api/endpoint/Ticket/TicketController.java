@@ -170,11 +170,11 @@ public class TicketController {
     @GetMapping("/filter-tickets")
     public ResponseEntity<?> getFilterTickets(
             @RequestHeader(value = "Authorization") String authHeader,
-            @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateFrom,
-            @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") Date dateTo,
-            @RequestParam(value = "ticket_state", required = false) List<Long> state,
-            @RequestParam(value = "ticket_type", required = false) List<Long> type,
-            @RequestParam(value = "ticket_status", required = false) Long status,
+            @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
+            @RequestParam(value = "created_date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
+            @RequestParam(value = "ticket_state", required = false) List<Long> ticket_state,
+            @RequestParam(value = "ticket_type", required = false) List<Long> ticket_type,
+            @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit)
     {
@@ -216,7 +216,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    state, type, userId, role, dateFrom, dateTo, status);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status);
 
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);

@@ -11,6 +11,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReserveCategoryService {
@@ -21,15 +22,24 @@ public class ReserveCategoryService {
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
 
-    public List<CustomReserveCategory> getAllReserveCategory(){
-        try{
-            List<CustomReserveCategory> reserveCategories = entityManager.createNativeQuery(Constant.GET_ALL_RESERVED_CATEGORY, CustomReserveCategory.class).getResultList();
-            return reserveCategories;
-        } catch(Exception exception) {
+    public List<CustomReserveCategory> getAllReserveCategory() {
+        try {
+            List<CustomReserveCategory> reserveCategories = entityManager
+                    .createNativeQuery(Constant.GET_ALL_RESERVED_CATEGORY, CustomReserveCategory.class)
+                    .getResultList();
+
+            // Filter out entries with ID 0
+            List<CustomReserveCategory> filteredList = reserveCategories.stream()
+                    .filter(category -> category.getReserveCategoryId() != 0)
+                    .collect(Collectors.toList());
+
+            return filteredList;
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return null;
         }
     }
+
 
     public CustomReserveCategory getReserveCategoryById(Long reserveCategoryId) {
         try{
