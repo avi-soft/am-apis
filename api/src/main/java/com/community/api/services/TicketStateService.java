@@ -5,26 +5,21 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
-import com.community.api.entity.ManualAssignmentDetails;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import javassist.NotFoundException;
-import com.twilio.exception.ApiException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.service.OrderService;
-import org.hibernate.query.criteria.internal.expression.function.CurrentTimeFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.MethodNotAllowedException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -32,19 +27,14 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.OptionalLong;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class TicketStateService {
 
     @PersistenceContext
@@ -96,47 +86,41 @@ public class TicketStateService {
             throw new Exception(exception.getMessage());
         }
     }
+
     @Transactional
-    public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket,CustomTicketState nextState,Long oldSp,Long newSp)
-    {
-        if(oldSp!=newSp)
-        {
-            ServiceProviderEntity exServiceProvider=entityManager.find(ServiceProviderEntity.class,newSp);
-            if(ticket.getTicketState().getTicketState().equals("TO-DO"))
-            {
-                exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned()-1);
+    public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) {
+        if (oldSp != newSp) {
+            ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
+            if (ticket.getTicketState().getTicketState().equals("TO-DO")) {
+                exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
+            } else if (!ticket.getTicketState().getTicketState().equals("TO-DO") && !ticket.getTicketState().getTicketState().equals("CLOSED")) {
+                exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
             }
-            else if(!ticket.getTicketState().getTicketState().equals("TO-DO")&&!ticket.getTicketState().getTicketState().equals("CLOSED"))
-        {
-            exServiceProvider.setTicketPending(exServiceProvider.getTicketPending()-1);
-        }
             entityManager.merge(exServiceProvider);
         }
-        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,oldSp);
-        if(nextState.getTicketState().equals("TO-DO"))
-        {
-            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
+        if (nextState.getTicketState().equals("TO-DO")) {
+            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
         }
-        if(nextState.getTicketState().equals("CLOSE"))
-        {
-            serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted()+1);
+        if (nextState.getTicketState().equals("CLOSE")) {
+            serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted() + 1);
         }
-        if(nextState.getTicketState().equals("IN-PROGRESS")&&ticket.getTicketState().equals("TO-DO"))
-        {
-            serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
+        if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
+            serviceProvider.setTicketPending(serviceProvider.getTicketPending() + 1);
         }
         entityManager.merge(serviceProvider);
     }
+
     @Transactional
     public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId, String authHeader) {
         try {
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
-                return ResponseService.generateErrorResponse("Atleast one parameter is required to update the ticket", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("At least one parameter is required to update the ticket", HttpStatus.BAD_REQUEST);
             }
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            System.out.println("USER ID" + tokenUserId);
+            log.info("USER ID{}", tokenUserId);
             String roleNameToken = roleService.getRoleByRoleId(roleId).getRole_name();
             CustomTicketState ticketState = null;
             if (ticketId == null)
@@ -162,8 +146,8 @@ public class TicketStateService {
                 if (ticketState == null)
                     return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
 
-                if(!canTransitTicket(ticket,createTicketDTO.getTicketState(),roleNameToken,createTicketDTO.getTicketStatus()))
-                    return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.",HttpStatus.FORBIDDEN);
+                if (!canTransitTicket(ticket, createTicketDTO.getTicketState(), roleNameToken, createTicketDTO.getTicketStatus()))
+                    return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.", HttpStatus.FORBIDDEN);
 
                 ticket.setTicketState(ticketState);
             }
@@ -237,42 +221,38 @@ public class TicketStateService {
                 orderState.setOrderStateId(orderStateId);
                 entityManager.merge(orderState);
             }
-            Long newId=createTicketDTO.getAssignee();
-            Long old=ticket.getAssignee();
+            Long newId = createTicketDTO.getAssignee();
+            Long old = ticket.getAssignee();
             LocalDateTime localDateTime = LocalDateTime.now();
             Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
             ticket.setModifiedDate(date);
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
-            updateSpTicketAvailibility(ticket,ticketState,old,newId);
+            updateSpTicketAvailibility(ticket, ticketState, old, newId);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
 
         } catch (PersistenceException e) {
             return ResponseService.generateErrorResponse("Cannot find valid result : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException illegalArgumentException) {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
-        }
-        catch (NotFoundException notFoundException)
-        {
-            return ResponseService.generateErrorResponse(notFoundException.getMessage(),HttpStatus.NOT_FOUND);
-        }
-        catch (Exception e) {
-
+        } catch (NotFoundException notFoundException) {
+            return ResponseService.generateErrorResponse(notFoundException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error updating ticket :" + e.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
-    public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId,String roleName, Long customTicketStatus) throws Exception {
+    public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId, String roleName, Long customTicketStatus) throws Exception {
         try {
-            Long productId =Long.parseLong(customServiceProviderTicket.getOrder().getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-            System.out.println("id:"+productId);
+            Long productId = Long.parseLong(customServiceProviderTicket.getOrder().getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+            System.out.println("id:" + productId);
             int stateValue = Math.toIntExact(ticketStateId);
             CustomTicketState nextState = getTicketStateByTicketId(ticketStateId);
-            CustomTicketStatus status=ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
+            CustomTicketStatus status = ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
             if (!productId.equals(0L)) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-                if(customProduct==null)
+                if (customProduct == null)
                     throw new NotFoundException("Product linked with ticket not found");
                 if (customProduct.getIsReviewRequired().equals(false) && status.getTicketStatus().equals("FORM-COMPLETED-REVIEW")) {
                     throw new UnsupportedOperationException("Review is not required for this ticket");
@@ -281,13 +261,13 @@ public class TicketStateService {
             if (roleName.equals(Constant.roleServiceProvider)) {
                 switch (customServiceProviderTicket.getTicketState().getTicketState()) {
                     case "TO-DO":
-                        return nextState.getTicketState().equals("IN-PROGRESS")||nextState.getTicketState().equals("TO-DO");
+                        return nextState.getTicketState().equals("IN-PROGRESS") || nextState.getTicketState().equals("TO-DO");
                     case "IN-PROGRESS":
-                        return nextState.getTicketState().equals("ON-HOLD") || nextState.getTicketState().equals("IN-REVIEW")||nextState.getTicketState().equals("IN-PROGRESS");
+                        return nextState.getTicketState().equals("ON-HOLD") || nextState.getTicketState().equals("IN-REVIEW") || nextState.getTicketState().equals("IN-PROGRESS");
                     case "ON-HOLD":
-                        return nextState.getTicketState().equals("IN-PROGRESS")||nextState.getTicketState().equals("ON-HOLD")||nextState.getTicketState().equals("IN-REVIEW");
+                        return nextState.getTicketState().equals("IN-PROGRESS") || nextState.getTicketState().equals("ON-HOLD") || nextState.getTicketState().equals("IN-REVIEW");
                     case "IN-REVIEW":
-                        return nextState.getTicketState().equals("CLOSE")||nextState.getTicketState().equals("IN-REVIEW");
+                        return nextState.getTicketState().equals("CLOSE") || nextState.getTicketState().equals("IN-REVIEW");
                     case "CLOSE":
                         return nextState.getTicketState().equals("CLOSE");
                     default:
@@ -301,7 +281,7 @@ public class TicketStateService {
                 return !customServiceProviderTicket.getTicketState().getTicketState().equals("CLOSE");
             }
             return false; // Default: No transition allowed
-        }catch (NotFoundException nfexception) {
+        } catch (NotFoundException nfexception) {
             throw new Exception(nfexception.getMessage());
         } catch (Exception exception) {
             throw new Exception(exception.getMessage());
