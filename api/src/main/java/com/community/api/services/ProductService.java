@@ -505,7 +505,7 @@ public class ProductService {
                 jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
             if (createdById != null) {
-                jpql.append(" AND p.userId = :creatorUserId");
+                jpql.append(" AND p.userId = :creatorUserId ");
             }
             if (categories != null && !categories.isEmpty()) {
                 boolean anyValidCategory = false;
