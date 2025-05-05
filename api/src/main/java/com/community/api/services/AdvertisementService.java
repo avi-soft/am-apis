@@ -90,7 +90,7 @@ public class AdvertisementService {
             /*if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Notifying Authority cannot be null or empty");
             }*/
-            if(addAdvertisementDto.getNotifyingAuthority() == null || addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
+            if(addAdvertisementDto.getNotifyingAuthority() != null && !addAdvertisementDto.getNotifyingAuthority().trim().isEmpty()) {
             addAdvertisementDto.setNotifyingAuthority(addAdvertisementDto.getNotifyingAuthority().trim());
             }
 

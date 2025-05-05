@@ -930,10 +930,10 @@ public class ProductService {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
 
-            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+            /*if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
                 throw new IllegalArgumentException("Post cannot be null or empty");
-            }
+            }*/
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1091,12 +1091,12 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }*/
 
-            if (addProductDto.getIsMultiplePostSameFee() != null) {
+           /* if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                 {
                     throw new IllegalArgumentException("Post cannot be null or empty");
                 }
-            }
+            }*/
 
 
             return true;
