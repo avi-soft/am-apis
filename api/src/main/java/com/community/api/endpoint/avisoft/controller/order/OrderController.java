@@ -71,6 +71,7 @@ import java.util.Map;
 )
 @RestController
 public class OrderController {
+    @Autowired
     private EntityManager entityManager;
     @Autowired
     private OrderService orderService;
@@ -123,7 +124,7 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
             }
 
-            BigInteger totalItems ;
+            BigInteger totalItems;
             BigInteger totalPages;
             String orderNumber = "O-" + customerId + "%";
             Query countQuery = entityManager.createNativeQuery(
@@ -146,7 +147,7 @@ public class OrderController {
             query.setMaxResults(limit);
             query.setParameter("orderNumber", orderNumber);
             List<BigInteger> orders = query.getResultList();
-            return generateCombinedDTO(authHeader, orders, sort,totalItems.intValue(),totalPages.intValue(),offset);
+            return generateCombinedDTO(authHeader, orders, sort, totalItems.intValue(), totalPages.intValue(), offset);
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
@@ -164,12 +165,10 @@ public class OrderController {
                                          @RequestParam(defaultValue = "10") int limit) {
         try {
 
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             sort = sort.toLowerCase();
@@ -227,13 +226,10 @@ public class OrderController {
                 throw new IllegalArgumentException("No more orders available");
             }
             return ResponseService.generateSuccessResponse("Orders are fetched", response, HttpStatus.OK);
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.BAD_REQUEST);
         }
@@ -241,15 +237,13 @@ public class OrderController {
 
     @Transactional
     @GetMapping("/details/{orderId}")
-    public ResponseEntity<?> getOrderByOrderId(@PathVariable Long orderId,@RequestHeader(value = "Authorization")String authHeader)
-    {
-        try
-        {
-            if(orderId==null)
-                return ResponseService.generateErrorResponse("Order id is required",HttpStatus.BAD_REQUEST);
-            Order order=orderService.findOrderById(orderId);
-            if(order==null)
-                return ResponseService.generateErrorResponse("Order Not found",HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> getOrderByOrderId(@PathVariable Long orderId, @RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            if (orderId == null)
+                return ResponseService.generateErrorResponse("Order id is required", HttpStatus.BAD_REQUEST);
+            Order order = orderService.findOrderById(orderId);
+            if (order == null)
+                return ResponseService.generateErrorResponse("Order Not found", HttpStatus.NOT_FOUND);
             System.out.println("hello1");
             CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
             Customer customer = customerService.readCustomerById(order.getCustomer().getId());
@@ -268,14 +262,14 @@ public class OrderController {
 
             CombinedOrderDTO dto = orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO);
             if (dto != null) {
-                return ResponseService.generateSuccessResponse("Order details",dto,HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("Order details", dto, HttpStatus.OK);
             }
             return null;
-        }catch (Exception exception)
-        {
-          return ResponseService.generateErrorResponse("Some error occured",HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception exception) {
+            return ResponseService.generateErrorResponse("Some error occured", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Transactional
     public List<CombinedOrderDTO> generateCombinedDTOForOrders(String authHeader, List<BigInteger> orders, String sort) {
         String jwtToken = authHeader.substring(7);
@@ -349,12 +343,12 @@ public class OrderController {
 
 
     @Transactional
-    public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort,long totalItems,long totalPages,long offset) {
+    public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort, long totalItems, long totalPages, long offset) {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Role role = roleService.getRoleByRoleId(roleId);
         try {
-            System.out.println("Order size is"+orders.size());
+            System.out.println("Order size is" + orders.size());
             Map<String, Object> orderMap = new HashMap<>();
             List<CombinedOrderDTO> orderDetails = new ArrayList<>();
             OrderDTO orderDTO = null;
@@ -363,7 +357,7 @@ public class OrderController {
                 try {
                     System.out.println("start");
                     Order order = orderService.findOrderById(orderId.longValue());
-                    if(order.getTaxOverride())//a way to archive old orders
+                    if (order.getTaxOverride())//a way to archive old orders
                         continue;
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                     Customer customer = customerService.readCustomerById(order.getCustomer().getId());
@@ -372,8 +366,8 @@ public class OrderController {
                     try {
                         Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
                         query.setParameter("orderId", order.getId());
-                        System.out.println("order-id"+order.getId());
-                        Integer id =query.getFirstResult(); //@TODO-multiple enteries
+                        System.out.println("order-id" + order.getId());
+                        Integer id = query.getFirstResult(); //@TODO-multiple enteries
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
@@ -401,64 +395,65 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Error fetching orders ", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Transactional
     @RequestMapping(value = "get-eligible-sp", method = RequestMethod.GET)
-    public ResponseEntity<?>getEligibleSp(@RequestParam(required = false)Long ticketId)
-    {
-        try{
-            CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
-            if(ticket==null)
-                return ResponseService.generateErrorResponse("Ticket not found",HttpStatus.NOT_FOUND);
-            List<Long>rejectedBy=ticket.getRejectedBy();
-            CriteriaBuilder cb=entityManager.getCriteriaBuilder();
-            CriteriaQuery<ServiceProviderEntity>cq= cb.createQuery(ServiceProviderEntity.class);
-            Root<ServiceProviderEntity> root=cq.from(ServiceProviderEntity.class);
-            Predicate condition=cb.equal(root.get("isArchived"),false);
+    public ResponseEntity<?> getEligibleSp(@RequestParam(required = false) Long ticketId) {
+        try {
+            CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+            if (ticket == null)
+                return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+            List<Long> rejectedBy = ticket.getRejectedBy();
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
+            Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);
+            Predicate condition = cb.equal(root.get("isArchived"), false);
             Predicate notRejected = rejectedBy.isEmpty() ? cb.conjunction() : cb.not(root.get("service_provider_id").in(rejectedBy));
-            cq.where(condition,notRejected);
+            cq.where(condition, notRejected);
             TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
-            List<ServiceProviderEntity>serviceProviderEntities= query.getResultList();
-            List<SPDto>result=new ArrayList<>();
-            for(ServiceProviderEntity sp:serviceProviderEntities)
-            {
-                SPDto spDto= new SPDto();
-                spDto.setName(sp.getFirst_name()+" "+sp.getLast_name());
+            List<ServiceProviderEntity> serviceProviderEntities = query.getResultList();
+            List<SPDto> result = new ArrayList<>();
+            for (ServiceProviderEntity sp : serviceProviderEntities) {
+                SPDto spDto = new SPDto();
+                spDto.setName(sp.getFirst_name() + " " + sp.getLast_name());
                 spDto.setSpId(sp.getService_provider_id());
                 result.add(spDto);
             }
-            return ResponseService.generateSuccessResponse("Available service providers",result,HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Available service providers", result, HttpStatus.OK);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @RequestMapping(value = "reassign-ticket/{ticketId}", method = RequestMethod.POST)
-    public ResponseEntity<?> reassignTicket(@PathVariable Long ticketId,@RequestParam(required = true) Long id,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> reassignTicket(@PathVariable Long ticketId, @RequestParam(required = true) Long id, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-             CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
-             ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,id);
-             if(serviceProvider==null)
-                 return ResponseService.generateErrorResponse("Service Provider not found",HttpStatus.BAD_REQUEST);
-             if(serviceProvider.getRole()==1)
-                 return ResponseService.generateErrorResponse("Cannot assign ticket to Super admin",HttpStatus.BAD_REQUEST);
-             if(ticket.getRejectedBy().contains(id))
-                 return ResponseService.generateErrorResponse("Cannot assign : Ticket has been already returned by selected SP",HttpStatus.BAD_REQUEST);
-             else
-                 ticket.setAssignee(id);
-             entityManager.merge(ticket);
-             return ResponseService.generateSuccessResponse("Ticket assigned",ticket,HttpStatus.OK);
+            CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, id);
+            if (serviceProvider == null)
+                return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.BAD_REQUEST);
+            if (serviceProvider.getRole() == 1)
+                return ResponseService.generateErrorResponse("Cannot assign ticket to Super admin", HttpStatus.BAD_REQUEST);
+            if (ticket.getRejectedBy().contains(id))
+                return ResponseService.generateErrorResponse("Cannot assign : Ticket has been already returned by selected SP", HttpStatus.BAD_REQUEST);
+            else
+                ticket.setAssignee(id);
+            entityManager.merge(ticket);
+            return ResponseService.generateSuccessResponse("Ticket assigned", ticket, HttpStatus.OK);
         } catch (Exception e) {
-         return ResponseService.generateErrorResponse("Error assigning ticket",HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error assigning ticket", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Transactional
     //@Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
-    public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto,@RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
-            List<String>deleteLogs=new ArrayList<>();
+            List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
@@ -492,10 +487,9 @@ public class OrderController {
                     return ResponseService.generateErrorResponse("Invalid role", HttpStatus.BAD_REQUEST);
                 }
             }
-            if(createTicketDto.getTargetCompletionDate()!=null)
-            {
-                if(sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate())==1)
-                    return ResponseService.generateErrorResponse("Target completion date cannot be in past",HttpStatus.BAD_REQUEST);
+            if (createTicketDto.getTargetCompletionDate() != null) {
+                if (sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate()) == 1)
+                    return ResponseService.generateErrorResponse("Target completion date cannot be in past", HttpStatus.BAD_REQUEST);
             }
             /*if (!errorMessages.isEmpty()) {
                 return ResponseService.generateErrorResponse("Cannot assign order : " + errorMessages, HttpStatus.BAD_REQUEST);
@@ -509,24 +503,32 @@ public class OrderController {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
             ServiceProviderEntity serviceProvider = null;
             CustomAdmin customAdmin = null;
-            if(createTicketDto.getTicketType()!=3) {
+            if (createTicketDto.getTicketType() != 3) {
                 if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_UNASSIGNED.getOrderStateId()) && !customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
                     return ResponseService.generateErrorResponse("Cannot assign this order manually as its status is : " + orderStatusByStateService.getOrderStateById(customOrderState.getOrderStateId()).getOrderStateName(), HttpStatus.UNPROCESSABLE_ENTITY);
                 }
             }
-            if(createTicketDto.getTicketType()==3&&(createTicketDto.getTask()==null||createTicketDto.getTask().isEmpty()))
-            {
-                return ResponseService.generateErrorResponse("Misc Ticket Task Description is required",HttpStatus.BAD_REQUEST);
+            if (createTicketDto.getTicketType() == 3 && (createTicketDto.getTask() == null || createTicketDto.getTask().isEmpty())) {
+                return ResponseService.generateErrorResponse("Misc Ticket Task Description is required", HttpStatus.BAD_REQUEST);
             }
+
+            Long assignedUserId;
+            Integer assignedRoleId;
             if (role.getRole_name().equals(Constant.roleServiceProvider)) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
+                assignedUserId = serviceProvider.getService_provider_id();
+                assignedRoleId = role.getRole_id();
                 if (serviceProvider == null)
                     return ResponseService.generateErrorResponse("Service Provider with the provided id not found", HttpStatus.NOT_FOUND);
 
-            } else if (role.getRole_name().equals(Constant.roleAdmin)) {
-                customAdmin = entityManager.find(CustomAdmin.class, createTicketDto.getAssignee());
-                if (customAdmin == null)
+            } else if (role.getRole_name().equals(Constant.roleAdmin) || role.getRole_name().equals(Constant.roleSuperAdmin)) {
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
+                assignedUserId = serviceProvider.getService_provider_id();
+                assignedRoleId = role.getRole_id();
+                if (serviceProvider == null)
                     return ResponseService.generateErrorResponse("Admin with the provided id not found", HttpStatus.NOT_FOUND);
+            } else {
+                return ResponseService.generateErrorResponse("Unknown role for ticket creation", HttpStatus.NOT_FOUND);
             }
 
             /*CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -537,9 +539,9 @@ public class OrderController {
             createTicketDto.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             createTicketDto.setTicketType(createTicketDto.getTicketType());*/
 
-            CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, serviceProvider,roleId,tokenUserId);
+            CustomServiceProviderTicket customServiceProviderTicket = serviceProviderTicketService.createTicket(createTicketDto, (OrderImpl) order, assignedUserId, assignedRoleId, roleId, tokenUserId);
 
-            if(createTicketDto.getTicketType()!=3) {
+            if (createTicketDto.getTicketType() != 3) {
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                 entityManager.merge(customOrderState);
             }
