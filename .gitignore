@@ -13,3 +13,8 @@ bin/
 **/*externalToolBuilders
 .sts4-cache
 data
+api/avisoftdocument
+test/avisoftdocument
+.DS_Store
+
+

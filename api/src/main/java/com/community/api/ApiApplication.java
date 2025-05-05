@@ -21,13 +21,17 @@ import org.broadleafcommerce.common.config.EnableBroadleafSiteRootAutoConfigurat
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * @author Elbert Bautista (elbertbautista)
  */
 @SpringBootApplication
 @EnableAutoConfiguration
+@EnableAsync
+@EntityScan(basePackages = "com.community.api.services.ServiceProvider.ServiceProviderService")
 public class ApiApplication {
 
     @Configuration

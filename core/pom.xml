@@ -5,46 +5,51 @@
         <artifactId>boot-community-demo</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
     <modelVersion>4.0.0</modelVersion>
     <artifactId>boot-community-demo-core</artifactId>
     <packaging>jar</packaging>
-    
+
     <name>Community Demo Core</name>
     <description>Customizations And Extensions For Broadleaf Commerce Services And Entities</description>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-        <dependency>
+
+    <dependency>
             <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-framework</artifactId>
         </dependency>
         <dependency>
             <groupId>org.broadleafcommerce</groupId>
-            <artifactId>broadleaf-contentmanagement-module</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-framework-web</artifactId>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-profile</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.broadleafcommerce</groupId>
-            <artifactId>broadleaf-menu</artifactId>
-        </dependency>
-        <dependency>
+       <dependency>
             <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-sample-payment-gateway</artifactId>
-        </dependency>
+        </dependency>-->
+
+        <!--   we are using this for data source if we not use then it is causing issue for datasource  -->
         <dependency>
             <groupId>com.broadleafcommerce</groupId>
-            <artifactId>broadleaf-boot-starter-hsql-database</artifactId>
+            <artifactId>broadleaf-boot-starter-database</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
         </dependency>
     </dependencies>
+
 </project>

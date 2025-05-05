@@ -24,9 +24,94 @@
 
     <persistence-unit name="blPU" transaction-type="RESOURCE_LOCAL">
         <non-jta-data-source>jdbc/web</non-jta-data-source>
+
+        <!-- Added this line -->
+        <class>com.community.api.entity.CustomCustomer</class>
+        <class>com.community.api.entity.Skill</class>
+        <class>com.community.api.utils.Document</class>
+        <class>com.community.api.utils.DocumentType</class>
+        <class>com.community.api.entity.QualificationDetails</class>
+        <class>com.community.api.endpoint.serviceProvider.ServiceProviderEntity</class>
+        <class>com.community.api.endpoint.serviceProvider.ServiceProviderStatus</class>
+        <class>com.community.api.entity.CustomOtp</class>
+        <class>com.community.api.entity.Qualification</class>
+        <class>com.community.api.entity.StateCode</class>
+        <class>com.community.api.entity.ServiceProviderAddress</class>
+        <class>com.community.api.entity.ServiceProviderAddressRef</class>
+        <class>com.community.api.entity.Privileges</class>
+        <class>com.community.api.entity.Role</class>
+        <class>com.community.api.entity.Districts</class>
+        <class>com.community.api.entity.ServiceProviderInfra</class>
+        <class>com.community.api.entity.ServiceProviderLanguage</class>
+        <class>com.community.api.entity.ServiceProviderTest</class>
+        <class>com.community.api.entity.Image</class>
+        <class>com.community.api.entity.SignatureImage</class>
+        <class>com.community.api.entity.TypingText</class>
+        <class>com.community.api.entity.ResizedImage</class>
+        <class>com.community.api.utils.ServiceProviderDocument</class>
+        <class>com.community.api.entity.ServiceProviderTestStatus</class>
+        <class>com.community.api.entity.ServiceProviderRank</class>
+        <class>com.community.api.entity.CustomAdmin</class>
+        <class>com.community.api.entity.ScoringCriteria</class>
+        <class>com.community.api.entity.FileType</class>
+        <class>com.community.api.entity.BoardUniversity</class>
+        <class>com.community.api.entity.UploadedPdf</class>
+        <class>com.community.api.entity.SubjectDetail</class>
+        <class>com.community.api.entity.CustomProduct</class>
+        <class>com.community.api.entity.CustomProductState</class>
+        <class>com.community.api.entity.CustomApplicationScope</class>
+        <class>com.community.api.entity.CustomReserveCategory</class>
+        <class>com.community.api.entity.CustomProductReserveCategoryFeePostRef</class>
+        <class>com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef</class>
+        <class>com.community.api.entity.CustomJobGroup</class>
+        <class>com.community.api.entity.CustomTicketState</class>
+        <class>com.community.api.entity.CustomTicketStatus</class>
+        <class>com.community.api.entity.CustomTicketType</class>
+        <class>com.community.api.entity.CustomServiceProviderTicket</class>
+        <class>com.community.api.entity.CustomTicketHistory</class>
+        <class>com.community.api.entity.CustomProductRejectionStatus</class>
+        <class>com.community.api.entity.CustomGender</class>
+        <class>com.community.api.entity.CustomProductGenderPhysicalRequirementRef</class>
+        <class>com.community.api.entity.CustomStream</class>
+        <class>com.community.api.entity.CustomSubject</class>
+        <class>com.community.api.entity.CustomSector</class>
+        <class>com.community.api.entity.CustomerReferrer</class>
+        <class>com.community.api.entity.OrderRequest</class>
+        <class>com.community.api.entity.ServiceProviderAcceptedOrders</class>
+        <class>com.community.api.entity.CustomOrderState</class>
+        <class>com.community.api.entity.OrderStateRef</class>
+        <class>com.community.api.entity.CustomOrderStatus</class>
+        <class>com.community.api.entity.BankDetails</class>
+        <class>com.community.api.entity.OrderTicketLinkage</class>
+        <class>com.community.api.entity.Institution</class>
+        <class>com.community.api.entity.OtherItem</class>
+        <class>com.community.api.entity.DocumentValidity</class>
+        <class>com.community.api.entity.Advertisement</class>
+        <class>com.community.api.entity.Zone</class>
+        <class>com.community.api.entity.ZoneDivisions</class>
+        <class>com.community.api.entity.CategoryDistribution</class>
+        <class>com.community.api.entity.Post</class>
+        <class>com.community.api.entity.StateDistribution</class>
+        <class>com.community.api.entity.VacancyDistributionType</class>
+        <class>com.community.api.entity.DistrictCategoryDistribution</class>
+        <class>com.community.api.entity.DistrictDistribution</class>
+        <class>com.community.api.entity.ZoneDistribution</class>
+        <class>com.community.api.entity.DivisionDistribution</class>
+        <class>com.community.api.entity.DivisionCategoryDistribution</class>
+        <class>com.community.api.entity.GenderWiseDistribution</class>
+        <class>com.community.api.entity.QualificationEligibility</class>
+        <class>com.community.api.entity.OtherDistribution</class>
+        <class>com.community.api.entity.CommunicationContent</class>
+        <class>com.community.api.entity.ContentFile</class>
+        <class>com.community.api.entity.ActionLog</class>
+        <class>com.community.api.entity.CustomMode</class>
+        <class>com.community.api.entity.BlackListedTokens</class>
+        <class>com.community.api.entity.Earnings</class>
+        <class>com.community.api.entity.Transaction</class>
+
         <exclude-unlisted-classes/>
     </persistence-unit>
-    
+
     <persistence-unit name="blSecurePU" transaction-type="RESOURCE_LOCAL">
         <non-jta-data-source>jdbc/webSecure</non-jta-data-source>
         <exclude-unlisted-classes/>
@@ -36,5 +121,7 @@
         <non-jta-data-source>jdbc/cmsStorage</non-jta-data-source>
         <exclude-unlisted-classes/>
     </persistence-unit>
+
+<!--    psql -h0.tcp.ngrok.io -p13890 -UdbUsername -dDbName-->
 
 </persistence>
