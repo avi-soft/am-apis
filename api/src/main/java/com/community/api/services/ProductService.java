@@ -17,6 +17,7 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
 import io.swagger.models.auth.In;
@@ -751,6 +752,11 @@ public class ProductService {
                     if (privilege.getPrivilege_name().equals(Constant.PRIVILEGE_ADD_PRODUCT)) {
                         return true;
                     }
+                }
+
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if(serviceProvider.getApproved()!=null && serviceProvider.getApproved()) {
+                    return true;
                 }
             }
             return false;
