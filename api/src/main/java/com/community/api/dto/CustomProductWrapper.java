@@ -186,7 +186,18 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
                 reserveCategoryDto.setProductId(product.getId());
                 reserveCategoryDto.setReserveCategoryId(addProductDto.getReservedCategory().get(i).getReserveCategory());
-                reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                if(!addProductDto.getReservedCategory().get(i).getIsOtherOrStateCategory()) {
+                    reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                }
+                else{
+                    Long id =addProductDto.getReservedCategory().get(i).getReserveCategory();
+                    if(id!=null)
+                     reserveCategoryDto.setReserveCategory(customReserveCategory.getReserveCategoryName());
+                    else
+                        reserveCategoryDto.setReserveCategory(null);
+                }
+
+
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
                 reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());
@@ -225,6 +236,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
                 postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
                 postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
+                postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
                 List<ReserveCategoryAgeDto>listD=new ArrayList<>();
                 for(AddProductAgeDTO ageRequirement:postDtos.get(postDtoIndex).getReserveCategoryAge())
                 {
@@ -398,6 +410,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
                 reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
+                reserveCategoryDto.setIsOtherOrStateCategory(fee.getIsOtherOrStateCategory());
+                reserveCategoryDto.setOtherOrStateCategory(fee.getOtherOrStateCategory());
             /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
             reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
                 if(fee.getGender()!=null)

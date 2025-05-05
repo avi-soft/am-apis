@@ -30,41 +30,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.CallableStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.SqlOutParameter;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
 import javax.persistence.Query;
-import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.math.BigInteger;
-import java.sql.Array;
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -303,7 +290,7 @@ public class ServiceProviderTicketService {
                 createTicketDto.setTicketStatus(1L);
                 createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                 createTicketDto.setAssigneeRole(4);
-                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider, null, null);
+                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider.getService_provider_id(), serviceProvider.getRole(), null, null);
 
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                 entityManager.merge(customOrderState);
@@ -404,12 +391,14 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, ServiceProviderEntity assignedTo, Integer creatorRoleId, Long creatorId) throws Exception {
+    public CustomServiceProviderTicket createTicket(CreateTicketDto createTicketDto, OrderImpl order, Long assignedUserTo, Integer assignedRoleId, Integer creatorRoleId, Long creatorId) throws Exception {
         try {
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
+
+            // If target date is provided then it's fine else we give 4 hours to complete the ticket.
             if (createTicketDto.getTargetCompletionDate() != null && !(createTicketDto.getTargetCompletionDate().after(new Date()))) {
                 ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
             } else {
@@ -420,23 +409,27 @@ public class ServiceProviderTicketService {
 
                 createTicketDto.setTargetCompletionDate(newTargetDate);
             }
-            customServiceProviderTicket.setTicketAssignDate(createdDate);
-            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
+
+            // Setting up the dates
             customServiceProviderTicket.setCreatedDate(createdDate);
+            customServiceProviderTicket.setTicketAssignDate(createdDate);
+            customServiceProviderTicket.setModifiedDate(createdDate);
+            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
+
             customServiceProviderTicket.setOrder(order);
-            if(createTicketDto.getTicketType()==3)
+
+            if(createTicketDto.getTicketType()==3) {
                 customServiceProviderTicket.setDesc(createTicketDto.getTask());
+            }
+
             if (creatorId != null && creatorRoleId != null) {
                 customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
                 customServiceProviderTicket.setUserId(creatorId);
             }
-            customServiceProviderTicket.setModifiedDate(customServiceProviderTicket.getCreatedDate());
-            Role role = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
-            customServiceProviderTicket.setAssigneeRole(role);
 
-            if (assignedTo != null) {
-                customServiceProviderTicket.setAssignee(assignedTo.getService_provider_id());
-            }
+            Role role = roleService.getRoleByRoleId(assignedRoleId);
+            customServiceProviderTicket.setAssigneeRole(role);
+            customServiceProviderTicket.setAssignee(assignedUserTo);
 
             if (createTicketDto.getTicketState() != null) {
                 CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
@@ -595,7 +588,7 @@ public class ServiceProviderTicketService {
                 createTicketDto.setTicketStatus(1L);
                 createTicketDto.setAssignee(serviceProvider.getService_provider_id());
                 createTicketDto.setAssigneeRole(4);
-                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider, null, null);
+                CustomServiceProviderTicket ticket = createTicket(createTicketDto, (OrderImpl) order, serviceProvider.getService_provider_id(), serviceProvider.getRole(), null, null);
 
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
                 entityManager.merge(customOrderState);
@@ -747,7 +740,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, Long status) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -756,6 +749,7 @@ public class ServiceProviderTicketService {
             // List to hold query parameters
             List<CustomTicketState> customTicketStates = new ArrayList<>();
             List<CustomTicketType> customTicketTypes = new ArrayList<>();
+            List<CustomTicketStatus> customTicketStatuses = new ArrayList<>();
 
             // Conditionally build the query
             if (states != null && !states.isEmpty()) {
@@ -768,12 +762,18 @@ public class ServiceProviderTicketService {
                 }
                 jpql.append("AND c.ticketState IN :states ");
             }
-            if (status != null) {
-                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
-                if (customTicketStatus == null)
-                    throw new IllegalArgumentException("No ticket state found");
-                jpql.append("AND c.ticketStatus = :status ");
+
+            if (statuses != null && !statuses.isEmpty()) {
+                for(Long id: statuses) {
+                    CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(id);
+                    if(ticketStatus == null) {
+                        throw new IllegalArgumentException("No ticket status found with ID: " + id);
+                    }
+                    customTicketStatuses.add(ticketStatus);
+                }
+                jpql.append("AND c.ticketStatus IN :statuses ");
             }
+
             if (types != null && !types.isEmpty()) {
                 for (Long id : types) {
                     CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(id);
@@ -786,7 +786,7 @@ public class ServiceProviderTicketService {
             }
 
             if (dateFrom != null && dateTo != null) {
-                jpql.append("AND c.createdDate >= :dateFrom AND c.createdDate <= :dateTo ");
+                jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom) AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
             }
 
             if (userId != null && role != null) {
@@ -800,15 +800,15 @@ public class ServiceProviderTicketService {
             if (!customTicketStates.isEmpty()) {
                 query.setParameter("states", customTicketStates);
             }
-            if (status != null) {
-                CustomTicketStatus customTicketStatus = ticketStatusService.getTicketStatusByTicketStatusId(status);
-                query.setParameter("status", customTicketStatus);
+
+            if (!customTicketStatuses.isEmpty()) {
+                query.setParameter("statuses", customTicketStatuses);
             }
 
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
-            if (dateFrom != null && dateTo != null) {
+            if (dateFrom != null ) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
             }
