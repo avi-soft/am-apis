@@ -37,6 +37,7 @@ import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefServic
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -64,6 +65,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
@@ -422,22 +428,22 @@ public class ProductController extends CatalogEndpoint {
             {
                 if(addProductDto.getIsMultiplePostSameFee().equals(true))
                 {
-                    if(addProductDto.getPosts()!=null) {
+                   /* if(addProductDto.getPosts()!=null) {
                         if (addProductDto.getPosts().isEmpty()) {
                             throw new IllegalArgumentException("You have to fill at least one post");
                         }
-                    }
+                    }*/
                     customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
                 }
                 else if (addProductDto.getIsMultiplePostSameFee().equals(false))
                 {
                     if(addProductDto.getPosts()!=null)
                     {
-                        if(addProductDto.getPosts().isEmpty())
+                        /*if(addProductDto.getPosts().isEmpty())
                         {
                             throw new IllegalArgumentException("You have to fill at least one post");
-                        }
-                        else if(!addProductDto.getPosts().isEmpty())
+                        }*/
+                        if(!addProductDto.getPosts().isEmpty())
                         {
                             if(addProductDto.getPosts().size()>1)
                             {
@@ -815,7 +821,7 @@ public class ProductController extends CatalogEndpoint {
                 if (customProduct != null) {
                     boolean isActive = ((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date());
-                    boolean isLive = !customProduct.getGoLiveDate().after(new Date());
+                    boolean isLive = customProduct.getGoLiveDate().before(new Date());
 
                     if (isActive && isLive) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
@@ -869,7 +875,9 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
+            @RequestHeader(name ="myProducts",defaultValue = "true",required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
@@ -877,7 +885,21 @@ public class ProductController extends CatalogEndpoint {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-
+            Role role=roleService.getRoleByRoleId(roleId);
+            Long createdById=null;
+            Role roleEntity=roleService.getRoleByRoleId(roleId);
+            if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&!myProducts)
+            {
+                createdById=null;
+            }
+            else  if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&myProducts)
+            {
+                createdById=tokenUserId;
+            }
+            else
+            {
+                createdById=tokenUserId;
+            }
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -887,12 +909,12 @@ public class ProductController extends CatalogEndpoint {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
 
-            if (isExpired && (roleId != 1 && roleId != 2)) {
+          /*  if (isExpired && (roleId != 1 && roleId != 2)) {
                 return ResponseService.generateErrorResponse(
                         "You are not authorized to view expired products.",
-                        HttpStatus.BAD_REQUEST
+                        HttpStatus.FORBIDDEN
                 );
-            }
+            }*/
             // Date formatting
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             if (dateFrom != null) {
@@ -901,12 +923,27 @@ public class ProductController extends CatalogEndpoint {
             if (dateTo != null) {
                 dateTo = dateFormat.parse(dateFormat.format(dateTo));
             }
-
-            // Fetch filtered products
-            List<CustomProduct> products = productService.filterProducts(
-                    state, rejection_status, categories, reserveCategories,
-                    title, fee, post, dateFrom, dateTo, isExpired
-            );
+            List<CustomProduct> products=null;
+            Map<String,Object> opresponse=new HashMap<>();
+           /* if(all&&!(roleAdmin.equals(role.getRole_name())||roleSuperAdmin.equals(role.getRole_name())))
+            {
+                return ResponseService.generateErrorResponse("You are not authorized to view all products.",HttpStatus.FORBIDDEN);
+            }*/
+            if(!all) {
+                // Fetch filtered products
+                opresponse = productService.filterProducts(
+                        state, rejection_status, categories, reserveCategories,
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all,createdById
+                );
+            }
+            else
+            {
+                opresponse = productService.filterProducts(
+                        state, rejection_status, categories, reserveCategories,
+                        title, fee, post, dateFrom, dateTo, null, offset, limit,all,createdById
+                );
+            }
+            products=(List<CustomProduct>)opresponse.get("products");
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
@@ -914,17 +951,27 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {
+                /*if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {*/
                     CustomProductWrapper wrapper = new CustomProductWrapper();
                     List<Post> postList= customProduct.getPosts();
                     List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
                     wrapper.wrapDetails(customProduct,postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
                     responses.add(wrapper);
-                }
+                //}
             }
 
+           /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
+
+            Root<CustomProduct> root = countQuery.from(CustomProduct.class);
+
+// SELECT COUNT(p) FROM CustomProduct p
+            countQuery.select(criteriaBuilder.count(root));
+
+            TypedQuery<Long> query = entityManager.createQuery(countQuery);*/
+
             // Pagination logic
-            int totalItems = responses.size();
+            int totalItems = (Integer)opresponse.get("count");
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
@@ -937,11 +984,11 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
 
-            List<CustomProductWrapper> paginatedList = responses.subList(fromIndex, toIndex);
+
 
             // Construct paginated response
             Map<String, Object> response = new HashMap<>();
-            response.put("products", paginatedList);
+            response.put("products", responses);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
@@ -1016,6 +1063,7 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
+            postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {

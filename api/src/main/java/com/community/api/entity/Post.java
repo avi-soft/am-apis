@@ -44,6 +44,9 @@ public class Post {
     @Column(name = "post_code")
     private String postCode;
 
+    @Column(name = "duration")
+    private String duration;
+
     @ManyToMany
     @JoinTable(
             name = "post_vacancy_distribution_type",
@@ -103,6 +106,7 @@ public class Post {
     private String physicalAdditionalComments;
     @JsonProperty("other_distribution_additional_comments")
     private String otherDistributionAdditionalComments;
-
+    @JsonProperty("total_seats_visible")
+    private Boolean totalSeatsVisible;
 
 }

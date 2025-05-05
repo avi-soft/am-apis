@@ -54,6 +54,12 @@ public class AddProductDto {
     Integer state;
     @JsonProperty("quantity")
     Integer quantity;
+    @JsonProperty("tentative_document_verification_from")
+    Date tentativeVerificationFrom;
+    @JsonProperty("tentative_document_verification_to")
+    Date tentativeVerificationTo;
+    @JsonProperty("exam_center_available_date")
+    Date examCenterAvailableDate;
     @JsonProperty("domicile_required")
     Boolean domicileRequired;
     @JsonProperty("product_state_id")

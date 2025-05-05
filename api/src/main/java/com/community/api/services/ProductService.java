@@ -19,10 +19,12 @@ import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
+import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -135,6 +137,11 @@ public class ProductService {
                 sql.append(", additional_comments");
                 values.append(", :additionalComments");
             }
+            if (addProductDto.getExamCenterAvailableDate() != null) {
+                sql.append(", exam_center_available_date");
+                values.append(", :examCenterAvailableDate");
+            }
+
             if (addProductDto.getExamDateFrom() != null) {
                 sql.append(", exam_date_from");
                 values.append(", :examDateFrom");
@@ -146,6 +153,14 @@ public class ProductService {
             if (addProductDto.getResultDeclarationDate() != null) {
                 sql.append(", result_declaration_date");
                 values.append(", :resultDeclarationDate");
+            }
+            if (addProductDto.getTentativeVerificationFrom() != null) {
+                sql.append(", tentative_document_verification_from");
+                values.append(", :tentativeVerificationFrom");
+            }
+            if (addProductDto.getTentativeVerificationTo() != null) {
+                sql.append(", tentative_document_verification_to");
+                values.append(", :tentativeVerificationTo");
             }
             if (addProductDto.getCounsellingDate() != null) {
                 sql.append(", counselling_date");
@@ -285,6 +300,18 @@ public class ProductService {
             {
                 query.setParameter("resultDeclarationDate", new Timestamp(addProductDto.getResultDeclarationDate().getTime()));
             }
+            if(addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                query.setParameter("tentativeVerificationFrom", new Timestamp(addProductDto.getTentativeVerificationFrom().getTime()));
+            }
+            if(addProductDto.getTentativeVerificationTo()!=null)
+            {
+                query.setParameter("tentativeVerificationTo", new Timestamp(addProductDto.getTentativeVerificationTo().getTime()));
+            }
+            if(addProductDto.getExamCenterAvailableDate()!=null)
+            {
+                query.setParameter("examCenterAvailableDate",(addProductDto.getExamCenterAvailableDate()));
+            }
             if (addProductDto.getExamDateTo() != null) {
                 query.setParameter("examDateTo", new Timestamp(addProductDto.getExamDateTo().getTime()));
             }
@@ -419,16 +446,33 @@ public class ProductService {
         }
     }
 
-    public List<CustomProduct> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
+    public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
                                               Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired) throws Exception {
+                                              Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
         try {
+            StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
+            StringBuilder result = new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
+            StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
+                    if(!all)
+                        jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
+                    .append("WHERE 1=1 ");  // Base condition to allow easy AND appending
+            Map<String ,Object>response=new HashMap<>();
+            /*if(all)
+            {
+                TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+                int res=queryToCount.getSingleResult().intValue();
+                jpql=result.append(jpql);
+                // Create the query with the final JPQL string
+                TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+                query.setFirstResult(offset*limit);     // e.g., offset = 20
+                query.setMaxResults(limit);// e.g., limit = 10
+                response.put("count",res);
+                response.put("products",query.getResultList());
+                return response;
+            }*/
             // Initialize the JPQL query
-            StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ")
-                    .append("JOIN CustomProductReserveCategoryFeePostRef r ON r.customProduct = p ")
-                    .append("JOIN SkuImpl s ON s.defaultProduct = p ")
-                    .append("WHERE 1=1 "); // Use this to simplify appending conditions
+
 
             // List to hold query parameters
             List<CustomProductState> customProductStates = new ArrayList<>();
@@ -460,7 +504,9 @@ public class ProductService {
                 // Explicitly filter for non-null rejection status that matches the specified values
                 jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
-
+            if (createdById != null) {
+                jpql.append(" AND p.userId = :creatorUserId ");
+            }
             if (categories != null && !categories.isEmpty()) {
                 boolean anyValidCategory = false;
                 for (Long id : categories) {
@@ -528,49 +574,67 @@ public class ProductService {
             if (Boolean.TRUE.equals(isExpired)) {
                 // Only expired products
                 jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
-            } else {
+            } else if(Boolean.FALSE.equals(isExpired)) {
                 // Only non-expired products
                 jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+            jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-
+            query.setFirstResult(offset*limit);     // e.g., offset = 20
+            query.setMaxResults(limit);// e.g., limit = 10
             // Set parameters
             if (!customProductStates.isEmpty()) {
                 query.setParameter("states", customProductStates);
+                queryToCount.setParameter("states", customProductStates);
             }
             if (!productRejectionStatuses.isEmpty()) {
                 query.setParameter("statuses", productRejectionStatuses);
+                queryToCount.setParameter("statuses", productRejectionStatuses);
             }
             if (!categoryList.isEmpty()) {
                 query.setParameter("categories", categoryList);
+                queryToCount.setParameter("categories", categoryList);
             }
             if (!customReserveCategoryList.isEmpty()) {
                 query.setParameter("reserveCategories", customReserveCategoryList);
+                queryToCount.setParameter("reserveCategories", customReserveCategoryList);
             }
             if (title != null && !title.isEmpty()) {
                 String[] words = title.split("\\s+");
                 for (int i = 0; i < words.length; i++) {
                     query.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
+                    queryToCount.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
                 }
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
+                queryToCount.setParameter("fee", fee);
+            }
+            if (createdById != null) {
+                query.setParameter("creatorUserId", createdById);
+                queryToCount.setParameter("creatorUserId", createdById);
             }
             if (post != null) {
                 query.setParameter("post", post);
+                queryToCount.setParameter("post", post);
             }
             if (startRange != null) {
                 query.setParameter("startRange", startRange);
+                queryToCount.setParameter("startRange", startRange);
             }
             if (endRange != null) {
                 query.setParameter("endRange", endRange);
+                queryToCount.setParameter("endRange", endRange);
             }
-
+            int res=queryToCount.getSingleResult().intValue();
+             response.put("count",res);
+            System.out.println(jpql.toString());
+             response.put("products",query.getResultList());
             // Execute and return the result
-            return query.getResultList();
+            return response;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
@@ -1159,26 +1223,32 @@ public class ProductService {
 
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
                 System.out.println("Validating, no of post are"+addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost());
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()){
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
+                }
                 }if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() <= 0) {
                     throw new IllegalArgumentException("Gender id cannot be null or <= 0.");
                 }
                 CustomGender gender=genderService.getGenderByGenderId(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender());
                 if(gender==null)
                     throw new NotFoundException("Invalid gender id");
-                CustomReserveCategory category=reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
-                if(category==null)
-                    throw new NotFoundException("Invalid category id");
+
+                CustomReserveCategory category = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()) {
+//                    CustomReserveCategory category = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                    if (category == null)
+                        throw new NotFoundException("Invalid category id");
+                } if(category!=null){
                 int genderAndCategoryCombo=(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory().intValue())*10+(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender().intValue());
-                if(gender.getGenderName().equals(Constant.NO_GENDER)&&category.getReserveCategoryName().equals(Constant.NO_CATEGORY)&&addProductDto.getReservedCategory().size()>1)
-                {
-                    throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
-                }
-                if(!genderCategoryComboSet.add(genderAndCategoryCombo))
-                {
-                    throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
-                }
+                if (gender.getGenderName().equals(Constant.NO_GENDER) && category.getReserveCategoryName().equals(Constant.NO_CATEGORY) && addProductDto.getReservedCategory().size() > 1) {
+                     throw new IllegalArgumentException("This product is set to be category and gender independent, so no additional category/gender fees can be applied.");
+                 }
+                 if (!genderCategoryComboSet.add(genderAndCategoryCombo)) {
+                     throw new IllegalArgumentException("Duplicate combination of gender and reserve category not allowed.");
+                 }
+             }
                 /*if(gender.getGenderName().equals(Constant.NO_GENDER))
                 {
                     Boolean result=checkForOpenGender(gender,addProductDto);
@@ -1195,8 +1265,10 @@ public class ProductService {
                 reserveCategoryId.add(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
 
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
-                if (reserveCategory == null) {
-                    throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()) {
+                    if (reserveCategory == null) {
+                        throw new IllegalArgumentException("Reserve category not found with id: " + addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory());
+                    }
                 }
 
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getFee() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getFee() < 0) {
@@ -2540,6 +2612,139 @@ public class ProductService {
                     throw new IllegalArgumentException("Result declaration date cannot be before answer key available date");
                 }
             }
+            //*********
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getExamDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getExamDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be available before exam concludes");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getAdmitCardDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getAdmitCardDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before admit cards release date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getModificationDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getModificationDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Tentative correction last date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getLastDateToPayFee()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getLastDateToPayFee()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before last day to pay fee");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getActiveEndDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getActiveEndDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before active end date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Result declaration date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getAnswerKeyAvailableDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getAnswerKeyAvailableDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before answer key available date");
+            }
+            if (addProductDto.getTentativeVerificationFrom()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationFrom().before(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Counselling");
+            }
+            //****
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getExamDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getExamDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be available before exam concludes");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getAdmitCardDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getAdmitCardDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before admit cards release date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getModificationDateTo()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getModificationDateTo()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Tentative correction last date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getLastDateToPayFee()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getLastDateToPayFee()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before last day to pay fee");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getActiveEndDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getActiveEndDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before active end date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Result declaration date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getAnswerKeyAvailableDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getAnswerKeyAvailableDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before answer key available date");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before Counselling");
+            }
+            if (addProductDto.getTentativeVerificationTo()!=null&&addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                if(addProductDto.getTentativeVerificationTo().before(addProductDto.getTentativeVerificationFrom()))
+                    throw new IllegalArgumentException("Tentative document verification to date cannot be before tentative verification date from");
+            }
+            //***********
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getExamDateTo() != null) {
+                if (addProductDto.getExamCenterAvailableDate().after(addProductDto.getExamDateTo())) {
+                    throw new IllegalArgumentException("Exam dates cannot be after exam center available date");
+                }
+            }
+           /* if (addProductDto.getResultDeclarationDate() != null && addProductDto.getAdmitCardDateTo() != null) {
+                if (addProductDto.getResultDeclarationDate().before(addProductDto.getAdmitCardDateTo())) {
+                    throw new IllegalArgumentException("Result declaration date cannot be before admit cards release date");
+                }
+            }*/
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getModificationDateTo() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getModificationDateTo())) {
+                    throw new IllegalArgumentException("exam center available date cannot be before Tentative correction last date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getLastDateToPayFee() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getLastDateToPayFee())) {
+                    throw new IllegalArgumentException("Exam center available date cannot be before last day to pay fee");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getActiveEndDate() != null) {
+                if (addProductDto.getExamCenterAvailableDate().before(addProductDto.getActiveEndDate())) {
+                    throw new IllegalArgumentException("Exam center available date cannot be before active end date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate() != null && addProductDto.getAnswerKeyAvailableDate() != null) {
+                if (addProductDto.getExamCenterAvailableDate().after(addProductDto.getAnswerKeyAvailableDate())) {
+                    throw new IllegalArgumentException("answer key available date cannot be after exam center available date");
+                }
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getResultDeclarationDate()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getResultDeclarationDate()))
+                    throw new IllegalArgumentException("Exam center available date cannot be after Result declaration date");
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getCounsellingDate()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getCounsellingDate()))
+                    throw new IllegalArgumentException("Counselling date cannot be after exam center available date");
+            }
+            if (addProductDto.getExamCenterAvailableDate()!=null&&addProductDto.getTentativeVerificationFrom()!=null)
+            {
+                if(addProductDto.getExamCenterAvailableDate().after(addProductDto.getTentativeVerificationFrom()))
+                    throw new IllegalArgumentException("Tentative document verification from date cannot be before Exam center available date");
+            }
             /*if (addProductDto.getResultDeclarationDate() != null && addProductDto.getCounsellingDate() != null) {
                 if (addProductDto.getResultDeclarationDate().before(addProductDto.getCounsellingDate())) {
                     throw new IllegalArgumentException("Result declaration date cannot be before counselling date");
@@ -2715,42 +2920,52 @@ public class ProductService {
             }
             if (!postDto.getPhysicalRequirements().isEmpty()) {
                 Set<Long> genderId = new HashSet<>();
+                int nullGenderIdCount = 0;
 
                 for (int physicalAttributeIndex = 0; physicalAttributeIndex < postDto.getPhysicalRequirements().size(); physicalAttributeIndex++) {
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId() <= 0) {
-                        throw new IllegalArgumentException("GENDER ID CANNOT BE NULL OR <= 0");
-                    }
-                    genderId.add(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
+                    Long genderIdValue = postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId();
 
-                    CustomGender customGender = genderService.getGenderByGenderId(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
-                    if (customGender == null) {
-                        throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId());
-                    }
+                    if (genderIdValue == null) {
+                        nullGenderIdCount++;
+                        continue;
+                    } else
+                        if (!genderId.add(genderIdValue)){
+                        throw new IllegalArgumentException("DUPLICATE GENDER ID FOUND: " + genderIdValue);
+                }
 
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
-                        throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
-                    }
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
-                        throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
-                    }
-
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
-                        throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
-                    }
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
-                        throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
-                    }
-
-                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
-                        throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
-                    }
+                CustomGender customGender = genderService.getGenderByGenderId(genderIdValue);
+                if (customGender == null) {
+                    throw new IllegalArgumentException("GENDER NOT FOUND WITH ID: " + genderIdValue);
+                }
 
                 }
 
-                if (genderId.size() != postDto.getPhysicalRequirements().size()) {
-                    throw new IllegalArgumentException("DUPLICATE GENDER NOT ALLOWED");
+
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() > MAX_HEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getHeight() < MIN_HEIGHT) {
+//                        throw new IllegalArgumentException("HEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_HEIGHT + " AND GREATER THAN " + MIN_HEIGHT);
+//                    }
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() == null || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() > MAX_WEIGHT || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWeight() < MIN_WEIGHT) {
+//                        throw new IllegalArgumentException("WEIGHT IS MANDATORY FIELD AND MUST BE LESS THAN " + MAX_WEIGHT + " AND GREATER THAN " + MIN_WEIGHT);
+//                    }
+//
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() > MAX_SHOE_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getShoeSize() < MIN_SHOE_SIZE)) {
+//                        throw new IllegalArgumentException("SHOE SIZE MUST BE LESS THAN " + MAX_SHOE_SIZE + " AND GREATER THAN " + MIN_SHOE_SIZE);
+//                    }
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() > MAX_WAIST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getWaistSize() < MIN_WAIST_SIZE)) {
+//                        throw new IllegalArgumentException("WAIST SIZE MUST BE LESS THAN " + MAX_WAIST_SIZE + " AND GREATER THAN " + MIN_WAIST_SIZE);
+//                    }
+//
+//                    if (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() != null && (postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() > MAX_CHEST_SIZE || postDto.getPhysicalRequirements().get(physicalAttributeIndex).getChestSize() < MIN_CHEST_SIZE)) {
+//                        throw new IllegalArgumentException("CHEST SIZE MUST BE LESS THAN " + MAX_CHEST_SIZE + " AND GREATER THAN " + MIN_CHEST_SIZE);
+//                    }
+
+
+                if (nullGenderIdCount > 1) {
+                    throw new IllegalArgumentException("DUPLICATE NULL GENDER ID ENTRIES FOUND");
                 }
             }
+
+
 
             return true;
         } catch (Exception exception) {
@@ -2789,48 +3004,87 @@ public class ProductService {
             }
                 for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
                     Qualification qualificationDetails=entityManager.find(Qualification.class,qualificationEligibilityDto.getQualificationIds().get(0));
-                    if(qualificationEligibilityDto.getIsAppearing()==null)
-                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
-                    if(qualificationEligibilityDto.getIsAppearing()) {
-                        if (qualificationEligibilityDto.getIsPercentage() != null) {
-                            if (!qualificationEligibilityDto.getIsPercentage()) {
-                                if (qualificationEligibilityDto.getPercentage() != null)
-                                    throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                            } else {
-                                if (qualificationEligibilityDto.getCgpa() != null)
-                                    throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
-                            }
-                            if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null) {
-                                throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
-                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
-                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
-                            }
-                        }
 
+                    if (qualificationEligibilityDto.getIsAppearing() == null) {
+                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
                     }
-                    if(!qualificationEligibilityDto.getIsAppearing()) {
-                        if (qualificationEligibilityDto.getIsPercentage() == null)
-                            throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
-                        //Validate Qualification ids
-                        if (!qualificationEligibilityDto.getIsPercentage()) {
-                            if (qualificationEligibilityDto.getPercentage() != null)
-                                throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
-                            if (qualificationEligibilityDto.getCgpa() != null) {
-                                double cgpa = qualificationEligibilityDto.getCgpa();
-                                // proceed with cgpa logic
+
+// Common validation for isAppearing == true or false
+                    if (!qualificationEligibilityDto.getIsAppearing() || qualificationEligibilityDto.getIsAppearing()) {
+                        Boolean isPercentage = qualificationEligibilityDto.getIsPercentage();
+
+                        if (isPercentage != null) {
+                            if (isPercentage) {
+                                // isPercentage == true: percentage is required, CGPA must NOT be provided
+                                if (qualificationEligibilityDto.getCgpa() != null) {
+                                    throw new IllegalArgumentException("CGPA should not be provided when selecting percentage for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                if (qualificationEligibilityDto.getPercentage() == null) {
+                                    throw new IllegalArgumentException("Percentage is required when 'isPercentage' is true for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                double percentage = qualificationEligibilityDto.getPercentage();
+                                if (percentage < 0 || percentage > 100) {
+                                    throw new IllegalArgumentException("Percentage must be between 0 and 100 for qualification " + qualificationDetails.getQualification_name());
+                                }
                             } else {
-                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
-                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+                                // isPercentage == false: CGPA is optional, but percentage must NOT be provided
+                                if (qualificationEligibilityDto.getPercentage() != null) {
+                                    throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA for qualification " + qualificationDetails.getQualification_name());
+                                }
+                                // CGPA can be provided or left null
                             }
-                        } else {
-                            if (qualificationEligibilityDto.getCgpa() != null)
-                                throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
-                            if (qualificationEligibilityDto.getPercentage() == null)
-                                throw new IllegalArgumentException("Need to provide percentage");
-                            else if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0)
-                                throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
                         }
+                        // If isPercentage is null => only qualification selected => skip percentage/CGPA validation
                     }
+
+
+   //                 if(qualificationEligibilityDto.getIsAppearing()==null)
+ //                       throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification "+qualificationDetails.getQualification_name());
+//                  if(qualificationEligibilityDto.getIsAppearing()) {
+//                      if (qualificationEligibilityDto.getIsPercentage() != null) {
+//                          if (!qualificationEligibilityDto.getIsPercentage()) {
+//                              if (qualificationEligibilityDto.getPercentage() != null)
+//                                  throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+//                          } else {
+//                              if (qualificationEligibilityDto.getCgpa() != null)
+//                                  throw new IllegalArgumentException("Cgpa should not be provided when selecting Percentage. Please provide only the Percentage.");
+//                          }
+//                          if (qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getPercentage() == null ) {
+//                              throw new IllegalArgumentException("Need to provide percentage since you have chosen percentage for qualification " + qualificationDetails.getQualification_name());
+//                          }
+//
+//                      }
+//                  }
+//                            } else if (!qualificationEligibilityDto.getIsPercentage() && qualificationEligibilityDto.getCgpa() == null) {
+//                                throw new IllegalArgumentException("Need to provide CGPA since you have chosen CGPA for qualification " + qualificationDetails.getQualification_name());
+//                            }
+//                        }
+//
+//                    }
+//                    if(!qualificationEligibilityDto.getIsAppearing()) {
+//  //                      if (qualificationEligibilityDto.getIsPercentage() == null)
+//      //                      throw new IllegalArgumentException("Please specify whether the qualification eligibility  is based on CGPA or percentage for qualification "+qualificationDetails.getQualification_name());
+//                        //Validate Qualification ids
+//                        if (!qualificationEligibilityDto.getIsPercentage()) {
+//                            if (qualificationEligibilityDto.getPercentage() != null)
+//                                throw new IllegalArgumentException("Percentage should not be provided when selecting CGPA. Please provide only the CGPA.");
+//                            if (qualificationEligibilityDto.getCgpa() != null) {
+//                                double cgpa = qualificationEligibilityDto.getCgpa();
+//                            }
+//                                // proceed with cgpa logic
+////                             else {
+////                                // handle missing cgpa gracefully (e.g., throw a custom exception or set default)
+////                                throw new IllegalArgumentException("CGPA is required when isPercentage is false");
+////                            }
+//                        } else {
+//                            if (qualificationEligibilityDto.getCgpa() != null)
+//                                throw new IllegalArgumentException("CGPA should not be provided when selecting percentage. Please provide only the percentage.");
+//                            if (qualificationEligibilityDto.getPercentage() == null)
+//                                throw new IllegalArgumentException("Need to provide percentage");
+//                            else if (qualificationEligibilityDto.getPercentage() > 100 || qualificationEligibilityDto.getPercentage() < 0)
+//                                throw new IllegalArgumentException("Invalid Percentage value. It should be between 0 and 100");
+//                        }
+//                    }
                     if (qualificationEligibilityDto.getQualificationIds() == null) {
                         throw new IllegalArgumentException("Qualification cannot be null");
                     } else if (qualificationEligibilityDto.getQualificationIds() != null) {
@@ -3002,9 +3256,11 @@ public class ProductService {
         return true;
     }
     private void validatePostBasics(PostDto postDto) {
-        if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
+        /*if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
-        }
+        }*/
+       /* if(postDto.getDuration()<0)
+            throw new IllegalArgumentException("Post duration cannot be < 0");*/
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }
