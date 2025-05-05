@@ -377,7 +377,7 @@ public class ProductService {
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
-                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsMultiplePostSameFee());
             }
 
             // Execute the update
