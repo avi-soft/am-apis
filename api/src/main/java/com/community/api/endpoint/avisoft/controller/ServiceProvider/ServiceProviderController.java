@@ -649,8 +649,6 @@ public ResponseEntity<?> getAllServiceProviders(
                 if (!name[1].equals("")) last_name = name[1];
             }
 
-            System.out.println("hello 2 ");
-
             if (qualificationType != null) {
                 for (Integer id : qualificationType) {
                     if (qualificationService.getQualificationByQualificationId(id) == null)
@@ -669,7 +667,6 @@ public ResponseEntity<?> getAllServiceProviders(
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
                     serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
 
-            System.out.println("hello 3");
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();
             if (response1.getBody() != null && response1.getBody().getData() != null) {
