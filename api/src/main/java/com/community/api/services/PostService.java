@@ -194,9 +194,9 @@ public class PostService {
                     if (addProductAgeDTO.getBornAfter().before(minBornAfterDate)) {
                         throw new IllegalArgumentException("Born after date cannot be more than 105 years in the past.");
                     }
-                    if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
+                   /* if (addProductAgeDTO.getBornBefore().after(maxBornBeforeDate)) {
                         throw new IllegalArgumentException("Born before date must be at least 5 years in the past.");
-                    }
+                    }*/
                 }
 
             }
@@ -240,6 +240,7 @@ public class PostService {
         post.setPhysicalAdditionalComments(postDto.getPhysicalAdditionalComments());
         post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
         post.setReserveCatAgeAdditionalComments(postDto.getReserveCatAgeAdditionalComments());
+        post.setTotalSeatsVisible(postDto.getTotalSeatsVisible());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();

@@ -428,22 +428,22 @@ public class ProductController extends CatalogEndpoint {
             {
                 if(addProductDto.getIsMultiplePostSameFee().equals(true))
                 {
-                    if(addProductDto.getPosts()!=null) {
+                   /* if(addProductDto.getPosts()!=null) {
                         if (addProductDto.getPosts().isEmpty()) {
                             throw new IllegalArgumentException("You have to fill at least one post");
                         }
-                    }
+                    }*/
                     customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
                 }
                 else if (addProductDto.getIsMultiplePostSameFee().equals(false))
                 {
                     if(addProductDto.getPosts()!=null)
                     {
-                        if(addProductDto.getPosts().isEmpty())
+                        /*if(addProductDto.getPosts().isEmpty())
                         {
                             throw new IllegalArgumentException("You have to fill at least one post");
-                        }
-                        else if(!addProductDto.getPosts().isEmpty())
+                        }*/
+                        if(!addProductDto.getPosts().isEmpty())
                         {
                             if(addProductDto.getPosts().size()>1)
                             {
@@ -877,6 +877,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
             @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
+            @RequestHeader(name ="myProducts",defaultValue = "true",required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
@@ -887,9 +888,13 @@ public class ProductController extends CatalogEndpoint {
             Role role=roleService.getRoleByRoleId(roleId);
             Long createdById=null;
             Role roleEntity=roleService.getRoleByRoleId(roleId);
-            if(Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))
+            if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&!myProducts)
             {
                 createdById=null;
+            }
+            else  if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&myProducts)
+            {
+                createdById=tokenUserId;
             }
             else
             {
@@ -1058,6 +1063,7 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
+            postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {

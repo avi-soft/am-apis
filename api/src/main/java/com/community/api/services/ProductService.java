@@ -451,8 +451,8 @@ public class ProductService {
                                               Integer post, Date startRange, Date endRange,
                                               Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
         try {
-            StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
-            StringBuilder result = new StringBuilder("SELECT  p FROM CustomProduct p ");
+            StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
+            StringBuilder result = new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
                     if(!all)
                         jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
@@ -505,7 +505,7 @@ public class ProductService {
                 jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
             if (createdById != null) {
-                jpql.append(" AND p.userId = :creatorUserId");
+                jpql.append(" AND p.userId = :creatorUserId ");
             }
             if (categories != null && !categories.isEmpty()) {
                 boolean anyValidCategory = false;
@@ -3256,9 +3256,9 @@ public class ProductService {
         return true;
     }
     private void validatePostBasics(PostDto postDto) {
-        if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
+        /*if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
-        }
+        }*/
        /* if(postDto.getDuration()<0)
             throw new IllegalArgumentException("Post duration cannot be < 0");*/
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
