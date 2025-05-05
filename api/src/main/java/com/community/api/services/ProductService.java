@@ -3256,9 +3256,9 @@ public class ProductService {
         return true;
     }
     private void validatePostBasics(PostDto postDto) {
-        if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
+        /*if (postDto.getPostName() == null || postDto.getPostName().trim().isEmpty()) {
             throw new IllegalArgumentException("Post name cannot be null or empty");
-        }
+        }*/
        /* if(postDto.getDuration()<0)
             throw new IllegalArgumentException("Post duration cannot be < 0");*/
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
