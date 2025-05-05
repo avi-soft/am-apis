@@ -378,7 +378,7 @@ public class ProductService {
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
-                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsMultiplePostSameFee());
             }
 
             // Execute the update
@@ -452,8 +452,8 @@ public class ProductService {
                                               Integer post, Date startRange, Date endRange,
                                               Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
         try {
-            StringBuilder count = new StringBuilder("SELECT COUNT(p) FROM CustomProduct p ");
-            StringBuilder result = new StringBuilder("SELECT  p FROM CustomProduct p ");
+            StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
+            StringBuilder result = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
                     if(!all)
                         jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
@@ -483,14 +483,21 @@ public class ProductService {
 
             // Conditionally build the query
             if (states != null && !states.isEmpty()) {
+                boolean containsStateLive = false;
                 for (Long id : states) {
                     CustomProductState productState = productStateService.getProductStateById(id);
                     if (productState == null) {
                         throw new IllegalArgumentException("NO PRODUCT STATE FOUND WITH THIS ID: " + id);
                     }
                     customProductStates.add(productState);
+                    if (id == 5L) {
+                        containsStateLive = true;
+                    }
                 }
                 jpql.append("AND p.productState IN :states ");
+                if (containsStateLive) {
+                    jpql.append("AND (p.productState.id != 5 OR (p.productState.id = 5 AND FUNCTION('DATE', p.goLiveDate) <= FUNCTION('DATE', CURRENT_TIMESTAMP))) ");
+                }
             }
 
             if (statuses != null && !statuses.isEmpty()) {
@@ -936,10 +943,10 @@ public class ProductService {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
 
-            if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+           /* if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
                 throw new IllegalArgumentException("Post cannot be null or empty");
-            }
+            }*/
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1097,12 +1104,12 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }*/
 
-            if (addProductDto.getIsMultiplePostSameFee() != null) {
+     /*       if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                 {
                     throw new IllegalArgumentException("Post cannot be null or empty");
                 }
-            }
+            }*/
 
 
             return true;
