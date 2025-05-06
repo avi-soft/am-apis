@@ -70,6 +70,32 @@ public class RoleController {
             return responseService.generateErrorResponse("Some error fetching: "+e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
+
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
+    @GetMapping("/get-roles-to-assign-tickets")
+    public ResponseEntity<?> getRolesToAssignTickets(@RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+
+            List<Role> rolesToReturn = new ArrayList<>();
+
+            if (roleId == 1) {
+                rolesToReturn = roleService.getRolesForSuperAdmin();  // Role ID 1
+            } else if (roleId == 2) {
+                rolesToReturn = roleService.getRolesForAdmin();       // Role ID 2
+            } else {
+                // You can decide how to handle unexpected roleIds
+                return responseService.generateErrorResponse("Unauthorized role", HttpStatus.FORBIDDEN);
+            }
+
+            return responseService.generateSuccessResponse("Roles", rolesToReturn, HttpStatus.OK);
+
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse("Some error fetching: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
     @GetMapping("/get-roles-available")
     public ResponseEntity<?> getConditionalRoles(@RequestHeader(value = "Authorization") String authHeader)
     {
@@ -179,5 +205,6 @@ public class RoleController {
         } catch (Exception e) {
             // Log the error or handle it as necessary
         }
-}
+    }
+
 }

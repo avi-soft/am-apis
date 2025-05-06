@@ -877,7 +877,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
             @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
-            @RequestHeader(name ="myProducts",defaultValue = "true",required = false) Boolean myProducts,
+            @RequestParam(name ="myProducts",defaultValue = "false",required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
@@ -887,7 +887,12 @@ public class ProductController extends CatalogEndpoint {
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role=roleService.getRoleByRoleId(roleId);
             Long createdById=null;
+
             Role roleEntity=roleService.getRoleByRoleId(roleId);
+            if(roleServiceProviderAdmin.equals(roleEntity.getRole_name())|| roleServiceProvider.equals(roleEntity.getRole_name()))
+            {
+                myProducts=true;
+            }
             if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&!myProducts)
             {
                 createdById=null;
