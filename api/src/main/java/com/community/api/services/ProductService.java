@@ -17,6 +17,7 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
 import io.swagger.models.auth.In;
@@ -759,6 +760,11 @@ public class ProductService {
                         return true;
                     }
                 }
+
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if(serviceProvider.getApproved()!=null && serviceProvider.getApproved()) {
+                    return true;
+                }
             }
             return false;
         } catch (Exception exception) {
@@ -937,7 +943,8 @@ public class ProductService {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
 
-           /* if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
+
+            /*if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
                 throw new IllegalArgumentException("Post cannot be null or empty");
             }*/
@@ -1098,7 +1105,8 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }*/
 
-     /*       if (addProductDto.getIsMultiplePostSameFee() != null) {
+
+           /* if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
                 {
                     throw new IllegalArgumentException("Post cannot be null or empty");
