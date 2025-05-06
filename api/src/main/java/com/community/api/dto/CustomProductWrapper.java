@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
@@ -134,7 +135,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     @JsonProperty("other_info")
     String otherInfo;
     @JsonProperty("number_of_posts")
-    Long numberOfPosts;
+    Integer numberOfPosts;
     @JsonProperty("additional_comments")
     String additionalComments;
     @JsonProperty("answer_key_available_date")
@@ -151,6 +152,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Date examCenterAvailableDate;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    @JsonProperty("fee")
+    Double fee;
+    @JsonProperty("age_limit")
+    String ageLimit;
+
+
+
     public void wrapDetailsAddProduct(Product product, AddProductDto addProductDto, CustomProductState customProductState, CustomApplicationScope customApplicationScope, Long creatorUserId, Role creatorRole, ReserveCategoryService reserveCategoryService, StateCode state, CustomSector customSector, Date currentDate, Advertisement advertisement,GenderService genderService,EntityManager entityManager,List<Post> postList,List<PostDto> postDtos, Long totalVacanciesInProduct, Long totalPostsInProduct) throws Exception {
 
         this.id = product.getId();
@@ -283,7 +291,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postDtoIndex++;
             }
         }
-        this.numberOfPosts =totalPostsInProduct;
+        this.numberOfPosts = Math.toIntExact(totalPostsInProduct);
         this.platformFee = addProductDto.getPlatformFee();
 
         this.customApplicationScope = customApplicationScope;
@@ -337,7 +345,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
-        this.numberOfPosts =(long)customProduct.getPosts().size();
+        this.numberOfPosts =customProduct.getPosts().size();
         this.additionalComments=customProduct.getAdditionalComments();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
@@ -393,7 +401,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.platformFee = customProduct.getPlatformFee();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
-        this.numberOfPosts= (long) customProduct.getPosts().size();
+        this.numberOfPosts= customProduct.getPosts().size();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -486,7 +494,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
         this.otherInfo=customProduct.getOtherInfo();
-        this.numberOfPosts =(long)customProduct.getPosts().size();
+        this.numberOfPosts =customProduct.getPosts().size();
         this.additionalComments=customProduct.getAdditionalComments();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
@@ -537,6 +545,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         if (customProduct.getDefaultCategory() != null) {
             this.defaultCategoryId = customProduct.getDefaultCategory().getId();
         }
+
+
     }
 
     @Override
@@ -561,5 +571,82 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = model.getName();
         this.metaDescription = model.getDescription();
         this.active = model.isActive();
+    }
+    public void wrapDetails(CustomProduct product, HttpServletRequest httpServletRequest, ReserveCategoryService reserveCategoryService, ReserveCategoryAgeService reserveCategoryAgeService, GenderService genderService, CustomCustomer customCustomer, SharedUtilityService sharedUtilityService) {
+        this.id = product.getId();
+        this.metaTitle = product.getMetaTitle();
+        this.displayTemplate = product.getDisplayTemplate();
+        this.active = product.isActive();
+        this.archived = 'N';
+        this.createdDate = product.getCreatedDate();
+        this.activeGoLiveDate = product.getGoLiveDate();
+        this.activeEndDate = product.getDefaultSku().getActiveEndDate();
+        this.activeStartDate = product.getDefaultSku().getActiveStartDate();
+        this.metaDescription = product.getMetaDescription();
+        this.displayTemplate = product.getDisplayTemplate();
+        this.isReviewRequired=product.getIsReviewRequired();
+
+        this.modifiedDate = product.getActiveStartDate();
+        this.creatorUserId = product.getUserId();
+        this.creatorRoleId = product.getCreatoRole();
+        this.modifierUserId = null;
+        this.modifierRoleId = null;
+
+        this.domicileRequired = product.getDomicileRequired();
+        this.examDateFrom = product.getExamDateFrom();
+        this.examDateTo = product.getExamDateTo();
+
+        this.lateDateToPayFee = product.getLateDateToPayFee();
+        this.admitCardDateFrom = product.getAdmitCardDateFrom();
+        this.adminCardDateTo = product.getAdmitCardDateTo();
+        this.modificationDateFrom = product.getModificationDateFrom();
+        this.modificationDateTo = product.getModificationDateTo();
+        this.downloadNotificationLink = product.getDownloadNotificationLink();
+        this.downloadSyllabusLink = product.getDownloadSyllabusLink();
+        this.formComplexity = product.getFormComplexity();
+
+        this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
+        this.selectionCriteria = product.getSelectionCriteria();
+        this.totalVacanciesInProduct = product.getTotalVacanciesInProduct();
+        this.numberOfPosts=  product.getPosts().size();
+        var genderId=0L;
+        var categoryId=0L;
+        try {
+            categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+            genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+        }catch (Exception exception)
+        {
+            if(genderId==0L)
+                genderId=1L;
+            if(categoryId==0L)
+                categoryId=1L;
+        }
+
+        Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
+                .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+
+// Set fee as "N/A" if no fee is found
+        this.fee = (feeValue != null) ? feeValue : 0.0;
+
+        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+
+// If age limit is null, fetch with default values (1L, 1L)
+        if (ageLimitResult == null) {
+            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+        }
+
+// Extract age limits
+        int[] ageLimits = null;
+        if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
+            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
+        }
+
+// Set ageLimit value
+        this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
+                && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                : (ageLimits != null && ageLimits.length >= 2)
+                ? ageLimits[0] + "-" + ageLimits[1]
+                : "N/A";
     }
 }
