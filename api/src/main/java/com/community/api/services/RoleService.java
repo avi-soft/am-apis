@@ -16,6 +16,7 @@ import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -114,5 +115,25 @@ public class RoleService {
                 throw new NotAuthorizedException("Unauthorized", "Unauthorized access");
         }
         return allRoles;
+    }
+
+
+    public List<Role> getRolesForSuperAdmin() {
+        List<Role> roles = new ArrayList<>();
+        Role role2 = roleService.getRoleByRoleId(2);
+        Role role4 = roleService.getRoleByRoleId(4);
+        if (role2 != null) roles.add(role2);
+        if (role4 != null) roles.add(role4);
+        return roles;
+    }
+
+
+    public List<Role> getRolesForAdmin() {
+        List<Role> roles = new ArrayList<>();
+        Role role2 = roleService.getRoleByRoleId(2);
+        Role role4 = roleService.getRoleByRoleId(4);
+        if (role2 != null) roles.add(role2);
+        if (role4 != null) roles.add(role4);
+        return roles;
     }
 }
