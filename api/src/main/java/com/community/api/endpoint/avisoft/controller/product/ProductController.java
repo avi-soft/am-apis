@@ -874,6 +874,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
+            @RequestParam(value = "product_ids", required = false) List<Long> productIds,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
             @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
@@ -938,14 +939,14 @@ public class ProductController extends CatalogEndpoint {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all,createdById
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all,createdById,productIds
                 );
             }
             else
             {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit,all,createdById
+                        title, fee, post, dateFrom, dateTo, null, offset, limit,all,createdById,productIds
                 );
             }
             products=(List<CustomProduct>)opresponse.get("products");
@@ -1017,7 +1018,17 @@ public class ProductController extends CatalogEndpoint {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts) {
+            @RequestParam(required = false, defaultValue = "false") boolean showDraftProducts,
+            @RequestParam(value = "state", required = false) List<Long> state,
+            @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
+            @RequestParam(value = "category", required = false) List<Long> categories,
+            @RequestParam(value = "product_ids", required = false) List<Long> productIds,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "fee", required = false) Double fee,
+            @RequestParam(value = "post", required = false) Integer post,
+            @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
+            @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo) {
 
         try {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
@@ -1035,9 +1046,20 @@ public class ProductController extends CatalogEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
 
-            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit,showDraftProducts);
+            if (dateFrom != null || dateTo != null) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+                if (dateFrom != null) {
+                    dateFrom = dateFormat.parse(dateFormat.format(dateFrom));
+                }
+
+                if (dateTo != null) {
+                    dateTo = dateFormat.parse(dateFormat.format(dateTo));
+                }
+            }
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo,productIds);
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
