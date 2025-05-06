@@ -253,4 +253,6 @@ public class Constant {
             "Admin";
     public static final String WELCOME_SUBJECT="System Message";
     public static final Integer SUPER_ADMIN_PRIVILEGES=4;
+
+    public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c from OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId";
 }

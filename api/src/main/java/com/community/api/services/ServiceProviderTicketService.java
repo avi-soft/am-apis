@@ -431,24 +431,34 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setAssigneeRole(role);
             customServiceProviderTicket.setAssignee(assignedUserTo);
 
+            CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
-                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
             }
 
+            CustomTicketType ticketType = null;
             if (createTicketDto.getTicketType() != null) {
-                CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 customServiceProviderTicket.setTicketType(ticketType);
             } else {
                 throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
             }
 
+            CustomTicketStatus ticketStatus = null;
             if (createTicketDto.getTicketStatus() != null) {
-                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                customServiceProviderTicket.setTicketStatus(ticketStatus);
+            } else {
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
+            if(ticketStatusService.verifyStatus(ticketState, ticketStatus)==null) {
+                throw new IllegalArgumentException("Cannot create with this state and status simultaneously (Not a linkage)");
+            }
+
             if(createTicketDto.getAssigneeRole()==4)
             {
                 ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());

@@ -12,7 +12,6 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.community.api.utils.Document;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -48,6 +47,8 @@ public class TicketStateService {
     protected JwtUtil jwtTokenUtil;
     @Autowired
     protected RoleService roleService;
+    @Autowired
+    protected TicketStatusService ticketStatusService;
     @Autowired
     protected SharedUtilityService sharedUtilityService;
     @Autowired
@@ -118,17 +119,21 @@ public class TicketStateService {
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
                 return ResponseService.generateErrorResponse("At least one parameter is required to update the ticket", HttpStatus.BAD_REQUEST);
             }
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            log.info("USER ID{}", tokenUserId);
             String roleNameToken = roleService.getRoleByRoleId(roleId).getRole_name();
-            CustomTicketState ticketState = null;
+
+            log.info("USER ID{}", tokenUserId);
+
             if (ticketId == null)
                 return ResponseService.generateErrorResponse("Ticket Id not provided", HttpStatus.BAD_REQUEST);
+
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+
             if (roleNameToken.equals(Constant.roleServiceProvider)) {
                 if (!tokenUserId.equals(ticket.getAssignee())) {
                     return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
@@ -140,28 +145,68 @@ public class TicketStateService {
                 if (createTicketDTO.getTicketType() != null)
                     return ResponseService.generateErrorResponse("Service Provider is not authorized to  update ticket type", HttpStatus.UNAUTHORIZED);
             }
-            if (roleNameToken.equals(Constant.roleServiceProvider) && !ticket.getAssignee().equals(tokenUserId))
-                return ResponseService.generateErrorResponse("Not authorized to perform action on this ticket", HttpStatus.UNAUTHORIZED);
-            if (createTicketDTO.getTicketState() != null) {
+
+            // REDUNDANT CONDITION
+            /*if (roleNameToken.equals(Constant.roleServiceProvider) && !ticket.getAssignee().equals(tokenUserId))
+                return ResponseService.generateErrorResponse("Not authorized to perform action on this ticket", HttpStatus.UNAUTHORIZED);*/
+
+            /*if ((createTicketDTO.getTicketStatus() != null && createTicketDTO.getTicketState() == null) || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() != null))
+                return ResponseService.generateErrorResponse("Ticket state and status must be provided together.", HttpStatus.BAD_REQUEST);
+*/
+            Query query = null;
+            CustomTicketState ticketState = null;
+            CustomTicketStatus ticketStatus = null;
+            if (createTicketDTO.getTicketState() != null && createTicketDTO.getTicketStatus() != null) {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
+
                 if (ticketState == null)
                     return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
 
                 if (!canTransitTicket(ticket, createTicketDTO.getTicketState(), roleNameToken, createTicketDTO.getTicketStatus()))
                     return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.", HttpStatus.FORBIDDEN);
 
+                if (createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP) || createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                }
+
+                ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
+
+            } else if(createTicketDTO.getTicketStatus() != null) {
+
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
+                if (ticketStatus == null)
+                    return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
+
+                ticketState = ticket.getTicketState();
+                ticketStatusService.verifyStatus(ticketState, ticketStatus);
+
+                if (createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP) || createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                }
+
+                ticket.setTicketStatus(ticketStatus);
+
+            } else if(createTicketDTO.getTicketState() != null) {
+                return ResponseService.generateErrorResponse("Ticket State cannot be changed without status.", HttpStatus.FORBIDDEN);
             }
-            if ((createTicketDTO.getTicketStatus() != null && createTicketDTO.getTicketState() == null) || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() != null))
-                return ResponseService.generateErrorResponse("Ticket state and status must be provided together.", HttpStatus.BAD_REQUEST);
-            Query query = null;
-            if (createTicketDTO.getTicketStatus() != null) {
+
+            // TODO - Handled above
+            /*if (createTicketDTO.getTicketStatus() != null) {
                 CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
-                /*if(createTicketDTO.getTicketState().equals(ticket.getTicketState().getTicketStateId()))
-                    return ResponseService.generateErrorResponse("Selected state already set",HttpStatus.BAD_REQUEST);*/
-                query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE); // TODO - NEED MODIFICATION HERE. @RAMAN
+                *//*if(createTicketDTO.getTicketState().equals(ticket.getTicketState().getTicketStateId()))
+                    return ResponseService.generateErrorResponse("Selected state already set",HttpStatus.BAD_REQUEST);*//*
+
+                *//*query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE); // TODO - NEED MODIFICATION HERE. @RAMAN(TAKEN CAE OF - BY @RAMAN)
                 query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                 List<BigInteger> resultList = query.getResultList();
                 // Convert BigInteger list to Long list
@@ -171,7 +216,9 @@ public class TicketStateService {
                 if (resultListLong.isEmpty())
                     return ResponseService.generateErrorResponse("No status is available for ticket state : " + ticketState.getTicketState(), HttpStatus.NOT_FOUND);
                 if (!resultListLong.contains(createTicketDTO.getTicketStatus()))
-                    return ResponseService.generateErrorResponse("Invalid Status selected for ticket State :" + ticketState.getTicketState(), HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateErrorResponse("Invalid Status selected for ticket State :" + ticketState.getTicketState(), HttpStatus.BAD_REQUEST);*//*
+
+
                 ticket.setTicketStatus(ticketStatus);
 
                 if (createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_IN_REVIEW) && createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP)) {
@@ -180,7 +227,8 @@ public class TicketStateService {
                     }
                     ticket.setComment(createTicketDTO.getComment());
                 }
-            }
+            }*/
+
             if (createTicketDTO.getAssigneeRole() != null) {
                 Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
                 if (role == null)
@@ -247,19 +295,28 @@ public class TicketStateService {
     public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId, String roleName, Long customTicketStatus) throws Exception {
         try {
             Long productId = Long.parseLong(customServiceProviderTicket.getOrder().getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
-            System.out.println("id:" + productId);
+            log.info("product id:{}", productId);
+
             int stateValue = Math.toIntExact(ticketStateId);
             CustomTicketState nextState = getTicketStateByTicketId(ticketStateId);
             CustomTicketStatus status = ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
+
             if (!productId.equals(0L)) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
                 if (customProduct == null)
                     throw new NotFoundException("Product linked with ticket not found");
+
+                // TODO - Need confirmation here that whether we should go ahead with reviewRequired in the product or it should be handled by admin. @Raman
                 if (customProduct.getIsReviewRequired().equals(false) && status.getTicketStatus().equals("FORM-COMPLETED-REVIEW")) {
                     throw new UnsupportedOperationException("Review is not required for this ticket");
                 }
             }
-            if (roleName.equals(Constant.roleServiceProvider)) {
+
+            if(roleName.equals(Constant.roleServiceProvider)) {
+                ticketStatusService.verifyStatus(nextState, status);
+            }
+            // Instead of using switch we can handle this with linkage table.
+            /*if (roleName.equals(Constant.roleServiceProvider)) {
                 switch (customServiceProviderTicket.getTicketState().getTicketState()) {
                     case "TO-DO":
                         return nextState.getTicketState().equals("IN-PROGRESS") || nextState.getTicketState().equals("TO-DO");
@@ -274,7 +331,7 @@ public class TicketStateService {
                     default:
                         return false; // No transitions allowed from DONE
                 }
-            }
+            }*/
 
             // Admin logic
             if (roleName.equals(Constant.roleAdmin) || roleName.equals(Constant.roleSuperAdmin)) {

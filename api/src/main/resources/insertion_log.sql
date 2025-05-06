@@ -139,6 +139,7 @@ IF (SELECT COUNT(*) FROM ticket_state_linkage) = 0 THEN
     INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_state_id_from, ticket_state_id_to, role_id)
     VALUES
 --        PRIMARY TICKET
+--        (SP)
         (1, 1, 2, 4),
         (2, 1, 6, 4),
         (3, 2, 3, 4),
@@ -151,7 +152,7 @@ IF (SELECT COUNT(*) FROM ticket_state_linkage) = 0 THEN
         (9, 7, 5, 2),
         (10, 7, 2, 2),
         (11, 6, 1, 2);
-        
+
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
