@@ -245,6 +245,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
                 postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
                 postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+                postProjectionDTO.setIncome(post.getIncome());
+                postProjectionDTO.setReligion(post.getReligion());
                 List<ReserveCategoryAgeDto>listD=new ArrayList<>();
                 for(AddProductAgeDTO ageRequirement:postDtos.get(postDtoIndex).getReserveCategoryAge())
                 {
