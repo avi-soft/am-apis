@@ -241,6 +241,8 @@ public class PostService {
         post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
         post.setReserveCatAgeAdditionalComments(postDto.getReserveCatAgeAdditionalComments());
         post.setTotalSeatsVisible(postDto.getTotalSeatsVisible());
+        post.setIncome(postDto.getIncome());
+        post.setReligion(postDto.getReligion());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
