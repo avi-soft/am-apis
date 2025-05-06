@@ -3279,6 +3279,18 @@ public class ProductService {
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }
+        if(postDto.getIncome()!=null)
+        {
+            if (postDto.getIncome()<0)
+                throw new IllegalArgumentException("Income threshold cannot be less than 0");
+        }
+        if(postDto.getReligion()!=null) {
+            for (String religion : postDto.getReligion()) {
+                if (!religion.matches("^[a-zA-Z\\s]+$")) {
+                    throw new IllegalArgumentException("Invalid religion name: " + religion + ". Only alphabets and spaces are allowed.");
+                }
+            }
+        }
      /*   if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
             throw new IllegalArgumentException("Invalid Post Total Vacancies");
         }*/
