@@ -153,9 +153,17 @@ public class AdvertisementController {
     }
 
     @GetMapping("/get-advertisement-by-id/{advertisementId}")
-    public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath) {
+    public ResponseEntity<?> retrieveAdvertisementById(HttpServletRequest request, @PathVariable("advertisementId") String advertisementIdPath,   @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         try {
+            CustomCustomer customCustomer = null;
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 5)
+                    customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+            }
             Long advertisementId = Long.parseLong(advertisementIdPath);
             if (advertisementId <= 0) {
                 return ResponseService.generateErrorResponse("ADVERTISEMENT ID CANNOT BE <= 0", HttpStatus.BAD_REQUEST);
@@ -179,7 +187,7 @@ public class AdvertisementController {
 
                     if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct);
+                        wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                         products.add(wrapper);
                     }
                 }

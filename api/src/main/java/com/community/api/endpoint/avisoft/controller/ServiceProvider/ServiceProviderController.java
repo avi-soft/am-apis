@@ -7,20 +7,7 @@ import com.community.api.dto.BankAccountDTO;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.BankDetails;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomOrderState;
-import com.community.api.entity.CustomOrderStatus;
-import com.community.api.entity.CustomServiceProviderTicket;
-import com.community.api.entity.CustomTicketState;
-import com.community.api.entity.CustomTicketStatus;
-import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.OrderRequest;
-import com.community.api.entity.Role;
-import com.community.api.entity.ServiceProviderAddress;
-import com.community.api.entity.ServiceProviderAddressRef;
-import com.community.api.entity.Skill;
-import com.community.api.entity.SuccessResponse;
+import com.community.api.entity.*;
 import com.community.api.services.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -109,6 +96,8 @@ public class ServiceProviderController {
     private JwtUtil jwtTokenUtil;
     @Autowired
     private RoleService roleService;
+    @Autowired
+    private PrivilegeService privilegeService;
 
     @Autowired
     QualificationService qualificationService;
@@ -965,6 +954,24 @@ public ResponseEntity<?> getAllServiceProviders(
                         continue;
                 }
                 serviceProvider.setApproved(true);
+
+                Long id = serviceProvider.getService_provider_id();
+                int role_id = serviceProvider.getRole();
+
+                // Assign ADD_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT privileges
+                List<String> requiredPrivileges = Arrays.asList(
+                        Constant.PRIVILEGE_ADD_PRODUCT,
+                        Constant.PRIVILEGE_UPDATE_PRODUCT,
+                        Constant.PRIVILEGE_DELETE_PRODUCT
+                );
+
+                for (String privilegeName : requiredPrivileges) {
+                    Privileges privilege = privilegeService.getPrivilegeByName(privilegeName);
+                    if (privilege != null) {
+                        privilegeService.assignPrivilege(privilege.getPrivilege_id(), id, role_id);
+                    }
+                }
+
                 serviceProvider.setRejected(false);
             }
             else if(Constant.ACTION_REJECT.equals(action))
