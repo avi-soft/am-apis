@@ -455,7 +455,7 @@ public class ProductService {
             StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
             StringBuilder result = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
-                    if(!all)
+                    if(fee!=null)
                         jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
                     .append("WHERE 1=1 ");  // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
@@ -584,7 +584,7 @@ public class ProductService {
                 jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
             } else if(Boolean.FALSE.equals(isExpired)) {
                 // Only non-expired products
-                jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
+                jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
             TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
