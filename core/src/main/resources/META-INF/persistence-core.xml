@@ -108,6 +108,7 @@
         <class>com.community.api.entity.BlackListedTokens</class>
         <class>com.community.api.entity.Earnings</class>
         <class>com.community.api.entity.Transaction</class>
+        <class>com.community.api.entity.TicketStateLinkage</class>
 
         <exclude-unlisted-classes/>
     </persistence-unit>

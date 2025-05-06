@@ -12,6 +12,7 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.Document;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -160,7 +161,7 @@ public class TicketStateService {
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
                 /*if(createTicketDTO.getTicketState().equals(ticket.getTicketState().getTicketStateId()))
                     return ResponseService.generateErrorResponse("Selected state already set",HttpStatus.BAD_REQUEST);*/
-                query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE);
+                query = entityManager.createNativeQuery(Constant.GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE); // TODO - NEED MODIFICATION HERE. @RAMAN
                 query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                 List<BigInteger> resultList = query.getResultList();
                 // Convert BigInteger list to Long list

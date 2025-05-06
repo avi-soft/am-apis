@@ -74,7 +74,8 @@ BEGIN
         (2, 'IN-PROGRESS', 'It is  under progress'),
         (3, 'ON-HOLD', 'It is on hold'),
         (4, 'IN-REVIEW', 'It is rejected'),
-        (5, 'CLOSE', 'Closed successfully');
+        (5, 'CLOSE', 'Closed successfully'),
+        (6, 'SUPPORT', 'Support Required'); -- It should be in middle not at last(now doing it at the moment might break already created entries).
 END IF;
 IF (SELECT COUNT(*) FROM custom_ticket_status) = 0 THEN
     INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
@@ -92,7 +93,6 @@ IF (SELECT COUNT(*) FROM custom_ticket_status) = 0 THEN
         (10, 'FORM-COMPLETED-REVIEW', 'Form is completed but requires review'),
         (11, 'PROVIDER-HELP-REVIEW', 'SP is stuck');
 END IF;
-
 
 IF (SELECT COUNT(*) FROM custom_ticket_type) = 0 THEN
     INSERT INTO custom_ticket_type (ticket_type_id, ticket_type, ticekt_type_description)
@@ -114,6 +114,7 @@ IF (SELECT COUNT(*) FROM order_state_ref) = 0 THEN
         (7, 'COMPLETED', 'Order completed.'),
         (8, 'IN_REVIEW', 'Order is in review.');
 END IF;
+
 IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
     INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_state_id, ticket_status_id)
     VALUES
@@ -128,7 +129,29 @@ IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
         (9, 7, 5, 8),
         (10, 7, 5, 9),
         (11, 6, 4, 10),
-        (12, 6, 4, 11);
+        (12, 6, 4, 11),
+        (13, 3, 6, 12),
+        (14, 3, 6, 13),
+        (15, 3, 3, 13);
+END IF;
+
+IF (SELECT COUNT(*) FROM ticket_state_linkage) = 0 THEN
+    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_state_id_from, ticket_state_id_to, role_id)
+    VALUES
+--        PRIMARY TICKET
+        (1, 1, 2, 4),
+        (2, 1, 6, 4),
+        (3, 2, 3, 4),
+        (4, 2, 4, 4),
+        (5, 2, 5, 4),
+        (6, 2, 7, 4),
+        (7, 3, 2, 4),
+--        (ADMIN)
+        (8, 3, 5, 2),
+        (9, 7, 5, 2),
+        (10, 7, 2, 2),
+        (11, 6, 1, 2);
+        
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
