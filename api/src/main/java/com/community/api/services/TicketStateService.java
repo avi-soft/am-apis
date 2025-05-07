@@ -14,7 +14,10 @@ import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -26,12 +29,10 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
-import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -48,7 +49,7 @@ public class TicketStateService {
     @Autowired
     protected RoleService roleService;
     @Autowired
-    protected TicketStatusService ticketStatusService;
+    protected CatalogService catalogService;
     @Autowired
     protected SharedUtilityService sharedUtilityService;
     @Autowired
@@ -100,6 +101,7 @@ public class TicketStateService {
             }
             entityManager.merge(exServiceProvider);
         }
+
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
         if (nextState.getTicketState().equals("TO-DO")) {
             serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
@@ -259,9 +261,16 @@ public class TicketStateService {
                 }
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == -1)
                     return ResponseService.generateErrorResponse("Invalid Date-Time", HttpStatus.BAD_REQUEST);
+
+                Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
+                if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+                    return ResponseService.generateErrorResponse("Target Completion date must be between Product Open Date and Close Date.", HttpStatus.BAD_REQUEST);
+                }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
+
             Order order = orderService.findOrderById(ticket.getOrder().getId());
+            order.getOrderAttributes().get("product_id");
             CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
             query = entityManager.createNativeQuery(Constant.GET_ORDER_STATE_LINKED_WITH_TICKET);
             if (ticketState != null) {
@@ -278,6 +287,7 @@ public class TicketStateService {
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
             entityManager.merge(ticket);
+
             updateSpTicketAvailibility(ticket, ticketState, old, newId);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
 
@@ -344,5 +354,11 @@ public class TicketStateService {
         } catch (Exception exception) {
             throw new Exception(exception.getMessage());
         }
+    }
+
+    public Product findProductFromItemAttribute(OrderItem orderItem) {
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        Product product = catalogService.findProductById(productId);
+        return product;
     }
 }
