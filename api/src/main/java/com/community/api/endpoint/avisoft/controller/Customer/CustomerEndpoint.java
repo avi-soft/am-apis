@@ -1472,11 +1472,10 @@ public class CustomerEndpoint {
                     }
                     if(documentTypeObj.getDocument_type_id().equals(13))
                     {
-                        /*if(otherDocument==null)
->>>>>>> 522985553495a3b62060dbb721fb9083c169deef
+                        if(otherDocument==null)
                         {
                             throw new IllegalArgumentException("other document is required to delete a other document");
-                        }*/
+                        }
                     }
                     boolean isQualificationDocumentToDelete=false;
                     boolean isOtherDocumentToDelete=false;
@@ -1491,7 +1490,7 @@ public class CustomerEndpoint {
                             archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
                             archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
                         }
-                        if(documentTypeObj.getDocument_type_id().equals(13) && qualificationDetailId != null)
+                        if(documentTypeObj.getDocument_type_id().equals(13) && otherDocument != null)
                         {
                             isOtherDocumentToDelete=true;
                             archiveIdQuery += " AND otherdocument = :otherDocument";
@@ -1563,8 +1562,8 @@ public class CustomerEndpoint {
                         return ResponseService.generateSuccessResponse("Document deleted successfully", deleteLogs, HttpStatus.OK);
                     } catch (NoResultException noResultException) {
                         return ResponseService.generateErrorResponse("No record found", HttpStatus.NOT_FOUND);
-                    } catch (PersistenceException persistenceException) {
-                        return ResponseService.generateErrorResponse("No operation to perform", HttpStatus.NOT_FOUND);
+                    } catch (Exception e) {
+                        return ResponseService.generateErrorResponse("Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 }
             }
