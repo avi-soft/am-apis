@@ -75,7 +75,8 @@ BEGIN
         (3, 'ON-HOLD', 'It is on hold'),
         (4, 'IN-REVIEW', 'It is rejected'),
         (5, 'CLOSE', 'Closed successfully'),
-        (6, 'SUPPORT', 'Support Required'); -- It should be in middle not at last(now doing it at the moment might break already created entries).
+        (6, 'RETURNED', 'It got Rejected'),
+        (7, 'SUPPORT', 'Support Required');  -- It should be in middle not at last(now doing it at the moment might break already created entries).
 END IF;
 IF (SELECT COUNT(*) FROM custom_ticket_status) = 0 THEN
     INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
@@ -116,43 +117,79 @@ IF (SELECT COUNT(*) FROM order_state_ref) = 0 THEN
 END IF;
 
 IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
-    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_state_id, ticket_status_id)
+    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
     VALUES
-        (1, 1, 0, 0),
-        (2, 3, 1, 0),
-        (3, 4, 2, 0),
-        (4, 6, 2, 2),
-        (5, 6, 2, 5),
-        (6, 6, 3, 3),
-        (7, 6, 3, 4),
-        (8, 6, 2, 6),
-        (9, 7, 5, 8),
-        (10, 7, 5, 9),
-        (11, 6, 4, 10),
-        (12, 6, 4, 11),
-        (13, 3, 6, 12),
-        (14, 3, 6, 13),
-        (15, 3, 3, 13);
+--        PRIMARY TICKET STATUS FOR CORRESPONDING STATES.
+        (1, 1, 1, 0, 0), -- TODO - NOT Sure about its usage @Raman
+        (2, 3, 1, 1, 0),
+        (3, 4, 1, 2, 0),
+        (4, 6, 1, 2, 2),
+        (5, 6, 1, 2, 5),
+        (6, 6, 1, 3, 3),
+        (7, 6, 1, 3, 4),
+        (8, 6, 1, 2, 6),
+        (9, 7, 1, 5, 8),
+        (10, 7, 1, 5, 9),
+        (11, 6, 1, 4, 10),
+        (12, 6, 1, 4, 11),
+        (13, 3, 1, 6, 12),
+        (14, 3, 1, 6, 13),
+        (15, 3, 1, 3, 13),
+
+--        REVIEW TICKET STATUS FOR CORRESPONDING STATES.
+        (17, 3, 2, 1, 0),
+        (18, 3, 2, 1, )
+        (18, 4, 2, 2, 0),
+        (19, 6, 2, 2, 2),
+        (20, 6, 2, 2, 5),
+        (21, 6, 2, 3, 3),
+        (22, 6, 2, 3, 4),
+        (23, 6, 2, 2, 6),
+        (24, 7, 2, 5, 8),
+        (25, 7, 2, 5, 9),
+        (26, 6, 2, 4, 10),
+        (27, 6, 2, 4, 11),
+        (28, 3, 2, 6, 12);
+
+
 END IF;
 
 IF (SELECT COUNT(*) FROM ticket_state_linkage) = 0 THEN
-    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_state_id_from, ticket_state_id_to, role_id)
+    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
     VALUES
 --        PRIMARY TICKET
 --        (SP)
-        (1, 1, 2, 4),
-        (2, 1, 6, 4),
-        (3, 2, 3, 4),
-        (4, 2, 4, 4),
-        (5, 2, 5, 4),
-        (6, 2, 7, 4),
-        (7, 3, 2, 4),
+        (1, 1, 1, 2, 4),
+        (2, 1, 1, 6, 4),
+        (3, 1, 2, 3, 4),
+        (4, 1, 2, 4, 4),
+        (5, 1, 2, 5, 4),
+        (6, 1, 2, 7, 4),
+        (7, 1, 3, 2, 4),
 --        (ADMIN)
-        (8, 3, 5, 2),
-        (9, 7, 5, 2),
-        (10, 7, 2, 2),
-        (11, 6, 1, 2);
+        (8, 1, 3, 5, 2),
+        (9, 1, 7, 5, 2),
+        (10, 1, 7, 2, 2),
+        (11, 1, 6, 1, 2);
 
+--        REVIEW TICKET
+--        (SP)
+        (12, 2, 1, 2, 4),
+        (13, 2, 1, 6, 4),
+        (14, 2, 2, 3, 4),
+        (15, 2, 2, 5, 4),
+        (16, 2, 2, 7, 4),
+        (17, 2, 3, 2, 4),
+--        (ADMIN)
+       (18, 2, 6, 1, 2),
+       (19, 2, 7, 2, 2),
+       (20, 2, 7, 5, 2),
+       (21, 2, 3, 5, 2),
+
+--        MISCELLANEOUS TICKET
+--        (SP)
+
+--        (ADMIN)
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN

@@ -274,10 +274,24 @@
 --END $$;
 
 -- RAMAN 06-05-2025
+--DO $$
+--BEGIN
+--    IF NOT EXISTS (SELECT 1 FROM order_ticket_linkage WHERE linkage_id = 15) THEN
+--            INSERT INTO order_ticket_linkage VALUES (15, NULL, 3, 13);
+--        END IF;
+--
+--    IF NOT EXISTS (SELECT 1 FROM custom_ticket_state WHERE ticket_state_id = 7) THEN
+--        INSERT INTO custom_ticket_state (ticket_state_id, ticket_state, ticket_state_description)
+--        VALUES (7, 'SUPPORT', 'Support Required');
+--    END IF;
+--
+--END $$;
+
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM order_ticket_linkage WHERE linkage_id = 15) THEN
-            INSERT INTO order_ticket_linkage VALUES (15, NULL, 3, 13);
-        END IF;
+    IF NOT EXISTS (SELECT 1 FROM custom_ticket_state WHERE ticket_state_id = 7) THEN
+        INSERT INTO custom_ticket_state (ticket_state_id, ticket_state, ticket_state_description)
+        VALUES (7, 'SUPPORT', 'Support Required');
+    END IF;
 END $$;
 

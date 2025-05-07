@@ -90,9 +90,10 @@ public class TicketStateService {
         }
     }
 
+//    TODO- add exception handling @Raman
     @Transactional
     public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) {
-        if (oldSp != newSp) {
+        if (!oldSp.equals(newSp) && newSp != null) {
             ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
             if (ticket.getTicketState().getTicketState().equals("TO-DO")) {
                 exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
@@ -291,14 +292,18 @@ public class TicketStateService {
             updateSpTicketAvailibility(ticket, ticketState, old, newId);
             return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
 
-        } catch (PersistenceException e) {
-            return ResponseService.generateErrorResponse("Cannot find valid result : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (PersistenceException persistenceException) {
+            exceptionHandlingService.handleException(persistenceException);
+            return ResponseService.generateErrorResponse("Cannot find valid result : " + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (NotFoundException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
             return ResponseService.generateErrorResponse(notFoundException.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Error updating ticket :" + e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("Error updating ticket :" + exception.getMessage(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -348,7 +353,7 @@ public class TicketStateService {
                 // Admin can transition to any state except from close
                 return !customServiceProviderTicket.getTicketState().getTicketState().equals("CLOSE");
             }
-            return false; // Default: No transition allowed
+            return true; // Default: No transition allowed
         } catch (NotFoundException nfexception) {
             throw new Exception(nfexception.getMessage());
         } catch (Exception exception) {

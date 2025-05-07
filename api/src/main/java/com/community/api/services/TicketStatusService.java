@@ -68,6 +68,8 @@ public class TicketStatusService {
             Long ticketStateId = ticketState.getTicketStateId();
             Long ticketStatusId = ticketStatus.getTicketStatusId();
 
+            log.info(String.valueOf(ticketStateId));
+            log.info(String.valueOf(ticketStatusId));
             Query query = entityManager.createQuery(Constant.GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS, OrderTicketLinkage.class);
             query.setParameter("ticketStateId", ticketStateId);
             query.setParameter("ticketStatusId", ticketStatusId);

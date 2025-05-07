@@ -22,6 +22,9 @@ public class TicketStateLinkage {
     @Column(name = "ticket_state_linkage_id")
     private Long ticketStateLinkageId;
 
+    @Column(name = "ticket_type_id")
+    private Long ticketTypeId;
+
     @Column(name = "ticket_state_id_from")
     private Long ticketStateIdFrom;
 

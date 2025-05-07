@@ -9,6 +9,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
+import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,9 @@ public class TicketStateController {
 
     @Autowired
     private TicketStatusService ticketStatusService;
+
+    @Autowired
+    private TicketTypeService ticketTypeService;
 
     @Autowired
     private EntityManager entityManager;
@@ -96,7 +100,8 @@ public class TicketStateController {
     }
 
     @GetMapping("/get-all-states")
-    public ResponseEntity<?> getAllStatesForAState(@RequestParam("ticket_state_id_from") Long ticketStateIdFrom,
+    public ResponseEntity<?> getAllStatesForAState(@RequestParam("ticket_type_id") Long ticketTypeId,
+                                                   @RequestParam("ticket_state_id_from") Long ticketStateIdFrom,
                                                    @RequestHeader(name = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
@@ -117,9 +122,13 @@ public class TicketStateController {
                 return ResponseService.generateErrorResponse("Only SA, A, SP can use this API", HttpStatus.NOT_FOUND);
             }
 
+            ticketTypeService.getTicketTypeByTicketTypeId(ticketTypeId); // checks whether the id is valid or not.
+            ticketStateService.getTicketStateByTicketId(ticketStateIdFrom); // checks whether the id is valid or not.
+
             Query query = entityManager.createNativeQuery(Constant.GET_TICKET_STATE_LINKED_WITH_TICKET_STATE);
             query.setParameter("ticketStateIdFrom", ticketStateIdFrom);
             query.setParameter("roleIds", roleIds);
+            query.setParameter("ticketTypeId", ticketTypeId);
 
             List<BigInteger> resultList = query.getResultList();
 
