@@ -7,8 +7,6 @@ import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.dto.PostProjectionDTO;
 import com.community.api.dto.QualificationEligibilityDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
@@ -21,12 +19,10 @@ import com.community.api.dto.DivisionCategoryDistributionDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
-import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,7 +31,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
@@ -965,10 +960,10 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }
 */
-            if(addProductDto.getIsReviewRequired()==null)
+            /*if(addProductDto.getIsReviewRequired()==null)
             {
                 addProductDto.setIsReviewRequired(true);
-            }
+            }*/
 
             if(addProductDto.getIsMultiplePostSameFee()==null)
             {
@@ -1129,10 +1124,10 @@ public class ProductService {
                     }
                 }
             }
-            if(addProductDto.getIsReviewRequired()==null)
+           /* if(addProductDto.getIsReviewRequired()==null)
             {
                 addProductDto.setIsReviewRequired(true);
-            }
+            }*/
            /* if (addProductDto.getReservedCategory() == null || addProductDto.getReservedCategory().isEmpty()) {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }*/
@@ -2474,7 +2469,7 @@ public class ProductService {
                     throw new IllegalArgumentException("Not have privilege to perform action.");
                 } else if (role.equals(Constant.ADMIN) || role.equals(Constant.SUPER_ADMIN)) {
                     if (customProductState.getProductState().equals("REJECTED")) {
-                        if(addProductDto.getRejectionStatus() == null) {
+                        if (addProductDto.getRejectionStatus() == null) {
                             throw new IllegalArgumentException("REJECTION STATE CANNOT BE NULL IF PRODUCT IS REJECTED");
                         } else {
                             CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(addProductDto.getRejectionStatus());
@@ -2483,7 +2478,24 @@ public class ProductService {
                             }
                             customProduct.setRejectionStatus(productRejectionStatus);
                         }
-                    } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && customProductState.getProductState().equals(PRODUCT_STATE_MODIFIED)) {
+                    }
+                    else if (customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED)) {
+                        if (addProductDto.getIsReviewRequired() == null) {
+                            throw new IllegalArgumentException("Is review Required cannot be null");
+                        }
+                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+                        customProduct.setProductState(customProductState);
+                    }
+                    else if (customProductState.getProductState().equals(PRODUCT_STATE_RESUBMIT))
+                    {
+                        if(addProductDto.getResubmitComment()==null)
+                        {
+                            throw new IllegalArgumentException("Comment reason why the product is needed to be resubmit");
+                        }
+                        customProduct.setResubmitComment(addProductDto.getResubmitComment());
+                        customProduct.setProductState(customProductState);
+                    }
+                    else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && customProductState.getProductState().equals(PRODUCT_STATE_MODIFIED)) {
                         throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO MODIFIED STATE");
                     } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_DRAFT) && customProductState.getProductState().equals(PRODUCT_STATE_DRAFT)) {
                         throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO DRAFT STATE");
