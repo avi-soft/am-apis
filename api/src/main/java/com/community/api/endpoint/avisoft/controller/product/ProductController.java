@@ -487,6 +487,11 @@ public class ProductController extends CatalogEndpoint {
                             post.getAgeRequirement().clear();
                             entityManager.merge(post);
                         }
+                        if(post.getReligion()!=null)
+                        {
+                            post.getReligion().clear();
+                            entityManager.merge(post);
+                        }
 
                         // Remove the post from custom product
                         post.setProduct(null);
@@ -1103,6 +1108,8 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
             postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+            postProjectionDTO.setReligion(post.getReligion());
+            postProjectionDTO.setIncome(post.getIncome());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
             for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
             {
