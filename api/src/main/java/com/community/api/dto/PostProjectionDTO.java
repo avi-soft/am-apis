@@ -50,4 +50,8 @@ public class PostProjectionDTO {
     private String otherDistributionAdditionalComments;
     @JsonProperty("total_seats_visible")
     private Boolean totalSeatsVisible;
+    @JsonProperty("income_threshold")
+    private Double income;
+    @JsonProperty("religion_eligibility")
+    private List<String>religion;
 }

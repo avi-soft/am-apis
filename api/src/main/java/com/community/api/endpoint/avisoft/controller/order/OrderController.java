@@ -13,7 +13,6 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
 import com.community.api.entity.CustomServiceProviderTicket;
-import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.OrderStateRef;
@@ -38,7 +37,6 @@ import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.glassfish.jaxb.core.v2.TODO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -53,14 +51,9 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
-import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -518,9 +511,12 @@ public class OrderController {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 assignedUserId = serviceProvider.getService_provider_id();
                 assignedRoleId = role.getRole_id();
-                if (serviceProvider == null)
+                if (serviceProvider == null) {
                     return ResponseService.generateErrorResponse("Service Provider with the provided id not found", HttpStatus.NOT_FOUND);
-
+                }
+                if (serviceProvider.getApproved() == false || serviceProvider.getApproved() == null) {
+                    return ResponseService.generateErrorResponse("Service Provider with the provided id is not Approved", HttpStatus.NOT_FOUND);
+                }
             } else if (role.getRole_name().equals(Constant.roleAdmin) || role.getRole_name().equals(Constant.roleSuperAdmin)) {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 assignedUserId = serviceProvider.getService_provider_id();
