@@ -524,6 +524,18 @@ public class ProductController extends CatalogEndpoint {
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
+            if(addProductDto.getIsResubmitProduct()!=null)
+            {
+                if(addProductDto.getIsResubmitProduct().equals(true))
+                {
+                    CustomProductState customProductState = entityManager.find(CustomProductState.class,9L);
+                    if(customProductState==null)
+                    {
+                        throw new IllegalArgumentException("Custom Product with this state does not exit");
+                    }
+                    customProduct.setProductState(customProductState);
+                }
+            }
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
