@@ -25,6 +25,15 @@ public class CategoryDistribution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "male_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long maleVacancy;
+
+    @Column(name = "female_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long femaleVacancy;
+
+    @Column(name = "total_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long totalVacancy;
+
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "state_distribution_id")

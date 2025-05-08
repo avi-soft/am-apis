@@ -32,5 +32,14 @@ public class DistrictCategoryDistribution {
 
     @Column(name = "additional_comment")
     private String additionalComment;
+
+    @Column(name = "male_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long maleVacancy;
+
+    @Column(name = "female_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long femaleVacancy;
+
+    @Column(name = "total_vacancy", columnDefinition = "BIGINT DEFAULT 0")
+    private Long totalVacancy;
 }
 
