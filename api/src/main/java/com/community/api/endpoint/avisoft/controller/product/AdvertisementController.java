@@ -130,7 +130,19 @@ public class AdvertisementController {
     public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId) {
         try {
             Advertisement advertisement=advertisementService.updateAdvertisement(addAdvertisementDto,advertisementId);
+            if (advertisement.getArchived() != 'Y') {
+                List<CustomProductWrapper> products = new ArrayList<>();
 
+                List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                for (CustomProduct customProduct : customProducts) {
+
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
+                        products.add(wrapper);
+                    }
+                }
+            }
             AdvertisementWrapper wrapper = new AdvertisementWrapper();
             wrapper.wrapDetails(advertisement, null);
 
@@ -213,6 +225,7 @@ public class AdvertisementController {
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "category", required = false) List<Long> categories,
+            @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
@@ -225,7 +238,7 @@ public class AdvertisementController {
             {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories,subCategories);
 
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
@@ -303,7 +316,7 @@ public class AdvertisementController {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
