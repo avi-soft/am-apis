@@ -1513,8 +1513,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     throw new PersistenceException("No results found for your input");
             }
 
-            System.out.println(userName);
-
             if (userName != null && !userName.trim().isEmpty()) {
                 ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(
                                 "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) = LOWER(:user_name)", ServiceProviderEntity.class)
@@ -1593,8 +1591,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             // Execute query
             List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
-            System.out.println(queryString);
-            System.out.println("size of list is"+listOfSp.size());
 
             // Ticket rejection filter
             if (customServiceProviderTicket != null) {

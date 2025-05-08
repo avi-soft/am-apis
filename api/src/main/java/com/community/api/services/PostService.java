@@ -241,6 +241,8 @@ public class PostService {
         post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
         post.setReserveCatAgeAdditionalComments(postDto.getReserveCatAgeAdditionalComments());
         post.setTotalSeatsVisible(postDto.getTotalSeatsVisible());
+        post.setIncome(postDto.getIncome());
+        post.setReligion(postDto.getReligion());
         //  persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
@@ -370,7 +372,13 @@ public class PostService {
                 throw new IllegalArgumentException("State not found with id: " + stateDto.getStateCodeId());
             }
             stateDistribution.setStateCode(stateCode);
-
+            if(stateDto.getMaleVacancy()!=null&&stateDto.getFemaleVacancy()!=null&&stateDto.getTotalVacanciesInState()!=null) {
+                if(stateDto.getMaleVacancy()+stateDto.getFemaleVacancy()!=stateDto.getTotalVacanciesInState())
+                    throw new IllegalArgumentException("Total male and female vacancy in state is not equal to total vacancy");
+                stateDistribution.setMaleVacancy(stateDto.getMaleVacancy());
+                stateDistribution.setFemaleVacancy(stateDto.getFemaleVacancy());
+                stateDistribution.setTotalVacanciesInState(stateDto.getTotalVacanciesInState());
+            }
             stateDistribution.setIsDistrictDistribution(stateDto.getIsDistrictDistribution());
 
             if (Boolean.TRUE.equals(stateDto.getIsDistrictDistribution())) {
@@ -386,7 +394,6 @@ public class PostService {
                 saveStateLevelDistribution(stateDto, stateDistribution);
                 entityManager.persist(stateDistribution);
             }
-
             stateDistributions.add(stateDistribution);
         }
 
@@ -541,6 +548,9 @@ public class PostService {
                 }
                 catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
+                catDist.setMaleVacancy(catDto.getMaleVacancy());
+                catDist.setFemaleVacancy(catDto.getFemaleVacancy());
+                catDist.setTotalVacancy(catDto.getTotalVacancy());
                 totalVacancies += catDto.getCategoryVacancies();
                 catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
@@ -582,7 +592,9 @@ public class PostService {
             categoryDist.setCategory(category);
             categoryDist.setAdditionalComment(dto.getAdditionalComment());
             categoryDist.setVacancyCount(dto.getVacancyCount());
-
+            categoryDist.setMaleVacancy(dto.getMaleVacancy());
+            categoryDist.setFemaleVacancy(dto.getFemaleVacancy());
+            categoryDist.setTotalVacancy(dto.getTotalVacancy());
             // Persist and add to districtDistribution
             entityManager.persist(categoryDist);
             districtDist.getCategoryDistributions().add(categoryDist);
@@ -611,6 +623,23 @@ public class PostService {
                 Integer totalZoneVacancies = calculateDivisionBasedZoneVacancies(zoneDto);
                 zoneDistribution.setTotalVacanciesInZone(totalZoneVacancies);
                 zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());
+                if(zoneDto.getMaleVacancy()!=null&&zoneDto.getFemaleVacancy()!=null&&zoneDto.getTotalVacanciesInZone()!=null) {
+                    if (zoneDto.getMaleVacancy() + zoneDto.getFemaleVacancy() != zoneDto.getTotalVacanciesInZone())
+                        throw new IllegalArgumentException("Male vacancies and female vacancies sum is not equal to total for zone");
+                }
+                if(zoneDto.getMaleVacancy()!=null||zoneDto.getFemaleVacancy()!=null) {
+                    zoneDistribution.setMaleVacancy(zoneDto.getMaleVacancy());
+                    zoneDistribution.setFemaleVacancy(zoneDto.getFemaleVacancy());
+                    if ((zoneDto.getMaleVacancy() != null || zoneDto.getFemaleVacancy() != null) && zoneDto.getTotalVacanciesInZone() == null)
+                        throw new IllegalArgumentException("Need to provide total vacancy in zone");
+                    if (zoneDto.getMaleVacancy() == null)
+                        zoneDto.setMaleVacancy(0);
+                    if (zoneDto.getFemaleVacancy() == null)
+                        zoneDto.setFemaleVacancy(0);
+                    zoneDistribution.setTotalVacanciesInZone(zoneDto.getTotalVacanciesInZone());
+                    if (zoneDto.getMaleVacancy() + zoneDto.getFemaleVacancy() != zoneDto.getTotalVacanciesInZone())
+                        throw new IllegalArgumentException("Total vacancy in zone is not equal to male and female vacancy");
+                }
                 entityManager.persist(zoneDistribution);
                 saveDivisionDistributions(zoneDto, zoneDistribution);
             } else {
@@ -663,6 +692,9 @@ public class PostService {
                 }
                 catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
+                catDist.setMaleVacancy(catDto.getMaleVacancy());
+                catDist.setFemaleVacancy(catDto.getFemaleVacancy());
+                catDist.setTotalVacancy(catDto.getTotalVacancy());
                 totalVacancies += catDto.getCategoryVacancies();
                 catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
@@ -712,10 +744,16 @@ public class PostService {
                     throw new IllegalArgumentException("Division not found with id: " + divisionDto.getDivisionId().intValue());
                 }
                 divisionDist.setDivisions(division);
+                if(divisionDist.getMaleVacancy()!=null&&divisionDist.getFemaleVacancy()!=null&&divisionDist.getTotalVacancy()!=null) {
+                    if (divisionDist.getMaleVacancy() + divisionDist.getFemaleVacancy() != divisionDist.getTotalVacancy())
+                        throw new IllegalArgumentException("Male vacancies and female vacancies sum not equal to total for division distribution");
 
+                    divisionDist.setMaleVacancy(divisionDto.getMaleVacancy());
+                    divisionDist.setFemaleVacancy(divisionDto.getFemaleVacancy());
+                    divisionDist.setTotalVacancy(divisionDist.getTotalVacancy());
+                }
                 divisionDist.setIsGenderWise(divisionDto.getIsGenderWise());
                 divisionDist.setAdditionalComment(divisionDto.getAdditionalComment());
-
                 if (Boolean.TRUE.equals(divisionDto.getIsGenderWise())) {
                     divisionDist.setMaleVacancy(divisionDto.getMaleVacancy());
                     divisionDist.setFemaleVacancy(divisionDto.getFemaleVacancy());
@@ -743,7 +781,6 @@ public class PostService {
 
                 divisionDistributions.add(divisionDist);
             }
-
             zoneDistribution.setDivisionDistributions(divisionDistributions);
             zoneDistribution.setAdditionalComments(zoneDistribution.getAdditionalComments());
         } catch (IllegalArgumentException e) {
@@ -769,9 +806,14 @@ public class PostService {
             if (category == null) {
                 throw new IllegalArgumentException("Category not found with id: " + dto.getCategoryId());
             }
+            if(dto.getMaleVacancy()+dto.getFemaleVacancy()!=dto.getTotalVacancy())
+                throw new IllegalArgumentException("Vacancy for men and woman should be equal to total for cateogry id "+dto.getCategoryId());
             categoryDist.setCategory(category);
             categoryDist.setVacancyCount(dto.getVacancyCount());
             categoryDist.setAdditionalComment(dto.getAdditionalComment());
+            categoryDist.setMaleVacancy(dto.getMaleVacancy());
+            categoryDist.setFemaleVacancy(dto.getFemaleVacancy());
+            categoryDist.setTotalVacancy(dto.getTotalVacancy());
             entityManager.persist(categoryDist);
             categoryDistributions.add(categoryDist);
         }

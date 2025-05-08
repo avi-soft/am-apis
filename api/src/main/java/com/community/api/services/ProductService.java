@@ -5,9 +5,8 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.DivisionProjectionDTO;
+import com.community.api.dto.PostProjectionDTO;
 import com.community.api.dto.QualificationEligibilityDto;
-import com.community.api.dto.ReserveCategoryAgeDto;
-import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
@@ -17,14 +16,13 @@ import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
 import com.community.api.dto.DivisionDistributionDto;
 import com.community.api.dto.DivisionCategoryDistributionDto;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
-import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -377,7 +375,7 @@ public class ProductService {
             }
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
-                query.setParameter("isMultiplePostSameFee",addProductDto.getIsReviewRequired());
+                query.setParameter("isMultiplePostSameFee",addProductDto.getIsMultiplePostSameFee());
             }
 
             // Execute the update
@@ -449,14 +447,15 @@ public class ProductService {
     public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
                                               List<Long> reserveCategories, String title, Double fee,
                                               Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById) throws Exception {
+                                              Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById, List<Long> productIds) throws Exception {
         try {
             StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
-            StringBuilder result = new StringBuilder("SELECT  DISTINCT p FROM CustomProduct p ");
+            StringBuilder result = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
-                    if(!all)
-                        jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
-                    .append("WHERE 1=1 ");  // Base condition to allow easy AND appending
+            if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
+                jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
+            }
+            jpql.append("WHERE 1=1 ");  // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
             {
@@ -482,14 +481,21 @@ public class ProductService {
 
             // Conditionally build the query
             if (states != null && !states.isEmpty()) {
+                boolean containsStateLive = false;
                 for (Long id : states) {
                     CustomProductState productState = productStateService.getProductStateById(id);
                     if (productState == null) {
                         throw new IllegalArgumentException("NO PRODUCT STATE FOUND WITH THIS ID: " + id);
                     }
                     customProductStates.add(productState);
+                    if (id == 5L) {
+                        containsStateLive = true;
+                    }
                 }
                 jpql.append("AND p.productState IN :states ");
+                if (containsStateLive) {
+                    jpql.append("AND (p.productState.id != 5 OR (p.productState.id = 5 AND FUNCTION('DATE', p.goLiveDate) <= FUNCTION('DATE', CURRENT_TIMESTAMP))) ");
+                }
             }
 
             if (statuses != null && !statuses.isEmpty()) {
@@ -504,6 +510,19 @@ public class ProductService {
                 // Explicitly filter for non-null rejection status that matches the specified values
                 jpql.append("AND p.rejectionStatus IS NOT NULL AND p.rejectionStatus IN :statuses ");
             }
+            List<Long> customProductIds = new ArrayList<>();
+            if(productIds!=null && !productIds.isEmpty())
+            {
+                for (Long id : productIds) {
+                    CustomProduct customProduct = entityManager.find(CustomProduct.class, id);
+                    if (customProduct == null) {
+                        throw new IllegalArgumentException("NO PRODUCT FOUND WITH PRODUCT ID: " + id);
+                    }
+                    customProductIds.add(id);
+                }
+                jpql.append("AND p.id IN :productIds ");
+            }
+
             if (createdById != null) {
                 jpql.append(" AND p.userId = :creatorUserId ");
             }
@@ -535,7 +554,7 @@ public class ProductService {
                 for (Long id : reserveCategories) {
                     customReserveCategoryList.add(reserveCategoryService.getReserveCategoryById(id));
                 }
-                jpql.append("AND r.customReserveCategory IN :reserveCategories ");
+                jpql.append("AND r IS NOT NULL AND r.customReserveCategory IN :reserveCategories ");
             }
 
             if (title != null && !title.isEmpty()) {
@@ -576,7 +595,7 @@ public class ProductService {
                 jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
             } else if(Boolean.FALSE.equals(isExpired)) {
                 // Only non-expired products
-                jpql.append("AND (s.activeEndDate IS NULL OR s.activeEndDate > CURRENT_TIMESTAMP) ");
+                jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
             TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
@@ -601,6 +620,11 @@ public class ProductService {
             if (!customReserveCategoryList.isEmpty()) {
                 query.setParameter("reserveCategories", customReserveCategoryList);
                 queryToCount.setParameter("reserveCategories", customReserveCategoryList);
+            }
+            if(!customProductIds.isEmpty())
+            {
+                query.setParameter("productIds", customProductIds);
+                queryToCount.setParameter("productIds", customProductIds);
             }
             if (title != null && !title.isEmpty()) {
                 String[] words = title.split("\\s+");
@@ -644,90 +668,102 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts) {
-        StringBuilder jpql = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p JOIN p.creatoRole r ");
-
-        Map<String, Object> queryParams = new HashMap<>();
-
-        // Check if the role exists
-        if (roleId != null) {
-            Role role = entityManager.find(Role.class, roleId);
-            if (role == null) {
-                throw new IllegalArgumentException("No role exists with id " + roleId);
-            }
-
-            if (!role.getRole_name().equalsIgnoreCase(ADMIN) && !role.getRole_name().equalsIgnoreCase(SUPER_ADMIN)) {
-                jpql.append("WHERE r.role_id = :roleId ");
-                queryParams.put("roleId", roleId);
-
-                if (userId != null) {
-                    jpql.append("AND p.userId = :userId ");
-                    queryParams.put("userId", userId);
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds) {
+        try {
+            Role role = null;
+            if (roleId != null) {
+                role = entityManager.find(Role.class, roleId);
+                if (role == null) {
+                    throw new IllegalArgumentException("No role exists with id " + roleId);
                 }
+            }
+            Long createdById = null;
+            if (role != null && (ADMIN.equals(role.getRole_name()) || SUPER_ADMIN.equals(role.getRole_name()))) {
+                createdById = null;
             } else {
-                // For Admin or Superadmin, they can see all products
-                jpql.append("WHERE 1=1 ");
+                createdById = userId;
             }
-        } else {
-            jpql.append("WHERE 1=1 ");
-        }
 
-        // Add filter for non-archived products - using the correct path through archiveStatus
-        jpql.append("AND p.archiveStatus.archived != 'Y' ");
+            if (states == null) {
+                states = new ArrayList<>();
+            }
 
-        if (showDraftProducts) {
-            jpql.append("AND p.productState.productState = :draftState ");
-            queryParams.put("draftState", "DRAFT");
-        }
-
-        // Get the count query
-        String countJpql = jpql.toString().replace("SELECT DISTINCT p", "SELECT COUNT(DISTINCT p)");
-
-        // Execute count query for pagination
-        TypedQuery<Long> countQuery = entityManager.createQuery(countJpql, Long.class);
-        queryParams.forEach(countQuery::setParameter);
-        long totalProducts = countQuery.getSingleResult();
-
-        int totalPages = (int) Math.ceil((double) totalProducts / limit);
-
-        if (page >= totalPages && page != 0 && totalProducts > 0) {
-            throw new IllegalArgumentException("No more products available");
-        }
-
-        // Execute the query with pagination
-        TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-        queryParams.forEach(query::setParameter);
-
-        int startPosition = page * limit;
-        query.setFirstResult(startPosition);
-        query.setMaxResults(limit);
-        List<CustomProduct> products = query.getResultList();
-
-        if (products.isEmpty() && page == 0) {
             if (showDraftProducts) {
-                return ResponseService.generateSuccessResponse("Draft Product list is empty", products, HttpStatus.OK);
+                CustomProductState draftState = productStateService.getProductStateByName("DRAFT");
+                if (draftState == null) {
+                    throw new IllegalStateException("Draft product state not found in the system");
+                }
+                states = Collections.singletonList(draftState.getProductStateId());
+            } else if (states.isEmpty()) {
+                // Include all states
+                List<CustomProductState> allStates = productStateService.getAllProductState();
+                for (CustomProductState state : allStates) {
+                    if(!state.getProductState().equals("DRAFT"))
+                    {
+                        states.add(state.getProductStateId());
+                    }
+                }
             }
-            return ResponseService.generateSuccessResponse("PRODUCT LIST IS EMPTY", products, HttpStatus.OK);
+            Boolean isExpired = null;
+            Map<String, Object> allProductsResponse = filterProducts(
+                    states, statuses, categories, reserveCategories,
+                    title, fee, post, dateFrom, dateTo,
+                    isExpired, 0, Integer.MAX_VALUE, false, createdById, productIds
+            );
+
+            @SuppressWarnings("unchecked")
+            List<CustomProduct> allProducts = (List<CustomProduct>) allProductsResponse.get("products");
+            List<CustomProduct> nonArchivedProducts = allProducts.stream()
+                    .filter(p -> p != null && ((Status) p).getArchived() != 'Y')
+                    .collect(Collectors.toList());
+            int totalItems = nonArchivedProducts.size();
+            int totalPages = totalItems > 0 ? (int) Math.ceil((double) totalItems / limit) : 0;
+            if (page >= totalPages && page > 0 && totalItems > 0) {
+                throw new IllegalArgumentException("No more products available");
+            }
+            int startIndex = page * limit;
+            int endIndex = Math.min(startIndex + limit, totalItems);
+            List<CustomProduct> pagedProducts;
+            if (startIndex < totalItems) {
+                pagedProducts = nonArchivedProducts.subList(startIndex, endIndex);
+            } else {
+                pagedProducts = new ArrayList<>();
+            }
+            if (pagedProducts.isEmpty() && page == 0) {
+                String message = showDraftProducts ?
+                        "No draft products found with the given criteria" :
+                        "No products found with the given criteria";
+                return ResponseService.generateSuccessResponse(message, new ArrayList<>(), HttpStatus.OK);
+            }
+
+            List<CustomProductWrapper> responses = new ArrayList<>();
+            for (CustomProduct customProduct : pagedProducts) {
+                CustomProductWrapper wrapper = new CustomProductWrapper();
+                List<Post> postList = customProduct.getPosts();
+                List<PostProjectionDTO> postProjectionDTOs = getPosts(customProduct.getPosts());
+                wrapper.wrapDetails(customProduct, postList, postProjectionDTOs, productReserveCategoryFeePostRefService);
+                responses.add(wrapper);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("products", responses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", page);
+
+            String successMessage = showDraftProducts ?
+                    "Draft products retrieved successfully" :
+                    "PRODUCTS RETRIEVED SUCCESSFULLY";
+
+            return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
-
-        List<CustomProductWrapper> responses = new ArrayList<>();
-        for (CustomProduct customProduct : products) {
-            CustomProductWrapper wrapper = new CustomProductWrapper();
-            wrapper.wrapDetails(customProduct);
-            responses.add(wrapper);
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("products", responses);
-        response.put("currentPage", page);
-        response.put("totalItems", totalProducts);
-        response.put("totalPages", totalPages);
-
-        if (showDraftProducts) {
-            return ResponseService.generateSuccessResponse("Draft Products are retrieved successfully", response, HttpStatus.OK);
-        }
-
-        return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
 
     public boolean addProductAccessAuthorisation(String authHeader) throws Exception {
@@ -751,6 +787,11 @@ public class ProductService {
                     if (privilege.getPrivilege_name().equals(Constant.PRIVILEGE_ADD_PRODUCT)) {
                         return true;
                     }
+                }
+
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if(serviceProvider.getApproved()!=null && serviceProvider.getApproved()) {
+                    return true;
                 }
             }
             return false;
@@ -920,15 +961,16 @@ public class ProductService {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }
 */
-            if(addProductDto.getIsReviewRequired()==null)
+            /*if(addProductDto.getIsReviewRequired()==null)
             {
                 addProductDto.setIsReviewRequired(true);
-            }
+            }*/
 
             if(addProductDto.getIsMultiplePostSameFee()==null)
             {
                 throw new IllegalArgumentException("You have to select whether multiple post have same fees");
             }
+
 
             /*if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
             {
@@ -1083,13 +1125,14 @@ public class ProductService {
                     }
                 }
             }
-            if(addProductDto.getIsReviewRequired()==null)
+           /* if(addProductDto.getIsReviewRequired()==null)
             {
                 addProductDto.setIsReviewRequired(true);
-            }
+            }*/
            /* if (addProductDto.getReservedCategory() == null || addProductDto.getReservedCategory().isEmpty()) {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
             }*/
+
 
            /* if (addProductDto.getIsMultiplePostSameFee() != null) {
                 if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
@@ -2427,7 +2470,7 @@ public class ProductService {
                     throw new IllegalArgumentException("Not have privilege to perform action.");
                 } else if (role.equals(Constant.ADMIN) || role.equals(Constant.SUPER_ADMIN)) {
                     if (customProductState.getProductState().equals("REJECTED")) {
-                        if(addProductDto.getRejectionStatus() == null) {
+                        if (addProductDto.getRejectionStatus() == null) {
                             throw new IllegalArgumentException("REJECTION STATE CANNOT BE NULL IF PRODUCT IS REJECTED");
                         } else {
                             CustomProductRejectionStatus productRejectionStatus = productRejectionStatusService.getAllRejectionStatusByRejectionStatusId(addProductDto.getRejectionStatus());
@@ -2436,7 +2479,24 @@ public class ProductService {
                             }
                             customProduct.setRejectionStatus(productRejectionStatus);
                         }
-                    } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && customProductState.getProductState().equals(PRODUCT_STATE_MODIFIED)) {
+                    }
+                    else if (customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED)) {
+                        if (addProductDto.getIsReviewRequired() == null) {
+                            throw new IllegalArgumentException("Is review Required cannot be null");
+                        }
+                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+                        customProduct.setProductState(customProductState);
+                    }
+                    else if (customProductState.getProductState().equals(PRODUCT_STATE_RESUBMIT))
+                    {
+                        if(addProductDto.getResubmitComment()==null)
+                        {
+                            throw new IllegalArgumentException("Comment reason why the product is needed to be resubmit");
+                        }
+                        customProduct.setResubmitComment(addProductDto.getResubmitComment());
+                        customProduct.setProductState(customProductState);
+                    }
+                    else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_MODIFIED) && customProductState.getProductState().equals(PRODUCT_STATE_MODIFIED)) {
                         throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO MODIFIED STATE");
                     } else if (!customProduct.getProductState().getProductState().equals(PRODUCT_STATE_DRAFT) && customProductState.getProductState().equals(PRODUCT_STATE_DRAFT)) {
                         throw new IllegalArgumentException("PRODUCT STATE CANNOT MOVE FROM ANY OTHER STATE TO DRAFT STATE");
@@ -3264,6 +3324,18 @@ public class ProductService {
         if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
         }
+        if(postDto.getIncome()!=null)
+        {
+            if (postDto.getIncome()<0)
+                throw new IllegalArgumentException("Income threshold cannot be less than 0");
+        }
+        if(postDto.getReligion()!=null) {
+            for (String religion : postDto.getReligion()) {
+                if (!religion.matches("^[a-zA-Z\\s]+$")) {
+                    throw new IllegalArgumentException("Invalid religion name: " + religion + ". Only alphabets and spaces are allowed.");
+                }
+            }
+        }
      /*   if (postDto.getPostTotalVacancies() == null || postDto.getPostTotalVacancies() < 0) {
             throw new IllegalArgumentException("Invalid Post Total Vacancies");
         }*/
@@ -3312,7 +3384,6 @@ public class ProductService {
         if (stateDistributions == null || stateDistributions.isEmpty()) {
             throw new IllegalArgumentException("State distributions are required");
         }
-
         long totalStateVacancies = 0;
         for (StateDistributionDto state : stateDistributions) {
             long stateVacancies = validateStateDistribution(state);
@@ -3324,6 +3395,8 @@ public class ProductService {
                     String.format("Total state vacancies (%d) must equal post total vacancies (%d)",
                             totalStateVacancies, postTotalVacancies));
         }
+        if(totalStateVacancies<0)
+            throw new IllegalArgumentException("Total state vacancies cannot be < 0");
     }
 
     private long validateStateDistribution(StateDistributionDto state) {
@@ -3357,6 +3430,17 @@ public class ProductService {
         if (district.getDistrictId() == null) {
             throw new IllegalArgumentException("District ID is required");
         }
+        long sum=0;
+        for(DistrictCategoryDistributionDto categoryDistributionDto:district.getCategoryDistributions())
+        {
+          sum=sum+categoryDistributionDto.getTotalVacancy();
+          if(categoryDistributionDto.getMaleVacancy()+categoryDistributionDto.getFemaleVacancy()!=categoryDistributionDto.getTotalVacancy())
+          {
+              throw new IllegalArgumentException("Sum of Male vacancy and female vacancy should be equal to total for the category id :"+categoryDistributionDto.getCategoryId());
+          }
+        }
+        if(sum!=district.getTotalVacancy())
+            throw new IllegalArgumentException("Total vacancies for distribution must be equal to sum of distribution of categories");
 
         if (Boolean.TRUE.equals(district.getIsGenderWise())) {
             return validateGenderWiseDistrict(district);
@@ -3524,7 +3608,36 @@ public class ProductService {
         if (zone.getDivisionDistributions() == null || zone.getDivisionDistributions().isEmpty()) {
             throw new IllegalArgumentException("Division distributions are required when isDivisionDistribution is true");
         }
-
+        if(!zone.getDivisionDistributions().isEmpty()) {
+            long sum=0;
+            for (DivisionDistributionDto divisionDistributionDto : zone.getDivisionDistributions()) {
+               sum=sum+divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy();
+               if(!divisionDistributionDto.getCategoryDistributions().isEmpty())
+               {
+                   int sumOfCat=0;
+                   for(DivisionCategoryDistributionDto cat:divisionDistributionDto.getCategoryDistributions())
+                   {
+                       if((cat.getMaleVacancy()!=null||cat.getFemaleVacancy()!=null)&&cat.getTotalVacancy()==null)
+                           throw new IllegalArgumentException("Need to provide total vacancy for category");
+                       if(cat.getFemaleVacancy()==null)
+                           cat.setFemaleVacancy(0L);
+                       else if(cat.getMaleVacancy()==null)
+                           cat.setMaleVacancy(0L);
+                       if(cat.getMaleVacancy()<0)
+                           throw new IllegalArgumentException("Male vacancy cannot be < 0");
+                       if(cat.getFemaleVacancy()<0)
+                           throw new IllegalArgumentException("Female vacancy cannot be < 0");
+                       if(cat.getTotalVacancy()<0)
+                           throw new IllegalArgumentException("Total vacancy cannot be < 0");
+                       sumOfCat+=cat.getMaleVacancy()+cat.getFemaleVacancy();
+                   }
+                   if(sumOfCat!=divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy())
+                       throw new IllegalArgumentException("Category male and female vacancy should be equal to total vacancy of that division");
+               }
+            }
+            if(sum!=zone.getTotalVacanciesInZone())
+                throw new IllegalArgumentException("Combined sum of division male and female vacancy distribution is not equal to total zone vacancy");
+        }
         long totalDivisionVacancies = 0;
         for (DivisionDistributionDto division : zone.getDivisionDistributions()) {
             long divisionVacancies = validateDivisionDistribution(division);
@@ -3639,6 +3752,14 @@ public class ProductService {
             if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
                 throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
             }
+            if(categoryDistribution.getMaleVacancy()<0)
+                throw new IllegalArgumentException("Male vacancies cannot be <0");
+            else if(categoryDistribution.getFemaleVacancy()<0)
+                throw new IllegalArgumentException("Female vacancies cannot be <0");
+            if(categoryDistribution.getTotalVacancy()<0)
+                throw new IllegalArgumentException("Total vacancies cannot be <0");
+            if(categoryDistribution.getTotalVacancy()!=categoryDistribution.getMaleVacancy()+categoryDistribution.getFemaleVacancy())
+                throw new IllegalArgumentException("Total vacancies is not equal to sum of male vacancies and female vacancies");
         }
     }
 
@@ -3657,6 +3778,23 @@ public class ProductService {
         }
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
             validateDistrictStateRelationship(stateDistribution);
+            long sum = 0;
+            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
+                for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
+                    if(categoryDistributionDto.getMaleVacancy()==null)
+                        throw new IllegalArgumentException("Male vacancy is not given");
+                    if(categoryDistributionDto.getFemaleVacancy()==null)
+                        throw new IllegalArgumentException("Female vacancy is not given");
+                    if(categoryDistributionDto.getTotalVacancy()==null)
+                        throw new IllegalArgumentException("Total vacancy is not given");
+                    sum = sum + categoryDistributionDto.getTotalVacancy();
+                    if (sum != categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
+                        throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
+                    }
+                }
+                if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
+                    throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
+            }
         }
     }
 
@@ -3675,6 +3813,12 @@ public class ProductService {
         }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
             validateZoneDistributionRelationship(zoneDistribution);
+            if(zoneDistribution.getFemaleVacancy()!=null&&zoneDistribution.getFemaleVacancy()<0)
+                throw new IllegalArgumentException("Female vacancy in zone cannot be < 0");
+            if(zoneDistribution.getMaleVacancy()!=null&&zoneDistribution.getMaleVacancy()<0)
+                throw new IllegalArgumentException("Male vacancy in zone cannot be < 0");
+            if(zoneDistribution.getTotalVacanciesInZone()!=null&&zoneDistribution.getTotalVacanciesInZone()<0)
+                throw new IllegalArgumentException("Total vacancy in zone cannot be < 0");
         }
     }
 
