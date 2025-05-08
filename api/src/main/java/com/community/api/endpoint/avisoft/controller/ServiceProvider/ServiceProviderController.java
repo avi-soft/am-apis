@@ -154,16 +154,17 @@ public class ServiceProviderController {
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Authorize(value = {Constant.roleAdmin,Constant.roleServiceProvider,Constant.roleAdminServiceProvider,Constant.roleSuperAdmin})
+
+    @Authorize(value = {Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/submit-profile")
-    public ResponseEntity<?>submitProfie(@PathVariable Long spId,@RequestHeader (value = "Authorization")String authHeader) throws Exception {
+    public ResponseEntity<?> submitProfie(@PathVariable Long spId, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
-        if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId, spId))
-            return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+        if (serviceProvider.getRole() != roleId && !Objects.equals(tokenUserId, spId))
+            return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
         if (serviceProvider == null)
             return ResponseService.generateErrorResponse("Need to provide service provider id", HttpStatus.BAD_REQUEST);
 
@@ -244,34 +245,34 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Infra list cannot be empty", HttpStatus.BAD_REQUEST);
             if (serviceProvider.getHas_technical_knowledge() && serviceProvider.getSkills().isEmpty())
                 return ResponseService.generateErrorResponse("Skill list cannot be empty", HttpStatus.BAD_REQUEST);
-            if(bankAccountService.getBankAccountsByCustomerId(serviceProvider.getService_provider_id(),4).isEmpty())
-                return ResponseService.generateErrorResponse("Bank account Not added",HttpStatus.BAD_REQUEST);
+            if (bankAccountService.getBankAccountsByCustomerId(serviceProvider.getService_provider_id(), 4).isEmpty())
+                return ResponseService.generateErrorResponse("Bank account Not added", HttpStatus.BAD_REQUEST);
             Map<String, Integer> docMap = new HashMap<>();
 
             docMap.put("Aadhaar_Card_Front", 1);
             docMap.put("Aadhaar_Card_Backside", 1);
             docMap.put("Signature", 1);
             docMap.put("Pan_Card", 1);
-            if(!serviceProvider.getPfpNa()) {
+            if (!serviceProvider.getPfpNa()) {
                 docMap.put("Personal_Photo", 1);
             }
-            for(ServiceProviderDocument document:serviceProvider.getDocuments())
-            {
+            for (ServiceProviderDocument document : serviceProvider.getDocuments()) {
                 System.out.println(document.getDocumentType().getDocument_type_name());
-                if(docMap.containsKey(document.getDocumentType().getDocument_type_name())) {
+                if (docMap.containsKey(document.getDocumentType().getDocument_type_name())) {
                     docMap.put(document.getDocumentType().getDocument_type_name(), 0);
                 }
             }
             for (Map.Entry<String, Integer> entry : docMap.entrySet()) {
-                if(entry.getValue()==1)
-                    return ResponseService.generateErrorResponse(entry.getKey()+" is not uploaded",HttpStatus.BAD_REQUEST);
+                if (entry.getValue() == 1)
+                    return ResponseService.generateErrorResponse(entry.getKey() + " is not uploaded", HttpStatus.BAD_REQUEST);
             }
         }
         serviceProvider.setCompleted(true);
         serviceProvider.setRejected(false);
         entityManager.merge(serviceProvider);
-        return ResponseService.generateSuccessResponse("Details validated Successfully",sharedUtilityService.serviceProviderDetailsMap(serviceProvider),HttpStatus.OK);
+        return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
     }
+
     @Transactional
     @DeleteMapping("delete")
     public ResponseEntity<?> deleteServiceProvider(@RequestParam Long userId) {
@@ -391,130 +392,135 @@ public class ServiceProviderController {
     }
 
 
-@Transactional
-@Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
-@GetMapping("/get-all-service-providers")
-public ResponseEntity<?> getAllServiceProviders(
-        @RequestHeader(value = "Authorization") String authHeader,
-        @RequestParam(required = false) String superAdmin,
-        @RequestParam(required = false) String admin,
-        @RequestParam(required = false) String spAdmin,
-        @RequestParam(required = false) String sp,
-        @RequestParam(defaultValue = "0") int offset,
-        @RequestParam(defaultValue = "10") int limit,
-        HttpServletRequest request) {
-    try {
-        if (offset < 0) {
-            return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
-        }
-        if (limit <= 0) {
-            return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
-        }
+    @Transactional
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
+    @GetMapping("/get-all-service-providers")
+    public ResponseEntity<?> getAllServiceProviders(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) String superAdmin,
+            @RequestParam(required = false) String admin,
+            @RequestParam(required = false) String spAdmin,
+            @RequestParam(required = false) String sp,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit,
+            HttpServletRequest request) {
+        try {
+            if (offset < 0) {
+                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
+            }
+            if (limit <= 0) {
+                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
+            }
 
-        String jwtToken = authHeader.substring(7);
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
 
-        Map<String, String[]> params = request.getParameterMap();
+            Map<String, String[]> params = request.getParameterMap();
 
-        // Validate params
-        for (String paramKey : Arrays.asList("admin", "spAdmin", "superAdmin", "sp")) {
-            if (params.containsKey(paramKey)) {
-                String val = request.getParameter(paramKey);
-                if (!"true".equalsIgnoreCase(val) && !"false".equalsIgnoreCase(val)) {
-                    return ResponseService.generateErrorResponse(
-                            "Invalid value '" + val + "' for parameter '" + paramKey + "'. Must be 'true' or 'false'",
-                            HttpStatus.BAD_REQUEST);
+            // Validate params
+            for (String paramKey : Arrays.asList("admin", "spAdmin", "superAdmin", "sp")) {
+                if (params.containsKey(paramKey)) {
+                    String val = request.getParameter(paramKey);
+                    if (!"true".equalsIgnoreCase(val) && !"false".equalsIgnoreCase(val)) {
+                        return ResponseService.generateErrorResponse(
+                                "Invalid value '" + val + "' for parameter '" + paramKey + "'. Must be 'true' or 'false'",
+                                HttpStatus.BAD_REQUEST);
+                    }
                 }
             }
-        }
 
-        int startPosition = offset * limit;
-        List<Integer> rolesToFetch = new ArrayList<>();
-        List<String> roleLabels = new ArrayList<>();
+            int startPosition = offset * limit;
+            List<Integer> rolesToFetch = new ArrayList<>();
+            List<String> roleLabels = new ArrayList<>();
 
-        if ("true".equalsIgnoreCase(superAdmin)) rolesToFetch.add(1);
-        if ("true".equalsIgnoreCase(admin)) rolesToFetch.add(2);
-        if ("true".equalsIgnoreCase(spAdmin)) rolesToFetch.add(3);
-        if ("true".equalsIgnoreCase(sp)) rolesToFetch.add(4);
+            if ("true".equalsIgnoreCase(superAdmin)) rolesToFetch.add(1);
+            if ("true".equalsIgnoreCase(admin)) rolesToFetch.add(2);
+            if ("true".equalsIgnoreCase(spAdmin)) rolesToFetch.add(3);
+            if ("true".equalsIgnoreCase(sp)) rolesToFetch.add(4);
 
-        // If no specific filter provided, default by roleId
-        if (rolesToFetch.isEmpty()) {
-            if (roleId == 1) {
-                rolesToFetch.addAll(Arrays.asList(1, 2, 3, 4));
-            } else if (roleId == 2) {
-                rolesToFetch.addAll(Arrays.asList(2, 3, 4));
-            } else if (roleId == 3) {
-                rolesToFetch.addAll(Arrays.asList(3, 4));
+            // If no specific filter provided, default by roleId
+            if (rolesToFetch.isEmpty()) {
+                if (roleId == 1) {
+                    rolesToFetch.addAll(Arrays.asList(1, 2, 3, 4));
+                } else if (roleId == 2) {
+                    rolesToFetch.addAll(Arrays.asList(2, 3, 4));
+                } else if (roleId == 3) {
+                    rolesToFetch.addAll(Arrays.asList(3, 4));
+                }
             }
-        }
 
-        // Permission check based on roleId
-        if ((rolesToFetch.contains(1) || rolesToFetch.contains(2) || rolesToFetch.contains(3)) && roleId != 1) {
-            if (rolesToFetch.contains(1)) {
-                return ResponseService.generateErrorResponse("Only super admin can access super admin list", HttpStatus.FORBIDDEN);
+            // Permission check based on roleId
+            if ((rolesToFetch.contains(1) || rolesToFetch.contains(2) || rolesToFetch.contains(3)) && roleId != 1) {
+                if (rolesToFetch.contains(1)) {
+                    return ResponseService.generateErrorResponse("Only super admin can access super admin list", HttpStatus.FORBIDDEN);
+                }
+                if (rolesToFetch.contains(2) && roleId > 2) {
+                    return ResponseService.generateErrorResponse("Only admin and super admin can access admin list", HttpStatus.FORBIDDEN);
+                }
+                if (rolesToFetch.contains(3) && roleId > 3) {
+                    return ResponseService.generateErrorResponse("Only spAdmin, admin, or super admin can access sp-admin list", HttpStatus.FORBIDDEN);
+                }
             }
-            if (rolesToFetch.contains(2) && roleId > 2) {
-                return ResponseService.generateErrorResponse("Only admin and super admin can access admin list", HttpStatus.FORBIDDEN);
+
+            // Compose query
+            String baseQuery = "FROM ServiceProviderEntity s WHERE s.role IN :roles";
+            if (rolesToFetch.contains(4)) {
+                baseQuery += " AND (s.role != 4 OR s.isArchived = false)";
             }
-            if (rolesToFetch.contains(3) && roleId > 3) {
-                return ResponseService.generateErrorResponse("Only spAdmin, admin, or super admin can access sp-admin list", HttpStatus.FORBIDDEN);
+
+            Query countQuery = entityManager.createQuery("SELECT COUNT(s) " + baseQuery);
+            countQuery.setParameter("roles", rolesToFetch);
+            long totalItems = (long) countQuery.getSingleResult();
+            long totalPages = (int) Math.ceil((double) totalItems / limit);
+
+            if (offset >= totalPages && offset != 0) {
+                return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
             }
-        }
 
-        // Compose query
-        String baseQuery = "FROM ServiceProviderEntity s WHERE s.role IN :roles";
-        if (rolesToFetch.contains(4)) {
-            baseQuery += " AND (s.role != 4 OR s.isArchived = false)";
-        }
+            Query dataQuery = entityManager.createQuery("SELECT s " + baseQuery, ServiceProviderEntity.class);
+            dataQuery.setParameter("roles", rolesToFetch);
+            dataQuery.setFirstResult(startPosition);
+            dataQuery.setMaxResults(limit);
 
-        Query countQuery = entityManager.createQuery("SELECT COUNT(s) " + baseQuery);
-        countQuery.setParameter("roles", rolesToFetch);
-        long totalItems = (long) countQuery.getSingleResult();
-        long totalPages = (int) Math.ceil((double) totalItems / limit);
-
-        if (offset >= totalPages && offset != 0) {
-            return ResponseService.generateErrorResponse("No more service providers available", HttpStatus.BAD_REQUEST);
-        }
-
-        Query dataQuery = entityManager.createQuery("SELECT s " + baseQuery, ServiceProviderEntity.class);
-        dataQuery.setParameter("roles", rolesToFetch);
-        dataQuery.setFirstResult(startPosition);
-        dataQuery.setMaxResults(limit);
-
-        List<ServiceProviderEntity> results = dataQuery.getResultList();
-        List<Map<String, Object>> resultOfSp = new ArrayList<>();
-        for (ServiceProviderEntity serviceProvider : results) {
-            resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
-        }
-
-        // Create success message
-        for (Integer role : rolesToFetch) {
-            switch (role) {
-                case 1: roleLabels.add("SuperAdmin"); break;
-                case 2: roleLabels.add("Admin"); break;
-                case 3: roleLabels.add("SP-Admin"); break;
-                case 4: roleLabels.add("Service Providers"); break;
+            List<ServiceProviderEntity> results = dataQuery.getResultList();
+            List<Map<String, Object>> resultOfSp = new ArrayList<>();
+            for (ServiceProviderEntity serviceProvider : results) {
+                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
             }
+
+            // Create success message
+            for (Integer role : rolesToFetch) {
+                switch (role) {
+                    case 1:
+                        roleLabels.add("SuperAdmin");
+                        break;
+                    case 2:
+                        roleLabels.add("Admin");
+                        break;
+                    case 3:
+                        roleLabels.add("SP-Admin");
+                        break;
+                    case 4:
+                        roleLabels.add("Service Providers");
+                        break;
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("serviceProviders", resultOfSp);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            String successMessage = "List of " + String.join(", ", roleLabels);
+            return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
+
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("serviceProviders", resultOfSp);
-        response.put("totalItems", totalItems);
-        response.put("totalPages", totalPages);
-        response.put("currentPage", offset);
-
-        String successMessage = "List of " + String.join(", ", roleLabels);
-        return ResponseService.generateSuccessResponse(successMessage, response, HttpStatus.OK);
-
-    } catch (Exception e) {
-        exceptionHandling.handleException(e);
-        return ResponseService.generateErrorResponse("Some issue in fetching service providers: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
-}
-
-
-
 
 
     @Transactional
@@ -577,15 +583,15 @@ public ResponseEntity<?> getAllServiceProviders(
             @RequestParam(required = false) Long test_status_id,
             @RequestParam(required = false) String user_name,
             @RequestParam(required = false) List<Integer> qualificationType,
-            @RequestHeader(value = "Authorization")String authHeader,
-            @RequestParam(required = false)Boolean completed,
-            @RequestParam(required = false)Boolean suspended,
-            @RequestParam(required = false)Boolean approved,
-            @RequestParam(required = false)Boolean rejected,
+            @RequestHeader(value = "Authorization") String authHeader,
+            @RequestParam(required = false) Boolean completed,
+            @RequestParam(required = false) Boolean suspended,
+            @RequestParam(required = false) Boolean approved,
+            @RequestParam(required = false) Boolean rejected,
             @RequestParam(required = false) Integer role,
-            @RequestParam(value = "offset",defaultValue = "0") int offset,
-            @RequestParam(value = "limit",defaultValue = "10") int limit,
-            @RequestParam(required = false)Long ticketId,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(required = false) Long ticketId,
             HttpServletRequest request) {
 
         try {
@@ -595,8 +601,8 @@ public ResponseEntity<?> getAllServiceProviders(
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if(role!=null&&(role<=roleId||role==5))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if (role != null && (role <= roleId || role == 5))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -629,98 +635,98 @@ public ResponseEntity<?> getAllServiceProviders(
             System.out.println("hello 1");
 
 
-            List<Long>qualificationNames=new ArrayList<>();
-            List<String>qualificationStrings=new ArrayList<>();
+            List<Long> qualificationNames = new ArrayList<>();
+            List<String> qualificationStrings = new ArrayList<>();
 
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
 
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
             }
 
             if (user_name != null && !user_name.isEmpty()) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
-
-
-            // Handle search by full name (split into first and last names)
-            if (full_name != null) {
-                String[] name = sharedUtilityService.separateName(full_name.trim());
-                if (!name[0].equals("")) first_name = name[0];
-                if (!name[1].equals("")) last_name = name[1];
+                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
             }
 
-            System.out.println("hello 2 ");
-
-            if (qualificationType != null) {
-                for (Integer id : qualificationType) {
-                    if (qualificationService.getQualificationByQualificationId(id) == null)
-                        return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
-                    qualificationStrings.add(qualificationService.getQualificationByQualificationId(id).getQualification_name());
-                    qualificationNames.add(qualificationService.getQualificationByQualificationId(id).getOverlap());
-
+                // Handle search by full name (split into first and last names)
+                if (full_name != null) {
+                    String[] name = sharedUtilityService.separateName(full_name.trim());
+                    if (!name[0].equals("")) first_name = name[0];
+                    if (!name[1].equals("")) last_name = name[1];
                 }
-            }
 
-            // First call with the provided order of first_name and last_name
-            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
+                System.out.println("hello 2 ");
 
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                if (qualificationType != null) {
+                    for (Integer id : qualificationType) {
+                        if (qualificationService.getQualificationByQualificationId(id) == null)
+                            return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
+                        qualificationStrings.add(qualificationService.getQualificationByQualificationId(id).getQualification_name());
+                        qualificationNames.add(qualificationService.getQualificationByQualificationId(id).getOverlap());
 
+                    }
+                }
 
-            // Second call with swapped order of first_name and last_name
-            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                // First call with the provided order of first_name and last_name
+                ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
 
-            System.out.println("hello 3");
-            // Merge results and remove duplicates
-            Set<Map<String, Object>> mergedResults = new HashSet<>();
-            if (response1.getBody() != null && response1.getBody().getData() != null) {
-                mergedResults.addAll((List<Map<String, Object>>) response1.getBody().getData());
-            }
-            if (response2.getBody() != null && response2.getBody().getData() != null) {
-                mergedResults.addAll((List<Map<String, Object>>) response2.getBody().getData());
-            }
-
-            // Pagination logic
-            List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
-            int totalItems = finalList.size();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int currentPage = offset;
-
-            int fromIndex = Math.min(offset * limit, totalItems);
-            int toIndex = Math.min(fromIndex + limit, totalItems);
+                        serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
 
 
-            List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
+                // Second call with swapped order of first_name and last_name
+                ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
+                        serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
 
-            // Construct response
-            Map<String, Object> response = new HashMap<>();
-            Map<Integer,String>resp=new HashMap<>();
-            resp.put(1,"Super Admins");
-            resp.put(0,"All users");
-            resp.put(2,"Admins");
-            resp.put(3,"Service Provider Admins");
-            resp.put(4,"Service Providers");
-            if(role==null)
-                role=0;
-            response.put("response", paginatedList);
-            response.put("totalItems", totalItems);
-            response.put("totalPages", totalPages);
-            response.put("currentPage", currentPage);
+                System.out.println("hello 3");
+                // Merge results and remove duplicates
+                Set<Map<String, Object>> mergedResults = new HashSet<>();
+                if (response1.getBody() != null && response1.getBody().getData() != null) {
+                    mergedResults.addAll((List<Map<String, Object>>) response1.getBody().getData());
+                }
+                if (response2.getBody() != null && response2.getBody().getData() != null) {
+                    mergedResults.addAll((List<Map<String, Object>>) response2.getBody().getData());
+                }
+
+                // Pagination logic
+                List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
+                int totalItems = finalList.size();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int currentPage = offset;
+
+                int fromIndex = Math.min(offset * limit, totalItems);
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+
+
+                List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
+
+                // Construct response
+                Map<String, Object> response = new HashMap<>();
+                Map<Integer, String> resp = new HashMap<>();
+                resp.put(1, "Super Admins");
+                resp.put(0, "All users");
+                resp.put(2, "Admins");
+                resp.put(3, "Service Provider Admins");
+                resp.put(4, "Service Providers");
+                if (role == null)
+                    role = 0;
+                response.put("response", paginatedList);
+                response.put("totalItems", totalItems);
+                response.put("totalPages", totalPages);
+                response.put("currentPage", currentPage);
                 if (fromIndex >= totalItems) {
-                    return ResponseService.generateSuccessResponse("No "+resp.get(role)+" Found", response, HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("No " + resp.get(role) + " Found", response, HttpStatus.OK);
                 }
-                return ResponseService.generateSuccessResponse(resp.get(role),response,HttpStatus.OK);
+                return ResponseService.generateSuccessResponse(resp.get(role), response, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in fetching service provider details " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
 
     @Transactional
     @GetMapping("/show-referred-candidates/{service_provider_id}")
