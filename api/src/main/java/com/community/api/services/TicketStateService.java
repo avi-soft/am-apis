@@ -11,7 +11,6 @@ import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
-import com.community.api.entity.OrderTicketLinkage;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -53,6 +52,8 @@ public class TicketStateService {
     protected RoleService roleService;
     @Autowired
     protected TicketStateService ticketStateService;
+    @Autowired
+    protected ServiceProviderTicketService serviceProviderTicketService;
     @Autowired
     protected CatalogService catalogService;
     @Autowired
@@ -147,6 +148,11 @@ public class TicketStateService {
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
 
+            // the assignee not allowed to modify the ticket now.
+            if( ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_ON_HOLD )|| ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT)) ){
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            }
+
             if (roleNameToken.equals(Constant.roleServiceProvider)) {
                 if (!tokenUserId.equals(ticket.getAssignee())) {
                     return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
@@ -174,6 +180,10 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
+                if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
+                    return ResponseService.generateErrorResponse("Already in the same state and status", HttpStatus.NOT_FOUND);
+                }
+
                 if (ticketState == null)
                     return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
 
@@ -195,6 +205,11 @@ public class TicketStateService {
 
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
+
+                // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
+                if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
+                    serviceProviderTicketService.createReviewTicket(ticket);
+                }
 
             } else if(createTicketDTO.getTicketStatus() != null) {
 

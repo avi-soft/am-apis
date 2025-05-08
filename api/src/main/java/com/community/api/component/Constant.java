@@ -202,8 +202,13 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
     public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATE_ON_HOLD = 3L;
+    public static final Long TICKET_STATE_CLOSE = 5L;
+    public static final Long TICKET_STATE_SUPPORT = 7L;
     public static final Long TICKET_STATUS_BDWL = 12L;
     public static final Long TICKET_STATUS_OTHER = 13L;
+
+
 
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
