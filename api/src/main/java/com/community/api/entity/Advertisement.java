@@ -42,7 +42,7 @@ public class Advertisement {
     @JsonProperty("advertisement_id")
     private Long advertisementId;
 
-    @Column(name = "number",unique = true)
+    @Column(name = "number")
     @JsonProperty("number")
     private String number;
 

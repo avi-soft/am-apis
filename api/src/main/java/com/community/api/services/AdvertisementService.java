@@ -2,9 +2,13 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddAdvertisementDto;
+import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.QualificationDetails;
 import com.community.api.entity.Role;
+import com.community.api.services.exception.EntityAlreadyExistsException;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -38,6 +42,9 @@ public class AdvertisementService {
 
     @Autowired
     protected CatalogService catalogService;
+
+    @Autowired
+    protected ProductService productService;
 
     @Autowired
     EntityManager entityManager;
@@ -97,8 +104,19 @@ public class AdvertisementService {
          /*   if(addAdvertisementDto.getNumber() == null || addAdvertisementDto.getNumber().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Number cannot be null or empty");
             }*/
-            if(addAdvertisementDto.getNumber() != null && addAdvertisementDto.getNumber().trim().isEmpty()){
-            addAdvertisementDto.setNumber(addAdvertisementDto.getNumber().trim());}
+            if (addAdvertisementDto.getNumber() != null && !addAdvertisementDto.getNumber().trim().isEmpty()) {
+                String number = addAdvertisementDto.getNumber().trim();
+                String queryStr = "SELECT q FROM Advertisement q";
+                TypedQuery<Advertisement> query = entityManager.createQuery(queryStr, Advertisement.class);
+                List<Advertisement> existingAdvertisements = query.getResultList();
+                for (Advertisement existingAdvertisement : existingAdvertisements) {
+                    if (existingAdvertisement.getNumber() != null) {
+                        if (existingAdvertisement.getNumber().equalsIgnoreCase(addAdvertisementDto.getNumber())) {
+                            throw new IllegalArgumentException("Advertisement with number " + number + " already exists.");
+                        }
+                    }
+                }
+            }
 
             if(addAdvertisementDto.getNotificationStartDate() == null) {
                 throw new IllegalArgumentException("Notification Start Date is required");
@@ -215,7 +233,7 @@ public class AdvertisementService {
         }
     }
 
-    public List<Advertisement> filterAdvertisements(String title, List<Long> categories) throws Exception {
+    public List<Advertisement> filterAdvertisements(String title, List<Long> categories, List<Long> subCategories) throws Exception {
 
         try {
 
@@ -225,6 +243,7 @@ public class AdvertisementService {
 
             // List to hold query parameters
             List<Category> categoryList = new ArrayList<>();
+            List<Category> subCategoryList = new ArrayList<>();
 
             if (categories != null && !categories.isEmpty()) {
                 for (Long id : categories) {
@@ -237,31 +256,58 @@ public class AdvertisementService {
                 jpql.append("AND a.category IN :categories ");
             }
 
+            if (subCategories != null && !subCategories.isEmpty()) {
+                for (Long id : subCategories) {
+                    Category subCategory = catalogService.findCategoryById(id);
+                    if(subCategory==null)
+                    {
+                        throw new IllegalArgumentException("NO SUB CATEGORY FOUND WITH THIS ID: " + id);
+                    }
+                    if(subCategory.getDefaultParentCategory()==null)
+                    {
+                        throw new IllegalArgumentException("Advertisement with id " + id + " is not a sub category");
+                    }
 
-            if (title != null && !title.isEmpty()) {
-                jpql.append("AND a.title LIKE :title ");
+                    boolean isActive = (((Status) subCategory).getArchived() != 'Y' && subCategory.getActiveEndDate() == null) ||
+                            (((Status) subCategory).getArchived() != 'Y' && subCategory.getActiveEndDate().after(new Date()));
+                    if(!isActive)
+                    {
+                        throw new IllegalArgumentException("Advertisement is either archived or expired");
+                    }
+                        subCategoryList.add(subCategory);
+                }
+                jpql.append("AND a.category IN :subCategories ");
             }
 
-            // Create the query with the final JPQL string
-            TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
+                if (title != null && !title.isEmpty()) {
+                    jpql.append("AND a.title LIKE :title ");
+                }
 
-            if (!categoryList.isEmpty()) {
-                query.setParameter("categories", categoryList);
+                // Create the query with the final JPQL string
+                TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
+
+                if (!categoryList.isEmpty()) {
+                    query.setParameter("categories", categoryList);
+                }
+                if (title != null && !title.isEmpty()) {
+                    query.setParameter("title", "%" + title + "%");
+                }
+
+                if(!subCategoryList.isEmpty())
+                {
+                    query.setParameter("subCategories",subCategoryList);
+                }
+
+                // Execute and return the result
+                return query.getResultList();
+
+            } catch(IllegalArgumentException illegalArgumentException){
+                exceptionHandlingService.handleException(illegalArgumentException);
+                throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
+            } catch(Exception exception){
+                exceptionHandlingService.handleException(exception);
+                throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
             }
-            if (title != null && !title.isEmpty()) {
-                query.setParameter("title", "%" + title + "%");
-            }
-
-            // Execute and return the result
-            return query.getResultList();
-
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION CAUGHT: " + exception.getMessage());
-        }
     }
 
     @Transactional
@@ -272,6 +318,14 @@ public class AdvertisementService {
         if(advertisementToUpdate==null)
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
+        }
+        if(advertisementToUpdate.getCategory()!=null)
+        {
+            List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
+            if(customProducts!=null && !customProducts.isEmpty())
+            {
+                throw new IllegalArgumentException("Advertisement cannot be once it is linked with any product ");
+            }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());
         if(Objects.nonNull(advertisementDto.getTitle()))
@@ -292,14 +346,10 @@ public class AdvertisementService {
                 throw new IllegalArgumentException("Advertisement Url cannot be empty");
             }*/
             // URL validation using regex
-            System.out.println("***1`");
             if (!isValidUrl(advertisementDto.getUrl().trim())) {
-                System.out.println("***2`");
                 throw new IllegalArgumentException("Invalid Advertisement URL format");
             }
-            System.out.println("***3`");
             advertisementToUpdate.setUrl(advertisementDto.getUrl().trim());
-            System.out.println("***4`");
         }
         if (Objects.nonNull(advertisementDto.getNotifyingAuthority())) {
            /* if(advertisementDto.getNotifyingAuthority().trim().isEmpty()) {
@@ -312,6 +362,25 @@ public class AdvertisementService {
            /* if(advertisementDto.getNumber().trim().isEmpty()) {
                 throw new IllegalArgumentException("Advertisement Number cannot be empty");
             }*/
+            if (advertisementDto.getNumber() != null && !advertisementDto.getNumber().trim().isEmpty()) {
+                String number = advertisementDto.getNumber().trim();
+                String queryStr = "SELECT q FROM Advertisement q";
+                TypedQuery<Advertisement> query = entityManager.createQuery(queryStr, Advertisement.class);
+               List< Advertisement> existingAdvertisements = query.getResultList();
+               for(Advertisement existingAdvertisement: existingAdvertisements)
+               {
+                   if(existingAdvertisement.getNumber()!=null)
+                   {
+                       if(existingAdvertisement.getNumber().equalsIgnoreCase(advertisementDto.getNumber()) && !existingAdvertisement.getAdvertisementId().equals(advertisementId))
+                       {
+                           throw new IllegalArgumentException("Advertisement with number " + number + " already exists.");
+                       }
+                   }
+
+               }
+                advertisementDto.setNumber(number);
+            }
+
             advertisementToUpdate.setNumber(advertisementDto.getNumber().trim());
         }
 
