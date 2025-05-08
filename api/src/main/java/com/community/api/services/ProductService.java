@@ -457,9 +457,10 @@ public class ProductService {
             StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
             StringBuilder result = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
             StringBuilder jpql = new StringBuilder("JOIN SkuImpl s WITH s.defaultProduct.id = p.id ");
-                    if(fee!=null)
-                        jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ")
-                    .append("WHERE 1=1 ");  // Base condition to allow easy AND appending
+            if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
+                jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
+            }
+            jpql.append("WHERE 1=1 ");  // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
             {
@@ -558,7 +559,7 @@ public class ProductService {
                 for (Long id : reserveCategories) {
                     customReserveCategoryList.add(reserveCategoryService.getReserveCategoryById(id));
                 }
-                jpql.append("AND r.customReserveCategory IN :reserveCategories ");
+                jpql.append("AND r IS NOT NULL AND r.customReserveCategory IN :reserveCategories ");
             }
 
             if (title != null && !title.isEmpty()) {
