@@ -10,7 +10,10 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.OrderTicketLinkage;
 import com.community.api.entity.Role;
+import com.community.api.entity.TicketStateLinkage;
 import com.community.api.services.exception.ExceptionHandlingService;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +51,8 @@ public class TicketStateService {
     protected JwtUtil jwtTokenUtil;
     @Autowired
     protected RoleService roleService;
+    @Autowired
+    protected TicketStateService ticketStateService;
     @Autowired
     protected CatalogService catalogService;
     @Autowired
@@ -123,6 +128,10 @@ public class TicketStateService {
                 return ResponseService.generateErrorResponse("At least one parameter is required to update the ticket", HttpStatus.BAD_REQUEST);
             }
 
+            if(createTicketDTO.getTicketType() != null) {
+                return ResponseService.generateErrorResponse("Ticket type of a ticket cannot be changed", HttpStatus.BAD_REQUEST);
+            }
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -134,6 +143,7 @@ public class TicketStateService {
                 return ResponseService.generateErrorResponse("Ticket Id not provided", HttpStatus.BAD_REQUEST);
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
 
@@ -159,12 +169,19 @@ public class TicketStateService {
             Query query = null;
             CustomTicketState ticketState = null;
             CustomTicketStatus ticketStatus = null;
+
             if (createTicketDTO.getTicketState() != null && createTicketDTO.getTicketStatus() != null) {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
                 if (ticketState == null)
                     return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
+
+                if(ticketStatus == null)
+                    return ResponseService.generateErrorResponse("Ticket status not found", HttpStatus.NOT_FOUND);
+
+                ticketStateService.verifyState(ticket.getTicketType(), ticket.getTicketState(), ticketState);
+                ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 if (!canTransitTicket(ticket, createTicketDTO.getTicketState(), roleNameToken, createTicketDTO.getTicketStatus()))
                     return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.", HttpStatus.FORBIDDEN);
@@ -186,7 +203,7 @@ public class TicketStateService {
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
 
                 ticketState = ticket.getTicketState();
-                ticketStatusService.verifyStatus(ticketState, ticketStatus);
+                ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 if (createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP) || createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)) {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
@@ -328,7 +345,7 @@ public class TicketStateService {
             }
 
             if(roleName.equals(Constant.roleServiceProvider)) {
-                ticketStatusService.verifyStatus(nextState, status);
+                ticketStatusService.verifyStatus(nextState, status, customServiceProviderTicket.getTicketType());
             }
             // Instead of using switch we can handle this with linkage table.
             /*if (roleName.equals(Constant.roleServiceProvider)) {
@@ -360,6 +377,38 @@ public class TicketStateService {
             throw new Exception(exception.getMessage());
         }
     }
+
+    public TicketStateLinkage verifyState(CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
+        try {
+            if(ticketType == null || ticketStateFrom == null || ticketStateTo == null) {
+                throw new IllegalArgumentException("Ticket Type, Ticket State From and Ticket State To cannot be NULL");
+            }
+
+            Long ticketTypeId = ticketType.getTicketTypeId();
+            Long ticketStateFromId = ticketStateFrom.getTicketStateId();
+            Long ticketStateToId = ticketStateTo.getTicketStateId();
+
+            Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
+            query.setParameter("ticketTypeId", ticketTypeId);
+            query.setParameter("ticketStateIdFrom", ticketStateFromId);
+            query.setParameter("ticketStateIdTo", ticketStateToId);
+
+            List<TicketStateLinkage> ticketStateLinkageList = query.getResultList();
+            if(ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {
+                throw new IllegalArgumentException("Linkage not Found between type and states.");
+            }
+
+            return ticketStateLinkageList.get(0);
+
+        } catch(IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
 
     public Product findProductFromItemAttribute(OrderItem orderItem) {
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());

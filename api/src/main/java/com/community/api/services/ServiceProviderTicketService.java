@@ -455,7 +455,7 @@ public class ServiceProviderTicketService {
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-            if(ticketStatusService.verifyStatus(ticketState, ticketStatus)==null) {
+            if(ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType)==null) {
                 throw new IllegalArgumentException("Cannot create with this state and status simultaneously (Not a linkage)");
             }
 

@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderTicketLinkage;
 import com.community.api.services.exception.ExceptionHandlingService;
 import lombok.extern.slf4j.Slf4j;
@@ -59,18 +60,18 @@ public class TicketStatusService {
         }
     }
 
-    public OrderTicketLinkage verifyStatus(CustomTicketState ticketState, CustomTicketStatus ticketStatus) throws Exception {
+    public OrderTicketLinkage verifyStatus(CustomTicketState ticketState, CustomTicketStatus ticketStatus, CustomTicketType ticketType) throws Exception {
         try {
-            log.info("HERE WE GO ..");
-            if(ticketState == null || ticketStatus == null) {
-                throw new IllegalArgumentException("Ticket State and Ticket Status cannot be NULL");
+            if(ticketState == null || ticketStatus == null || ticketType == null) {
+                throw new IllegalArgumentException("Ticket Type, Ticket State and Ticket Status cannot be NULL");
             }
+
+            Long ticketTypeId = ticketType.getTicketTypeId();
             Long ticketStateId = ticketState.getTicketStateId();
             Long ticketStatusId = ticketStatus.getTicketStatusId();
 
-            log.info(String.valueOf(ticketStateId));
-            log.info(String.valueOf(ticketStatusId));
             Query query = entityManager.createQuery(Constant.GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS, OrderTicketLinkage.class);
+            query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateId", ticketStateId);
             query.setParameter("ticketStatusId", ticketStatusId);
 

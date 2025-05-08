@@ -251,5 +251,7 @@ public class Constant {
     public static final String WELCOME_SUBJECT="System Message";
     public static final Integer SUPER_ADMIN_PRIVILEGES=4;
 
-    public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c from OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId";
+    public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c FROM OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId AND c.ticketTypeId = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET = "SELECT t FROM TicketStateLinkage t WHERE t.ticketStateIdFrom = :ticketStateIdFrom AND t.ticketStateIdTo = :ticketStateIdTo AND t.ticketTypeId = :ticketTypeId";
+
 }
