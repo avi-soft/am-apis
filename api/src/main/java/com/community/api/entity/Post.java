@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.persistence.CollectionTable;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
@@ -106,6 +108,13 @@ public class Post {
     private String physicalAdditionalComments;
     @JsonProperty("other_distribution_additional_comments")
     private String otherDistributionAdditionalComments;
-
+    @JsonProperty("total_seats_visible")
+    private Boolean totalSeatsVisible;
+    @Column(name = "income_threshold")
+    private Double income;
+    @ElementCollection
+    @CollectionTable(name = "post_religions", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "religion")
+    private List<String> religion;
 
 }

@@ -33,6 +33,7 @@ public class PostDto {
     private String stateDistributionAdditionalComments;
     @JsonProperty("duration")
     private String duration;
+    @JsonProperty("zone_distribution_additional_comments")
     private String zoneDistributionAdditionalComments;
     @JsonProperty("gender_distribution_additional_comments")
     private String genderDistributionAdditionalComments;
@@ -44,4 +45,10 @@ public class PostDto {
     private String physicalAdditionalComments;
     @JsonProperty("other_distribution_additional_comments")
     private String otherDistributionAdditionalComments;
+    @JsonProperty("income_threshold")
+    private Double income;
+    @JsonProperty("religion_eligibility")
+    private List<String>religion;
+    @JsonProperty("total_seats_visible")
+    private Boolean totalSeatsVisible;
 }
