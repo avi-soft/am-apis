@@ -3779,6 +3779,8 @@ public class ProductService {
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
             validateDistrictStateRelationship(stateDistribution);
             long sum = 0;
+            long f=0;
+            long m=0;
             if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
                     if(categoryDistributionDto.getMaleVacancy()==null)
@@ -3787,11 +3789,17 @@ public class ProductService {
                         throw new IllegalArgumentException("Female vacancy is not given");
                     if(categoryDistributionDto.getTotalVacancy()==null)
                         throw new IllegalArgumentException("Total vacancy is not given");
-                    sum = sum + categoryDistributionDto.getTotalVacancy();
-                    if (sum != categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
+                    sum+=categoryDistributionDto.getTotalVacancy();
+                    f+=categoryDistributionDto.getFemaleVacancy();
+                    m+=categoryDistributionDto.getMaleVacancy();
+                    if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
                         throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
                     }
                 }
+                if(f!=stateDistribution.getFemaleVacancy())
+                    throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
+                if(m!=stateDistribution.getMaleVacancy())
+                    throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
                 if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
                     throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
             }
