@@ -20,10 +20,17 @@ public class OrderTicketLinkage {
     @Id
     @Column(name = "linkage_id")
     private Integer orderStateLinkageId;
+
     @Column(name = "order_state_id")
     private Integer orderStateId;
+
     @Column(name = "ticket_state_id")
     private Long ticketStateId;
+
     @Column(name = "ticket_status_id")
     private Long ticketStatusId;
+
+    @Column(name = "ticket_type_id")
+    private Long ticketTypeId;
+
 }
