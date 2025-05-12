@@ -262,4 +262,8 @@ public class Constant {
     public static final String GET_ALL_WORK_QUALITY = "SELECT c FROM CustomWorkQuality c";
     public static final String GET_TICKET_TYPE_BY_WORK_QUALITY_ID = "SELECT c FROM CustomWorkQuality c WHERE c.workQualityId = :workQualityId";
 
+    public static final Long TICKET_TYPE_ID_OF_PRIMARY_TICKET = 1L;
+    public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
+    public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
+
 }

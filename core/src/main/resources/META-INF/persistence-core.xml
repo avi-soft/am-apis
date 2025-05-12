@@ -109,6 +109,7 @@
         <class>com.community.api.entity.Earnings</class>
         <class>com.community.api.entity.Transaction</class>
         <class>com.community.api.entity.TicketStateLinkage</class>
+        <class>com.community.api.entity.CustomWorkQuality</class>
 
         <exclude-unlisted-classes/>
     </persistence-unit>

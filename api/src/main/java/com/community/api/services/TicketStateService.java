@@ -11,6 +11,7 @@ import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -54,6 +55,8 @@ public class TicketStateService {
     protected TicketStateService ticketStateService;
     @Autowired
     protected ServiceProviderTicketService serviceProviderTicketService;
+    @Autowired
+    protected WorkQualityService workQualityService;
     @Autowired
     protected CatalogService catalogService;
     @Autowired
@@ -207,8 +210,20 @@ public class TicketStateService {
                 // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
                 if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
                     serviceProviderTicketService.createReviewTicket(ticket);
-                }
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    if(createTicketDTO.getIsComplete() == null || createTicketDTO.getWorkQualityId() == null) {
+                        return ResponseService.generateErrorResponse("Is Complete and Work Quality is required to close a review ticket", HttpStatus.BAD_REQUEST);
+                    }
+                    CustomWorkQuality workQuality = workQualityService.getWorkQualityByWorkQualityId(createTicketDTO.getWorkQualityId());
+                    if(workQuality == null) {
+                        return ResponseService.generateErrorResponse("Work Quality Not found with this Id", HttpStatus.BAD_REQUEST);
+                    }
+                    CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
+                    parentTicket.setIsComplete(createTicketDTO.getIsComplete());
+                    parentTicket.setWorkQuality(workQuality);
 
+                    entityManager.merge(parentTicket);
+                }
 
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
