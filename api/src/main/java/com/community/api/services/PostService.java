@@ -614,7 +614,6 @@ public class PostService {
                 throw new IllegalArgumentException("Zone not found with id: " + zoneDto.getZoneId());
             }
             zoneDistribution.setZone(zone);
-
             zoneDistribution.setIsDivisionDistribution(zoneDto.getIsDivisionDistribution());
             zoneDistribution.setIsGenderWise(zoneDto.getIsGenderWise());
             zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());

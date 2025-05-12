@@ -169,4 +169,7 @@ public class CustomProduct extends ProductImpl {
     @JsonProperty("additional_comments")
     private String additionalComments;
 
+    @Column(name = "fee_additional_comments")
+    private String feeAdditionalComments;
+
 }

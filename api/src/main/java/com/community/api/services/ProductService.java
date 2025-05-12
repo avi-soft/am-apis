@@ -131,6 +131,11 @@ public class ProductService {
                 sql.append(", application_scope_id");
                 values.append(", :applicationScope");
             }
+            if(addProductDto.getFeeAdditionalComments()!=null)
+            {
+                sql.append(", fee_additional_comments");
+                values.append(", :feeComments");
+            }
             if (addProductDto.getAdditionalComments() != null) {
                 sql.append(", additional_comments");
                 values.append(", :additionalComments");
@@ -276,7 +281,10 @@ public class ProductService {
             if (addProductDto.getAdditionalComments() != null) {
                 query.setParameter("additionalComments", addProductDto.getAdditionalComments());
             }
-
+            if(addProductDto.getFeeAdditionalComments()!=null)
+            {
+                query.setParameter("feeComments",addProductDto.getFeeAdditionalComments());
+            }
             if (addProductDto.getExamDateFrom() != null) {
                 query.setParameter("examDateFrom", new Timestamp(addProductDto.getExamDateFrom().getTime()));
             }
