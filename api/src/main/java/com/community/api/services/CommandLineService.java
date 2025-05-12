@@ -1,12 +1,11 @@
 package com.community.api.services;
 
 import com.community.api.services.exception.ExceptionHandlingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +16,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+@Slf4j
 @Component
     public class CommandLineService implements ApplicationRunner {
 
@@ -49,15 +50,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
             zoneDivisionService.populateZoneDivision();
-            System.out.println("insertion end");
-            System.out.println("ALTERATION START");
+            log.info("insertion end");
+            log.info("ALTERATION START");
             String scriptPathForAlteration = "alteration_log.sql";
             sqlScript = new BufferedReader(
                     new InputStreamReader(new ClassPathResource(scriptPathForAlteration).getInputStream())
             ).lines().collect(Collectors.joining("\n"));
             jdbcTemplate.execute(sqlScript);
             // Execute the SQL script
-            System.out.println("ALTERATION END");
+            log.info("ALTERATION END");
         }catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
         }
