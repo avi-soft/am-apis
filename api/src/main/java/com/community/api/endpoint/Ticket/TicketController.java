@@ -228,19 +228,24 @@ public class TicketController {
 
             List<CustomTicketWrapper> responses = paginatedTickets.stream().map(ticket -> {
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
-                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
-                        customer.getId(),
-                        customer.getFirstName() + " " + customer.getLastName(),
-                        customer.getEmailAddress(),
-                        customCustomer.getMobileNumber(),
-                        addressFetcher.fetch(customer),
-                        customer.getUsername());
+                if(!ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                            customer.getId(),
+                            customer.getFirstName() + " " + customer.getLastName(),
+                            customer.getEmailAddress(),
+                            customCustomer.getMobileNumber(),
+                            addressFetcher.fetch(customer),
+                            customer.getUsername());
 
-                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
-                wrapper.customWrapDetails(ticket, orderDto);
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                    wrapper.customWrapDetails(ticket, orderDto);
+                } else {
+                    wrapper.customWrapDetails(ticket, null);
+                }
+
                 return wrapper;
             }).collect(Collectors.toList());
 

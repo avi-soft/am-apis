@@ -73,7 +73,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
-        combinedOrderDTO.setTicket(null);
+
+        if(combinedOrderDTO != null) {
+            combinedOrderDTO.setTicket(null);
+        }
         this.order = combinedOrderDTO;
         this.createdDate = customServiceProviderTicket.getCreatedDate();
         this.modifiedDate = customServiceProviderTicket.getModifiedDate();
