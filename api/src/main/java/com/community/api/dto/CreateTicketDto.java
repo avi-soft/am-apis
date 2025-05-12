@@ -42,4 +42,10 @@ public class CreateTicketDto {
     @JsonProperty("task")
     private String task;
 
+    @JsonProperty("is_complete")
+    private Boolean isComplete;
+
+    @JsonProperty("work_quality_id")
+    private Long workQualityId;
+
 }
