@@ -113,8 +113,8 @@ public class CustomServiceProviderTicket {
     @Column(name = "rejected_by_id")
     private List<Long>rejectedBy = new ArrayList<>();
 
-    @Column(name = "parent_ticket_id")
     @OneToOne
+    @JoinColumn(name = "parent_ticket_id")
     @JsonBackReference
     @JsonProperty("parent_ticket_id")
     private CustomServiceProviderTicket parentTicket;
