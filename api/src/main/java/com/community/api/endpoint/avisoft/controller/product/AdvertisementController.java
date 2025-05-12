@@ -197,7 +197,8 @@ public class AdvertisementController {
                 List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                 for (CustomProduct customProduct : customProducts) {
 
-                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                   && customProduct.getGoLiveDate().before(new Date())) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                         products.add(wrapper);

@@ -1,6 +1,7 @@
 package com.community.api.dto;
 
 import com.community.api.entity.CustomGender;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class AddReserveCategoryDto {
     Date bornAfter;*/
     @JsonProperty("gender_id")
     Long gender;
+    @JsonIgnore
     @JsonProperty("fee_additional_comments")
     String additionalComment;
     @JsonProperty("is_other_or_state_category")
