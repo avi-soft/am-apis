@@ -372,7 +372,13 @@ public class PostService {
                 throw new IllegalArgumentException("State not found with id: " + stateDto.getStateCodeId());
             }
             stateDistribution.setStateCode(stateCode);
-
+            if(stateDto.getMaleVacancy()!=null&&stateDto.getFemaleVacancy()!=null&&stateDto.getTotalVacanciesInState()!=null) {
+                if(stateDto.getMaleVacancy()+stateDto.getFemaleVacancy()!=stateDto.getTotalVacanciesInState())
+                    throw new IllegalArgumentException("Total male and female vacancy in state is not equal to total vacancy");
+                stateDistribution.setMaleVacancy(stateDto.getMaleVacancy());
+                stateDistribution.setFemaleVacancy(stateDto.getFemaleVacancy());
+                stateDistribution.setTotalVacanciesInState(stateDto.getTotalVacanciesInState());
+            }
             stateDistribution.setIsDistrictDistribution(stateDto.getIsDistrictDistribution());
 
             if (Boolean.TRUE.equals(stateDto.getIsDistrictDistribution())) {
@@ -608,7 +614,6 @@ public class PostService {
                 throw new IllegalArgumentException("Zone not found with id: " + zoneDto.getZoneId());
             }
             zoneDistribution.setZone(zone);
-
             zoneDistribution.setIsDivisionDistribution(zoneDto.getIsDivisionDistribution());
             zoneDistribution.setIsGenderWise(zoneDto.getIsGenderWise());
             zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());
@@ -620,9 +625,19 @@ public class PostService {
                 if(zoneDto.getMaleVacancy()!=null&&zoneDto.getFemaleVacancy()!=null&&zoneDto.getTotalVacanciesInZone()!=null) {
                     if (zoneDto.getMaleVacancy() + zoneDto.getFemaleVacancy() != zoneDto.getTotalVacanciesInZone())
                         throw new IllegalArgumentException("Male vacancies and female vacancies sum is not equal to total for zone");
+                }
+                if(zoneDto.getMaleVacancy()!=null||zoneDto.getFemaleVacancy()!=null) {
                     zoneDistribution.setMaleVacancy(zoneDto.getMaleVacancy());
                     zoneDistribution.setFemaleVacancy(zoneDto.getFemaleVacancy());
+                    if ((zoneDto.getMaleVacancy() != null || zoneDto.getFemaleVacancy() != null) && zoneDto.getTotalVacanciesInZone() == null)
+                        throw new IllegalArgumentException("Need to provide total vacancy in zone");
+                    if (zoneDto.getMaleVacancy() == null)
+                        zoneDto.setMaleVacancy(0);
+                    if (zoneDto.getFemaleVacancy() == null)
+                        zoneDto.setFemaleVacancy(0);
                     zoneDistribution.setTotalVacanciesInZone(zoneDto.getTotalVacanciesInZone());
+                    if (zoneDto.getMaleVacancy() + zoneDto.getFemaleVacancy() != zoneDto.getTotalVacanciesInZone())
+                        throw new IllegalArgumentException("Total vacancy in zone is not equal to male and female vacancy");
                 }
                 entityManager.persist(zoneDistribution);
                 saveDivisionDistributions(zoneDto, zoneDistribution);

@@ -112,5 +112,6 @@ public class AddProductDto {
     @JsonProperty("posts")
     private List<PostDto> posts;
     private String additionalComments;
+    private String feeAdditionalComments;
 
 }
