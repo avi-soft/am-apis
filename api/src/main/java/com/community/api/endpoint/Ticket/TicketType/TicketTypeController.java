@@ -1,7 +1,6 @@
 package com.community.api.endpoint.Ticket.TicketType;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.services.ResponseService;
 import com.community.api.services.TicketTypeService;

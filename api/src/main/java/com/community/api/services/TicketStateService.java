@@ -149,7 +149,7 @@ public class TicketStateService {
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
 
             // the assignee not allowed to modify the ticket now.
-            if( ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_ON_HOLD )|| ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT)) ){
+            if( ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT)) ){
                 return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
             }
 
@@ -203,19 +203,25 @@ public class TicketStateService {
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
 
-                ticket.setTicketStatus(ticketStatus);
-                ticket.setTicketState(ticketState);
 
                 // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
                 if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
                     serviceProviderTicketService.createReviewTicket(ticket);
                 }
 
+
+                ticket.setTicketStatus(ticketStatus);
+                ticket.setTicketState(ticketState);
+
             } else if(createTicketDTO.getTicketStatus() != null) {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
                     return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
+
+                if(ticket.getTicketStatus().equals(ticketStatus)) {
+                    return ResponseService.generateErrorResponse("Already in the status", HttpStatus.NOT_FOUND);
+                }
 
                 ticketState = ticket.getTicketState();
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
@@ -285,6 +291,7 @@ public class TicketStateService {
                 } else
                     return ResponseService.generateErrorResponse("Assignee and role must be provided together.", HttpStatus.NOT_FOUND);
             }
+
             if (createTicketDTO.getAssigneeRole() == null && createTicketDTO.getAssignee() != null)
                 return ResponseService.generateErrorResponse("Assignee and role must be provided together.", HttpStatus.BAD_REQUEST);
 

@@ -119,4 +119,13 @@ public class CustomServiceProviderTicket {
     @JsonProperty("parent_ticket_id")
     private CustomServiceProviderTicket parentTicket;
 
+    @Column(name = "is_complete")
+    @JsonProperty("is_complete")
+    private Boolean isComplete;
+
+    @ManyToOne
+    @JoinColumn(name = "work_quality_id")
+    @JsonProperty("work_quality")
+    private CustomWorkQuality workQuality;
+
 }
