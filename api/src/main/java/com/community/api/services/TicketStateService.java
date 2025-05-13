@@ -15,6 +15,7 @@ import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -134,14 +135,14 @@ public class TicketStateService {
     }
 
     @Transactional
-    public ResponseEntity<?> updateTicket(CreateTicketDto createTicketDTO, Long ticketId, String authHeader) {
+    public CustomServiceProviderTicket updateTicket(CreateTicketDto createTicketDTO, Long ticketId, String authHeader) throws Exception {
         try {
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
-                return ResponseService.generateErrorResponse("At least one parameter is required to update the ticket", HttpStatus.BAD_REQUEST);
+                throw new IllegalArgumentException("At least one parameter is required to update the ticket");
             }
 
             if(createTicketDTO.getTicketType() != null) {
-                return ResponseService.generateErrorResponse("Ticket type of a ticket cannot be changed", HttpStatus.BAD_REQUEST);
+                throw new IllegalArgumentException("Ticket type of a ticket cannot be changed");
             }
 
             String jwtToken = authHeader.substring(7);
@@ -152,28 +153,28 @@ public class TicketStateService {
             log.info("USER ID{}", tokenUserId);
 
             if (ticketId == null)
-                return ResponseService.generateErrorResponse("Ticket Id not provided", HttpStatus.BAD_REQUEST);
+                throw new IllegalArgumentException("Ticket Id not provided");
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
             if (ticket == null)
-                return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+                throw new NotFoundException("Ticket not found");
 
             // the assignee not allowed to modify the ticket now.
             if( ticket.getAssignee() != null && ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT)) ){
-                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                throw new NotAuthorizedException("Forbidden Access");
             }
 
             if (roleNameToken.equals(Constant.roleServiceProvider)) {
                 if (!tokenUserId.equals(ticket.getAssignee())) {
-                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                    throw new NotAuthorizedException("Forbidden Access");
                 }
                 if (createTicketDTO.getTargetCompletionDate() != null)
-                    return ResponseService.generateErrorResponse("Service Provider is not authorized to update completion date", HttpStatus.UNAUTHORIZED);
+                    throw new NotAuthorizedException("Service Provider is not authorized to update completion date");
                 if (createTicketDTO.getAssignee() != null || createTicketDTO.getAssigneeRole() != null)
-                    return ResponseService.generateErrorResponse("Service Provider is not authorized to update Assignee role or Assignee id", HttpStatus.UNAUTHORIZED);
+                    throw new NotAuthorizedException("Service Provider is not authorized to update Assignee role or Assignee id");
                 if (createTicketDTO.getTicketType() != null)
-                    return ResponseService.generateErrorResponse("Service Provider is not authorized to  update ticket type", HttpStatus.UNAUTHORIZED);
+                    throw new NotAuthorizedException("Service Provider is not authorized to  update ticket type");
             }
 
             // REDUNDANT CONDITION
@@ -192,24 +193,24 @@ public class TicketStateService {
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
-                    return ResponseService.generateErrorResponse("Already in the same state and status", HttpStatus.NOT_FOUND);
+                    throw new IllegalArgumentException("Already in the same state and status");
                 }
 
                 if (ticketState == null)
-                    return ResponseService.generateErrorResponse("Ticket state not found", HttpStatus.NOT_FOUND);
+                    throw new NotFoundException("Ticket state not found");
 
                 if(ticketStatus == null)
-                    return ResponseService.generateErrorResponse("Ticket status not found", HttpStatus.NOT_FOUND);
+                    throw new NotFoundException("Ticket status not found");
 
                 ticketStateService.verifyState(ticket.getTicketType(), ticket.getTicketState(), ticketState);
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 if (!canTransitTicket(ticket, createTicketDTO.getTicketState(), roleNameToken, createTicketDTO.getTicketStatus()))
-                    return ResponseService.generateErrorResponse("Ticket cannot move to the selected state due to workflow restrictions.", HttpStatus.FORBIDDEN);
+                    throw new IllegalArgumentException("Ticket cannot move to the selected state due to workflow restrictions.");
 
                 if (createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP) || createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)) {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
-                        return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
+                        throw new IllegalArgumentException("Comment is required");
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
@@ -220,12 +221,13 @@ public class TicketStateService {
                     serviceProviderTicketService.createReviewTicket(ticket);
                 } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     if(createTicketDTO.getIsComplete() == null || createTicketDTO.getWorkQualityId() == null) {
-                        return ResponseService.generateErrorResponse("Is Complete and Work Quality is required to close a review ticket", HttpStatus.BAD_REQUEST);
+                        throw new IllegalArgumentException("Is Complete and Work Quality is required to close a review ticket");
                     }
                     CustomWorkQuality workQuality = workQualityService.getWorkQualityByWorkQualityId(createTicketDTO.getWorkQualityId());
                     if(workQuality == null) {
-                        return ResponseService.generateErrorResponse("Work Quality Not found with this Id", HttpStatus.BAD_REQUEST);
+                        throw new NotFoundException("Work Quality Not found with this Id");
                     }
+
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
                     parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
                     parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
@@ -242,10 +244,10 @@ public class TicketStateService {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
-                    return ResponseService.generateErrorResponse("Ticket Status not found", HttpStatus.NOT_FOUND);
+                    throw new NotFoundException("Ticket Status not found");
 
                 if(ticket.getTicketStatus().equals(ticketStatus)) {
-                    return ResponseService.generateErrorResponse("Already in the status", HttpStatus.NOT_FOUND);
+                    throw new IllegalArgumentException("Already in the status");
                 }
 
                 ticketState = ticket.getTicketState();
@@ -253,7 +255,7 @@ public class TicketStateService {
 
                 if (createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_IN_REVIEW_HELP) || createTicketDTO.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)) {
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
-                        return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
+                        throw new IllegalArgumentException("Comment is required");
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
@@ -261,7 +263,7 @@ public class TicketStateService {
                 ticket.setTicketStatus(ticketStatus);
 
             } else if(createTicketDTO.getTicketState() != null) {
-                return ResponseService.generateErrorResponse("Ticket State cannot be changed without status.", HttpStatus.FORBIDDEN);
+                throw new IllegalArgumentException("Ticket State cannot be changed without status.");
             }
 
             // TODO - Handled above
@@ -298,38 +300,38 @@ public class TicketStateService {
             if (createTicketDTO.getAssigneeRole() != null) {
                 Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
                 if (role == null)
-                    return ResponseService.generateErrorResponse("Invalid role id", HttpStatus.NOT_FOUND);
+                    throw new NotFoundException("Invalid role id");
                 else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)))
-                    return ResponseService.generateErrorResponse("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()), HttpStatus.NOT_FOUND);
+                    throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
                 if (createTicketDTO.getAssignee() != null) {
                     if (role.getRole_name().equals(Constant.roleServiceProvider)) {
                         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                         if (serviceProvider == null)
-                            return ResponseService.generateErrorResponse("Assignee not found", HttpStatus.NOT_FOUND);
+                            throw new NotFoundException("Assignee not found");
                     } else if (role.getRole_name().equals(Constant.roleAdmin)) {
                         CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, createTicketDTO.getAssignee());
                         if (customAdmin == null)
-                            return ResponseService.generateErrorResponse("Assignee not found", HttpStatus.NOT_FOUND);
+                            throw new NotFoundException("Assignee not found");
                     }
                     ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
-                    return ResponseService.generateErrorResponse("Assignee and role must be provided together.", HttpStatus.NOT_FOUND);
+                    throw new IllegalArgumentException("Assignee and role must be provided together.");
             }
 
             if (createTicketDTO.getAssigneeRole() == null && createTicketDTO.getAssignee() != null)
-                return ResponseService.generateErrorResponse("Assignee and role must be provided together.", HttpStatus.BAD_REQUEST);
+                throw new IllegalArgumentException("Assignee and role must be provided together.");
 
             if (createTicketDTO.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == 1) {
-                    return ResponseService.generateErrorResponse("Target Completion date cannot be in past", HttpStatus.BAD_REQUEST);
+                    throw new IllegalArgumentException("Target Completion date cannot be in past");
                 }
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == -1)
-                    return ResponseService.generateErrorResponse("Invalid Date-Time", HttpStatus.BAD_REQUEST);
+                    throw new IllegalArgumentException("Invalid Date-Time");
 
                 Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
                 if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
-                    return ResponseService.generateErrorResponse("Target Completion date must be between Product Open Date and Close Date.", HttpStatus.BAD_REQUEST);
+                    throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
                 }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
@@ -361,21 +363,20 @@ public class TicketStateService {
                 updateSpTicketAvailibility(ticket, ticketState, oldAssigneeId, newAssigneeId);
             }
 
-            entityManager.merge(ticket);
-            return ResponseService.generateSuccessResponse("Ticket Updated", ticket, HttpStatus.OK);
+            return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {
             exceptionHandlingService.handleException(persistenceException);
-            return ResponseService.generateErrorResponse("Cannot find valid result : " + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new PersistenceException("Cannot find valid result : " + persistenceException.getMessage());
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (NotFoundException notFoundException) {
             exceptionHandlingService.handleException(notFoundException);
-            return ResponseService.generateErrorResponse(notFoundException.getMessage(), HttpStatus.NOT_FOUND);
+            throw new NotFoundException(notFoundException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse("Error updating ticket :" + exception.getMessage(), HttpStatus.NOT_FOUND);
+            throw new Exception("Error updating ticket :" + exception.getMessage());
         }
     }
 

@@ -21,6 +21,8 @@ import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.mchange.rmi.NotAuthorizedException;
+import javassist.NotFoundException;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -270,7 +272,19 @@ public class TicketController {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
         try {
-            return ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+
+            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+            return ResponseService.generateSuccessResponse("Ticket Updated successfully", ticket, HttpStatus.OK);
+
+        } catch (NotFoundException notAuthorizedException) {
+            exceptionHandlingService.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandlingService.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.UNAUTHORIZED);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse("Error updating ticket state :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
