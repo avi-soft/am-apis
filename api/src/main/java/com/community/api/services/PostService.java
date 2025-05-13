@@ -888,7 +888,7 @@ public class PostService {
                 {
                     catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
                     catDist.setStateLevelCategory(catDto.getStateLevelCategory());
-                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 5L);
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 6L);
                     if (category == null) {
                         throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
                     }
