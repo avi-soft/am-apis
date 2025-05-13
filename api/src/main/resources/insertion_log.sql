@@ -1,5 +1,5 @@
---DO $$
---BEGIN
+DO $$
+BEGIN
 --    -- Check if there are no records in custom_zones
 --    IF (SELECT COUNT(*) FROM custom_zones) = 0 THEN
 --        -- Insert zones into custom_zones table
@@ -2069,6 +2069,13 @@
 --                (2, 'Whatsapp'),
 --                (3, 'SMS');
 --    END IF;
---
---END $$;
---
+
+        IF (SELECT COUNT(*) FROM custom_work_quality) = 0 THEN
+            INSERT INTO custom_work_quality (work_quality_id, work_quality, work_quality_description)
+            VALUES
+                (1, 'High', 'Work Done of High Efficiency'),
+                (2, 'Medium', 'Work Done of Medium Quality'),
+                (3, 'Low', 'Work Done of Low Quality');
+        END IF;
+
+END $$;

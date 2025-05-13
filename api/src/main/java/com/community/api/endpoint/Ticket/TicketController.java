@@ -210,7 +210,6 @@ public class TicketController {
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
                     ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status);
-
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
 

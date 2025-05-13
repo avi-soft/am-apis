@@ -287,51 +287,61 @@
 --
 --END $$;
 
+-- RAMAN 13-05-2025
 DO $$
 BEGIN
---  ADDING A NEW STATE IN THE CUSTOM_TICKET_STATE TABLE IN THE DB
-    IF NOT EXISTS (SELECT 1 FROM custom_ticket_state WHERE ticket_state_id = 7) THEN
-        INSERT INTO custom_ticket_state (ticket_state_id, ticket_state, ticket_state_description)
-        VALUES (7, 'SUPPORT', 'Support Required');
-    END IF;
+----  ADDING A NEW STATE IN THE CUSTOM_TICKET_STATE TABLE IN THE DB
+--    IF NOT EXISTS (SELECT 1 FROM custom_ticket_state WHERE ticket_state_id = 7) THEN
+--        INSERT INTO custom_ticket_state (ticket_state_id, ticket_state, ticket_state_description)
+--        VALUES (7, 'SUPPORT', 'Support Required');
+--    END IF;
+--
+---- ADDING A NEW STATUS IN THE CUSTOM_TICKET_STATUS TABLE IN THE DB
+--    IF NOT EXISTS (SELECT 1 FROM custom_ticket_status WHERE ticket_status_id = 14) THEN
+--        INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
+--        VALUES (14, 'In-Progress', 'Review ticket is in progress');
+--    END IF;
+--
+----    ADDING NEW LINKAGE WRT TO REVIEW TICKET
+--    IF NOT EXISTS (SELECT 1 FROM order_ticket_linkage WHERE linkage_id = 17) THEN
+--       INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
+--       VALUES  (16, 3, 1, 7, 13),
+--               (17, 3, 2, 1, 0),
+--               (18, 4, 2, 2, 0),
+--               (19, 6, 2, 2, 14),
+--               (20, 6, 2, 3, 3),
+--               (21, 6, 2, 3, 4),
+--               (22, 6, 2, 3, 13),
+--               (23, 6, 2, 5, 8),
+--               (24, 7, 2, 5, 9),
+--               (25, 7, 2, 6, 12),
+--               (26, 6, 2, 6, 13),
+--               (27, 6, 2, 7, 13);
+--    END IF;
+--
+----    ADDING THE NEW STATE LINKAGE FOR THE REVIEW TICKET.
+--    IF NOT EXISTS (SELECT 1 FROM ticket_state_linkage WHERE ticket_state_linkage_id = 12) THEN
+--           INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
+--           VALUES
+--                   (12, 2, 1, 2, 4),
+--                   (13, 2, 1, 6, 4),
+--                   (14, 2, 2, 3, 4),
+--                   (15, 2, 2, 5, 4),
+--                   (16, 2, 2, 7, 4),
+--                   (17, 2, 3, 2, 4),
+--                  (18, 2, 6, 1, 2),
+--                  (19, 2, 7, 2, 2),
+--                  (20, 2, 7, 5, 2),
+--                  (21, 2, 3, 5, 2);
+--    END IF;
 
--- ADDING A NEW STATUS IN THE CUSTOM_TICKET_STATUS TABLE IN THE DB
-    IF NOT EXISTS (SELECT 1 FROM custom_ticket_status WHERE ticket_status_id = 14) THEN
-        INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
-        VALUES (14, 'In-Progress', 'Review ticket is in progress');
-    END IF;
-
---    ADDING NEW LINKAGE WRT TO REVIEW TICKET
-    IF NOT EXISTS (SELECT 1 FROM order_ticket_linkage WHERE linkage_id = 17) THEN
-       INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
-       VALUES  (16, 3, 1, 7, 13),
-               (17, 3, 2, 1, 0),
-               (18, 4, 2, 2, 0),
-               (19, 6, 2, 2, 14),
-               (20, 6, 2, 3, 3),
-               (21, 6, 2, 3, 4),
-               (22, 6, 2, 3, 13),
-               (23, 6, 2, 5, 8),
-               (24, 7, 2, 5, 9),
-               (25, 7, 2, 6, 12),
-               (26, 6, 2, 6, 13),
-               (27, 6, 2, 7, 13);
-    END IF;
 
 --    ADDING THE NEW STATE LINKAGE FOR THE REVIEW TICKET.
-    IF NOT EXISTS (SELECT 1 FROM ticket_state_linkage WHERE ticket_state_linkage_id = 12) THEN
-           INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
+    IF NOT EXISTS (SELECT 1 FROM custom_ticket_status WHERE ticket_status_id = 15) THEN
+           INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
            VALUES
-                   (12, 2, 1, 2, 4),
-                   (13, 2, 1, 6, 4),
-                   (14, 2, 2, 3, 4),
-                   (15, 2, 2, 5, 4),
-                   (16, 2, 2, 7, 4),
-                   (17, 2, 3, 2, 4),
-                  (18, 2, 6, 1, 2),
-                  (19, 2, 7, 2, 2),
-                  (20, 2, 7, 5, 2),
-                  (21, 2, 3, 5, 2);
+                   (15, 'CLOSE', 'Ticket is closed.');
     END IF;
+
 END $$;
 

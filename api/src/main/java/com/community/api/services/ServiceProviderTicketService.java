@@ -20,6 +20,7 @@ import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -57,6 +58,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ServiceProviderTicketService {
     private static final Logger logger = LoggerFactory.getLogger(ServiceProviderTicketService.class);
@@ -66,7 +68,6 @@ public class ServiceProviderTicketService {
 
     @Autowired
     OrderStateRefService orderStateRefService;
-
 
     @Autowired
     CustomOrderService customOrderService;
@@ -136,7 +137,6 @@ public class ServiceProviderTicketService {
         }
     }
 
-
     public List<Long> getAssignedTickets() throws IOException {
         List<Long> ticketList = new ArrayList<>();
         String scriptPathForAutoAssigner = "auto_assigner.sql";
@@ -162,7 +162,7 @@ public class ServiceProviderTicketService {
                     Matcher matcher = pattern.matcher(message);
                     if (matcher.find()) {
                         String assignedTicketsValue = matcher.group(1);
-                        System.out.println("Assigned Tickets Value: " + assignedTicketsValue);
+                        logger.info("Assigned Tickets Value: " + assignedTicketsValue);
 
                         // Check if the value is an array (in curly braces)
                         if (assignedTicketsValue.startsWith("{") && assignedTicketsValue.endsWith("}")) {
@@ -175,10 +175,10 @@ public class ServiceProviderTicketService {
                                     ticketList.add(Long.parseLong(ticketId.trim()));
                                 } catch (NumberFormatException e) {
                                     // Handle the case where a value is not a valid Long
-                                    System.err.println("Invalid ticket ID: " + ticketId);
+                                    logger.error("Invalid ticket ID: " + ticketId);
                                 }
                             }
-                            System.out.println("Converted ticket IDs to List<Long>: " + ticketList);
+                            logger.info("Converted ticket IDs to List<Long>: " + ticketList);
                         }
                     }
 
@@ -195,13 +195,6 @@ public class ServiceProviderTicketService {
         // Now that the callback has completed, return the populated ticketList
         return ticketList;
     }
-
-
-
-
-
-
-
 
     public List<CustomTicketWrapper> autoAssigner() throws Exception {
         try {
@@ -236,7 +229,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
-            System.out.println("size"+customOrders.size());
+            logger.info("size"+customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -752,19 +745,17 @@ public class ServiceProviderTicketService {
             logger.info("Service Provider in rank2c: " + rank2c.size());
             logger.info("Service Provider in rank2d: " + rank2d.size());
 
-            /*
 
-            // For debugging purposes
+            /*// For debugging purposes
             Iterator<ServiceProviderEntity> iterator2 = rank1d.iterator();
             while (!rank1d.isEmpty()) {
                 ServiceProviderEntity serviceProvider = rank1d.poll();
-                System.out.println("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
+                logger.info("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
                 double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
-                System.out.println("BANDWDTH : " + bandwidth );
-                System.out.println(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
-            }
+                logger.info("BANDWDTH : " + bandwidth );
+                logger.info(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
+            }*/
 
-            */
 
             // Iterator for traversing orders.
             while (iterator.hasNext()) {
