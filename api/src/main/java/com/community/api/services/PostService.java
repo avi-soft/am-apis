@@ -884,12 +884,28 @@ public class PostService {
                 CategoryDistribution catDist = new CategoryDistribution();
                 catDist.setGenderWiseDistribution(genderDist);
 
-                CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
-                if (category == null) {
-                    throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
+                if(catDto.getIsStateLevelCategory().equals(true))
+                {
+                    catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
+                    catDist.setStateLevelCategory(catDto.getStateLevelCategory());
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 5L);
+                    if (category == null) {
+                        throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
+                    }
+                    if(category.getReserveCategoryName().equalsIgnoreCase("Others"))
+                    {
+                        catDist.setCategory(category);
+                    }
+                }
+                else {
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
+                    if (category == null) {
+                        throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
+                    }
+                    catDist.setIsStateLevelCategory(false);
+                    catDist.setCategory(category);
                 }
 
-                catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
 
                 entityManager.persist(catDist);
