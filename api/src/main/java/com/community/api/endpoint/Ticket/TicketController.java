@@ -9,6 +9,9 @@ import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketState;
+import com.community.api.entity.CustomTicketStatus;
+import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Role;
 import com.community.api.services.CustomerAddressFetcher;
@@ -291,17 +294,25 @@ public class TicketController {
         }
     }
 
-    /*@Transactional
+    @Transactional
     @PostMapping("/add")
     public ResponseEntity<?> createTicket(@RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
+
+            Role role = roleService.getRoleByRoleId(roleId);
+
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
 
             if (createTicketDto.getTicketState() == null || createTicketDto.getTicketState() <= 0) {
                 ResponseService.generateErrorResponse("TICKET STATE CANNOT BE NULL OR <= 0", HttpStatus.NOT_FOUND);
             }
-            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L);
+
             if (ticketState == null) {
                 ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
             }
@@ -312,9 +323,13 @@ public class TicketController {
                     ResponseService.generateErrorResponse("TICKET TYPE CANNOT BE <= 0", HttpStatus.NOT_FOUND);
                 }
             }
+
             CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
             if (ticketType == null) {
                 ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+            }
+            if(!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
             }
             customServiceProviderTicket.setTicketType(ticketType);
 
@@ -326,6 +341,7 @@ public class TicketController {
                 if (ticketStatus == null) {
                     ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
+                ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
 
@@ -333,25 +349,20 @@ public class TicketController {
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
 
-            if(createTicketDto.getTargetCompletionDate()!= null) {
+            if(createTicketDto.getTargetCompletionDate() != null) {
                 dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
                 if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
                     ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                 }
-            }else{
-                Calendar calendar = Calendar.getInstance();
-                calendar.setTime(createdDate);
-                calendar.add(Calendar.HOUR_OF_DAY, 4);
-                Date newTargetDate = calendar.getTime();
-
-                createTicketDto.setTargetCompletionDate(newTargetDate);
+            } else {
+                ResponseService.generateErrorResponse("TARGET COMPLETION DATE CANNOT BE NULL", HttpStatus.NOT_FOUND);
             }
 
             customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
 
-            Long creatorUserId = productService.getUserIdByToken(authHeader);
-            customServiceProviderTicket.setUserId(creatorUserId);
+            customServiceProviderTicket.setUserId(userId);
+            customServiceProviderTicket.setCreatorRole(role);
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket,HttpStatus.OK);
@@ -364,5 +375,5 @@ public class TicketController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-    }*/
+    }
 }

@@ -39,6 +39,9 @@ public class CreateTicketDto {
     @JsonProperty("comment")
     private String comment;
 
+    @JsonProperty("title")
+    private String title;
+
     @JsonProperty("task")
     private String task;
 

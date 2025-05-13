@@ -103,6 +103,10 @@ public class CustomServiceProviderTicket {
     @JsonProperty("comment")
     private String comment;
 
+    @Column(name = "title")
+    @JsonProperty("title")
+    private String title;
+
     @Column(name = "task_desc")
     @JsonProperty("task_desc")
     private String desc;
