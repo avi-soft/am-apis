@@ -156,43 +156,53 @@ BEGIN
 --
 --END IF;
 --
---IF (SELECT COUNT(*) FROM ticket_state_linkage) = 0 THEN
---    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
---    VALUES
-----        PRIMARY TICKET
-----        (SP)
---        (1, 1, 1, 2, 4),
---        (2, 1, 1, 6, 4),
---        (3, 1, 2, 3, 4),
---        (4, 1, 2, 4, 4),
---        (5, 1, 2, 5, 4),
---        (6, 1, 2, 7, 4),
---        (7, 1, 3, 2, 4),
-----        (ADMIN)
---        (8, 1, 3, 5, 2),
---        (9, 1, 7, 5, 2),
---        (10, 1, 7, 2, 2),
---        (11, 1, 6, 1, 2);
---
-----        REVIEW TICKET
-----        (SP)
---        (12, 2, 1, 2, 4),
---        (13, 2, 1, 6, 4),
---        (14, 2, 2, 3, 4),
---        (15, 2, 2, 5, 4),
---        (16, 2, 2, 7, 4),
---        (17, 2, 3, 2, 4),
-----        (ADMIN)
---       (18, 2, 6, 1, 2),
---       (19, 2, 7, 2, 2),
---       (20, 2, 7, 5, 2),
---       (21, 2, 3, 5, 2),
---
-----        MISCELLANEOUS TICKET
-----        (SP)
---
-----        (ADMIN)
---END IF;
+IF (SELECT COUNT(*) FROM ticket_state_linkage) = 21 THEN
+    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
+    VALUES
+--        PRIMARY TICKET
+--        (SP)
+        (1, 1, 1, 2, 4),
+        (2, 1, 1, 6, 4),
+        (3, 1, 2, 3, 4),
+        (4, 1, 2, 4, 4),
+        (5, 1, 2, 5, 4),
+        (6, 1, 2, 7, 4),
+        (7, 1, 3, 2, 4),
+--        (ADMIN)
+        (8, 1, 3, 5, 2),
+        (9, 1, 7, 5, 2),
+        (10, 1, 7, 2, 2),
+        (11, 1, 6, 1, 2),
+
+--        REVIEW TICKET
+--        (SP)
+        (12, 2, 1, 2, 4),
+        (13, 2, 1, 6, 4),
+        (14, 2, 2, 3, 4),
+        (15, 2, 2, 5, 4),
+        (16, 2, 2, 7, 4),
+        (17, 2, 3, 2, 4),
+--        (ADMIN)
+       (18, 2, 6, 1, 2),
+       (19, 2, 7, 2, 2),
+       (20, 2, 7, 5, 2),
+       (21, 2, 3, 5, 2),
+
+--        MISCELLANEOUS TICKET
+--        (SP)
+            (22, 3, 1, 2, 4),
+            (23, 3, 1, 6, 4),
+            (24, 3, 2, 3, 4),
+            (25, 3, 2, 4, 4),
+            (26, 3, 2, 5, 4),
+            (27, 3, 2, 7, 4),
+            (28, 3, 3, 2, 4),
+--        (ADMIN)
+            (29, 3, 3, 5, 2),
+            (30, 3, 7, 5, 2),
+            (31, 3, 7, 2, 2),
+            (32, 3, 6, 1, 2);
+END IF;
 --
 --IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
 --    INSERT INTO custom_order_status (order_status_id, order_status_name, order_state_id, order_status_description)
@@ -2070,12 +2080,12 @@ BEGIN
 --                (3, 'SMS');
 --    END IF;
 
-        IF (SELECT COUNT(*) FROM custom_work_quality) = 0 THEN
-            INSERT INTO custom_work_quality (work_quality_id, work_quality, work_quality_description)
-            VALUES
-                (1, 'High', 'Work Done of High Efficiency'),
-                (2, 'Medium', 'Work Done of Medium Quality'),
-                (3, 'Low', 'Work Done of Low Quality');
-        END IF;
+--        IF (SELECT COUNT(*) FROM custom_work_quality) = 0 THEN
+--            INSERT INTO custom_work_quality (work_quality_id, work_quality, work_quality_description)
+--            VALUES
+--                (1, 'High', 'Work Done of High Efficiency'),
+--                (2, 'Medium', 'Work Done of Medium Quality'),
+--                (3, 'Low', 'Work Done of Low Quality');
+--        END IF;
 
 END $$;
