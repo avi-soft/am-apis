@@ -363,7 +363,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
-            businessKeys.add("registration_number");
+//            businessKeys.add("registration_number");
             businessKeys.add("latitude");
             businessKeys.add("longitude");
 
@@ -498,8 +498,44 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            if(updates.containsKey("isCFormAvailable"))
-                existingServiceProvider.setIsCFormAvailable((Boolean)updates.get("isCFormAvailable"));
+            if(updates.containsKey("isCFormAvailable")) {
+                existingServiceProvider.setIsCFormAvailable((Boolean) updates.get("isCFormAvailable"));
+                if(((Boolean) updates.get("isCFormAvailable")) && updates.containsKey("registration_number"))
+                {
+                    if (updates.get("registration_number") != null
+                            && !((String) updates.get("registration_number")).trim().isEmpty()){
+                        existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
+                    }
+                    else
+                        return ResponseService.generateErrorResponse("Registration Number can not be empty or null", HttpStatus.BAD_REQUEST);
+
+
+                }
+                else {
+                    existingServiceProvider.setRegistration_number(null);
+                    if (updates.get("registration_number") != null
+                            && !((String) updates.get("registration_number")).trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Registration Number can not be added if C-Form is unavailable", HttpStatus.BAD_REQUEST);
+                    }
+                }
+
+            }else
+            {
+                if(updates.containsKey("registration_number"))
+                {
+                    return ResponseService.generateErrorResponse("Registration Number can not be added if C-Form is unavailable", HttpStatus.BAD_REQUEST);
+                }
+            }
+
+            updates.remove("isCFormAvailable");
+            updates.remove("registration_number");
+
+
+
+
+
+
+
             if (!infraList.isEmpty()) {
                 for (int infra_id : infraList) {
                     ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);

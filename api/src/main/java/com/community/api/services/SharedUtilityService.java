@@ -327,6 +327,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedByRole",customCustomer.getArchivedByRole());
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
+            customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -609,6 +610,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
             customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
             customerDetailsForDesktop.put("profileComplete",customCustomer.getProfileComplete());
+            customerDetailsForDesktop.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
 
             Map<String, String> currentAddress = new HashMap<>();
             Map<String, String> permanentAddress = new HashMap<>();

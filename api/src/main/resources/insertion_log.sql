@@ -176,7 +176,8 @@ IF (SELECT COUNT(*) FROM custom_reserve_category) = 0 THEN
         (4, 'OBC', 'Other Backward Caste', false,3),
         (5, 'OTHERS', 'Others', false,1000),
         (6, 'EWS', 'Economically Weaker Section', false,4),
-		(7, 'N/A', 'None of the above', false,999);
+		(7, 'N/A', 'All', false,999)
+		(0, 'NOT_APPLICABLE', 'Reserve category not applicable', false, 1000011);
 END IF;
 
 IF (SELECT COUNT(*) FROM custom_product_rejection_status) = 0 THEN
@@ -1426,7 +1427,8 @@ IF (SELECT COUNT(*) FROM custom_service_provider_address_ref) = 0 THEN
         (1, 'OFFICE_ADDRESS'),
         (2, 'CURRENT_ADDRESS'),
         (3, 'BILLING_ADDRESS'),
-        (4, 'MAILING_ADDRESS');
+        (4, 'MAILING_ADDRESS')
+        (5, 'PERMANENT_ADDRESS');
 END IF;
 
 -- For custom_service_provider_language table

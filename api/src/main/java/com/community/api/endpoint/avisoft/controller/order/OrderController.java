@@ -38,6 +38,7 @@ import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,10 +54,8 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 
 @RequestMapping(value = "/orders",
@@ -100,47 +99,140 @@ public class OrderController {
         this.entityManager = entityManager;
     }
 
+//    @Transactional
+//    @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
+//    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit) {
+//        try {
+//            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+//            if (customCustomer == null)
+//                throw new NotFoundException("Customer with the provided Id not found");
+//            if (customCustomer.getNumberOfOrders() == 0)
+//                return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);
+//            // Validate parameters first
+//            if (offset < 0) {
+//                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
+//            }
+//            if (limit <= 0) {
+//                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
+//            }
+//
+//            BigInteger totalItems;
+//            BigInteger totalPages;
+//            String orderNumber = "O-" + customerId + "%";
+//            Query countQuery = entityManager.createNativeQuery(
+//                    "SELECT COUNT(*) FROM blc_order o WHERE o.order_number LIKE :orderNumber and tax_override is null");
+//            countQuery.setParameter("orderNumber", orderNumber);
+//            totalItems = (BigInteger) countQuery.getSingleResult();
+//            totalPages = BigInteger.valueOf((int) Math.ceil((double) totalItems.intValue() / limit));
+//
+//            if (offset >= totalPages.intValue() && offset != 0) {
+//                return ResponseService.generateErrorResponse("No Orders Available", HttpStatus.BAD_REQUEST);
+//            }
+//
+//
+//            int startPosition = offset * limit;
+//            String queryString = Constant.GET_ORDERS_USING_CUSTOMER_ID;
+//            if (sort.equals("latest-to-oldest"))
+//                queryString = queryString + " ORDER BY order_id DESC";
+//            Query query = entityManager.createNativeQuery(queryString);
+//            query.setFirstResult(startPosition);
+//            query.setMaxResults(limit);
+//            query.setParameter("orderNumber", orderNumber);
+//            List<BigInteger> orders = query.getResultList();
+//            return generateCombinedDTO(authHeader, orders, sort, totalItems.intValue(), totalPages.intValue(), offset);
+//        } catch (NotFoundException e) {
+//            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+//        } catch (Exception e) {
+//            exceptionHandling.handleException(e);
+//            return ResponseService.generateErrorResponse("Error fetching order list", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
+
+
+
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getOrderHistory(
+            @RequestHeader(value = "Authorization") String authHeader,
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "oldest-to-latest") String sort,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
+            @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom) {
+
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
                 throw new NotFoundException("Customer with the provided Id not found");
+
             if (customCustomer.getNumberOfOrders() == 0)
                 return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);
-            // Validate parameters first
-            if (offset < 0) {
-                return ResponseService.generateErrorResponse("Offset for pagination cannot be a negative number", HttpStatus.BAD_REQUEST);
-            }
-            if (limit <= 0) {
-                return ResponseService.generateErrorResponse("Limit for pagination cannot be a negative number or 0", HttpStatus.BAD_REQUEST);
+
+            if (offset < 0 || limit <= 0) {
+                return ResponseService.generateErrorResponse("Offset or Limit invalid", HttpStatus.BAD_REQUEST);
             }
 
-            BigInteger totalItems;
-            BigInteger totalPages;
-            String orderNumber = "O-" + customerId + "%";
-            Query countQuery = entityManager.createNativeQuery(
-                    "SELECT COUNT(*) FROM blc_order o WHERE o.order_number LIKE :orderNumber and tax_override is null");
-            countQuery.setParameter("orderNumber", orderNumber);
-            totalItems = (BigInteger) countQuery.getSingleResult();
-            totalPages = BigInteger.valueOf((int) Math.ceil((double) totalItems.intValue() / limit));
+            // Build where clause dynamically
+            String baseWhereClause = "WHERE o.order_number LIKE :orderNumber AND o.tax_override IS NULL";
+            if (dateFrom != null && dateTo != null) {
+                baseWhereClause += " AND CAST(o.submit_date AS DATE) BETWEEN :dateFrom AND :dateTo";
+            } else if (dateFrom != null) {
+                baseWhereClause += " AND CAST(o.submit_date AS DATE) >= :dateFrom";
+            } else if (dateTo != null) {
+                baseWhereClause += " AND CAST(o.submit_date AS DATE) <= :dateTo";
+            }
+
+            // Count query
+            String countQueryStr = "SELECT COUNT(*) FROM blc_order o " + baseWhereClause;
+            Query countQuery = entityManager.createNativeQuery(countQueryStr);
+            countQuery.setParameter("orderNumber", "O-" + customerId + "%");
+            if (dateFrom != null) {
+                countQuery.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
+            }
+            if (dateTo != null) {
+                countQuery.setParameter("dateTo", new java.sql.Date(dateTo.getTime()));
+            }
+
+            BigInteger totalItems = (BigInteger) countQuery.getSingleResult();
+            BigInteger totalPages = BigInteger.valueOf((int) Math.ceil((double) totalItems.intValue() / limit));
 
             if (offset >= totalPages.intValue() && offset != 0) {
                 return ResponseService.generateErrorResponse("No Orders Available", HttpStatus.BAD_REQUEST);
             }
 
+            // Data query
+            String queryStr = Constant.GET_ORDERS_USING_CUSTOMER_ID;
 
-            int startPosition = offset * limit;
-            String queryString = Constant.GET_ORDERS_USING_CUSTOMER_ID;
-            if (sort.equals("latest-to-oldest"))
-                queryString = queryString + " ORDER BY order_id DESC";
-            Query query = entityManager.createNativeQuery(queryString);
-            query.setFirstResult(startPosition);
+            if (dateFrom != null && dateTo != null) {
+                queryStr += " AND CAST(o.submit_date AS DATE) BETWEEN :dateFrom AND :dateTo";
+            } else if (dateFrom != null) {
+                queryStr += " AND CAST(o.submit_date AS DATE) >= :dateFrom";
+            } else if (dateTo != null) {
+                queryStr += " AND CAST(o.submit_date AS DATE) <= :dateTo";
+            }
+
+            if (sort.equals("latest-to-oldest")) {
+                queryStr += " ORDER BY o.order_id DESC";
+            }
+
+            Query query = entityManager.createNativeQuery(queryStr);
+            query.setFirstResult(offset * limit);
             query.setMaxResults(limit);
-            query.setParameter("orderNumber", orderNumber);
+            query.setParameter("orderNumber", "O-" + customerId + "%");
+
+            if (dateFrom != null) {
+                query.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
+            }
+            if (dateTo != null) {
+                query.setParameter("dateTo", new java.sql.Date(dateTo.getTime()));
+            }
+
             List<BigInteger> orders = query.getResultList();
             return generateCombinedDTO(authHeader, orders, sort, totalItems.intValue(), totalPages.intValue(), offset);
+
         } catch (NotFoundException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
@@ -148,6 +240,7 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Error fetching order list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
