@@ -40,8 +40,14 @@ public class CategoryDistribution {
     private StateDistribution stateDistribution;
 
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id")
     private CustomReserveCategory category;
+
+    @Column(name = "isStateLevelCategory",columnDefinition = "BOOLEAN DEFAULT FALSE" )
+    private Boolean isStateLevelCategory;
+
+    @Column(name = "stateLevelCategory" )
+    private String stateLevelCategory;
 
     @Column(name = "vacancies", nullable = false)
     private Integer categoryVacancies;

@@ -538,10 +538,12 @@ public class OrderController {
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
     public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
+
+            String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
             query.setParameter("orderId", orderId);
             if (createTicketDto.getTicketType() == 1L) {

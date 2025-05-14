@@ -131,6 +131,11 @@ public class ProductService {
                 sql.append(", application_scope_id");
                 values.append(", :applicationScope");
             }
+            if(addProductDto.getFeeAdditionalComments()!=null)
+            {
+                sql.append(", fee_additional_comments");
+                values.append(", :feeComments");
+            }
             if (addProductDto.getAdditionalComments() != null) {
                 sql.append(", additional_comments");
                 values.append(", :additionalComments");
@@ -276,7 +281,10 @@ public class ProductService {
             if (addProductDto.getAdditionalComments() != null) {
                 query.setParameter("additionalComments", addProductDto.getAdditionalComments());
             }
-
+            if(addProductDto.getFeeAdditionalComments()!=null)
+            {
+                query.setParameter("feeComments",addProductDto.getFeeAdditionalComments());
+            }
             if (addProductDto.getExamDateFrom() != null) {
                 query.setParameter("examDateFrom", new Timestamp(addProductDto.getExamDateFrom().getTime()));
             }
@@ -655,7 +663,6 @@ public class ProductService {
             }
             int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
-            System.out.println(jpql.toString());
              response.put("products",query.getResultList());
             // Execute and return the result
             return response;
@@ -1300,7 +1307,6 @@ public class ProductService {
             Date maxBornBeforeDate = calendar.getTime();
 
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
-                System.out.println("Validating, no of post are"+addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost());
                 if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()){
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
@@ -2225,7 +2231,6 @@ public class ProductService {
 
         // Validation against exam dates
         if (addProductDto.getExamDateFrom() != null) {
-            System.out.println("*****1");
             if(addProductDto.getAdmitCardDateTo()!=null)
             {
                 if (!addProductDto.getAdmitCardDateTo().before(addProductDto.getExamDateFrom())) {
@@ -2234,7 +2239,6 @@ public class ProductService {
             }
 
         } else if (customProduct.getExamDateFrom() != null) {
-            System.out.println("*****2");
             if(addProductDto.getAdmitCardDateTo()!=null) {
                 if (!addProductDto.getAdmitCardDateTo().before(customProduct.getExamDateFrom())) {
                     throw new IllegalArgumentException("Admit card date to must be before or equal of exam date from.");
@@ -3419,7 +3423,6 @@ public class ProductService {
         if (stateDistributions == null || stateDistributions.isEmpty()) {
             throw new IllegalArgumentException("State distributions are required");
         }
-
         long totalStateVacancies = 0;
         for (StateDistributionDto state : stateDistributions) {
             long stateVacancies = validateStateDistribution(state);
@@ -3431,6 +3434,8 @@ public class ProductService {
                     String.format("Total state vacancies (%d) must equal post total vacancies (%d)",
                             totalStateVacancies, postTotalVacancies));
         }
+        if(totalStateVacancies<0)
+            throw new IllegalArgumentException("Total state vacancies cannot be < 0");
     }
 
     private long validateStateDistribution(StateDistributionDto state) {
@@ -3642,7 +3647,36 @@ public class ProductService {
         if (zone.getDivisionDistributions() == null || zone.getDivisionDistributions().isEmpty()) {
             throw new IllegalArgumentException("Division distributions are required when isDivisionDistribution is true");
         }
-
+        if(!zone.getDivisionDistributions().isEmpty()) {
+            long sum=0;
+            for (DivisionDistributionDto divisionDistributionDto : zone.getDivisionDistributions()) {
+               sum=sum+divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy();
+               if(!divisionDistributionDto.getCategoryDistributions().isEmpty())
+               {
+                   int sumOfCat=0;
+                   for(DivisionCategoryDistributionDto cat:divisionDistributionDto.getCategoryDistributions())
+                   {
+                       if((cat.getMaleVacancy()!=null||cat.getFemaleVacancy()!=null)&&cat.getTotalVacancy()==null)
+                           throw new IllegalArgumentException("Need to provide total vacancy for category");
+                       if(cat.getFemaleVacancy()==null)
+                           cat.setFemaleVacancy(0L);
+                       else if(cat.getMaleVacancy()==null)
+                           cat.setMaleVacancy(0L);
+                       if(cat.getMaleVacancy()<0)
+                           throw new IllegalArgumentException("Male vacancy cannot be < 0");
+                       if(cat.getFemaleVacancy()<0)
+                           throw new IllegalArgumentException("Female vacancy cannot be < 0");
+                       if(cat.getTotalVacancy()<0)
+                           throw new IllegalArgumentException("Total vacancy cannot be < 0");
+                       sumOfCat+=cat.getMaleVacancy()+cat.getFemaleVacancy();
+                   }
+                   if(sumOfCat!=divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy())
+                       throw new IllegalArgumentException("Category male and female vacancy should be equal to total vacancy of that division");
+               }
+            }
+            if(sum!=zone.getTotalVacanciesInZone())
+                throw new IllegalArgumentException("Combined sum of division male and female vacancy distribution is not equal to total zone vacancy");
+        }
         long totalDivisionVacancies = 0;
         for (DivisionDistributionDto division : zone.getDivisionDistributions()) {
             long divisionVacancies = validateDivisionDistribution(division);
@@ -3757,12 +3791,27 @@ public class ProductService {
             if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
                 throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
             }
+            if(categoryDistribution.getIsStateLevelCategory()==null)
+            {
+                throw new IllegalArgumentException("isStateLevelCategory cannot be null");
+            }
+            if(categoryDistribution.getIsStateLevelCategory().equals(true))
+            {
+                if(categoryDistribution.getStateLevelCategory()==null || categoryDistribution.getStateLevelCategory().trim().isEmpty())
+                {
+                    throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
+                }
+            }
             if(categoryDistribution.getMaleVacancy()<0)
                 throw new IllegalArgumentException("Male vacancies cannot be <0");
             else if(categoryDistribution.getFemaleVacancy()<0)
                 throw new IllegalArgumentException("Female vacancies cannot be <0");
             if(categoryDistribution.getTotalVacancy()<0)
                 throw new IllegalArgumentException("Total vacancies cannot be <0");
+            if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+            {
+                throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
+            }
             if(categoryDistribution.getTotalVacancy()!=categoryDistribution.getMaleVacancy()+categoryDistribution.getFemaleVacancy())
                 throw new IllegalArgumentException("Total vacancies is not equal to sum of male vacancies and female vacancies");
         }
@@ -3784,13 +3833,27 @@ public class ProductService {
         for (StateDistributionDto stateDistribution : postDto.getStateDistributions()) {
             validateDistrictStateRelationship(stateDistribution);
             long sum = 0;
+            long f=0;
+            long m=0;
             if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
-                    sum = sum + categoryDistributionDto.getTotalVacancy();
-                    if (sum != categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
+                    if(categoryDistributionDto.getMaleVacancy()==null)
+                        throw new IllegalArgumentException("Male vacancy is not given");
+                    if(categoryDistributionDto.getFemaleVacancy()==null)
+                        throw new IllegalArgumentException("Female vacancy is not given");
+                    if(categoryDistributionDto.getTotalVacancy()==null)
+                        throw new IllegalArgumentException("Total vacancy is not given");
+                    sum+=categoryDistributionDto.getTotalVacancy();
+                    f+=categoryDistributionDto.getFemaleVacancy();
+                    m+=categoryDistributionDto.getMaleVacancy();
+                    if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
                         throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
                     }
                 }
+                if(f!=stateDistribution.getFemaleVacancy())
+                    throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
+                if(m!=stateDistribution.getMaleVacancy())
+                    throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
                 if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
                     throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
             }
@@ -3812,6 +3875,12 @@ public class ProductService {
         }
         for (ZoneDistributionDto zoneDistribution : postDto.getZoneDistributions()) {
             validateZoneDistributionRelationship(zoneDistribution);
+            if(zoneDistribution.getFemaleVacancy()!=null&&zoneDistribution.getFemaleVacancy()<0)
+                throw new IllegalArgumentException("Female vacancy in zone cannot be < 0");
+            if(zoneDistribution.getMaleVacancy()!=null&&zoneDistribution.getMaleVacancy()<0)
+                throw new IllegalArgumentException("Male vacancy in zone cannot be < 0");
+            if(zoneDistribution.getTotalVacanciesInZone()!=null&&zoneDistribution.getTotalVacanciesInZone()<0)
+                throw new IllegalArgumentException("Total vacancy in zone cannot be < 0");
         }
     }
 

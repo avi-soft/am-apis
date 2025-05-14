@@ -431,24 +431,34 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setAssigneeRole(role);
             customServiceProviderTicket.setAssignee(assignedUserTo);
 
+            CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
-                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
             }
 
+            CustomTicketType ticketType = null;
             if (createTicketDto.getTicketType() != null) {
-                CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 customServiceProviderTicket.setTicketType(ticketType);
             } else {
                 throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
             }
 
+            CustomTicketStatus ticketStatus = null;
             if (createTicketDto.getTicketStatus() != null) {
-                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                customServiceProviderTicket.setTicketStatus(ticketStatus);
+            } else {
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
+            if(ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType)==null) {
+                throw new IllegalArgumentException("Cannot create with this state and status simultaneously (Not a linkage)");
+            }
+
             if(createTicketDto.getAssigneeRole()==4)
             {
                 ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
@@ -457,6 +467,98 @@ public class ServiceProviderTicketService {
             }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    // TODO - clean this function (@RAMAN)
+    @Transactional
+    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket) throws Exception {
+        try {
+
+            CustomServiceProviderTicket reviewTicket = new CustomServiceProviderTicket();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+            String formattedDate = dateFormat.format(new Date());
+            Date createdDate = dateFormat.parse(formattedDate);
+
+            /*// If target date is provided then it's fine else we give 4 hours to complete the ticket.
+            if (createTicketDto.getTargetCompletionDate() != null && !(createTicketDto.getTargetCompletionDate().after(new Date()))) {
+                ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
+            } else {
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(createdDate);
+                calendar.add(Calendar.HOUR_OF_DAY, 4);
+                Date newTargetDate = calendar.getTime();
+
+                createTicketDto.setTargetCompletionDate(newTargetDate);
+            }*/
+
+            // Setting up the dates
+            reviewTicket.setCreatedDate(createdDate);
+//            customServiceProviderTicket.setTicketAssignDate(createdDate);
+            reviewTicket.setModifiedDate(createdDate);
+//            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
+
+            reviewTicket.setParentTicket(parentTicket);
+
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L); // Sate (to-do)
+            CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // Status with state linkage (to-do)
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L); // Review Ticket
+
+            reviewTicket.setTicketState(ticketState);
+            reviewTicket.setTicketStatus(ticketStatus);
+            reviewTicket.setTicketType(ticketType);
+
+//            if (creatorId != null && creatorRoleId != null) {
+//                customServiceProviderTicket.setCreatorRole(roleService.getRoleByRoleId(creatorRoleId));
+//                customServiceProviderTicket.setUserId(creatorId);
+//            }
+
+//            Role role = roleService.getRoleByRoleId(assignedRoleId);
+//            customServiceProviderTicket.setAssigneeRole(role);
+//            customServiceProviderTicket.setAssignee(assignedUserTo);
+
+//            CustomTicketState ticketState = null;
+//            if (createTicketDto.getTicketState() != null) {
+//                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+//                customServiceProviderTicket.setTicketState(ticketState);
+//            } else {
+//                throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
+//            }
+
+//            CustomTicketType ticketType = null;
+//            if (createTicketDto.getTicketType() != null) {
+//                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+//                customServiceProviderTicket.setTicketType(ticketType);
+//            } else {
+//                throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
+//            }
+
+//            CustomTicketStatus ticketStatus = null;
+//            if (createTicketDto.getTicketStatus() != null) {
+//                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+//                customServiceProviderTicket.setTicketStatus(ticketStatus);
+//            } else {
+//                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
+//                customServiceProviderTicket.setTicketStatus(ticketStatus);
+//            }
+//            if(ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType)==null) {
+//                throw new IllegalArgumentException("Cannot create with this state and status simultaneously (Not a linkage)");
+//            }
+
+//            if(createTicketDto.getAssigneeRole()==4)
+//            {
+//                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
+//                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+//                entityManager.merge(serviceProvider);
+//            }
+            reviewTicket = entityManager.merge(reviewTicket);
+            return reviewTicket;
 
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
@@ -740,7 +842,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses,List<Long> assigneeUserIds) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -793,6 +895,10 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
             }
 
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                jpql.append("AND c.assignee IN :assigneeUserIds ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -808,6 +914,10 @@ public class ServiceProviderTicketService {
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                query.setParameter("assigneeUserIds", assigneeUserIds);
+            }
+
             if (dateFrom != null ) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);

@@ -97,19 +97,18 @@ public class TicketController {
     @Transactional
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
-        try{
-           List<Long>resultList=serviceProviderTicketService.getAssignedTickets();
-           List<CombinedOrderDTO>orderDTO=new ArrayList<>();
-            for(Long id :resultList)
-            {
-                CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,id);
+        try {
+            List<Long> resultList = serviceProviderTicketService.getAssignedTickets();
+            List<CombinedOrderDTO> orderDTO = new ArrayList<>();
+            for (Long id : resultList) {
+                CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, id);
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-                OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
-               CombinedOrderDTO combinedOrderDTO= orderDTOService.wrapOrder(ticket.getOrder(),orderState,ticket,customerDetailsDTO);
-               orderDTO.add(combinedOrderDTO);
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                CombinedOrderDTO combinedOrderDTO = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                orderDTO.add(combinedOrderDTO);
             }
             return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", orderDTO, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -127,7 +126,7 @@ public class TicketController {
     @Transactional
     @GetMapping("/get-all-tickets")
     public ResponseEntity<?> retrieveTickets() {
-        try{
+        try {
             return ResponseService.generateSuccessResponse("Tickets Found", serviceProviderTicketService.getAllTickets(), HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -149,9 +148,9 @@ public class TicketController {
 
             CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
             Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class,customer.getId());
-            OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customer.getId(),customer.getFirstName()+" "+customer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState,ticket, customerDetailsDTO);
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
             wrapper.customWrapDetails(ticket, orderDto);
 
@@ -172,16 +171,14 @@ public class TicketController {
             @RequestParam(value = "ticket_state", required = false) List<Long> ticket_state,
             @RequestParam(value = "ticket_type", required = false) List<Long> ticket_type,
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
+            @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit)
-    {
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -213,7 +210,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status,assigneeUserIds);
 
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -221,7 +218,7 @@ public class TicketController {
             if (offset < 0) {
                 offset = 0;
             }
-            if (offset >= totalPages && offset!=0) {
+            if (offset >= totalPages && offset != 0) {
                 throw new IllegalArgumentException("No more tickets available");
             }
 
@@ -255,29 +252,25 @@ public class TicketController {
             response.put("currentPage", offset);
 
             logger.info("Total tickets: " + responses.size());
-            return ResponseService.generateSuccessResponse("Tickets Found successfully",response,HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Tickets Found successfully", response, HttpStatus.OK);
 
-        }
-        catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 
     @PutMapping("/ticket/update/{ticketId}")
-    @Authorize(value = {Constant.roleServiceProvider,Constant.roleAdmin,Constant.roleSuperAdmin})
-    public ResponseEntity<?>updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization")String authHeader)
-    {
-        try{
-            return ticketStateService.updateTicket(createTicketDto,ticketId,authHeader);
-        }
-        catch (Exception e)
-        {
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
+    public ResponseEntity<?> updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
+        try {
+            return ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse("Error updating ticket state :"+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error updating ticket state :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

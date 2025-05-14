@@ -150,6 +150,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Date tentativeVerificationTo;
     @JsonProperty("exam_center_available_date")
     Date examCenterAvailableDate;
+    @JsonProperty("fee_additional_comments")
+    String feeComments;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     @JsonProperty("fee")
@@ -184,6 +186,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
         this.additionalComments=addProductDto.getAdditionalComments();
+        this.feeComments=addProductDto.getFeeAdditionalComments();
 
         if(addProductDto.getReservedCategory()!=null)
         {
@@ -356,6 +359,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.counsellingDate=customProduct.getCounsellingDate();
         this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
         this.modifiedDate = customProduct.getModifiedDate();
@@ -401,6 +405,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
         this.numberOfPosts= customProduct.getPosts().size();
@@ -492,6 +497,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -587,7 +593,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaDescription = product.getMetaDescription();
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
-
+        this.feeComments=product.getFeeAdditionalComments();
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
         this.creatorRoleId = product.getCreatoRole();

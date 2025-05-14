@@ -202,8 +202,13 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
     public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATE_ON_HOLD = 3L;
+    public static final Long TICKET_STATE_CLOSE = 5L;
+    public static final Long TICKET_STATE_SUPPORT = 7L;
     public static final Long TICKET_STATUS_BDWL = 12L;
     public static final Long TICKET_STATUS_OTHER = 13L;
+
+
 
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
@@ -219,7 +224,8 @@ public class Constant {
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
-    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";
     public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
     public static final String BEARER_CONST= "Bearer ";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
@@ -249,4 +255,15 @@ public class Constant {
             "Admin";
     public static final String WELCOME_SUBJECT="System Message";
     public static final Integer SUPER_ADMIN_PRIVILEGES=4;
+
+    public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c FROM OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId AND c.ticketTypeId = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET = "SELECT t FROM TicketStateLinkage t WHERE t.ticketStateIdFrom = :ticketStateIdFrom AND t.ticketStateIdTo = :ticketStateIdTo AND t.ticketTypeId = :ticketTypeId";
+
+    public static final String GET_ALL_WORK_QUALITY = "SELECT c FROM CustomWorkQuality c";
+    public static final String GET_TICKET_TYPE_BY_WORK_QUALITY_ID = "SELECT c FROM CustomWorkQuality c WHERE c.workQualityId = :workQualityId";
+
+    public static final Long TICKET_TYPE_ID_OF_PRIMARY_TICKET = 1L;
+    public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
+    public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
+
 }

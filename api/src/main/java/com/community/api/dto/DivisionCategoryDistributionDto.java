@@ -15,5 +15,4 @@ public class DivisionCategoryDistributionDto {
     private Long maleVacancy;
     private Long femaleVacancy;
     private Long totalVacancy;
-
 }

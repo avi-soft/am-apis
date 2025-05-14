@@ -146,7 +146,7 @@ public class AdvertisementController {
             AdvertisementWrapper wrapper = new AdvertisementWrapper();
             wrapper.wrapDetails(advertisement, null);
 
-            return ResponseService.generateSuccessResponse("Advertisement Created Successfully", wrapper, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Advertisement Updated Successfully", wrapper, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
             return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -197,7 +197,8 @@ public class AdvertisementController {
                 List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                 for (CustomProduct customProduct : customProducts) {
 
-                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                   && customProduct.getGoLiveDate().before(new Date())) {
                         CustomProductWrapper wrapper = new CustomProductWrapper();
                         wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
                         products.add(wrapper);
