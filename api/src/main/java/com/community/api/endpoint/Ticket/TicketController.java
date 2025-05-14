@@ -341,14 +341,25 @@ public class TicketController {
                 }
             }
 
-            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
-            if (ticketType == null) {
-                ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+            CustomTicketType ticketType = null;
+            if(createTicketDto.getTicketType() != null) {
+
+                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+                if (ticketType == null) {
+                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                }
+                if(!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                    return ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
+                }
+                customServiceProviderTicket.setTicketType(ticketType);
+            } else {
+                // Default.
+                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
+                if (ticketType == null) {
+                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                }
+                customServiceProviderTicket.setTicketType(ticketType);
             }
-            if(!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
-                return ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
-            }
-            customServiceProviderTicket.setTicketType(ticketType);
 
             CustomTicketStatus ticketStatus = null;
             if (createTicketDto.getTicketStatus() != null) {
@@ -362,8 +373,9 @@ public class TicketController {
 
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
+                customServiceProviderTicket.setTicketState(ticketState);
             } else {
-                // Hardcore if no status is provided.
+                // Default.
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L);
                 if (ticketStatus == null) {
                     ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
@@ -371,6 +383,7 @@ public class TicketController {
 
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
+                customServiceProviderTicket.setTicketState(ticketState);
             }
 
             // Validation of Dates.
