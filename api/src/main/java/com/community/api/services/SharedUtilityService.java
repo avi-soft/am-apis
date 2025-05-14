@@ -1785,7 +1785,7 @@ public class SharedUtilityService {
                     isNss=true;
                 }
             }
-            if(customCustomer.getIsNssCertificate().equals(true))
+            if(customCustomer.getIsSportsCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(22) ||document.getDocumentType().getDocument_type_id().equals(23)) && !document.getIsArchived())
                 {
