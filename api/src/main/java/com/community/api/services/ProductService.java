@@ -1339,9 +1339,19 @@ public class ProductService {
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other category except OTHERS");
                     }
+                    else if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == 6 &&
+                            (addProductDto.getReservedCategory().get(reserveCategoryIndex).getRunningField() == null ||
+                                    addProductDto.getReservedCategory().get(reserveCategoryIndex).getRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required when selecting 'Others' for reserved category");
+                    }
                     if(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender()!=3&&(addProductDto.getReservedCategory().get(reserveCategoryIndex).getGenderRunningField()!=null&&!addProductDto.getReservedCategory().get(reserveCategoryIndex).getGenderRunningField().isEmpty()))
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other gender except OTHERS");
+                    }
+                    else if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGender() == 3 &&
+                            (addProductDto.getReservedCategory().get(reserveCategoryIndex).getGenderRunningField() == null ||
+                                    addProductDto.getReservedCategory().get(reserveCategoryIndex).getGenderRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required when selecting 'Others' for gender in reserved category");
                     }
              }
                 /*if(gender.getGenderName().equals(Constant.NO_GENDER))
@@ -3038,6 +3048,10 @@ public class ProductService {
                     {
                         throw new IllegalArgumentException("Cannot add running field for gender except OTHERS");
                     }
+                    if(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderId()==3&&(postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderRunningField()==null||postDto.getPhysicalRequirements().get(physicalAttributeIndex).getGenderRunningField().isEmpty()))
+                    {
+                        throw new IllegalArgumentException("running field is required when adding others for gender");
+                    }
                     if (genderIdValue == null) {
                         nullGenderIdCount++;
                         continue;
@@ -3133,10 +3147,29 @@ public class ProductService {
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other stream except OTHERS");
                     }
-                    if(qualificationEligibilityDto.getCustomReserveCategoryId()!=6&&qualificationEligibilityDto.getReserveCatIdRunningField()!=null)
-                    {
-                        throw new IllegalArgumentException("Cannot add running field for any other Reserve Category except OTHERS");
+                    if (qualificationEligibilityDto.getCustomReserveCategoryId() == 6 &&
+                            (qualificationEligibilityDto.getReserveCatIdRunningField() == null ||
+                                    qualificationEligibilityDto.getReserveCatIdRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required for reserve category 'OTHERS'");
                     }
+                    if (qualificationDetails.getQualification_name().equalsIgnoreCase("others") &&
+                            (qualificationEligibilityDto.getQualificationIdRunningField() == null ||
+                                    qualificationEligibilityDto.getQualificationIdRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required for qualification type 'OTHERS'");
+                    }
+
+                    if (qualificationEligibilityDto.getCustomSubjectIds().get(0) == 54 &&
+                            (qualificationEligibilityDto.getSubjectIdRunningField() == null ||
+                                    qualificationEligibilityDto.getSubjectIdRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required for subject type 'OTHERS'");
+                    }
+
+                    if (qualificationEligibilityDto.getCustomStreamIds().get(0) == 215 &&
+                            (qualificationEligibilityDto.getStreamIdRunningField() == null ||
+                                    qualificationEligibilityDto.getStreamIdRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required for stream type 'OTHERS'");
+                    }
+
 // Common validation for isAppearing == true or false
                     if (!qualificationEligibilityDto.getIsAppearing() || qualificationEligibilityDto.getIsAppearing()) {
                         Boolean isPercentage = qualificationEligibilityDto.getIsPercentage();
@@ -3329,8 +3362,8 @@ public class ProductService {
                 if (district == null) {
                     throw new IllegalArgumentException("District not found with id: " + districtDto.getDistrictId());
                 }
-
-                throw new IllegalArgumentException(
+                if(district.getDistrict_id()!=786)
+                    throw new IllegalArgumentException(
                         String.format("District with ID %d belongs to state %s, not state %s",
                                 districtDto.getDistrictId(), district.getState_code(), stateCode.getState_code()));
             }
@@ -3676,40 +3709,48 @@ public class ProductService {
         if (zone.getDivisionDistributions() == null || zone.getDivisionDistributions().isEmpty()) {
             throw new IllegalArgumentException("Division distributions are required when isDivisionDistribution is true");
         }
-        if(!zone.getDivisionDistributions().isEmpty()) {
-            long sum=0;
-            for (DivisionDistributionDto divisionDistributionDto : zone.getDivisionDistributions()) {
-               sum=sum+divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy();
-               if(!divisionDistributionDto.getCategoryDistributions().isEmpty())
-               {
-                   int sumOfCat=0;
-                   for(DivisionCategoryDistributionDto cat:divisionDistributionDto.getCategoryDistributions())
-                   {
-                       if((cat.getMaleVacancy()!=null||cat.getFemaleVacancy()!=null)&&cat.getTotalVacancy()==null)
-                           throw new IllegalArgumentException("Need to provide total vacancy for category");
-                       if(cat.getFemaleVacancy()==null)
-                           cat.setFemaleVacancy(0L);
-                       else if(cat.getMaleVacancy()==null)
-                           cat.setMaleVacancy(0L);
-                       if(cat.getMaleVacancy()<0)
-                           throw new IllegalArgumentException("Male vacancy cannot be < 0");
-                       if(cat.getFemaleVacancy()<0)
-                           throw new IllegalArgumentException("Female vacancy cannot be < 0");
-                       if(cat.getTotalVacancy()<0)
-                           throw new IllegalArgumentException("Total vacancy cannot be < 0");
-                       sumOfCat+=cat.getMaleVacancy()+cat.getFemaleVacancy();
-                   }
-                   if(sumOfCat!=divisionDistributionDto.getMaleVacancy()+divisionDistributionDto.getFemaleVacancy())
-                       throw new IllegalArgumentException("Category male and female vacancy should be equal to total vacancy of that division");
-               }
-            }
-            if(sum!=zone.getTotalVacanciesInZone())
-                throw new IllegalArgumentException("Combined sum of division male and female vacancy distribution is not equal to total zone vacancy");
-        }
+
         long totalDivisionVacancies = 0;
+
         for (DivisionDistributionDto division : zone.getDivisionDistributions()) {
+            // Validate each division and get its total
             long divisionVacancies = validateDivisionDistribution(division);
             totalDivisionVacancies += divisionVacancies;
+
+            // Extra validation only if gender-wise
+            if (Boolean.TRUE.equals(division.getIsGenderWise())) {
+                long male = division.getMaleVacancy() != null ? division.getMaleVacancy() : 0;
+                long female = division.getFemaleVacancy() != null ? division.getFemaleVacancy() : 0;
+
+                if (!division.getCategoryDistributions().isEmpty()) {
+                    long sumOfCat = 0;
+                    for (DivisionCategoryDistributionDto cat : division.getCategoryDistributions()) {
+                        if ((cat.getMaleVacancy() != null || cat.getFemaleVacancy() != null) && cat.getTotalVacancy() == null) {
+                            throw new IllegalArgumentException("Need to provide total vacancy for category");
+                        }
+
+                        if (cat.getFemaleVacancy() == null) cat.setFemaleVacancy(0L);
+                        if (cat.getMaleVacancy() == null) cat.setMaleVacancy(0L);
+
+                        if (cat.getMaleVacancy() < 0 || cat.getFemaleVacancy() < 0)
+                            throw new IllegalArgumentException("Gender-wise vacancy cannot be negative");
+
+                        if (cat.getTotalVacancy() < 0)
+                            throw new IllegalArgumentException("Total vacancy cannot be < 0");
+
+                        sumOfCat += cat.getMaleVacancy() + cat.getFemaleVacancy();
+                    }
+
+                    if (sumOfCat != male + female) {
+                        throw new IllegalArgumentException("Category male and female vacancy should be equal to total vacancy of that division");
+                    }
+                }
+            }
+        }
+
+        // Check zone total (optional if you already check at top level)
+        if (zone.getTotalVacanciesInZone() != null && totalDivisionVacancies != zone.getTotalVacanciesInZone()) {
+            throw new IllegalArgumentException("Total of division vacancies does not match zone total vacancies");
         }
 
         return totalDivisionVacancies;
@@ -3751,7 +3792,7 @@ public class ProductService {
     private long validateNonGenderWiseDivision(DivisionDistributionDto division) {
         if (!division.getCategoryDistributions().isEmpty()) {
             return division.getCategoryDistributions().stream()
-                    .mapToLong(DivisionCategoryDistributionDto::getVacancyCount)
+                    .mapToLong(dto -> dto.getVacancyCount() != null ? dto.getVacancyCount() : 0L)
                     .sum();
         } else {
             if (division.getTotalVacancy() == null) {
