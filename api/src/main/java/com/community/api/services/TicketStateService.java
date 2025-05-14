@@ -283,6 +283,17 @@ public class TicketStateService {
                     parentTicket.setWorkQuality(workQuality);
 
                     entityManager.merge(parentTicket);
+                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                        if(ticket.getIsReviewRequired()) {
+                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                        }
+                    } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                        CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
+                        if(customProduct.getIsReviewRequired()) {
+                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                        }
+                    }
                 }
 
                 ticket.setTicketStatus(ticketStatus);
