@@ -111,6 +111,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     int[]maxMin=sharedUtilityService.calculateAgeRange(addReserveCategoryDto.getBornBefore(),addReserveCategoryDto.getBornAfter(),dateFormat2.parse(addReserveCategoryDto.getAsOfDate()));
                     ref.setBornBefore(bornBefore);
                     ref.setBornAfter(bornAfter);
+
                     ref.setMaximumAge(maxMin[1]);
                     ref.setMinimumAge(maxMin[0]);
                     System.out.println("aod"+addReserveCategoryDto.getAsOfDate());
@@ -125,7 +126,8 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     ref.setMinimumAge(addReserveCategoryDto.getMinAge());
                     ref.setAsOfDate(convertStringToSQLDate(addReserveCategoryDto.getAsOfDate(), "yyyy-MM-dd"));
                 }
-
+                ref.setGenderRunningField(addReserveCategoryDto.getGenderRunningField());
+                ref.setCategoryRunningField(addReserveCategoryDto.getCategoryRunningField());
                 ref.setCustomReserveCategory(reserveCategory);
                 ref.setCustomProduct(product);
                 ref.setGender(gender);

@@ -1124,6 +1124,8 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
+                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
                 reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }

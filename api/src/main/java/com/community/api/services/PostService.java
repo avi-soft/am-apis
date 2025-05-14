@@ -93,6 +93,14 @@ public class PostService {
                 {
                     throw new IllegalArgumentException("born_before_after cannot be null");
                 }
+                if(addProductAgeDTO.getReserveCategory()!=6&&addProductAgeDTO.getCategoryRunningField()!=null)
+                {
+                    throw new IllegalArgumentException("cannot add running field for category except OTHERS");
+                }
+                if(addProductAgeDTO.getGender()!=3&&addProductAgeDTO.getGenderRunningField()!=null)
+                {
+                    throw new IllegalArgumentException("cannot add running field for gender except OTHERS");
+                }
                 if(!addProductAgeDTO.getBornBeofreAfter())
                 {
                     if(addProductAgeDTO.getAsOfDate()==null)
@@ -319,6 +327,10 @@ public class PostService {
                     qualificationRequirement.setPost(post);
                     qualificationRequirement.setIsPercentage(qualificationEligibilityDto.getIsPercentage());
                     qualificationRequirement.setCgpa(qualificationEligibilityDto.getCgpa());
+                    qualificationRequirement.setQualificationIdRunningField(qualificationEligibilityDto.getQualificationIdRunningField());
+                    qualificationRequirement.setSubjectIdRunningField(qualificationEligibilityDto.getSubjectIdRunningField());
+                    qualificationRequirement.setStreamIdRunningField(qualificationEligibilityDto.getStreamIdRunningField());
+                    qualificationRequirement.setReserveCatIdRunningField(qualificationEligibilityDto.getReserveCatIdRunningField());
                     qualificationRequirement.setAdditionalComments(qualificationEligibilityDto.getAdditionalComments());
                     qualificationRequirement.setIsAppearing(qualificationEligibilityDto.getIsAppearing());
                     entityManager.persist(qualificationRequirement);
@@ -338,6 +350,7 @@ public class PostService {
                 requirement.setCustomGender(customGender);
                 requirement.setHeight(dto.getHeight());
                 requirement.setWeight(dto.getWeight());
+                requirement.setGenderRunningfield(dto.getGenderRunningField());
                 requirement.setShoeSize(dto.getShoeSize());
                 requirement.setWaistSize(dto.getWaistSize());
                 requirement.setChestSize(dto.getChestSize());

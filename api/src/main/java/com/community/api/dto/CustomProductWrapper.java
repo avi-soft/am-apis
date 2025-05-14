@@ -211,6 +211,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
+                reserveCategoryDto.setRunningField(addProductDto.getReservedCategory().get(i).getRunningField());
+                reserveCategoryDto.setGenderRunningField(addProductDto.getReservedCategory().get(i).getGenderRunningField());
                 reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());
                 /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
                 reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
@@ -271,6 +273,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                         reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
                         reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
                     }
+                    reserveCategoryAgeDto.setCategoryRunningField(refDetails.getCategoryRunningField());
+                    reserveCategoryAgeDto.setGenderRunningField(refDetails.getGenderRunningField());
                     reserveCategoryAgeDto.setReserveCategoryId(refDetails.getReserveCategory());
                     reserveCategoryAgeDto.setBornBeforeAfter(refDetails.getBornBeofreAfter());
                     reserveCategoryAgeDto.setAdditionalComments(refDetails.getAdditionalComments());
@@ -424,6 +428,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
+                reserveCategoryDto.setGenderRunningField(fee.getGenderRunningField());
+                reserveCategoryDto.setRunningField(fee.getRunningField());
                 reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
                 reserveCategoryDto.setIsOtherOrStateCategory(fee.getIsOtherOrStateCategory());
                 reserveCategoryDto.setOtherOrStateCategory(fee.getOtherOrStateCategory());
