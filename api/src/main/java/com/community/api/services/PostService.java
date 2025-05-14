@@ -97,9 +97,19 @@ public class PostService {
                 {
                     throw new IllegalArgumentException("cannot add running field for category except OTHERS");
                 }
+                else if (addProductAgeDTO.getReserveCategory() == 6 &&
+                        (addProductAgeDTO.getCategoryRunningField() == null ||
+                                addProductAgeDTO.getCategoryRunningField().trim().isEmpty())) {
+                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+                }
                 if(addProductAgeDTO.getGender()!=3&&addProductAgeDTO.getGenderRunningField()!=null)
                 {
                     throw new IllegalArgumentException("cannot add running field for gender except OTHERS");
+                }
+                else if (addProductAgeDTO.getGender() == 3 &&
+                        (addProductAgeDTO.getGenderRunningField() == null ||
+                                addProductAgeDTO.getGenderRunningField().trim().isEmpty())) {
+                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for Gender");
                 }
                 if(!addProductAgeDTO.getBornBeofreAfter())
                 {
@@ -516,7 +526,14 @@ public class PostService {
                     districtDist.setTotalVacancy(districtDto.getTotalVacancy());
                 }
                 districtDist.setAdditionalComment(districtDto.getAdditionalComment());
-
+                if(districtDto.getDistrictId()!=786&&districtDto.getDistrictRunningField()!=null)
+                    throw new IllegalArgumentException("Cannot add running field for district except OTHERS");
+                if (districtDto.getDistrictId() == 786 &&
+                        (districtDto.getDistrictRunningField() == null ||
+                                districtDto.getDistrictRunningField().trim().isEmpty())) {
+                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for district");
+                }
+                districtDist.setDistrictRunningField(districtDto.getDistrictRunningField());
                 // Persist the district distribution
                 entityManager.persist(districtDist);
 
@@ -559,6 +576,14 @@ public class PostService {
                 if (category == null) {
                     throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
                 }
+                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                    throw new IllegalArgumentException("Cannot add running field for Category except OTHERS");
+                else if (catDto.getCategoryId() == 6 &&
+                        (catDto.getCategoryRunningField() == null ||
+                                catDto.getCategoryRunningField().trim().isEmpty())) {
+                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+                }
+                catDist.setCategoryRunningField(catDto.getCategoryRunningField());
                 catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
                 catDist.setMaleVacancy(catDto.getMaleVacancy());
@@ -602,6 +627,16 @@ public class PostService {
             if (category == null) {
                 throw new IllegalArgumentException("Category not found with id: " + dto.getCategoryId());
             }
+            if(dto.getCategoryId()!=6&&dto.getCategoryRunningField()!=null)
+            {
+                throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
+            }
+            else if (dto.getCategoryId() == 6 &&
+                    (dto.getCategoryRunningField() == null ||
+                            dto.getCategoryRunningField().trim().isEmpty())) {
+                throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+            }
+            categoryDist.setCategoryRunningField(dto.getCategoryRunningField());
             categoryDist.setCategory(category);
             categoryDist.setAdditionalComment(dto.getAdditionalComment());
             categoryDist.setVacancyCount(dto.getVacancyCount());
@@ -818,8 +853,10 @@ public class PostService {
             if (category == null) {
                 throw new IllegalArgumentException("Category not found with id: " + dto.getCategoryId());
             }
-            if(dto.getMaleVacancy()+dto.getFemaleVacancy()!=dto.getTotalVacancy())
-                throw new IllegalArgumentException("Vacancy for men and woman should be equal to total for cateogry id "+dto.getCategoryId());
+            if(divisionDist.getIsGenderWise()) {
+                if (dto.getMaleVacancy() + dto.getFemaleVacancy() != dto.getTotalVacancy())
+                    throw new IllegalArgumentException("Vacancy for men and woman should be equal to total for cateogry id " + dto.getCategoryId());
+            }
             categoryDist.setCategory(category);
             categoryDist.setVacancyCount(dto.getVacancyCount());
             categoryDist.setAdditionalComment(dto.getAdditionalComment());
