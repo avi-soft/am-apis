@@ -3864,13 +3864,13 @@ public class ProductService {
             long sum = 0;
             long f=0;
             long m=0;
-            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
+            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()&&stateDistribution.getIsGenderWise()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
-                    if(categoryDistributionDto.getMaleVacancy()==null)
+                    if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
                         throw new IllegalArgumentException("Male vacancy is not given");
-                    if(categoryDistributionDto.getFemaleVacancy()==null)
+                    if(categoryDistributionDto.getFemaleVacancy()==null&&stateDistribution.getIsGenderWise())
                         throw new IllegalArgumentException("Female vacancy is not given");
-                    if(categoryDistributionDto.getTotalVacancy()==null)
+                    if(categoryDistributionDto.getTotalVacancy()==null&&stateDistribution.getIsGenderWise())
                         throw new IllegalArgumentException("Total vacancy is not given");
                     sum+=categoryDistributionDto.getTotalVacancy();
                     f+=categoryDistributionDto.getFemaleVacancy();
