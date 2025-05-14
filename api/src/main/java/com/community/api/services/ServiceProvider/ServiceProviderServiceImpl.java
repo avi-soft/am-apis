@@ -363,7 +363,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
-            businessKeys.add("registration_number");
+//            businessKeys.add("registration_number");
             businessKeys.add("latitude");
             businessKeys.add("longitude");
 
@@ -445,11 +445,30 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<Integer> infraList = getIntegerList(updates, "infra_list");
             List<Integer> skillList = getIntegerList(updates, "skill_list");
             List<Integer> languageList = getIntegerList(updates, "language_list");
+            existingServiceProvider.setOtherSkill(null);
             if (updates.containsKey("has_technical_knowledge")) {
                 if ((boolean) updates.get("has_technical_knowledge").equals(true)) {
                     if (!skillList.isEmpty()) {
                         for (int skill_id : skillList) {
                             Skill skill = entityManager.find(Skill.class, skill_id);
+
+                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Others"))
+                            {
+                                if(!updates.containsKey("other_skill"))
+                                {
+                                    return ResponseService.generateErrorResponse("You have to enter the other skill",HttpStatus.BAD_REQUEST);
+                                }
+                                else {
+                                    String otherSkill = (String)updates.get("other_skill");
+                                    if(otherSkill==null || otherSkill.trim().isEmpty())
+                                    {
+                                        return ResponseService.generateErrorResponse("other skill text field cannot be null or empty",HttpStatus.BAD_REQUEST);
+                                    }
+                                    assert existingServiceProvider != null;
+                                    existingServiceProvider.setOtherSkill(otherSkill);
+
+                                }
+                            }
                             if (skill != null) {
                                 if (!serviceProviderSkills.contains(skill))
                                     serviceProviderSkills.add(skill);
@@ -464,6 +483,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 } else
                     serviceProviderSkills = null;
             }
+            updates.remove("other_skill");
             TypedQuery<ScoringCriteria> typedQuery = entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA, ScoringCriteria.class);
             List<ScoringCriteria> scoringCriteriaList = typedQuery.getResultList();
 
@@ -498,8 +518,44 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            if(updates.containsKey("isCFormAvailable"))
-                existingServiceProvider.setIsCFormAvailable((Boolean)updates.get("isCFormAvailable"));
+            if(updates.containsKey("isCFormAvailable")) {
+                existingServiceProvider.setIsCFormAvailable((Boolean) updates.get("isCFormAvailable"));
+                if(((Boolean) updates.get("isCFormAvailable")) && updates.containsKey("registration_number"))
+                {
+                    if (updates.get("registration_number") != null
+                            && !((String) updates.get("registration_number")).trim().isEmpty()){
+                        existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
+                    }
+                    else
+                        return ResponseService.generateErrorResponse("Registration Number can not be empty or null", HttpStatus.BAD_REQUEST);
+
+
+                }
+                else {
+                    existingServiceProvider.setRegistration_number(null);
+                    if (updates.get("registration_number") != null
+                            && !((String) updates.get("registration_number")).trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Registration Number can not be added if C-Form is unavailable", HttpStatus.BAD_REQUEST);
+                    }
+                }
+
+            }else
+            {
+                if(updates.containsKey("registration_number"))
+                {
+                    return ResponseService.generateErrorResponse("Registration Number can not be added if C-Form is unavailable", HttpStatus.BAD_REQUEST);
+                }
+            }
+
+            updates.remove("isCFormAvailable");
+            updates.remove("registration_number");
+
+
+
+
+
+
+
             if (!infraList.isEmpty()) {
                 for (int infra_id : infraList) {
                     ServiceProviderInfra serviceProviderInfrastructure = entityManager.find(ServiceProviderInfra.class, infra_id);

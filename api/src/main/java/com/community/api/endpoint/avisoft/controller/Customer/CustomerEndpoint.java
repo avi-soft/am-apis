@@ -735,6 +735,34 @@ public class CustomerEndpoint {
                 }
             } else if (!flagP && containsCount != 0)
                 errorMessages.add("All fields : Address line,state,city,district,pincode should be provided to add Permanent address");
+
+            // validate that both the addresses are same or not
+            CustomerAddress currentAddress = null;
+            CustomerAddress permanentAddress = null;
+
+            for (CustomerAddress addr : customCustomer.getCustomerAddresses()) {
+                if ("CURRENT_ADDRESS".equalsIgnoreCase(addr.getAddressName())) {
+                    currentAddress = addr;
+                } else if ("PERMANENT_ADDRESS".equalsIgnoreCase(addr.getAddressName())) {
+                    permanentAddress = addr;
+                }
+            }
+
+            if (currentAddress != null && permanentAddress != null) {
+                Address curr = currentAddress.getAddress();
+                Address perm = permanentAddress.getAddress();
+
+                boolean addressesMatch =
+                        Objects.equals(curr.getAddressLine1(), perm.getAddressLine1()) &&
+                                Objects.equals(curr.getCity(), perm.getCity()) &&
+                                Objects.equals(curr.getPostalCode(), perm.getPostalCode()) &&
+                                Objects.equals(curr.getCounty(), perm.getCounty()) &&
+                                Objects.equals(curr.getStateProvinceRegion(), perm.getStateProvinceRegion());
+
+                customCustomer.setIsSameAsCurrentAddress(addressesMatch);
+                em.merge(customCustomer);
+            }
+
             if (details.containsKey("adharNumber")) {
                 String adharNumber = (String) details.get("adharNumber");
                 if (customCustomer.getAdharNumber() != null) {

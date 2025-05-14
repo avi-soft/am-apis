@@ -808,6 +808,41 @@ public class ProductService {
         }
     }
 
+    public boolean deleteProductAccessAuthorisation(String authHeader) throws Exception {
+        try {
+            String jwtToken = authHeader.substring(7);
+
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+
+            Long userId = null;
+            if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN)) {
+                return true;
+
+                // -> NEED TO ADD THE USER_ID OF ADMIN OR SUPER ADMIN.
+
+            } else if (role.equals(Constant.SERVICE_PROVIDER)) {
+                userId = jwtTokenUtil.extractId(jwtToken);
+                List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
+
+                for (Privileges privilege : privileges) {
+                    if (privilege.getPrivilege_name().equals(PRIVILEGE_DELETE_PRODUCT)) {
+                        return true;
+                    }
+                }
+
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if(serviceProvider.getApproved()!=null && serviceProvider.getApproved()) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("ERRORS WHILE VALIDATING AUTHORIZATION: " + exception.getMessage() + "\n");
+        }
+    }
+
     public Category validateCategory(Long categoryId) throws Exception {
         try {
             if (categoryId <= 0) throw new IllegalArgumentException("Category id cannot be <= 0.");
