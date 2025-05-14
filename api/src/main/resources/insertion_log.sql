@@ -122,7 +122,7 @@ BEGIN
 --        (8, 'IN_REVIEW', 'Order is in review.');
 --END IF;
 --
---IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
+--IF (SELECT COUNT(*) FROM order_ticket_linkage) = 25 THEN
 --    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
 --    VALUES
 ----        PRIMARY TICKET STATUS FOR CORRESPONDING STATES.
@@ -153,56 +153,72 @@ BEGIN
 --        (23, 7, 2, 6, 12),
 --        (24, 6, 2, 6, 13),
 --        (25, 6, 2, 7, 13);
+
+--        MISCELLANEOUS TICKET STATUS FOR CORRESPONDING STATES.
+--        (26, 3, 3, 1, 0),
+--        (27, 4, 3, 2, 0),
+--        (28, 6, 3, 2, 2),
+--        (29, 6, 3, 2, 5),
+--        (30, 6, 3, 2, 6),
+--        (31, 6, 3, 3, 3),
+--        (32, 6, 3, 3, 4),
+--        (33, 7, 3, 3, 13),
+--        (34, 6, 3, 4, 10),
+--        (35, 6, 3, 4, 13),
+--        (36, 7, 3, 5, 15),
+--        (37, 7, 3, 6, 12),
+--        (38, 7, 3, 6, 13),
+--        (39, 6, 3, 7, 13);
 --
 --END IF;
 --
-IF (SELECT COUNT(*) FROM ticket_state_linkage) = 21 THEN
-    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
-    VALUES
---        PRIMARY TICKET
---        (SP)
-        (1, 1, 1, 2, 4),
-        (2, 1, 1, 6, 4),
-        (3, 1, 2, 3, 4),
-        (4, 1, 2, 4, 4),
-        (5, 1, 2, 5, 4),
-        (6, 1, 2, 7, 4),
-        (7, 1, 3, 2, 4),
---        (ADMIN)
-        (8, 1, 3, 5, 2),
-        (9, 1, 7, 5, 2),
-        (10, 1, 7, 2, 2),
-        (11, 1, 6, 1, 2),
-
---        REVIEW TICKET
---        (SP)
-        (12, 2, 1, 2, 4),
-        (13, 2, 1, 6, 4),
-        (14, 2, 2, 3, 4),
-        (15, 2, 2, 5, 4),
-        (16, 2, 2, 7, 4),
-        (17, 2, 3, 2, 4),
---        (ADMIN)
-       (18, 2, 6, 1, 2),
-       (19, 2, 7, 2, 2),
-       (20, 2, 7, 5, 2),
-       (21, 2, 3, 5, 2),
+--IF (SELECT COUNT(*) FROM ticket_state_linkage) = 21 THEN
+--    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
+--    VALUES
+----        PRIMARY TICKET
+----        (SP)
+--        (1, 1, 1, 2, 4),
+--        (2, 1, 1, 6, 4),
+--        (3, 1, 2, 3, 4),
+--        (4, 1, 2, 4, 4),
+--        (5, 1, 2, 5, 4),
+--        (6, 1, 2, 7, 4),
+--        (7, 1, 3, 2, 4),
+----        (ADMIN)
+--        (8, 1, 3, 5, 2),
+--        (9, 1, 7, 5, 2),
+--        (10, 1, 7, 2, 2),
+--        (11, 1, 6, 1, 2),
+--
+----        REVIEW TICKET
+----        (SP)
+--        (12, 2, 1, 2, 4),
+--        (13, 2, 1, 6, 4),
+--        (14, 2, 2, 3, 4),
+--        (15, 2, 2, 5, 4),
+--        (16, 2, 2, 7, 4),
+--        (17, 2, 3, 2, 4),
+----        (ADMIN)
+--       (18, 2, 6, 1, 2),
+--       (19, 2, 7, 2, 2),
+--       (20, 2, 7, 5, 2),
+--       (21, 2, 3, 5, 2),
 
 --        MISCELLANEOUS TICKET
 --        (SP)
-            (22, 3, 1, 2, 4),
-            (23, 3, 1, 6, 4),
-            (24, 3, 2, 3, 4),
-            (25, 3, 2, 4, 4),
-            (26, 3, 2, 5, 4),
-            (27, 3, 2, 7, 4),
-            (28, 3, 3, 2, 4),
---        (ADMIN)
-            (29, 3, 3, 5, 2),
-            (30, 3, 7, 5, 2),
-            (31, 3, 7, 2, 2),
-            (32, 3, 6, 1, 2);
-END IF;
+--            (22, 3, 1, 2, 4),
+--            (23, 3, 1, 6, 4),
+--            (24, 3, 2, 3, 4),
+--            (25, 3, 2, 4, 4),
+--            (26, 3, 2, 5, 4),
+--            (27, 3, 2, 7, 4),
+--            (28, 3, 3, 2, 4),
+----        (ADMIN)
+--            (29, 3, 3, 5, 2),
+--            (30, 3, 7, 5, 2),
+--            (31, 3, 7, 2, 2),
+--            (32, 3, 6, 1, 2);
+--END IF;
 --
 --IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
 --    INSERT INTO custom_order_status (order_status_id, order_status_name, order_state_id, order_status_description)
