@@ -1520,7 +1520,8 @@ IF (SELECT COUNT(*) FROM public.custom_reserve_category) = 0 THENINSERT INTO pub
 --        (1, 'Form Filling Knowledge/Expertise'),
 --        (2, 'Resizing & Uploading Image/Document'),
 --        (3, 'Executing Online Payment/Transactions'),
---        (4, 'Apply To Various Government Schemes');
+--        (4, 'Apply To Various Government Schemes'),
+--        (5, 'Others');
 --END IF;
 ---- Insert into service_provider_status if empty
 --IF NOT EXISTS (SELECT 1 FROM serviceproviderstatus) THEN
