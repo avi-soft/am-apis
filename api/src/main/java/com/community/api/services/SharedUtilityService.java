@@ -830,6 +830,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
+        serviceProviderDetails.put("other_skill",serviceProvider.getOtherSkill());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
@@ -1784,7 +1785,7 @@ public class SharedUtilityService {
                     isNss=true;
                 }
             }
-            if(customCustomer.getIsNssCertificate().equals(true))
+            if(customCustomer.getIsSportsCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(22) ||document.getDocumentType().getDocument_type_id().equals(23)) && !document.getIsArchived())
                 {
