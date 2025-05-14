@@ -311,7 +311,7 @@ public class TicketController {
 
             Role role = roleService.getRoleByRoleId(roleId);
             if(!role.getRole_name().equals(Constant.roleSuperAdmin) && !role.getRole_name().equals(Constant.roleAdmin)) {
-                ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
             }
 
             CustomServiceProviderTicket customServiceProviderTicket = new CustomServiceProviderTicket();
@@ -319,34 +319,32 @@ public class TicketController {
             CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
                 if(createTicketDto.getTicketState() <= 0) {
-                    ResponseService.generateErrorResponse("TICKET STATE CANNOT BE NULL OR <= 0", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATE CANNOT BE NULL OR <= 0", HttpStatus.NOT_FOUND);
                 }
                 ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
 
                 if (ticketState == null) {
-                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
             } else {
                 // Default state.
                 ticketState = ticketStateService.getTicketStateByTicketId(1L);
 
                 if (ticketState == null) {
-                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
-                }
-            }
-
-            if (createTicketDto.getTicketType() != null) {
-                if (createTicketDto.getTicketType() <= 0) {
-                    ResponseService.generateErrorResponse("TICKET TYPE CANNOT BE <= 0", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
             }
 
             CustomTicketType ticketType = null;
             if(createTicketDto.getTicketType() != null) {
 
+                if (createTicketDto.getTicketType() <= 0) {
+                    return ResponseService.generateErrorResponse("TICKET TYPE CANNOT BE <= 0", HttpStatus.NOT_FOUND);
+                }
+
                 ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 if (ticketType == null) {
-                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
                 if(!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                     return ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
@@ -356,7 +354,7 @@ public class TicketController {
                 // Default.
                 ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
                 if (ticketType == null) {
-                    ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
                 customServiceProviderTicket.setTicketType(ticketType);
             }
@@ -364,11 +362,11 @@ public class TicketController {
             CustomTicketStatus ticketStatus = null;
             if (createTicketDto.getTicketStatus() != null) {
                 if (createTicketDto.getTicketStatus() <= 0) {
-                    ResponseService.generateErrorResponse("TICKET STATUS CANNOT BE <= 0", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATUS CANNOT BE <= 0", HttpStatus.NOT_FOUND);
                 }
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
                 if (ticketStatus == null) {
-                    ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
 
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
@@ -378,7 +376,7 @@ public class TicketController {
                 // Default.
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L);
                 if (ticketStatus == null) {
-                    ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
+                    return ResponseService.generateErrorResponse("TICKET STATUS NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
 
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
