@@ -842,7 +842,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses,List<Long> assigneeUserIds) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -895,6 +895,10 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
             }
 
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                jpql.append("AND c.assignee IN :assigneeUserIds ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -910,6 +914,10 @@ public class ServiceProviderTicketService {
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                query.setParameter("assigneeUserIds", assigneeUserIds);
+            }
+
             if (dateFrom != null ) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);

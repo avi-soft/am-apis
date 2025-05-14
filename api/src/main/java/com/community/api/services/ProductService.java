@@ -663,7 +663,6 @@ public class ProductService {
             }
             int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
-            System.out.println(jpql.toString());
              response.put("products",query.getResultList());
             // Execute and return the result
             return response;
@@ -793,6 +792,41 @@ public class ProductService {
 
                 for (Privileges privilege : privileges) {
                     if (privilege.getPrivilege_name().equals(Constant.PRIVILEGE_ADD_PRODUCT)) {
+                        return true;
+                    }
+                }
+
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+                if(serviceProvider.getApproved()!=null && serviceProvider.getApproved()) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("ERRORS WHILE VALIDATING AUTHORIZATION: " + exception.getMessage() + "\n");
+        }
+    }
+
+    public boolean deleteProductAccessAuthorisation(String authHeader) throws Exception {
+        try {
+            String jwtToken = authHeader.substring(7);
+
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+
+            Long userId = null;
+            if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN)) {
+                return true;
+
+                // -> NEED TO ADD THE USER_ID OF ADMIN OR SUPER ADMIN.
+
+            } else if (role.equals(Constant.SERVICE_PROVIDER)) {
+                userId = jwtTokenUtil.extractId(jwtToken);
+                List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
+
+                for (Privileges privilege : privileges) {
+                    if (privilege.getPrivilege_name().equals(PRIVILEGE_DELETE_PRODUCT)) {
                         return true;
                     }
                 }
@@ -1273,7 +1307,6 @@ public class ProductService {
             Date maxBornBeforeDate = calendar.getTime();
 
             for (int reserveCategoryIndex = 0; reserveCategoryIndex < addProductDto.getReservedCategory().size(); reserveCategoryIndex++) {
-                System.out.println("Validating, no of post are"+addProductDto.getReservedCategory().get(reserveCategoryIndex).getPost());
                 if(!addProductDto.getReservedCategory().get(reserveCategoryIndex).getIsOtherOrStateCategory()){
                 if (addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() == null || addProductDto.getReservedCategory().get(reserveCategoryIndex).getReserveCategory() <= 0) {
                     throw new IllegalArgumentException("Reserve category id cannot be null or <= 0.");
@@ -2209,7 +2242,6 @@ public class ProductService {
 
         // Validation against exam dates
         if (addProductDto.getExamDateFrom() != null) {
-            System.out.println("*****1");
             if(addProductDto.getAdmitCardDateTo()!=null)
             {
                 if (!addProductDto.getAdmitCardDateTo().before(addProductDto.getExamDateFrom())) {
@@ -2218,7 +2250,6 @@ public class ProductService {
             }
 
         } else if (customProduct.getExamDateFrom() != null) {
-            System.out.println("*****2");
             if(addProductDto.getAdmitCardDateTo()!=null) {
                 if (!addProductDto.getAdmitCardDateTo().before(customProduct.getExamDateFrom())) {
                     throw new IllegalArgumentException("Admit card date to must be before or equal of exam date from.");
@@ -3789,12 +3820,27 @@ public class ProductService {
             if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
                 throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
             }
+            if(categoryDistribution.getIsStateLevelCategory()==null)
+            {
+                throw new IllegalArgumentException("isStateLevelCategory cannot be null");
+            }
+            if(categoryDistribution.getIsStateLevelCategory().equals(true))
+            {
+                if(categoryDistribution.getStateLevelCategory()==null || categoryDistribution.getStateLevelCategory().trim().isEmpty())
+                {
+                    throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
+                }
+            }
             if(categoryDistribution.getMaleVacancy()<0)
                 throw new IllegalArgumentException("Male vacancies cannot be <0");
             else if(categoryDistribution.getFemaleVacancy()<0)
                 throw new IllegalArgumentException("Female vacancies cannot be <0");
             if(categoryDistribution.getTotalVacancy()<0)
                 throw new IllegalArgumentException("Total vacancies cannot be <0");
+            if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+            {
+                throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
+            }
             if(categoryDistribution.getTotalVacancy()!=categoryDistribution.getMaleVacancy()+categoryDistribution.getFemaleVacancy())
                 throw new IllegalArgumentException("Total vacancies is not equal to sum of male vacancies and female vacancies");
         }

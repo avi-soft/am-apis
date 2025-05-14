@@ -717,6 +717,9 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
+            }
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);

@@ -13,6 +13,8 @@ public class CategoryDistributionDto {
     private Long id;
     private Long categoryId;
     private Integer categoryVacancies;
+    private Boolean isStateLevelCategory;
+    private String stateLevelCategory;
     private String additionalComment;
     @JsonProperty("maleVacancy")
     Long maleVacancy;

@@ -177,6 +177,9 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "domicile_valid_upto")
     private java.sql.Date domicileValidUpto;
 
+    @Column(name = "permanent_address_is_same_as_current_address")
+    private Boolean isSameAsCurrentAddress = false;
+
     @Nullable
     @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
     @Column(name = "secondary_mobile_number")
