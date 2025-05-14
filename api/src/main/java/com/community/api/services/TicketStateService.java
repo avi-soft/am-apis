@@ -110,23 +110,67 @@ public class TicketStateService {
                 } else if (!ticket.getTicketState().getTicketState().equals("TO-DO") && !ticket.getTicketState().getTicketState().equals("CLOSED")) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
                 }
-                entityManager.merge(exServiceProvider);
-            }
 
-            if(newSp != null) {
+                entityManager.merge(exServiceProvider);
+            } else if(newSp != null) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
-                if (nextState.getTicketState().equals("TO-DO")) {
+
+                // TODO NEEDS TO CHECK THIS @RAMAN
+                if(nextState != null) {
+                    if (nextState.getTicketState().equals("TO-DO")) {
+                        serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
+                    }
+                    if (nextState.getTicketState().equals("CLOSE")) {
+                        serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted() + 1);
+                    }
+                    if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
+                        serviceProvider.setTicketPending(serviceProvider.getTicketPending() + 1);
+                    }
+                } else {
+                    // TODO -> Generally this is what is going to happen
                     serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
                 }
-                if (nextState.getTicketState().equals("CLOSE")) {
-                    serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted() + 1);
-                }
-                if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
-                    serviceProvider.setTicketPending(serviceProvider.getTicketPending() + 1);
-                }
+
                 entityManager.merge(serviceProvider);
             }
 
+            // Approve and close ticket flow.
+            if(nextState != null) {
+                if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
+                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+                    serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()-1);
+                    serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
+
+                    entityManager.merge(serviceProvider);
+                } else if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    // which is true always but here a condition for better understanding of logic.
+                    if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                        ServiceProviderEntity reviewTicketServiceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+                        reviewTicketServiceProvider.setTicketPending(reviewTicketServiceProvider.getTicketPending() - 1);
+                        reviewTicketServiceProvider.setTicketCompleted(reviewTicketServiceProvider.getTicketCompleted() + 1);
+
+                        if (ticket.getParentTicket().getIsComplete()) {
+                            ServiceProviderEntity parentTicketServiceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getParentTicket().getAssignee());
+                            parentTicketServiceProvider.setTicketPending(parentTicketServiceProvider.getTicketPending() - 1);
+                            parentTicketServiceProvider.setTicketCompleted(parentTicketServiceProvider.getTicketCompleted() + 1);
+
+                            entityManager.merge(parentTicketServiceProvider);
+                        }
+
+                        entityManager.merge(reviewTicketServiceProvider);
+                    } else {
+                        ServiceProviderEntity assignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+                        assignee.setTicketPending(assignee.getTicketPending() - 1);
+                        assignee.setTicketCompleted(assignee.getTicketCompleted() + 1);
+
+                        entityManager.merge(assignee);
+                    }
+                }
+            }
+
+        } catch(IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage());
@@ -301,7 +345,7 @@ public class TicketStateService {
                 Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
                 if (role == null)
                     throw new NotFoundException("Invalid role id");
-                else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)))
+                else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)) && (!role.getRole_name().equals(Constant.roleSuperAdmin)))
                     throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
                 if (createTicketDTO.getAssignee() != null) {
                     if (role.getRole_name().equals(Constant.roleServiceProvider)) {
@@ -313,6 +357,11 @@ public class TicketStateService {
                         if (customAdmin == null)
                             throw new NotFoundException("Assignee not found");
                     }
+
+                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    }
+
                     ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else

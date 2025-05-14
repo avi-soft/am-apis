@@ -472,6 +472,8 @@ public class TicketController {
 
             } else if(createTicketDto.getAssigneeRole() != null || createTicketDto.getAssignee() != null) {
                 return ResponseService.generateErrorResponse("Assignee and Assignee Role must be provided together", HttpStatus.NOT_FOUND);
+            } else if(createTicketDto.getTargetCompletionDate() != null) {
+                return ResponseService.generateErrorResponse("Target Completion Date must be provided with assignee and assignee role not alone.", HttpStatus.NOT_FOUND);
             }
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
