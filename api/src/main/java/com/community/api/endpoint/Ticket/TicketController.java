@@ -389,15 +389,6 @@ public class TicketController {
             String formattedDate = dateFormat.format(new Date());
             Date createdDate = dateFormat.parse(formattedDate);
 
-            if(createTicketDto.getTargetCompletionDate() != null) {
-                dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
-                if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
-                    return ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
-                }
-            } else {
-                return ResponseService.generateErrorResponse("TARGET COMPLETION DATE CANNOT BE NULL", HttpStatus.NOT_FOUND);
-            }
-            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setTicketAssignDate(createdDate);
 
@@ -415,6 +406,18 @@ public class TicketController {
             // validation for assignee and assignee role and handling the auto-handling the bandwidth of individual.
             if(createTicketDto.getAssignee() != null && createTicketDto.getAssigneeRole() != null) {
                 Role assigneeRole = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
+
+                // Validating target completion date.
+                if(createTicketDto.getTargetCompletionDate() != null) {
+                    dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
+                    if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                        return ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
+                    }
+                } else {
+                    return ResponseService.generateErrorResponse("TARGET COMPLETION DATE CANNOT BE NULL.", HttpStatus.NOT_FOUND);
+                }
+                customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
+
                 if(assigneeRole == null) {
                     return ResponseService.generateErrorResponse("Assignee role Not Found with given role id", HttpStatus.NOT_FOUND);
                 }
