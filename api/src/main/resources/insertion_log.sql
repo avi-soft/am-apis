@@ -228,17 +228,16 @@
 --        (2, 'CENTER', 'Center level operations.');
 --END IF;
 --
---IF (SELECT COUNT(*) FROM custom_reserve_category) = 0 THEN
---    INSERT INTO custom_reserve_category (reserve_category_id, reserve_category_name, reserve_category_description, is_default_category,sort_order)
---    VALUES
---        (1, 'GEN', 'General', true,0),
---        (2, 'SC', 'Schedule Caste', false,1),
---        (3, 'ST', 'Schedule Tribe', false,2),
---        (4, 'OBC', 'Other Backward Caste', false,3),
---        (5, 'OTHERS', 'Others', false,1000),
---        (6, 'EWS', 'Economically Weaker Section', false,4),
---		(7, 'N/A', 'None of the above', false,999);
---END IF;
+IF (SELECT COUNT(*) FROM public.custom_reserve_category) = 0 THENINSERT INTO public.custom_reserve_category (reserve_category_id,is_default_category,reserve_category_description,reserve_category_name,sort_order) VALUES
+            (0, false, 'Reserve category not applicable', NULL, 1000011),
+            (1, true, 'General', 'GEN', 0),
+            (2, false, 'Economically Weaker Section', 'EWS', 4),
+            (3, false, 'Other Backward Caste', 'OBC', 3),
+            (4, false, 'Schedule Caste', 'SC', 1),
+            (5, false, 'Schedule Tribe', 'ST', 2),
+            (6, false, 'Others', 'OTHERS', 1000),
+            (7, false, 'No Reserved Category', 'ALL', 999);
+    END IF;
 --
 --IF (SELECT COUNT(*) FROM custom_product_rejection_status) = 0 THEN
 --    INSERT INTO custom_product_rejection_status (rejection_status_id, rejection_status, rejection_status_description)
