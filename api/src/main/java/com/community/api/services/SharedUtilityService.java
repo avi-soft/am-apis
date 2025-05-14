@@ -835,6 +835,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
+        serviceProviderDetails.put("rejected",serviceProvider.getRejected());
         List<QualificationDetails> qualificationDetails = serviceProvider.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForServiceProvider(qualificationDetails);
         serviceProviderDetails.put("qualificationDetails", qualificationsWithNames);
