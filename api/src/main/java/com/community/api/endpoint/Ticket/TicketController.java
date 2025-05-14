@@ -350,6 +350,15 @@ public class TicketController {
                     return ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
                 }
                 customServiceProviderTicket.setTicketType(ticketType);
+
+                if(ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                    if (createTicketDto.getIsReviewRequired() == null) {
+                        return ResponseService.generateErrorResponse("Review required is mandatory for the Miscellaneous Ticket.", HttpStatus.BAD_REQUEST);
+                    } else {
+                        customServiceProviderTicket.setIsReviewRequired(createTicketDto.getIsReviewRequired());
+                    }
+                }
+
             } else {
                 // Default.
                 ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
@@ -357,6 +366,14 @@ public class TicketController {
                     return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
                 customServiceProviderTicket.setTicketType(ticketType);
+
+                if(ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                    if (createTicketDto.getIsReviewRequired() == null) {
+                        return ResponseService.generateErrorResponse("Review required is mandatory for the Miscellaneous Ticket.", HttpStatus.BAD_REQUEST);
+                    } else {
+                        customServiceProviderTicket.setIsReviewRequired(createTicketDto.getIsReviewRequired());
+                    }
+                }
             }
 
             CustomTicketStatus ticketStatus = null;

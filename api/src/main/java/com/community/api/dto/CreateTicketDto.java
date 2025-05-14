@@ -51,4 +51,7 @@ public class CreateTicketDto {
     @JsonProperty("work_quality_id")
     private Long workQualityId;
 
+    @JsonProperty("is_review_required")
+    private Boolean isReviewRequired;
+
 }

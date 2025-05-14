@@ -132,4 +132,8 @@ public class CustomServiceProviderTicket {
     @JsonProperty("work_quality")
     private CustomWorkQuality workQuality;
 
+    @Column(name = "is_review_required")
+    @JsonProperty("is_review_required")
+    private Boolean isReviewRequired;
+
 }
