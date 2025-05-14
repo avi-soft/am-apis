@@ -1185,8 +1185,7 @@ public class QualificationDetailsService {
     {
         Qualification qualification=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
         if(qualification==null)
-            throw new IllegalArgumentException("Qualification not found");
-        System.out.println("yoyoyo");
+
         System.out.println(qualification.getIs_subjects_required());
         System.out.println(qualification.getIs_stream_required());
         if(qualification.getIs_stream_required()&&qualificationDetails.getStream_id()==null)

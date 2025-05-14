@@ -13,6 +13,8 @@ public class AddPhysicalRequirementDto {
 
     @JsonProperty("gender_id")
     Long genderId;
+    @JsonProperty("gender_running_field")
+    String genderRunningField;
     @JsonProperty("height")
     Double height;
     @JsonProperty("weight")
