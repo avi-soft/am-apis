@@ -3,6 +3,7 @@ package com.community.api.dto;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
+import com.community.api.entity.CustomSector;
 import com.community.api.entity.Role;
 import com.community.api.services.GenderService;
 import com.community.api.services.ReserveCategoryAgeService;
@@ -39,6 +40,8 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
     protected Character archived;
     @JsonProperty("active")
     protected Boolean active;
+
+
 
 
     @JsonProperty("creator_user_id")

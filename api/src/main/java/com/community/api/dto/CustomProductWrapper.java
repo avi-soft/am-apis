@@ -118,6 +118,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long formComplexity;
     @JsonProperty("sector")
     CustomSector customSector;
+    @JsonProperty("sector_running_filed")
+    protected String sectorRunningField;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("created_date")
@@ -183,6 +185,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
+        this.sectorRunningField=addProductDto.getSectorRunningField();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
         this.additionalComments=addProductDto.getAdditionalComments();
@@ -246,6 +249,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
                 postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
                 postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+                postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+                postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+                postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
                 postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
                 postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
                 postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
@@ -359,6 +365,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.counsellingDate=customProduct.getCounsellingDate();
         this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
@@ -409,6 +416,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
@@ -502,6 +510,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
@@ -607,7 +616,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = null;
 
         this.domicileRequired = product.getDomicileRequired();
-        this.examDateFrom = product.getExamDateFrom();
+        this.examDateFrom = product.getExamDateFrom();this.sectorRunningField=product.getSectorRunningField();
         this.examDateTo = product.getExamDateTo();
 
         this.lateDateToPayFee = product.getLateDateToPayFee();

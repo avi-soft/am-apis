@@ -13,6 +13,7 @@ import java.util.List;
 public class ZoneDistributionDto
 {
     private Integer zoneId;
+    private String zoneRunningField;
     private Boolean isDivisionDistribution;
     private Boolean isGenderWise;
     private Integer maleVacancy;
