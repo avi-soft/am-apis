@@ -3854,7 +3854,7 @@ public class ProductService {
                 .sum();
 
         if (!categoryVacancySum.equals(totalVacancy)) {
-            throw new IllegalArgumentException("Sum of category vacancies must equal the total vacancies.");
+            throw new IllegalArgumentException("Sum of category vacancies must equal the post total vacancies.");
         }
 
         for (CategoryDistributionDto categoryDistribution : categoryDistributions) {
@@ -3872,18 +3872,30 @@ public class ProductService {
                     throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
                 }
             }
-            if(categoryDistribution.getMaleVacancy()<0)
-                throw new IllegalArgumentException("Male vacancies cannot be <0");
-            else if(categoryDistribution.getFemaleVacancy()<0)
-                throw new IllegalArgumentException("Female vacancies cannot be <0");
-            if(categoryDistribution.getTotalVacancy()<0)
-                throw new IllegalArgumentException("Total vacancies cannot be <0");
-            if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+            if(categoryDistribution.getIsGenderWise()==null)
             {
-                throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
+                throw new IllegalArgumentException("You have to provide if isGenderWise true or false in category");
             }
-            if(categoryDistribution.getTotalVacancy()!=categoryDistribution.getMaleVacancy()+categoryDistribution.getFemaleVacancy())
-                throw new IllegalArgumentException("Total vacancies is not equal to sum of male vacancies and female vacancies");
+            if(categoryDistribution.getIsGenderWise().equals(true))
+            {
+                if(categoryDistribution.getMaleVacancy()==null)
+                {
+                    throw new IllegalArgumentException("You have to provide male vacancy in category if the isGenderWise is true for that category");
+                }
+                if(categoryDistribution.getFemaleVacancy()==null)
+                {
+                    throw new IllegalArgumentException("You have to provide female vacancy in category if the isGenderWise is true for that category");
+                }
+                if(categoryDistribution.getMaleVacancy()<0)
+                    throw new IllegalArgumentException("Male vacancies cannot be <0");
+                else if(categoryDistribution.getFemaleVacancy()<0)
+                    throw new IllegalArgumentException("Female vacancies cannot be <0");
+
+                if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+                {
+                    throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
+                }
+            }
         }
     }
 
@@ -3970,15 +3982,15 @@ public class ProductService {
         if (categoryDtos == null || categoryDtos.isEmpty()) {
             throw new IllegalArgumentException("Category distributions are required when distribution type is 3");
         }
-        validateBasicGenderDistribution(postDto, genderDto);
+//        validateBasicGenderDistribution(postDto, genderDto);
 
         // Validate category distributions match total
-        Long totalVacancy = genderDto.getTotalVacancy();
-        if(totalVacancy==null)
-        {
-            totalVacancy= postDto.getPostTotalVacancies();
-        }
-        validateCategoryDistributions(categoryDtos, totalVacancy);
+//        Long totalVacancy = genderDto.getTotalVacancy();
+//        if(totalVacancy==null)
+//        {
+//            totalVacancy= postDto.getPostTotalVacancies();
+//        }
+        validateCategoryDistributions(categoryDtos, postDto.getPostTotalVacancies());
     }
 
     private void validateBasicGenderDistribution(PostDto postDto, GenderDistributionDto genderDto) {
