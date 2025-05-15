@@ -973,39 +973,42 @@ public class ProductService {
                 throw new NoSuchElementException("Advertisement not found.");
             }
 
-            if (addProductDto.getApplicationScope() == null || addProductDto.getApplicationScope() <= 0) {
-                throw new IllegalArgumentException("Application scope cannot be null or <= 0.");
-            }
+//            if (addProductDto.getApplicationScope() == null || addProductDto.getApplicationScope() <= 0) {
+//                throw new IllegalArgumentException("Application scope cannot be null or <= 0.");
+//            }
+           if(addProductDto.getApplicationScope()!=null)
+           {
+               CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
+               if (applicationScope == null) {
+                   throw new NoSuchElementException("application scope not found.");
+               }
 
-            CustomApplicationScope applicationScope = applicationScopeService.getApplicationScopeById(addProductDto.getApplicationScope());
-            if (applicationScope == null) {
-                throw new NoSuchElementException("application scope not found.");
-            }
+               if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_CENTER)) {
 
-            if (applicationScope.getApplicationScope().equals(Constant.APPLICATION_SCOPE_CENTER)) {
+                   if (addProductDto.getState() != null) {
+                       throw new IllegalArgumentException("State cannot be given if application scope " + applicationScope.getApplicationScope());
+                   }
+                   if (addProductDto.getDomicileRequired() != null && addProductDto.getDomicileRequired()) {
+                       throw new IllegalArgumentException("Domicile required cannot be true if application scope " + applicationScope.getApplicationScope());
+                   }
+                   addProductDto.setDomicileRequired(false);
 
-                if (addProductDto.getState() != null) {
-                    throw new IllegalArgumentException("State cannot be given if application scope " + applicationScope.getApplicationScope());
-                }
-                if (addProductDto.getDomicileRequired() != null && addProductDto.getDomicileRequired()) {
-                    throw new IllegalArgumentException("Domicile required cannot be true if application scope " + applicationScope.getApplicationScope());
-                }
-                addProductDto.setDomicileRequired(false);
+               } else if (applicationScope.getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
+                   if (addProductDto.getDomicileRequired() == null || addProductDto.getState() == null) {
+                       throw new IllegalArgumentException("For application scope: " + applicationScope.getApplicationScope() + " domicile and state cannot be null.");
+                   }
 
-            } else if (applicationScope.getApplicationScope().equals(APPLICATION_SCOPE_STATE)) {
-                if (addProductDto.getDomicileRequired() == null || addProductDto.getState() == null) {
-                    throw new IllegalArgumentException("For application scope: " + applicationScope.getApplicationScope() + " domicile and state cannot be null.");
-                }
+                   if (addProductDto.getState() <= 0) {
+                       throw new IllegalArgumentException("State cannot be <= 0.");
+                   }
 
-                if (addProductDto.getState() <= 0) {
-                    throw new IllegalArgumentException("State cannot be <= 0.");
-                }
+                   StateCode state = districtService.getStateByStateId(addProductDto.getState());
+                   if (state == null) {
+                       throw new NoSuchElementException("State not found.");
+                   }
+               }
+           }
 
-                StateCode state = districtService.getStateByStateId(addProductDto.getState());
-                if (state == null) {
-                    throw new NoSuchElementException("State not found.");
-                }
-            }
 
       /*      if (addProductDto.getReservedCategory() == null || addProductDto.getReservedCategory().isEmpty()) {
                 throw new IllegalArgumentException("Reserve category must not be null or empty.");
@@ -1211,21 +1214,21 @@ public class ProductService {
     public void validateUpdateFields(CustomProduct customProduct) throws Exception {
         try
         {
-            if (customProduct.getDisplayTemplate() == null || customProduct.getDisplayTemplate().trim().isEmpty()) {
-                throw new IllegalArgumentException("Display Template cannot be null to move Product from Draft to NEW state ");
-            }
+//            if (customProduct.getDisplayTemplate() == null || customProduct.getDisplayTemplate().trim().isEmpty()) {
+//                throw new IllegalArgumentException("Display Template cannot be null to move Product from Draft to NEW state ");
+//            }
 
-            if (customProduct.getExamDateFrom() == null || customProduct.getExamDateTo() == null) {
-                throw new IllegalArgumentException("Exam Date-From and Exam Date-To cannot be null to move Product from Draft to NEW state ");
-            }
+//            if (customProduct.getExamDateFrom() == null || customProduct.getExamDateTo() == null) {
+//                throw new IllegalArgumentException("Exam Date-From and Exam Date-To cannot be null to move Product from Draft to NEW state ");
+//            }
 
-            if (customProduct.getCustomApplicationScope() == null) {
-                throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
-            }
-            if(customProduct.getPosts()==null || customProduct.getPosts().isEmpty())
-            {
-                throw new IllegalArgumentException("Posts cannot be empty or null to move Product from Draft to NEW state");
-            }
+//            if (customProduct.getCustomApplicationScope() == null) {
+//                throw new IllegalArgumentException("Application scope cannot be null to move Product from Draft to NEW state ");
+//            }
+//            if(customProduct.getPosts()==null || customProduct.getPosts().isEmpty())
+//            {
+//                throw new IllegalArgumentException("Posts cannot be empty or null to move Product from Draft to NEW state");
+//            }
         }
         catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
