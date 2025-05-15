@@ -3368,21 +3368,35 @@ public class CustomerEndpoint {
                     if (age != -1)
                         customerBasicDetailsDto.setAge(age);
                     List<QualificationDetails> qualifications = customCustomer.getQualificationDetailsList();
-                    int max = 0;
-                    if (!qualifications.isEmpty()) {
-                        for (QualificationDetails qualificationDetails : qualifications) {
-                            System.out.println("kk"+qualificationDetails.getQualification_id());
-                            Qualification qualificationFound=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
-                            if (Qualificationorder.get(qualificationFound.getOverlap().intValue()) > max) {
-                                customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
-                                max = Qualificationorder.get(qualificationFound.getOverlap().intValue());
-                            }
+
+
+//                    CODE TO IMPLEMENT THE HIGHEST QUALIFICATION FILTER
+//                    int max = 0;
+//                    if (!qualifications.isEmpty()) {
+//                        for (QualificationDetails qualificationDetails : qualifications) {
+//                            System.out.println("kk"+qualificationDetails.getQualification_id());
+//                            Qualification qualificationFound=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
+//                            if (Qualificationorder.get(qualificationFound.getOverlap().intValue()) > max) {
+//                                customerBasicDetailsDto.setHighestQualification(qualificationService.getQualificationByQualificationId(qualificationDetails.getQualification_id()).getQualification_name());
+//                                max = Qualificationorder.get(qualificationFound.getOverlap().intValue());
+//                            }
+//                        }
+//                        if (qualificationType != null && max != 0 && !qualificationStrings.contains(customerBasicDetailsDto.getHighestQualification())) {
+//                            continue;
+//                        }
+//                        if (max == 0)
+//                            customerBasicDetailsDto.setHighestQualification(null);
+//                    }
+
+
+                    for (QualificationDetails qualificationDetails : qualifications) {
+                        int qualificationId = (qualificationDetails.getQualification_id());
+
+                        if (qualificationType.contains(qualificationId)) {
+                            String qualificationNameToSet = qualificationService.getQualificationByQualificationId(qualificationId).getQualification_name();
+                            customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
+                            break; // Stop checking more qualifications for this customer
                         }
-                        if (qualificationType != null && max != 0 && !qualificationStrings.contains(customerBasicDetailsDto.getHighestQualification())) {
-                            continue;
-                        }
-                        if (max == 0)
-                            customerBasicDetailsDto.setHighestQualification(null);
                     }
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);

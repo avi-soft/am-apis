@@ -254,6 +254,9 @@ public class PostService {
         post.setStateDistributionAdditionalComments(postDto.getStateDistributionAdditionalComments());
         post.setZoneDistributionAdditionalComments(postDto.getZoneDistributionAdditionalComments());
         post.setGenderDistributionAdditionalComments(postDto.getGenderDistributionAdditionalComments());
+        post.setReligionAdditionalComments(postDto.getReligionAdditionalComments());
+        post.setIncomeAdditionalComments(postDto.getIncomeAdditionalComments());
+        post.setAdditionalEligibility(postDto.getAdditionalEligibility());
         post.setQualificationAdditionalComments(postDto.getQualificationAdditionalComments());
         post.setPhysicalAdditionalComments(postDto.getPhysicalAdditionalComments());
         post.setOtherDistributionAdditionalComments(postDto.getOtherDistributionAdditionalComments());
@@ -687,6 +690,7 @@ public class PostService {
                     if (zoneDto.getMaleVacancy() + zoneDto.getFemaleVacancy() != zoneDto.getTotalVacanciesInZone())
                         throw new IllegalArgumentException("Total vacancy in zone is not equal to male and female vacancy");
                 }
+                zoneDistribution.setZoneRunningField(zoneDto.getZoneRunningField());
                 entityManager.persist(zoneDistribution);
                 saveDivisionDistributions(zoneDto, zoneDistribution);
             } else {
@@ -799,6 +803,7 @@ public class PostService {
                     divisionDist.setFemaleVacancy(divisionDto.getFemaleVacancy());
                     divisionDist.setTotalVacancy(divisionDist.getTotalVacancy());
                 }
+                divisionDist.setDivisionRunningField(divisionDto.getDivisionRunningField());
                 divisionDist.setIsGenderWise(divisionDto.getIsGenderWise());
                 divisionDist.setAdditionalComment(divisionDto.getAdditionalComment());
                 if (Boolean.TRUE.equals(divisionDto.getIsGenderWise())) {
@@ -857,6 +862,15 @@ public class PostService {
                 if (dto.getMaleVacancy() + dto.getFemaleVacancy() != dto.getTotalVacancy())
                     throw new IllegalArgumentException("Vacancy for men and woman should be equal to total for cateogry id " + dto.getCategoryId());
             }
+            if(dto.getCategoryId()!=6&&dto.getCategoryRunningField()!=null)
+            {
+                throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
+            }
+            else if(dto.getCategoryId()==6&&(dto.getCategoryRunningField()==null||dto.getCategoryRunningField().trim().isEmpty()))
+            {
+                throw new IllegalArgumentException("Running field required for category when selecting OTHERS");
+            }
+            categoryDist.setCategoryRunningField(dto.getCategoryRunningField());
             categoryDist.setCategory(category);
             categoryDist.setVacancyCount(dto.getVacancyCount());
             categoryDist.setAdditionalComment(dto.getAdditionalComment());

@@ -137,6 +137,9 @@ public class CustomProduct extends ProductImpl {
     @JoinColumn(name = "sector_id")
     protected CustomSector sector;
 
+    @Column(name = "sector_running_field")
+    protected String sectorRunningField;
+
     @NotNull
     @Column(name = "created_date")
     protected Date createdDate;
