@@ -43,6 +43,8 @@ public class CategoryDistribution {
     @JoinColumn(name = "category_id")
     private CustomReserveCategory category;
 
+    private String categoryRunningField;
+
     @Column(name = "isStateLevelCategory",columnDefinition = "BOOLEAN DEFAULT FALSE" )
     private Boolean isStateLevelCategory;
 
