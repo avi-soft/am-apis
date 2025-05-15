@@ -103,6 +103,10 @@ public class CustomServiceProviderTicket {
     @JsonProperty("comment")
     private String comment;
 
+    @Column(name = "title")
+    @JsonProperty("title")
+    private String title;
+
     @Column(name = "task_desc")
     @JsonProperty("task_desc")
     private String desc;
@@ -113,7 +117,7 @@ public class CustomServiceProviderTicket {
     @Column(name = "rejected_by_id")
     private List<Long>rejectedBy = new ArrayList<>();
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "parent_ticket_id")
     @JsonBackReference
     @JsonProperty("parent_ticket_id")
@@ -127,5 +131,9 @@ public class CustomServiceProviderTicket {
     @JoinColumn(name = "work_quality_id")
     @JsonProperty("work_quality")
     private CustomWorkQuality workQuality;
+
+    @Column(name = "is_review_required")
+    @JsonProperty("is_review_required")
+    private Boolean isReviewRequired;
 
 }
