@@ -32,7 +32,8 @@ public class DistrictDistribution {
 
     @Column(name = "male_vacancy")
     private Integer maleVacancy;
-
+    @Column(name = "district_running_field")
+    private String districtRunningField;
     @Column(name = "female_vacancy")
     private Integer femaleVacancy;
 

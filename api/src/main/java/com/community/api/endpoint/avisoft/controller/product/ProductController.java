@@ -717,6 +717,9 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
+            }
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);
@@ -1124,6 +1127,8 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
+                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
                 reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }

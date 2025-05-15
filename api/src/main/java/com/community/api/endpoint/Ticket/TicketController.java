@@ -181,6 +181,7 @@ public class TicketController {
             @RequestParam(value = "ticket_state", required = false) List<Long> ticket_state,
             @RequestParam(value = "ticket_type", required = false) List<Long> ticket_type,
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
+            @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
         try {
@@ -219,7 +220,8 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds);
+
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
 

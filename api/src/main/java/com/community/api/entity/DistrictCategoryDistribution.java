@@ -27,6 +27,8 @@ public class DistrictCategoryDistribution {
     @JoinColumn(name = "category_id", nullable = false)
     private CustomReserveCategory category;
 
+    private String categoryRunningField;
+
     @Column(name = "vacancy_count")
     private Integer vacancyCount;
 

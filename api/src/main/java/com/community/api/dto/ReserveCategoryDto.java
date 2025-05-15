@@ -16,6 +16,8 @@ public class ReserveCategoryDto {
     Long productId;
     @JsonProperty("reserve_category_id")
     Long reserveCategoryId;
+    @JsonProperty("running_field")
+    String runningField;
     @JsonProperty("fee")
     Double fee;
     @JsonProperty("post")
@@ -24,6 +26,8 @@ public class ReserveCategoryDto {
     String reserveCategory;
     @JsonProperty("gender_id")
     Long genderId;
+    @JsonProperty("gender_running_field")
+    String genderRunningField;
     @JsonProperty("gender_name")
     String genderName;
     @JsonProperty("fee_additional_comments")

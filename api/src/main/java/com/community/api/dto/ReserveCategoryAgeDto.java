@@ -22,6 +22,10 @@ public class ReserveCategoryAgeDto {
     Integer post;
     @JsonProperty("reserve_category")
     String reserveCategory;
+    @JsonProperty("category_running_field")
+    String categoryRunningField;
+    @JsonProperty("gender_running_field")
+    String genderRunningField;
     @JsonProperty("born_before_after")
     Boolean bornBeforeAfter;
     @JsonProperty("born_before")

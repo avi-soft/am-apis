@@ -327,6 +327,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedByRole",customCustomer.getArchivedByRole());
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
+            customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -609,6 +610,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("suspended_or_activated_by_role",customCustomer.getArchivedByRole());
             customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
             customerDetailsForDesktop.put("profileComplete",customCustomer.getProfileComplete());
+            customerDetailsForDesktop.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
 
             Map<String, String> currentAddress = new HashMap<>();
             Map<String, String> permanentAddress = new HashMap<>();
@@ -830,10 +832,12 @@ public class SharedUtilityService {
         serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
+        serviceProviderDetails.put("other_skill",serviceProvider.getOtherSkill());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
         serviceProviderDetails.put("languages", serviceProvider.getLanguages());
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
+        serviceProviderDetails.put("rejected",serviceProvider.getRejected());
         List<QualificationDetails> qualificationDetails = serviceProvider.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForServiceProvider(qualificationDetails);
         serviceProviderDetails.put("qualificationDetails", qualificationsWithNames);
@@ -1784,7 +1788,7 @@ public class SharedUtilityService {
                     isNss=true;
                 }
             }
-            if(customCustomer.getIsNssCertificate().equals(true))
+            if(customCustomer.getIsSportsCertificate().equals(true))
             {
                 if((document.getDocumentType().getDocument_type_id().equals(22) ||document.getDocumentType().getDocument_type_id().equals(23)) && !document.getIsArchived())
                 {
