@@ -294,6 +294,10 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
+                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+                    List<Long> rejectedList = ticket.getRejectedBy();
+                    rejectedList.add(ticket.getAssignee());
+                    ticket.setRejectedBy(rejectedList);
                 }
 
                 ticket.setTicketStatus(ticketStatus);
@@ -346,6 +350,18 @@ public class TicketStateService {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
                     }
 
+                    if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+                        if (ticketState == null) {
+                            throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
+                        }
+                    }
+
+                    List<Long> rejectedBy = ticket.getRejectedBy();
+                    for(Long rejectedUserId : rejectedBy) {
+                        if(rejectedUserId.equals(createTicketDTO.getAssignee())) {
+                            throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
+                        }
+                    }
                     ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
