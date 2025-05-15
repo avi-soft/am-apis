@@ -3211,10 +3211,10 @@ public class CustomerEndpoint {
             districtNames=null;
         if (qualificationType != null) {
             for (Integer id : qualificationType) {
-                if (qualificationService.getQualificationByQualificationId(id) == null)
+                if (qualificationService.getQualificationByQualificationId(Math.toIntExact(id)) == null)
                     return ResponseService.generateErrorResponse("Invalid qualification Id", HttpStatus.BAD_REQUEST);
-                qualificationStrings.add(qualificationService.getQualificationByQualificationId(id).getQualification_name());
-                qualificationNames.add(qualificationService.getQualificationByQualificationId(id).getOverlap());
+                qualificationStrings.add(qualificationService.getQualificationByQualificationId(Math.toIntExact(id)).getQualification_name());
+                qualificationNames.add(qualificationService.getQualificationByQualificationId(Math.toIntExact(id)).getOverlap());
             }
         }
         else
@@ -3244,8 +3244,8 @@ public class CustomerEndpoint {
         if(refids.isEmpty())
             refids=null;
 
-        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
-        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationNames, username, completed, authHeader, offset, limit, sort);
+        List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
+        List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
         Set<BigInteger> uniqueResults = new HashSet<>();
 
 // Add all elements from both result sets
@@ -3389,16 +3389,47 @@ public class CustomerEndpoint {
 //                            customerBasicDetailsDto.setHighestQualification(null);
 //                    }
 
+//                    if (!qualifications.isEmpty() && qualificationType != null) {
+//                        for (QualificationDetails qualificationDetails : qualifications) {
+//                            int qualificationId = (qualificationDetails.getQualification_id());
+//
+//                            if (qualificationType.contains(qualificationId)) {
+//                                String qualificationNameToSet = qualificationService.getQualificationByQualificationId(qualificationId).getQualification_name();
+//                                customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
+//                                break; // Stop checking more qualifications for this customer
+//                            }
+//                        }
+//                    }
 
-                    for (QualificationDetails qualificationDetails : qualifications) {
-                        int qualificationId = (qualificationDetails.getQualification_id());
 
-                        if (qualificationType.contains(qualificationId)) {
-                            String qualificationNameToSet = qualificationService.getQualificationByQualificationId(qualificationId).getQualification_name();
-                            customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
-                            break; // Stop checking more qualifications for this customer
+                        if (qualificationType != null) {
+                            for (QualificationDetails qualificationDetails : qualifications) {
+                                int qualificationId = qualificationDetails.getQualification_id();
+
+                                if (qualificationType.contains(qualificationId)) {
+                                    String qualificationNameToSet = qualificationService
+                                            .getQualificationByQualificationId(qualificationId)
+                                            .getQualification_name();
+                                    customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
+                                    break; // Stop checking more qualifications for this customer
+                                }
+                            }
+                        } else {
+                            int max = 0;
+                            for (QualificationDetails qualificationDetails : qualifications) {
+                                int qualificationId = qualificationDetails.getQualification_id();
+                                Qualification qualificationFound = entityManager.find(Qualification.class, qualificationId);
+
+                                if (qualificationFound != null) {
+                                    Integer order = Qualificationorder.get(qualificationFound.getOverlap().intValue());
+                                    if (order != null && order > max) {
+                                        customerBasicDetailsDto.setHighestQualification(qualificationFound.getQualification_name());
+                                        max = order;
+                                    }
+                                }
+                            }
                         }
-                    }
+
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
                     if(roleId==1 || roleId ==2 )
