@@ -307,6 +307,7 @@ public class OtpEndpoint {
                 serviceProviderEntity.setCountry_code(countryCode);
                 serviceProviderEntity.setMobileNumber(mobileNumber);
                 serviceProviderEntity.setOtp(otp);
+                serviceProviderEntity.setApproved(false);
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
