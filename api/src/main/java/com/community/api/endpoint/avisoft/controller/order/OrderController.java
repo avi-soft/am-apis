@@ -32,6 +32,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 
 import javassist.NotFoundException;
 
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -42,7 +43,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
@@ -57,12 +65,11 @@ import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
-@RequestMapping(value = "/orders",
-        produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
-)
+@Slf4j
+@RequestMapping(value = "/orders", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 @RestController
 public class OrderController {
+
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -149,9 +156,6 @@ public class OrderController {
 //    }
 
 
-
-
-
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> getOrderHistory(
@@ -164,9 +168,18 @@ public class OrderController {
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom) {
 
         try {
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
                 throw new NotFoundException("Customer with the provided Id not found");
+
+
+            if (!tokenUserId.equals(customerId)) {
+               return ResponseService.generateErrorResponse("Unauthorized" , HttpStatus.UNAUTHORIZED);
+            }
 
             if (customCustomer.getNumberOfOrders() == 0)
                 return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);
@@ -330,7 +343,7 @@ public class OrderController {
             Order order = orderService.findOrderById(orderId);
             if (order == null)
                 return ResponseService.generateErrorResponse("Order Not found", HttpStatus.NOT_FOUND);
-            System.out.println("hello1");
+            log.info("check1");
             CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
             Customer customer = customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -397,7 +410,8 @@ public class OrderController {
                     orderDetails.add(dto);
                 }
 
-            } catch (Exception e) {
+            } catch (Exception exception) {
+                exceptionHandling.handleException(exception);
             }
         }
 
@@ -407,7 +421,8 @@ public class OrderController {
     private void logDebugQuery(String message, String queryStr) {
         try {
             BigInteger count = (BigInteger) entityManager.createNativeQuery(queryStr).getSingleResult();
-        } catch (Exception e) {
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
         }
     }
 
@@ -421,8 +436,10 @@ public class OrderController {
             if (!ticketIds.isEmpty()) {
                 return entityManager.find(CustomServiceProviderTicket.class, ticketIds.get(0).longValue());
             }
-        } catch (NoResultException e) {
-        } catch (Exception e) {
+        } catch (NoResultException noResultException) {
+            exceptionHandling.handleException(noResultException);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
         }
         return null;
     }
