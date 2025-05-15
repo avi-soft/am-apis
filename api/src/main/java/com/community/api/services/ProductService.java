@@ -3147,11 +3147,11 @@ public class ProductService {
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other qualification except OTHERS");
                     }
-                    if(qualificationEligibilityDto.getCustomSubjectIds().get(0)!=54&&qualificationEligibilityDto.getSubjectIdRunningField()!=null)
+                    if(!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()&&qualificationEligibilityDto.getCustomSubjectIds().get(0)!=54&&qualificationEligibilityDto.getSubjectIdRunningField()!=null)
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other subject except OTHERS");
                     }
-                    if(qualificationEligibilityDto.getCustomStreamIds().get(0)!=215&&qualificationEligibilityDto.getStreamIdRunningField()!=null)
+                    if(!qualificationEligibilityDto.getCustomStreamIds().isEmpty()&&qualificationEligibilityDto.getCustomStreamIds().get(0)!=215&&qualificationEligibilityDto.getStreamIdRunningField()!=null)
                     {
                         throw new IllegalArgumentException("Cannot add running field for any other stream except OTHERS");
                     }
@@ -3166,13 +3166,13 @@ public class ProductService {
                         throw new IllegalArgumentException("Running field is required for qualification type 'OTHERS'");
                     }
 
-                    if (qualificationEligibilityDto.getCustomSubjectIds().get(0) == 54 &&
+                    if (!qualificationEligibilityDto.getCustomSubjectIds().isEmpty()&&qualificationEligibilityDto.getCustomSubjectIds().get(0) == 54 &&
                             (qualificationEligibilityDto.getSubjectIdRunningField() == null ||
                                     qualificationEligibilityDto.getSubjectIdRunningField().trim().isEmpty())) {
                         throw new IllegalArgumentException("Running field is required for subject type 'OTHERS'");
                     }
 
-                    if (qualificationEligibilityDto.getCustomStreamIds().get(0) == 215 &&
+                    if (!qualificationEligibilityDto.getCustomStreamIds().isEmpty()&&qualificationEligibilityDto.getCustomStreamIds().get(0) == 215 &&
                             (qualificationEligibilityDto.getStreamIdRunningField() == null ||
                                     qualificationEligibilityDto.getStreamIdRunningField().trim().isEmpty())) {
                         throw new IllegalArgumentException("Running field is required for stream type 'OTHERS'");
