@@ -182,7 +182,13 @@ public class ProductController extends CatalogEndpoint {
             {
                 productService.addProductDtoWithoutValidation(addProductDto);
             }
-
+            if(addProductDto.getSector()!=null) {
+                if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
+                    return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
+                } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
+                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                }
+            }
             Product product = catalogService.createProduct(ProductType.PRODUCT);
             product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
@@ -1111,6 +1117,9 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
             postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+            postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+            postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+            postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
             postProjectionDTO.setReligion(post.getReligion());
             postProjectionDTO.setIncome(post.getIncome());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();

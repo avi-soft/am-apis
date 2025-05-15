@@ -51,4 +51,10 @@ public class PostDto {
     private List<String>religion;
     @JsonProperty("total_seats_visible")
     private Boolean totalSeatsVisible;
+    @JsonProperty("religion_additional_comments")
+    private String ReligionAdditionalComments;
+    @JsonProperty("income_additional_comments")
+    private String incomeAdditionalComments;
+    @JsonProperty("additional_eligibility")
+    private String additionalEligibility;
 }
