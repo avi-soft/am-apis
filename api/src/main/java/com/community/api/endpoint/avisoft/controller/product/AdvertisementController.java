@@ -8,10 +8,7 @@ import com.community.api.dto.AdvertisementProductWrapper;
 import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.Role;
+import com.community.api.entity.*;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.GenderService;
 import com.community.api.services.ProductService;
@@ -351,8 +348,9 @@ public class AdvertisementController {
                     // Wrap active products
                     for (CustomProduct customProduct : activeProducts) {
                         CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
-                        if (authHeader == null)
-                            wrapper.wrapDetails(customProduct, null);
+                        if (authHeader == null) {
+                            wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
+                        }
                         else
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
 
