@@ -62,6 +62,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("comment")
     protected String comment;
 
+    @JsonProperty("parent_ticket")
+    protected CustomServiceProviderTicket parentTicket;
+
     @JsonProperty("order")
     protected CombinedOrderDTO order;
     @JsonProperty("task_description")
@@ -73,7 +76,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
-        combinedOrderDTO.setTicket(null);
+
+        if(combinedOrderDTO != null) {
+            combinedOrderDTO.setTicket(null);
+        }
         this.order = combinedOrderDTO;
         this.createdDate = customServiceProviderTicket.getCreatedDate();
         this.modifiedDate = customServiceProviderTicket.getModifiedDate();
@@ -99,6 +105,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             this.assigneeName = "-";
         }
 
+        this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {

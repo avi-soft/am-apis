@@ -79,4 +79,9 @@ public class QualificationEligibility
     @Column(name = "additional_comments")
     @JsonProperty("additionalComments")
     private String additionalComments;
+
+    private String qualificationIdRunningField;
+    private String subjectIdRunningField;
+    private String streamIdRunningField;
+    private String reserveCatIdRunningField;
 }

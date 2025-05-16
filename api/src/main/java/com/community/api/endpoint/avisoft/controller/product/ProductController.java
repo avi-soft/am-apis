@@ -182,7 +182,13 @@ public class ProductController extends CatalogEndpoint {
             {
                 productService.addProductDtoWithoutValidation(addProductDto);
             }
-
+            if(addProductDto.getSector()!=null) {
+                if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
+                    return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
+                } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
+                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                }
+            }
             Product product = catalogService.createProduct(ProductType.PRODUCT);
             product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
@@ -717,6 +723,9 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
+            }
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);
@@ -1108,6 +1117,9 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
             postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+            postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+            postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+            postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
             postProjectionDTO.setReligion(post.getReligion());
             postProjectionDTO.setIncome(post.getIncome());
             List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
@@ -1124,6 +1136,8 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
+                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
                 reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }

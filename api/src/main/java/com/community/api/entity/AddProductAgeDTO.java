@@ -27,6 +27,10 @@ public class AddProductAgeDTO {
     @Nullable
     @JsonProperty("born_before")
     Date bornBefore;
+    @JsonProperty("category_running_field")
+    String categoryRunningField;
+    @JsonProperty("gender_running_field")
+    String genderRunningField;
     @Nullable
     @JsonProperty("born_after")
     Date bornAfter;

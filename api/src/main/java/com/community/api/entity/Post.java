@@ -108,6 +108,12 @@ public class Post {
     private String physicalAdditionalComments;
     @JsonProperty("other_distribution_additional_comments")
     private String otherDistributionAdditionalComments;
+    @JsonProperty("religion_additional_comments")
+    private String ReligionAdditionalComments;
+    @JsonProperty("income_additional_comments")
+    private String incomeAdditionalComments;
+    @JsonProperty("additional_eligibility")
+    private String additionalEligibility;
     @JsonProperty("total_seats_visible")
     private Boolean totalSeatsVisible;
     @Column(name = "income_threshold")

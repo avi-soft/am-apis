@@ -74,7 +74,8 @@ public class ProductReserveCategoryFeePostRefService {
                 }
                 else
                     query.setParameter("reserveCategoryId",0);
-
+                query.setParameter("running_field",addReserveCategoryDto.getRunningField());
+                query.setParameter("gender_running_field",addReserveCategoryDto.getGenderRunningField());
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
                 query.setParameter("genderId",gender.getGenderId());

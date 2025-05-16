@@ -12,6 +12,8 @@ public class PhysicalRequirementDto {
 
     @JsonProperty("gender_id")
     Long genderId;
+    @JsonProperty("gender_running_field")
+    String genderRunningfield;
     @JsonProperty("product_id")
     Long productId;
     @JsonProperty("height")
