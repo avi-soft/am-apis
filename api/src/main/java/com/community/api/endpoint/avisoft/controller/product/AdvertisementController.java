@@ -177,10 +177,12 @@ public class AdvertisementController {
 
         try {
             CustomCustomer customCustomer = null;
+            String role=null;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                 role= roleService.findRoleName(roleId);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
             }
@@ -204,13 +206,28 @@ public class AdvertisementController {
 
                 List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
                 for (CustomProduct customProduct : customProducts) {
-
-                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
-                   && customProduct.getGoLiveDate().before(new Date())) {
-                        CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
-                        products.add(wrapper);
+                    if(role.equalsIgnoreCase(Constant.roleUser))
+                    {
+                        if (customProduct != null &&
+                                ((Status) customProduct).getArchived() != 'Y' &&
+                                customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
+                                !customProduct.getGoLiveDate().after(new Date()) &&
+                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
+                                customProduct.getIsApproved())  {
+                            CustomProductWrapper wrapper = new CustomProductWrapper();
+                            wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                            products.add(wrapper);
+                        }
                     }
+                    else {
+                        if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                                && !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&& customProduct.getGoLiveDate().before(new Date())) {
+                            CustomProductWrapper wrapper = new CustomProductWrapper();
+                            wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                            products.add(wrapper);
+                        }
+                    }
+
                 }
                 AdvertisementWrapper wrapper = new AdvertisementWrapper();
                 wrapper.wrapDetails(advertisement, products, null);
@@ -351,6 +368,7 @@ public class AdvertisementController {
                                 .filter(customProduct -> customProduct != null)
                                 .filter(customProduct -> ((Status) customProduct).getArchived() != 'Y')
                                 .filter(customProduct -> customProduct.getIsApproved())
+                                .filter(customProduct -> !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT))
                                 .filter(customProduct -> !customProduct.getGoLiveDate().after(new Date()))
                                 .filter(customProduct -> {
                                     // If active end date is null, product is considered active indefinitely
@@ -371,6 +389,7 @@ public class AdvertisementController {
                       activeProducts = customProducts.stream()
                             .filter(customProduct -> customProduct != null &&
                                     (((Status) customProduct).getArchived() != 'Y' &&
+                                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
                                             customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
                              && customProduct.getGoLiveDate().before(new Date()))
                             .collect(Collectors.toList());
