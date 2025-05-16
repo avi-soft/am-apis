@@ -18,3 +18,4 @@ test/avisoftdocument
 .DS_Store
 api/src/main/resources/runtime-properties/common.properties
 api/src/main/resources/runtime-properties/default.properties
+
