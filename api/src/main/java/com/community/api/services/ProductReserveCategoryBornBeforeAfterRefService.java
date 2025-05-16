@@ -48,7 +48,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
     }
-    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     protected SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd");
     public List<CustomProductReserveCategoryBornBeforeAfterRef> getProductReserveCategoryBornBeforeAfterByProductId(Long productId) {
         try {

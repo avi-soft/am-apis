@@ -1,7 +1,10 @@
 package com.community.api.component;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.entity.CustomOrderState;
+import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -268,5 +271,7 @@ public class Constant {
     public static final Long TICKET_TYPE_ID_OF_PRIMARY_TICKET = 1L;
     public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
     public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
+
+
 
 }
