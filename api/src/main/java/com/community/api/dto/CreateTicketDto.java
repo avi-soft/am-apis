@@ -39,7 +39,19 @@ public class CreateTicketDto {
     @JsonProperty("comment")
     private String comment;
 
+    @JsonProperty("title")
+    private String title;
+
     @JsonProperty("task")
     private String task;
+
+    @JsonProperty("is_complete")
+    private Boolean isComplete;
+
+    @JsonProperty("work_quality_id")
+    private Long workQualityId;
+
+    @JsonProperty("is_review_required")
+    private Boolean isReviewRequired;
 
 }

@@ -117,7 +117,7 @@ public class Constant {
     public static String GET_PRODUCT_RESERVECATEGORY_BORNBEFORE_BORNAFTER = "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.customProduct = :customProduct";
     public static String GET_PRODUCT_RESERVECATEGORY_FEE_POST = "SELECT c FROM CustomProductReserveCategoryFeePostRef c WHERE c.customProduct = :customProduct";
     public static String ADD_PRODUCT_RESERVECATEOGRY_BORNBEFORE_BORNAFTER = "INSERT INTO custom_product_reserve_category_born_before_after_reference (product_id, reserve_category_id, born_before, born_after, gender_id, born_before_after, maximum_age, minimum_age) VALUES (:productId, :reserveCategoryId, :bornBefore, :bornAfter, :genderId, :bornBeforeAfter, :maximumAge, :minimumAge) RETURNING product_reserve_category_id";
-    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post ,gender_id,fee_additional_comments,is_other_or_state_category,other_or_state_category) VALUES (:productId, :reserveCategoryId, :fee, :post ,:genderId, :fee_additional_comments, :is_other_or_state_category, :other_or_state_category)";
+    public static String ADD_PRODUCT_RESERVECATEOGRY_FEE_POST = "INSERT INTO custom_product_reserve_category_fee_post_reference (product_id, reserve_category_id, fee, post ,gender_id,fee_additional_comments,is_other_or_state_category,other_or_state_category,running_field,gender_running_field) VALUES (:productId, :reserveCategoryId, :fee, :post ,:genderId, :fee_additional_comments, :is_other_or_state_category, :other_or_state_category, :running_field, :gender_running_field)";
     public static String GET_RESERVED_CATEGORY_BY_ID = "SELECT c FROM CustomReserveCategory c WHERE c.reserveCategoryId = :reserveCategoryId";
     public static String APPLICATION_SCOPE_STATE = "STATE";
     public static String PRIVILEGE_UPDATE_PRODUCT = "UPDATE_PRODUCT";
@@ -176,7 +176,7 @@ public class Constant {
     public static final String CITY_REGEXP="^[A-Za-z\\\\s]+$";
     public static final String EMAIL_REGEXP="^[\\w-\\.]+@[\\w-]+\\.[a-zA-Z]{2,}$";
     public static final String GET_ALL_ORDERS_OF_ONE_CUSTOMER="SELECT o from blc_ ";
-    public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber and  tax_override is NULL";;
+    public static final String GET_ORDERS_USING_CUSTOMER_ID = "SELECT CAST(o.order_id AS BIGINT) FROM blc_order o WHERE o.order_number LIKE :orderNumber and  tax_override is NULL";
     public static final String CHECK_FOR_REPEATED_REF="SELECT COUNT(*) FROM customer_referrer c WHERE c.customer_id = :customerId AND c.service_provider_id = :spId";
     public static final String GET_ALL_ORDERS="SELECT order_id FROM order_state";
     public static final String SEARCH_ORDER_QUERY="SELECT o.order_id FROM order_state o WHERE o.order_state_id =:orderStateId";
@@ -198,12 +198,19 @@ public class Constant {
 
     public static final OrderStatus ORDER_STATUS_UNASSIGNED = new OrderStatus("UNASSIGNED", "UNASSIGNED", true);
     public static final CustomOrderState ORDER_STATE_COMPLETED = new CustomOrderState(7);
+    public static final CustomOrderState ORDER_STATE_CREATED= new CustomOrderState(0);
+    public static final CustomOrderState ORDER_STATE_FAILED = new CustomOrderState(999);
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
     public static final Long TICKET_STATE_RETURNED = 6L;
+    public static final Long TICKET_STATE_ON_HOLD = 3L;
+    public static final Long TICKET_STATE_CLOSE = 5L;
+    public static final Long TICKET_STATE_SUPPORT = 7L;
     public static final Long TICKET_STATUS_BDWL = 12L;
     public static final Long TICKET_STATUS_OTHER = 13L;
+
+
 
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
@@ -219,13 +226,15 @@ public class Constant {
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
-    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
+    public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";
     public static final String GET_ORDER_STATE_LINKED_WITH_TICKET="SELECT c.order_state_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId";
     public static final String BEARER_CONST= "Bearer ";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_FOR_QUALIFICATION = "UPDATE %s SET archived = true WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final Long TICKET_STATE_IN_REVIEW=4L;
     public static final Long TICKET_STATE_TO_DO=1L;
+    public static final Long TICKET_STATE_IN_PROGRESS=2L;
     public static final Long TICKET_STATUS_IN_REVIEW_HELP=11L;
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
@@ -249,4 +258,15 @@ public class Constant {
             "Admin";
     public static final String WELCOME_SUBJECT="System Message";
     public static final Integer SUPER_ADMIN_PRIVILEGES=4;
+
+    public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c FROM OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId AND c.ticketTypeId = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET = "SELECT t FROM TicketStateLinkage t WHERE t.ticketStateIdFrom = :ticketStateIdFrom AND t.ticketStateIdTo = :ticketStateIdTo AND t.ticketTypeId = :ticketTypeId";
+
+    public static final String GET_ALL_WORK_QUALITY = "SELECT c FROM CustomWorkQuality c";
+    public static final String GET_TICKET_TYPE_BY_WORK_QUALITY_ID = "SELECT c FROM CustomWorkQuality c WHERE c.workQualityId = :workQualityId";
+
+    public static final Long TICKET_TYPE_ID_OF_PRIMARY_TICKET = 1L;
+    public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
+    public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
+
 }

@@ -1,8 +1,9 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.CustomWorkQuality;
 import com.community.api.services.exception.ExceptionHandlingService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,8 @@ import javax.persistence.Query;
 import java.util.List;
 
 @Service
-public class TicketTypeService {
+@Slf4j
+public class WorkQualityService {
 
     @PersistenceContext
     protected EntityManager entityManager;
@@ -20,14 +22,14 @@ public class TicketTypeService {
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
 
-    public List<CustomTicketType> getAllTicketType() throws Exception {
+    public List<CustomWorkQuality> getAllWorkQuality() throws Exception {
         try {
-            List<CustomTicketType> ticketTypeList = entityManager.createQuery(Constant.GET_ALL_TICKET_TYPE, CustomTicketType.class).getResultList();
+            List<CustomWorkQuality> workQualityList = entityManager.createQuery(Constant.GET_ALL_WORK_QUALITY, CustomWorkQuality.class).getResultList();
 
-            if(!ticketTypeList.isEmpty()){
-                return ticketTypeList;
+            if(!workQualityList.isEmpty()){
+                return workQualityList;
             } else {
-                throw new IllegalArgumentException("No ticket type found");
+                throw new IllegalArgumentException("No Work Quality found");
             }
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -35,17 +37,17 @@ public class TicketTypeService {
         }
     }
 
-    public CustomTicketType getTicketTypeByTicketTypeId(Long ticketTypeId) throws Exception {
+    public CustomWorkQuality getWorkQualityByWorkQualityId(Long workQualityId) throws Exception {
         try {
 
-            Query query = entityManager.createQuery(Constant.GET_TICKET_TYPE_BY_TICKET_TYPE_ID, CustomTicketType.class);
-            query.setParameter("ticketTypeId", ticketTypeId);
-            List<CustomTicketType> ticketType = query.getResultList();
+            Query query = entityManager.createQuery(Constant.GET_TICKET_TYPE_BY_WORK_QUALITY_ID, CustomWorkQuality.class);
+            query.setParameter("workQualityId", workQualityId);
+            List<CustomWorkQuality> workQuality = query.getResultList();
 
-            if (!ticketType.isEmpty()) {
-                return ticketType.get(0);
+            if (!workQuality.isEmpty()) {
+                return workQuality.get(0);
             } else {
-                throw new IllegalArgumentException("No ticket type found with this ticket type id");
+                throw new IllegalArgumentException("No Work Quality found with this work quality id");
             }
 
         } catch (Exception exception) {
@@ -53,4 +55,5 @@ public class TicketTypeService {
             throw new Exception("Some Exception Caught: " + exception.getMessage());
         }
     }
+
 }

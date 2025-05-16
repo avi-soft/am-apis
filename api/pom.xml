@@ -34,6 +34,12 @@
                 <configuration>
                     <source>15</source>
                     <target>15</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
@@ -157,7 +163,7 @@
         <dependency>
             <groupId>org.modelmapper</groupId>
             <artifactId>modelmapper</artifactId>
-            <version>3.1.1</version> <!-- or latest compatible version -->
+            <version>3.1.0</version> <!-- or latest compatible version -->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -196,6 +202,11 @@
             <artifactId>xml-apis</artifactId>
             <version>1.4.01</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.4</version>
         </dependency>
 
         <!-- <dependency>

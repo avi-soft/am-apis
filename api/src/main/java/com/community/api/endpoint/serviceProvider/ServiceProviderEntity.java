@@ -166,6 +166,9 @@ public class ServiceProviderEntity  {
     private Integer imageUploadScore;
     private Integer partTimeOrFullTimeScore=0;
     private Integer infraScore=0;
+
+    @Column(name = "other_skill",columnDefinition = "text")
+    private String otherSkill;
     @ManyToMany
     @JoinTable(
             name = "service_provider_skill", // The name of the join table

@@ -26,6 +26,7 @@ public class AddProductDto {
     @JsonProperty("platform_fee")
     @NotNull
     Double platformFee;
+    protected String sectorRunningField;
     @JsonProperty("application_scope_id")
     @NotNull
     Long applicationScope;
@@ -112,5 +113,6 @@ public class AddProductDto {
     @JsonProperty("posts")
     private List<PostDto> posts;
     private String additionalComments;
+    private String feeAdditionalComments;
 
 }
