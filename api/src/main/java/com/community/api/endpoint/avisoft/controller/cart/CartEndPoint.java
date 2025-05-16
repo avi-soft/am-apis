@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import net.bytebuddy.asm.Advice;
+import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
+import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
 import org.broadleafcommerce.common.money.Money;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -36,7 +38,6 @@ import org.broadleafcommerce.core.order.service.type.OrderStatus;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.hibernate.validator.constraints.Currency;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,6 +66,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import java.util.ArrayList;
+import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -100,6 +102,11 @@ public class CartEndPoint extends BaseEndpoint {
     @Value("${razorpay.key.secret}")
     private String razorpaySecret;
 
+    @Autowired
+    BroadleafCurrencyService broadleafCurrencyService;
+
+
+
     private RazorpayClient razorpayCLient;
 
     @PostConstruct
@@ -133,6 +140,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Autowired
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
+
 
     @Autowired
     public void setResponseService(ResponseService responseService) {
@@ -177,6 +185,8 @@ public class CartEndPoint extends BaseEndpoint {
     public void setCartService(CartService cartService) {
         this.cartService = cartService;
     }
+
+
 
     @Transactional
     @RequestMapping(value = "empty/{customerId}", method = RequestMethod.DELETE)
@@ -677,58 +687,76 @@ public class CartEndPoint extends BaseEndpoint {
     @Transactional
     @PutMapping("/confirm-order")
     public ResponseEntity<?>confirmOrderStatus(@RequestParam List<Long>orderIds,@RequestBody Map<String,String>paymentStatus) {
+        BroadleafCurrency broadleafCurrency=broadleafCurrencyService.create();
+        broadleafCurrency.setCurrencyCode("INR");
+        broadleafCurrency.setFriendlyName("Indian Rupeee");
         boolean failed=false;
         List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
         CustomCustomer customCustomer=null;
         for (Long orderId : orderIds) {
             Order order = orderService.findOrderById(orderId);
-            String success = "success";
             if (order == null)
                 return ResponseService.generateErrorResponse("Cannot find order with given Id", HttpStatus.NOT_FOUND);
             String status = (String) paymentStatus.get("status");
-            if (success.equals(status.trim().toLowerCase())) {
-                OrderStatus orderStatus = new OrderStatus("NEW", null);
-                order.setStatus(orderStatus);
-                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
-                customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
-                customOrderState.setOrderStatusId(1);
-                order.setSubmitDate(new Date());
-                OrderItem orderItem = order.getOrderItems().get(0);
-                Product product = findProductFromItemAttribute(orderItem);
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
-                customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
-                if (refSp != null) {
-                    Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
-                    query.setParameter("customerId", order.getCustomer().getId());
-                    query.setParameter("spId", customProduct.getUserId());
-                    Integer result = ((BigInteger) query.getSingleResult()).intValue();
-                    if (result == 0) {
-                        CustomerReferrer customerReferrer = new CustomerReferrer();
-                        customerReferrer.setCustomer(customCustomer);
-                        customerReferrer.setServiceProvider(refSp);
-                        customerReferrer.setCreatedAt(LocalDateTime.now());
-                        customCustomer.getMyReferrer().add(customerReferrer);
+            switch (status.trim().toLowerCase()) {
+                case "success": {
+                    OrderStatus orderStatus = new OrderStatus("NEW", null);
+                    order.setStatus(orderStatus);
+                    CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                    customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
+                    customOrderState.setOrderStatusId(1);
+                    order.setSubmitDate(new Date());
+
+                    OrderItem orderItem = order.getOrderItems().get(0);
+                    Product product = findProductFromItemAttribute(orderItem);
+                    CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+                    ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
+                    customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+
+                    if (refSp != null) {
+                        Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
+                        query.setParameter("customerId", order.getCustomer().getId());
+                        query.setParameter("spId", customProduct.getUserId());
+                        Integer result = ((BigInteger) query.getSingleResult()).intValue();
+                        if (result == 0) {
+                            CustomerReferrer customerReferrer = new CustomerReferrer();
+                            customerReferrer.setCustomer(customCustomer);
+                            customerReferrer.setServiceProvider(refSp);
+                            customerReferrer.setCreatedAt(LocalDateTime.now());
+                            customCustomer.getMyReferrer().add(customerReferrer);
+                        }
                     }
+
+                    entityManager.merge(customCustomer);
+                    entityManager.merge(order);
+                    break;
                 }
-                entityManager.merge(customCustomer);
-                entityManager.merge(order);
-            } else {
-                failed = true;
-                OrderStatus orderStatus = new OrderStatus("PAYMENT_FAILED", null);
-                order.setStatus(orderStatus);
-                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
-                customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
-                customOrderState.setOrderStatusId(null);
-                order.setSubmitDate(new Date());
+                case "failure": {
+                    failed = true;
+                    OrderStatus orderStatus = new OrderStatus("PAYMENT_FAILED", null);
+                    order.setStatus(orderStatus);
+                    CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                    customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
+                    customOrderState.setOrderStatusId(null);
+                    order.setSubmitDate(new Date());
+                    entityManager.merge(order);
+                    break;
+                }
+                default:
+                    return ResponseService.generateErrorResponse("Invalid payment status", HttpStatus.BAD_REQUEST);
             }
+
 
             for (Long orders : orderIds) {
                 order = orderService.findOrderById(orders);
+
+                order.setCurrency(broadleafCurrency);
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
                 Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                System.out.println("cusId"+order.getCustomer().getId());
                 Customer customer = customerService.readCustomerById(order.getCustomer().getId());
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customCustomer.getId(), customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
             }
         }

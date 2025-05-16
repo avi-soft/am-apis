@@ -2503,7 +2503,7 @@ public class ProductService {
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 String role = roleService.findRoleName(roleId);
 
-                if (customProduct.getUserId().equals(userId)) {
+                if (customProduct.getUserId().equals(userId) && roleId.equals(4)) {
                     throw new IllegalArgumentException("SERVICE PROVIDER WHO CREATED THE PRODUCT CANNOT CHANGE ITS STATE");
                 }
 
@@ -2523,7 +2523,12 @@ public class ProductService {
                     List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
                     for (Privileges privilege : privileges) {
                         if ((privilege.getPrivilege_name().equals(Constant.PRIVILEGE_APPROVE_PRODUCT) && customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED))) {
+                            if (addProductDto.getIsReviewRequired() == null) {
+                                throw new IllegalArgumentException("Is review Required cannot be null");
+                            }
+                            customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                             customProduct.setProductState(customProductState);
+                            customProduct.setIsApproved(true);
                             return true;
                         } else if ((privilege.getPrivilege_name().equals(Constant.PRIVILEGE_REJECT_PRODUCT) && customProductState.getProductState().equals(Constant.PRODUCT_STATE_REJECTED))) {
                             if (addProductDto.getRejectionStatus() == null) {
@@ -2557,6 +2562,7 @@ public class ProductService {
                         }
                         customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                         customProduct.setProductState(customProductState);
+                        customProduct.setIsApproved(true);
                     }
                     else if (customProductState.getProductState().equals(PRODUCT_STATE_RESUBMIT))
                     {
@@ -4198,7 +4204,7 @@ public class ProductService {
         // Compare only the date parts
         return !cal1.before(cal2);
     }
-    private Date stripTime(Date date) {
+    public static Date stripTime(Date date) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         calendar.set(Calendar.HOUR_OF_DAY, 0);
