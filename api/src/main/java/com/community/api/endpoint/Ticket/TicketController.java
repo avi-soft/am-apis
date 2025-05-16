@@ -28,6 +28,7 @@ import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class TicketController {
@@ -174,6 +175,7 @@ public class TicketController {
 
     @Transactional
     @GetMapping("/filter-tickets")
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> getFilterTickets(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
@@ -183,8 +185,10 @@ public class TicketController {
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "personal", required = false) Boolean personal) {
         try {
+
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
@@ -217,11 +221,17 @@ public class TicketController {
 
             if (role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
                 userId = jwtTokenUtil.extractId(jwtToken);
+            } else {
+                // by default showing list of all the tickets.
+                if(personal != null && personal) {
+                    userId = jwtTokenUtil.extractId(jwtToken);
+                }
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
                     ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds);
 
+            log.info("The ticket size is: {}", tickets.size());
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
 

@@ -865,7 +865,8 @@ public class ServiceProviderTicketService {
                 query.setParameter("userId", userId);
                 query.setParameter("role", role);
             }
-
+            log.info(String.valueOf(jpql));
+//            System.out.println(query);
             // Execute and return the result
             return query.getResultList();
         } catch (Exception exception) {
