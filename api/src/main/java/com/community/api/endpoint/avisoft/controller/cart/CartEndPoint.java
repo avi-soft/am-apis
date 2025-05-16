@@ -573,6 +573,7 @@ public class CartEndPoint extends BaseEndpoint {
                     Money subTotal=new Money(platformFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-"+customer.getId()+"-B-"+batchNumber);
+                    //Checking for cost according to the category and gender of the customer
                     Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                     if(totalCost==null) {
                         //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
