@@ -557,12 +557,11 @@ public class OrderController {
     }
 
     @Transactional
-    //@Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
     public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
         try {
 
-//            TODO @Raman needs to hanlde creation of multiple tickets.
             List<String> deleteLogs = new ArrayList<>();
 
             String jwtToken = authHeader.substring(7);
@@ -578,6 +577,12 @@ public class OrderController {
             createTicketDto.setTicketType(1L);
             createTicketDto.setTicketState(1L);
             createTicketDto.setTicketStatus(0L);
+
+            if (createTicketDto.getTicketType() == 1L) {
+                if (!query.getResultList().isEmpty()) {
+                    return ResponseService.generateErrorResponse("Primary ticket already exists", HttpStatus.BAD_REQUEST);
+                }
+            }
 
             Role role = null;
             if (createTicketDto.getAssigneeRole() != null) {
