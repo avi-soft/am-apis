@@ -199,6 +199,10 @@ public class ServiceProviderEntity  {
     private int signedUp=0;
     private String business_geo_location;
 
+    @Column(name = "permanent_address_is_same_as_current_address")
+    private Boolean isSameAsCurrentAddress = false;
+
+
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "service_provider_id")

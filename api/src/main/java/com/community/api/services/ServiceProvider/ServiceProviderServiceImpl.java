@@ -58,13 +58,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import javax.validation.constraints.Pattern;
 
 @Service
@@ -356,6 +350,26 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             updates.remove("permanent_pincode");
             updates.remove("permanent_residential_address");
             updates.remove("permanent_city");
+
+            ServiceProviderAddress currentAddress = null;
+            ServiceProviderAddress permanentAddress = null;
+
+            for (ServiceProviderAddress address : existingServiceProvider.getSpAddresses()) {
+                if (address.getAddress_type_id() == 2) { // current
+                    currentAddress = address;
+                } else if (address.getAddress_type_id() == 5) { // permanent
+                    permanentAddress = address;
+                }
+            }
+
+            if (currentAddress != null && permanentAddress != null) {
+                existingServiceProvider.setIsSameAsCurrentAddress(areAddressesSame(currentAddress, permanentAddress));
+            } else {
+                existingServiceProvider.setIsSameAsCurrentAddress(false);
+            }
+
+            entityManager.merge(existingServiceProvider);
+
 
             // running business unit
             List<String> businessKeys = new ArrayList<>();
@@ -1733,4 +1747,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
         }
     }
+
+    private boolean areAddressesSame(ServiceProviderAddress a, ServiceProviderAddress b) {
+        if (a == null || b == null) return false;
+
+        return Objects.equals(a.getPincode(), b.getPincode()) &&
+                Objects.equals(a.getDistrict(), b.getDistrict()) &&
+                Objects.equals(a.getState(), b.getState()) &&
+                Objects.equals(a.getCity(), b.getCity()) &&
+                Objects.equals(a.getAddress_line(), b.getAddress_line());
+    }
+
 }
