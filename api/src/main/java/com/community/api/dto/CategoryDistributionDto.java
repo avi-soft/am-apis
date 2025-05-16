@@ -17,6 +17,7 @@ public class CategoryDistributionDto {
     private Boolean isStateLevelCategory;
     private String stateLevelCategory;
     private String additionalComment;
+    private Boolean isGenderWise;
     @JsonProperty("maleVacancy")
     Long maleVacancy;
     @JsonProperty("femaleVacancy")

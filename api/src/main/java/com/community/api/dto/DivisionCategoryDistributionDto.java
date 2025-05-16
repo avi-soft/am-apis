@@ -10,6 +10,7 @@ import javax.persistence.Column;
 public class DivisionCategoryDistributionDto {
     private Long id;
     private Long categoryId;
+    private String categoryRunningField;
     private Integer vacancyCount;
     private String additionalComment;
     private Long maleVacancy;

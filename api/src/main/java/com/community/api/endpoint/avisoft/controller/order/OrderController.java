@@ -184,9 +184,18 @@ public class OrderController {
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom) {
 
         try {
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
                 throw new NotFoundException("Customer with the provided Id not found");
+
+
+            if (!tokenUserId.equals(customerId)) {
+               return ResponseService.generateErrorResponse("Unauthorized" , HttpStatus.UNAUTHORIZED);
+            }
 
             if (customCustomer.getNumberOfOrders() == 0)
                 return ResponseService.generateErrorResponse("Order History Empty - No Orders placed", HttpStatus.OK);

@@ -56,5 +56,7 @@ import java.util.List;
         @Column(name = "additional_comments")
         @JsonProperty("additional_comments")
         private String additionalComments;
+
+        private String zoneRunningField;
 }
 

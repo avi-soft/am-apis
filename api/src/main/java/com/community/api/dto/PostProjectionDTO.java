@@ -54,4 +54,10 @@ public class PostProjectionDTO {
     private Double income;
     @JsonProperty("religion_eligibility")
     private List<String>religion;
+    @JsonProperty("religion_additional_comments")
+    private String ReligionAdditionalComments;
+    @JsonProperty("income_additional_comments")
+    private String incomeAdditionalComments;
+    @JsonProperty("additional_eligibility")
+    private String additionalEligibility;
 }
