@@ -322,6 +322,7 @@ public class CategoryController extends CatalogEndpoint {
                             ((Status) customProduct).getArchived() != 'Y' &&
                             customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
                             !customProduct.getGoLiveDate().after(new Date()) &&
+                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
                             customProduct.getIsApproved()) {
 
                         CustomProductWrapper wrapper = new CustomProductWrapper();
