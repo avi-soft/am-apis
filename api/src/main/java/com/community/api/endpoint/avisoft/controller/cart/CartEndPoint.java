@@ -16,6 +16,9 @@ import com.community.api.entity.Post;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
+import net.bytebuddy.asm.Advice;
 import org.broadleafcommerce.common.money.Money;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -23,6 +26,7 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
@@ -33,12 +37,15 @@ import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.hibernate.validator.constraints.Currency;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,11 +54,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
+import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -63,8 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.community.api.component.Constant.ORDER_STATE_NEW;
-
+import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @RestController
@@ -85,6 +93,19 @@ public class CartEndPoint extends BaseEndpoint {
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
     private OrderDTOService orderDTOService;
     private GenderService genderService;
+
+
+    @Value("${razorpay.key.id}")
+    private String razorpayId;
+    @Value("${razorpay.key.secret}")
+    private String razorpaySecret;
+
+    private RazorpayClient razorpayCLient;
+
+    @PostConstruct
+    public void init() throws RazorpayException {
+        this.razorpayCLient = new RazorpayClient(razorpayId, razorpaySecret);
+    }
 
     // Setter-based injection
     @Autowired
@@ -214,6 +235,7 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
     public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId,@RequestBody Map<String,Object>map) {
         try {
+
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -501,6 +523,7 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId,@RequestBody Map<String,Object>map,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+
             CustomProduct customProduct=null;
            /* Long id = Long.valueOf(customerId);*/
             List<Long>orderItemIds=getLongList(map,"orderItemIds");
@@ -544,6 +567,7 @@ public class CartEndPoint extends BaseEndpoint {
             List<Order>newOrders=new ArrayList<>();
             if(!errors.isEmpty())
                 return ResponseService.generateErrorResponse("Error Placing order : "+errors.toString(),HttpStatus.BAD_REQUEST);
+
             for (OrderItem orderItem : cart.getOrderItems()) {
                 if (orderItemIds.contains(orderItem.getId())) {
                     Product product = findProductFromItemAttribute(orderItem);
@@ -553,7 +577,7 @@ public class CartEndPoint extends BaseEndpoint {
                     Order individualOrder = orderService.createNamedOrderForCustomer(orderItem.getName(), customer);
                     individualOrder.setCustomer(customer);
                     individualOrder.setEmailAddress(customer.getEmailAddress());
-                    individualOrder.setStatus(Constant.ORDER_STATUS_NEW);
+
                     OrderItemRequest orderItemRequest = new OrderItemRequest();
                     orderItemRequest.setProduct(product);
                     individualOrder.setCustomer(customer);
@@ -595,12 +619,25 @@ public class CartEndPoint extends BaseEndpoint {
                     orderAttribute.setValue(retrievedPostPreferenceString);
                     individualOrder.getOrderAttributes().put("sorted",orderAttribute);
                     entityManager.merge(individualOrder);
+                    individualOrder.setEmailAddress(customer.getEmailAddress());
                     CustomOrderState orderState=new CustomOrderState();
-                    orderState.setOrderStateId((ORDER_STATE_NEW.getOrderStateId()));
+                    JSONObject options = new JSONObject();
+                    options.put("amount", (subTotal.getAmount().doubleValue() * 100)); // amount in paise
+                    options.put("currency", "INR");
+                    options.put("receipt",customer.getEmailAddress());
+                    com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
+                    if(razorpayOrder != null) {
+                        individualOrder.setOrderNumber(razorpayOrder.get("id"));
+                        OrderStatus orderStatus=new OrderStatus("CREATED",null);
+                        individualOrder.setStatus(orderStatus);
+                    }
+                    else
+                        return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION",HttpStatus.INTERNAL_SERVER_ERROR);
+                    orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
-                    Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
-                    orderState.setOrderStatusId(orderStatusId);
-                    orderState.setOrderStatusId(orderStatusId);
+                   // Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
+                    //orderState.setOrderStatusId(orderStatusId);
+                    //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
                     customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId(),authHeader);
                     individualOrders.add(individualOrder);
@@ -617,21 +654,7 @@ public class CartEndPoint extends BaseEndpoint {
                     }
                 }
                 customCustomer.setNumberOfOrders(batchNumber);
-                ServiceProviderEntity refSp=entityManager.find(ServiceProviderEntity.class,customProduct.getUserId());
-                if(refSp!=null) {
-                    Query query=entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
-                    query.setParameter("customerId",customCustomer.getId());
-                    query.setParameter("spId",customProduct.getUserId());
-                    Integer result=((BigInteger) query.getSingleResult()).intValue();
-                    if(result==0) {
-                        CustomerReferrer customerReferrer = new CustomerReferrer();
-                        customerReferrer.setCustomer(customCustomer);
-                        customerReferrer.setServiceProvider(refSp);
-                        customerReferrer.setCreatedAt(LocalDateTime.now());
-                        customCustomer.getMyReferrer().add(customerReferrer);
-                    }
-                }
-                entityManager.merge(customCustomer);
+
                 entityManager.merge(cart);
                 List<CombinedOrderDTO> orderDTOS=new ArrayList<>();
                 for(Order order:individualOrders)
@@ -640,13 +663,83 @@ public class CartEndPoint extends BaseEndpoint {
                     OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customerId,customer.getFirstName()+" "+customCustomer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
                     orderDTOS.add(orderDTOService.wrapOrder(order,orderState,null,customerDetailsDTO));
                 }
-                return ResponseService.generateSuccessResponse("Order Placed", orderDTOS, HttpStatus.OK);
-        } catch (Exception e) {
+                return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
+        }catch (RazorpayException razorpayException)
+        {
+            return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception",HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        catch (Exception e) {
 
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error placing order "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error creating order "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Transactional
+    @PutMapping("/confirm-order")
+    public ResponseEntity<?>confirmOrderStatus(@RequestParam List<Long>orderIds,@RequestBody Map<String,String>paymentStatus) {
+        boolean failed=false;
+        List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
+        CustomCustomer customCustomer=null;
+        for (Long orderId : orderIds) {
+            Order order = orderService.findOrderById(orderId);
+            String success = "success";
+            if (order == null)
+                return ResponseService.generateErrorResponse("Cannot find order with given Id", HttpStatus.NOT_FOUND);
+            String status = (String) paymentStatus.get("status");
+            if (success.equals(status.trim().toLowerCase())) {
+                OrderStatus orderStatus = new OrderStatus("NEW", null);
+                order.setStatus(orderStatus);
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
+                customOrderState.setOrderStatusId(1);
+                order.setSubmitDate(new Date());
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Product product = findProductFromItemAttribute(orderItem);
+                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+                ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
+                customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                if (refSp != null) {
+                    Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
+                    query.setParameter("customerId", order.getCustomer().getId());
+                    query.setParameter("spId", customProduct.getUserId());
+                    Integer result = ((BigInteger) query.getSingleResult()).intValue();
+                    if (result == 0) {
+                        CustomerReferrer customerReferrer = new CustomerReferrer();
+                        customerReferrer.setCustomer(customCustomer);
+                        customerReferrer.setServiceProvider(refSp);
+                        customerReferrer.setCreatedAt(LocalDateTime.now());
+                        customCustomer.getMyReferrer().add(customerReferrer);
+                    }
+                }
+                entityManager.merge(customCustomer);
+                entityManager.merge(order);
+            } else {
+                failed = true;
+                OrderStatus orderStatus = new OrderStatus("PAYMENT_FAILED", null);
+                order.setStatus(orderStatus);
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
+                customOrderState.setOrderStatusId(null);
+                order.setSubmitDate(new Date());
+            }
+
+            for (Long orders : orderIds) {
+                order = orderService.findOrderById(orders);
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customCustomer.getId(), customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
+            }
+        }
+            if(!failed)
+                return ResponseService.generateSuccessResponse("Order Placed successfully", orderDTOS, HttpStatus.OK);
+            else
+                return ResponseService.generateErrorResponse(
+                    "Order placement failed due to payment error.",
+                    HttpStatus.PAYMENT_REQUIRED
+            );
+        }
     @RequestMapping(value ="cart-recovery-log/{customerId}",method = RequestMethod.GET)
     public ResponseEntity<?>getCartRecoveryLog(@PathVariable Long customerId)
     {
@@ -654,7 +747,7 @@ public class CartEndPoint extends BaseEndpoint {
             Long id = Long.valueOf(customerId);
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
-                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
                 if(customCustomer==null)
                     return ResponseService.generateErrorResponse("Cannot find customer for this id",HttpStatus.NOT_FOUND);
                 List<Map<String,Object>>productList=new ArrayList<>();

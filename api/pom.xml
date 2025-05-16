@@ -203,6 +203,11 @@
             <version>1.4.01</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.4</version>
+        </dependency>
 
         <!-- <dependency>
 
