@@ -121,10 +121,10 @@ public class RoleService {
     public List<Role> getRolesForSuperAdmin() {
         List<Role> roles = new ArrayList<>();
         Role role2 = roleService.getRoleByRoleId(2);
-        Role role3 = roleService.getRoleByRoleId(3);
+//        Role role3 = roleService.getRoleByRoleId(3);
         Role role4 = roleService.getRoleByRoleId(4);
         if (role2 != null) roles.add(role2);
-        if (role3 != null) roles.add(role3);
+//        if (role3 != null) roles.add(role3);
         if (role4 != null) roles.add(role4);
         return roles;
     }
@@ -132,9 +132,9 @@ public class RoleService {
 
     public List<Role> getRolesForAdmin() {
         List<Role> roles = new ArrayList<>();
-        Role role3 = roleService.getRoleByRoleId(3);
+//        Role role3 = roleService.getRoleByRoleId(3);
         Role role4 = roleService.getRoleByRoleId(4);
-        if (role3 != null) roles.add(role3);
+//        if (role3 != null) roles.add(role3);
         if (role4 != null) roles.add(role4);
         return roles;
     }

@@ -8,16 +8,14 @@ import com.community.api.dto.AdvertisementProductWrapper;
 import com.community.api.dto.AdvertisementWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
-import com.community.api.entity.Advertisement;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.Role;
+import com.community.api.entity.*;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.GenderService;
 import com.community.api.services.ProductService;
 import com.community.api.services.ReserveCategoryAgeService;
 import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
@@ -47,11 +45,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.SOME_EXCEPTION_OCCURRED;
 import static com.community.api.component.Constant.request;
+import static com.community.api.services.ProductService.stripTime;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 import static elemental2.core.JsRegExp.input;
 
@@ -72,6 +74,9 @@ public class AdvertisementController {
 
     @Autowired
     CatalogService catalogService;
+
+    @Autowired
+    RoleService roleService;
 
     @Autowired
     SharedUtilityService sharedUtilityService;
@@ -303,9 +308,11 @@ public class AdvertisementController {
 
         try {
             CustomCustomer customCustomer = null;
+            String role=null;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                 role  = roleService.findRoleName(roleId);
                 Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
                 if (roleId == 5)
                     customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
@@ -334,16 +341,40 @@ public class AdvertisementController {
 
                     List<CustomAdvertisementProductWrapper> products = new ArrayList<>();
                     List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                    List<CustomProduct> activeProducts = new ArrayList<>();
+                    if (Constant.roleUser.equalsIgnoreCase(role)) {
+                        Date today = stripTime(new Date());
+                        List<CustomProduct> filteredProducts = customProducts.stream()
+                                .filter(customProduct -> customProduct != null)
+                                .filter(customProduct -> ((Status) customProduct).getArchived() != 'Y')
+                                .filter(customProduct -> customProduct.getIsApproved())
+                                .filter(customProduct -> !customProduct.getGoLiveDate().after(new Date()))
+                                .filter(customProduct -> {
+                                    // If active end date is null, product is considered active indefinitely
+                                    if (customProduct.getActiveEndDate() == null) {
+                                        return true;
+                                    }
+
+                                    Date activeEndDate = stripTime(customProduct.getActiveEndDate());
+                                    // Product is active if end date is today or in the future
+                                    return !activeEndDate.before(today);
+                                })
+                                .collect(Collectors.toList());
+
+                        activeProducts = filteredProducts;
+                    } else {
 
                     // Filter products: Keep only active products
-                    List<CustomProduct> activeProducts = customProducts.stream()
+                      activeProducts = customProducts.stream()
                             .filter(customProduct -> customProduct != null &&
                                     (((Status) customProduct).getArchived() != 'Y' &&
                                             customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
                              && customProduct.getGoLiveDate().before(new Date()))
                             .collect(Collectors.toList());
 
-                    // **Skip this advertisement if all products are expired**
+                    }
+// Clear products list before adding new ones to prevent duplicates
+                    products.clear();
                     if (activeProducts.isEmpty()) {
                         continue; // Skip this advertisement
                     }
@@ -351,11 +382,11 @@ public class AdvertisementController {
                     // Wrap active products
                     for (CustomProduct customProduct : activeProducts) {
                         CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
-                        if (authHeader == null)
-                            wrapper.wrapDetails(customProduct, null);
+                        if (authHeader == null) {
+                            wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
+                        }
                         else
                             wrapper.wrapDetails(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
-
                         products.add(wrapper);
                     }
 
