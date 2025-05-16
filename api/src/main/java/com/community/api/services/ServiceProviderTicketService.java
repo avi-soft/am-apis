@@ -266,9 +266,34 @@ public class ServiceProviderTicketService {
 
             return assignedTickets;
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    public void rejectedTicketLogic() {
+        try {
+
+            List<Long> stateIdList = new ArrayList<>();
+            stateIdList.add(Constant.TICKET_STATE_RETURNED);
+
+            // created a list which will keep the records of the tickets that are assigned by the auto-assigned.
+            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
+
+            // Firstly we fetch all the tickets which are in return state.
+            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null);
+            log.info(String.valueOf(tickets.size()));
+
+            randomBindingTicketAllocationForTickets(tickets, assignedTickets);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new IllegalArgumentException(exception.getMessage());
         }
     }
 
@@ -377,6 +402,82 @@ public class ServiceProviderTicketService {
                 }
             }
             logger.info("Total orders assigned by RBTA method is: " + assignedTickets.size());
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public void randomBindingTicketAllocationForTickets(List<CustomServiceProviderTicket> tickets, List<CustomTicketWrapper> assignedTickets) throws Exception {
+        try {
+            log.info("Random Binding Ticket Allocation (RBTA)");
+            log.info("Total Tickets received by RBTA are: {}", tickets.size());
+
+            boolean assigned;
+
+            // Created a iterator that will iterator each ticket.
+            Iterator<CustomServiceProviderTicket> iterator = tickets.iterator();
+            /*while (iterator.hasNext()) {
+
+                CustomServiceProviderTicket ticket = iterator.next();
+                assigned = false;
+
+                log.info("On ticket with id: {}", ticket.getTicketId());
+
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+
+                } else if() {
+
+                } else {
+                    throw new IllegalArgumentException("Cannot found order or customer for this type of ticket.");
+                }
+                // Fetch Order and customer from primary ticket or review ticket.
+                Order order = orderService.findOrderById(customOrderState.getOrderId());
+                CustomCustomer customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+
+                // Fetch all the referees.
+                List<CustomerReferrer> referrers = customer.getMyReferrer();
+                logger.info("Customer whose id is: " + customer.getId() + " have a referrer list of size: " + referrers.size());
+
+                if (referrers.isEmpty()) {
+                    continue;
+                }
+
+                // PRIMARY BINDED LOGIC OF RANDOM BINDING TICKET ALLOCATION (RBTA)
+                for (CustomerReferrer referrer : referrers) {
+                    // Traverse the Referrers one by one
+                    ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+
+                    // Check if the referee is the primary Referee.
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()) {
+                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    }
+                }
+
+                // For the Remaining Referees
+                if (!assigned) {
+                    for (CustomerReferrer referrer : referrers) {
+                        ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+                        logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
+
+                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    }
+                }
+
+                // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
+                if (!assigned) {
+
+                    logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                    Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                    CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
+
+                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+                    allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                }
+            }*/
+            log.info("Total tickets re-assigned by RBTA method is: {}", assignedTickets.size());
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
