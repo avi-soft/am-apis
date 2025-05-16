@@ -25,7 +25,7 @@ public class OrderDTO
     private String orderName;
     private Money total;
     private Date orderPlacedDate;
-    private String orderNumber;
+    private String razorpayOrderId;
     private String customerEmail;
     private Long customerId;
     private Money subTotal;
