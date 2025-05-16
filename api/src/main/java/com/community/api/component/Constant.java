@@ -198,6 +198,8 @@ public class Constant {
 
     public static final OrderStatus ORDER_STATUS_UNASSIGNED = new OrderStatus("UNASSIGNED", "UNASSIGNED", true);
     public static final CustomOrderState ORDER_STATE_COMPLETED = new CustomOrderState(7);
+    public static final CustomOrderState ORDER_STATE_CREATED= new CustomOrderState(0);
+    public static final CustomOrderState ORDER_STATE_FAILED = new CustomOrderState(999);
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);

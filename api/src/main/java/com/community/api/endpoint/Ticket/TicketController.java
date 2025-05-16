@@ -28,6 +28,7 @@ import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class TicketController {
@@ -174,6 +175,7 @@ public class TicketController {
 
     @Transactional
     @GetMapping("/filter-tickets")
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> getFilterTickets(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "created_date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
@@ -183,8 +185,10 @@ public class TicketController {
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "personal", required = false) Boolean personal) {
         try {
+
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
@@ -217,6 +221,11 @@ public class TicketController {
 
             if (role.getRole_name().equals(Constant.SERVICE_PROVIDER)) {
                 userId = jwtTokenUtil.extractId(jwtToken);
+            } else {
+                // by default showing list of all the tickets.
+                if (personal != null && personal) {
+                    userId = jwtTokenUtil.extractId(jwtToken);
+                }
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
@@ -239,7 +248,7 @@ public class TicketController {
 
             List<CustomTicketWrapper> responses = paginatedTickets.stream().map(ticket -> {
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
-                if(!ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                if (!ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -312,7 +321,7 @@ public class TicketController {
             Long userId = jwtTokenUtil.extractId(jwtToken);
 
             Role role = roleService.getRoleByRoleId(roleId);
-            if(!role.getRole_name().equals(Constant.roleSuperAdmin) && !role.getRole_name().equals(Constant.roleAdmin)) {
+            if (!role.getRole_name().equals(Constant.roleSuperAdmin) && !role.getRole_name().equals(Constant.roleAdmin)) {
                 return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
             }
 
@@ -320,7 +329,7 @@ public class TicketController {
 
             CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
-                if(createTicketDto.getTicketState() <= 0) {
+                if (createTicketDto.getTicketState() <= 0) {
                     return ResponseService.generateErrorResponse("TICKET STATE CANNOT BE NULL OR <= 0", HttpStatus.NOT_FOUND);
                 }
                 ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
@@ -338,7 +347,7 @@ public class TicketController {
             }
 
             CustomTicketType ticketType = null;
-            if(createTicketDto.getTicketType() != null) {
+            if (createTicketDto.getTicketType() != null) {
 
                 if (createTicketDto.getTicketType() <= 0) {
                     return ResponseService.generateErrorResponse("TICKET TYPE CANNOT BE <= 0", HttpStatus.NOT_FOUND);
@@ -348,12 +357,12 @@ public class TicketController {
                 if (ticketType == null) {
                     return ResponseService.generateErrorResponse("TICKET STATE NOT FOUND WITH THIS ID", HttpStatus.NOT_FOUND);
                 }
-                if(!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                if (!ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                     return ResponseService.generateErrorResponse("Only Ticket Type Miscellaneous can be created w/o linkage of order or parent ticket", HttpStatus.BAD_REQUEST);
                 }
                 customServiceProviderTicket.setTicketType(ticketType);
 
-                if(ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                if (ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                     if (createTicketDto.getIsReviewRequired() == null) {
                         return ResponseService.generateErrorResponse("Review required is mandatory for the Miscellaneous Ticket.", HttpStatus.BAD_REQUEST);
                     } else {
@@ -369,7 +378,7 @@ public class TicketController {
                 }
                 customServiceProviderTicket.setTicketType(ticketType);
 
-                if(ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                if (ticketType.getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                     if (createTicketDto.getIsReviewRequired() == null) {
                         return ResponseService.generateErrorResponse("Review required is mandatory for the Miscellaneous Ticket.", HttpStatus.BAD_REQUEST);
                     } else {
@@ -416,20 +425,20 @@ public class TicketController {
             customServiceProviderTicket.setCreatorRole(role);
 
             // validation of title and task
-            if(createTicketDto.getTitle() == null || createTicketDto.getTitle().trim().isEmpty() || createTicketDto.getTask() == null || createTicketDto.getTask().trim().isEmpty()) {
+            if (createTicketDto.getTitle() == null || createTicketDto.getTitle().trim().isEmpty() || createTicketDto.getTask() == null || createTicketDto.getTask().trim().isEmpty()) {
                 return ResponseService.generateErrorResponse("Title and task for miscellaneous ticket cannot be null or empty", HttpStatus.NOT_FOUND);
             }
             customServiceProviderTicket.setTitle(createTicketDto.getTitle().trim());
             customServiceProviderTicket.setDesc(createTicketDto.getTask().trim());
 
             // validation for assignee and assignee role and handling the auto-handling the bandwidth of individual.
-            if(createTicketDto.getAssignee() != null && createTicketDto.getAssigneeRole() != null) {
+            if (createTicketDto.getAssignee() != null && createTicketDto.getAssigneeRole() != null) {
                 Role assigneeRole = roleService.getRoleByRoleId(createTicketDto.getAssigneeRole());
 
                 // Validating target completion date.
-                if(createTicketDto.getTargetCompletionDate() != null) {
+                if (createTicketDto.getTargetCompletionDate() != null) {
                     dateFormat.parse(dateFormat.format(createTicketDto.getTargetCompletionDate()));
-                    if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                    if (!createTicketDto.getTargetCompletionDate().after(createdDate)) {
                         return ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
                     }
                 } else {
@@ -437,66 +446,66 @@ public class TicketController {
                 }
                 customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
 
-                if(assigneeRole == null) {
+                if (assigneeRole == null) {
                     return ResponseService.generateErrorResponse("Assignee role Not Found with given role id", HttpStatus.NOT_FOUND);
                 }
 
-                if(assigneeRole.getRole_name().equals(Constant.roleSuperAdmin) && role.getRole_name().equals(Constant.roleSuperAdmin)) {
+                if (assigneeRole.getRole_name().equals(Constant.roleSuperAdmin) && role.getRole_name().equals(Constant.roleSuperAdmin)) {
                     ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
-                    if(assignee == null) {
+                    if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
 
                     customServiceProviderTicket.setAssignee(assignee.getService_provider_id());
                     customServiceProviderTicket.setAssigneeRole(assigneeRole);
 
-                    assignee.setTicketAssigned(assignee.getTicketAssigned()+1);
+                    assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
-                } else if(assigneeRole.getRole_name().equals(Constant.roleAdmin)) {
+                } else if (assigneeRole.getRole_name().equals(Constant.roleAdmin)) {
                     ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
-                    if(assignee == null) {
+                    if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
 
                     customServiceProviderTicket.setAssignee(assignee.getService_provider_id());
                     customServiceProviderTicket.setAssigneeRole(assigneeRole);
 
-                    assignee.setTicketAssigned(assignee.getTicketAssigned()+1);
+                    assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
-                } else if(assigneeRole.getRole_name().equals(Constant.roleAdminServiceProvider)) {
+                } else if (assigneeRole.getRole_name().equals(Constant.roleAdminServiceProvider)) {
                     ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
-                    if(assignee == null) {
+                    if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
 
                     customServiceProviderTicket.setAssignee(assignee.getService_provider_id());
                     customServiceProviderTicket.setAssigneeRole(assigneeRole);
 
-                    assignee.setTicketAssigned(assignee.getTicketAssigned()+1);
+                    assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
-                } else if(assigneeRole.getRole_name().equals(Constant.roleServiceProvider)) {
+                } else if (assigneeRole.getRole_name().equals(Constant.roleServiceProvider)) {
                     ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(createTicketDto.getAssignee());
-                    if(assignee == null) {
+                    if (assignee == null) {
                         return ResponseService.generateErrorResponse("No Assignee Found with given Id.", HttpStatus.NOT_FOUND);
                     }
 
                     customServiceProviderTicket.setAssignee(assignee.getService_provider_id());
                     customServiceProviderTicket.setAssigneeRole(assigneeRole);
 
-                    assignee.setTicketAssigned(assignee.getTicketAssigned()+1);
+                    assignee.setTicketAssigned(assignee.getTicketAssigned() + 1);
                     entityManager.merge(assignee);
-                } else{
+                } else {
                     return ResponseService.generateErrorResponse("Cannot Assignee Ticket to this Role", HttpStatus.NOT_FOUND);
                 }
 
-            } else if(createTicketDto.getAssigneeRole() != null || createTicketDto.getAssignee() != null) {
+            } else if (createTicketDto.getAssigneeRole() != null || createTicketDto.getAssignee() != null) {
                 return ResponseService.generateErrorResponse("Assignee and Assignee Role must be provided together", HttpStatus.NOT_FOUND);
-            } else if(createTicketDto.getTargetCompletionDate() != null) {
+            } else if (createTicketDto.getTargetCompletionDate() != null) {
                 return ResponseService.generateErrorResponse("Target Completion Date must be provided with assignee and assignee role not alone.", HttpStatus.NOT_FOUND);
             }
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
-            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket,HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
