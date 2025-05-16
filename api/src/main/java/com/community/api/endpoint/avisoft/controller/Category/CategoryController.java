@@ -288,12 +288,15 @@ public class CategoryController extends CatalogEndpoint {
             @RequestParam(defaultValue = "10") int limit,
             @RequestHeader(value = "Authorization") String authHeader) {
         try {
+            Integer roleId=5;
+            String role=Constant.roleUser;
+            if(authHeader!=null) {
+                String jwtToken = authHeader.substring(7);
+                Long userId = jwtTokenUtil.extractId(jwtToken);
 
-            String jwtToken = authHeader.substring(7);
-            Long userId = jwtTokenUtil.extractId(jwtToken);
-
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            String role = roleService.findRoleName(roleId);
+               roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role= roleService.findRoleName(roleId);
+            }
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
             }
