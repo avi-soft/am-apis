@@ -286,7 +286,7 @@ public class CategoryController extends CatalogEndpoint {
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization",required = false) String authHeader) {
         try {
             Integer roleId=5;
             String role=Constant.roleUser;
