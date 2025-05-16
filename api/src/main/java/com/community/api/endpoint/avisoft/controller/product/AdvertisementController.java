@@ -174,7 +174,7 @@ public class AdvertisementController {
 
         try {
             CustomCustomer customCustomer = null;
-            String role=null;
+            String role=Constant.roleUser;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -325,7 +325,7 @@ public class AdvertisementController {
 
         try {
             CustomCustomer customCustomer = null;
-            String role=null;
+            String role=Constant.roleUser;
             if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
