@@ -128,7 +128,7 @@ public class CustomCustomerService {
     }
 
 
-    public List<BigInteger> filterCustomer(List<Long> service_provider_id, List<String> first_names, List<String> last_names, List<String> sub_state_prov_reg, List<String> county, List<Long> qualification_name, String username, Boolean completed, String authHeader, int page, int limit, String sort) {
+    public List<BigInteger> filterCustomer(List<Long> service_provider_id, List<String> first_names, List<String> last_names, List<String> sub_state_prov_reg, List<String> county, List<Integer> qualification_name, String username, Boolean completed, String authHeader, int page, int limit, String sort) {
         List<Map<String, Object>> response = new ArrayList<>();
         int startPosition = page * limit;
         String jwtToken = authHeader.substring(7);
@@ -143,7 +143,8 @@ public class CustomCustomerService {
         Map<String, String> aliasQuery = new HashMap<>();
 
         aliasQuery.put("sub_state_prov_reg", "JOIN blc_customer_address cust_addr ON cust.customer_id = cust_addr.customer_id JOIN blc_address addr ON cust_addr.address_id = addr.address_id ");
-        aliasQuery.put("overlapping", "JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id ");
+//        aliasQuery.put("overlapping", "JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id ");
+        aliasQuery.put("qualification_id", "JOIN qualification_details qual_details ON qual_details.custom_customer_id = cust.customer_id JOIN qualification qual ON qual_details.qualification_id = qual.qualification_id ");
         aliasQuery.put("service_provider_id", "JOIN customer_referrer referrer ON cust.customer_id = referrer.customer_id ");
         aliasQuery.put("profile_completed", "JOIN custom_customer cc ON cust.customer_id = cc.customer_id ");
         alias.put("sub_state_prov_reg", "addr");
@@ -151,15 +152,19 @@ public class CustomCustomerService {
         alias.put("first_name", "cust");
         alias.put("last_name", "cust");
         alias.put("service_provider_id", "referrer");
-        alias.put("overlapping", "qual");
+//        alias.put("overlapping", "qual");
+        alias.put("qualification_id", "qual_details");
         alias.put("profile_completed", "cc");
 
         String generalizedQuery = Constant.CUSTOMER_FILTER;
         if ((county != null && !county.isEmpty()) || (sub_state_prov_reg != null && !sub_state_prov_reg.isEmpty())) {
             generalizedQuery += aliasQuery.get("sub_state_prov_reg");
         }
+//        if (qualification_name != null && !qualification_name.isEmpty()) {
+//            generalizedQuery += aliasQuery.get("overlapping");
+//        }
         if (qualification_name != null && !qualification_name.isEmpty()) {
-            generalizedQuery += aliasQuery.get("overlapping");
+            generalizedQuery += aliasQuery.get("qualification_id");
         }
         if (service_provider_id != null) {
             generalizedQuery += aliasQuery.get("service_provider_id");
@@ -170,7 +175,7 @@ public class CustomCustomerService {
 
         generalizedQuery += " WHERE ";
 
-        String[] fieldsNames = {"sub_state_prov_reg", "county", "service_provider_id", "overlapping", "profile_completed"};
+        String[] fieldsNames = {"sub_state_prov_reg", "county", "service_provider_id", "qualification_id", "profile_completed"};
         Object[] fields = {sub_state_prov_reg, county, service_provider_id, qualification_name, completed};
 
         for (int i = 0; i < fields.length; i++) {

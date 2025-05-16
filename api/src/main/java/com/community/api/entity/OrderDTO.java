@@ -30,6 +30,7 @@ public class OrderDTO
     private Long customerId;
     private Money subTotal;
     private Integer orderStateId;
+    private String orderStateName;
     private Long spAssigneeId;
 }
 

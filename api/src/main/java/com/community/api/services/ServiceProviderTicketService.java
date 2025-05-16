@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
@@ -411,7 +412,7 @@ public class ServiceProviderTicketService {
 
             customServiceProviderTicket.setOrder(order);
 
-            if(createTicketDto.getTicketType()==3) {
+            if (createTicketDto.getTicketType() == 3) {
                 customServiceProviderTicket.setDesc(createTicketDto.getTask());
             }
 
@@ -448,21 +449,24 @@ public class ServiceProviderTicketService {
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-            if(ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType)==null) {
-                throw new IllegalArgumentException("Cannot create with this state and status simultaneously (Not a linkage)");
-            }
 
-            if(createTicketDto.getAssigneeRole()==4)
-            {
-                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
-                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+            ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
+
+            if (createTicketDto.getAssigneeRole() == 4) {
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
                 entityManager.merge(serviceProvider);
             }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
 
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            log.info("inside serviceProviderTicketService");
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (PersistenceException persistenceException) {
+            exceptionHandlingService.handleException(persistenceException);
+            throw new Exception(persistenceException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage());
