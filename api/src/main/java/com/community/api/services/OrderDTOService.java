@@ -43,6 +43,9 @@ public class OrderDTOService {
     private ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
     private ProductReserveCategoryFeePostRefService feePostRefService;
+    @Autowired
+    private OrderStateRefService orderStateRefService;
+
     @Transactional
     public CombinedOrderDTO wrapOrder(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
     {
@@ -74,20 +77,26 @@ public class OrderDTOService {
                 postPreferenceOrder.add(detailsDTO);
             }
         }}}
+        String orderStateName = null;
+        OrderStateRef stateRef = orderStateRefService.getOrderStateByOrderStateId(orderState.getOrderStateId());
+        if (stateRef != null) {
+            orderStateName = stateRef.getOrderStateName();
+        }
         //if(order.getOrderItems().get(0).getOrderItemAttributes().containsKey("assigneeSPId"))
         orderDTO = new OrderDTO(
-                order.getId(),
-                postPreferenceOrder,
-                order.getName(),
-                order.getTotal(),
-                order.getSubmitDate(),
-                order.getOrderNumber(),
-                order.getEmailAddress(),
-                order.getCustomer().getId(),
-                order.getSubTotal(),
-                orderState.getOrderStateId(),
+                        order.getId(),
+                        postPreferenceOrder,
+                        order.getName(),
+                        order.getTotal(),
+                        order.getSubmitDate(),
+                        order.getOrderNumber(),
+                        order.getEmailAddress(),
+                        order.getCustomer().getId(),
+                        order.getSubTotal(),
+                        orderState.getOrderStateId(),
+                orderStateName,
                 assigneeId
-        );
+                );
     OrderItem orderItem=order.getOrderItems().get(0);
     Long productId=Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
     CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);

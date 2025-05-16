@@ -15,13 +15,14 @@ public class QualificationEligibilityDto {
     private Long qualificationEligibilityId;
 
     private List<Integer> qualificationIds;
-
     private List<Long> customSubjectIds;
 
     private List<Long> customStreamIds;
-
+    private String qualificationIdRunningField;
+    private String subjectIdRunningField;
+    private String streamIdRunningField;
     private Long customReserveCategoryId;
-
+    private String reserveCatIdRunningField;
     private Long percentage;
 
     private Long postId;

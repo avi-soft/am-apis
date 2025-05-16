@@ -146,7 +146,7 @@ public class AdvertisementController {
             AdvertisementWrapper wrapper = new AdvertisementWrapper();
             wrapper.wrapDetails(advertisement, null);
 
-            return ResponseService.generateSuccessResponse("Advertisement Created Successfully", wrapper, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Advertisement Updated Successfully", wrapper, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
             return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);

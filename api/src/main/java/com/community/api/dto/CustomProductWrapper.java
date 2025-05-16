@@ -118,6 +118,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long formComplexity;
     @JsonProperty("sector")
     CustomSector customSector;
+    @JsonProperty("sector_running_filed")
+    protected String sectorRunningField;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("created_date")
@@ -150,6 +152,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Date tentativeVerificationTo;
     @JsonProperty("exam_center_available_date")
     Date examCenterAvailableDate;
+    @JsonProperty("fee_additional_comments")
+    String feeComments;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     @JsonProperty("fee")
@@ -181,9 +185,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
+        this.sectorRunningField=addProductDto.getSectorRunningField();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
         this.additionalComments=addProductDto.getAdditionalComments();
+        this.feeComments=addProductDto.getFeeAdditionalComments();
 
         if(addProductDto.getReservedCategory()!=null)
         {
@@ -208,6 +214,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
+                reserveCategoryDto.setRunningField(addProductDto.getReservedCategory().get(i).getRunningField());
+                reserveCategoryDto.setGenderRunningField(addProductDto.getReservedCategory().get(i).getGenderRunningField());
                 reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());
                 /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
                 reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
@@ -241,6 +249,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
                 postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
                 postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+                postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+                postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+                postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
                 postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
                 postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
                 postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
@@ -268,6 +279,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                         reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
                         reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
                     }
+                    reserveCategoryAgeDto.setCategoryRunningField(refDetails.getCategoryRunningField());
+                    reserveCategoryAgeDto.setGenderRunningField(refDetails.getGenderRunningField());
                     reserveCategoryAgeDto.setReserveCategoryId(refDetails.getReserveCategory());
                     reserveCategoryAgeDto.setBornBeforeAfter(refDetails.getBornBeofreAfter());
                     reserveCategoryAgeDto.setAdditionalComments(refDetails.getAdditionalComments());
@@ -352,10 +365,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.counsellingDate=customProduct.getCounsellingDate();
         this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
         this.modifiedDate = customProduct.getModifiedDate();
@@ -401,6 +416,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
+        this.sectorRunningField=customProduct.getSectorRunningField();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
         this.numberOfPosts= customProduct.getPosts().size();
@@ -419,6 +436,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
+                reserveCategoryDto.setGenderRunningField(fee.getGenderRunningField());
+                reserveCategoryDto.setRunningField(fee.getRunningField());
                 reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
                 reserveCategoryDto.setIsOtherOrStateCategory(fee.getIsOtherOrStateCategory());
                 reserveCategoryDto.setOtherOrStateCategory(fee.getOtherOrStateCategory());
@@ -491,7 +510,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -587,7 +608,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaDescription = product.getMetaDescription();
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
-
+        this.feeComments=product.getFeeAdditionalComments();
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
         this.creatorRoleId = product.getCreatoRole();
@@ -595,7 +616,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = null;
 
         this.domicileRequired = product.getDomicileRequired();
-        this.examDateFrom = product.getExamDateFrom();
+        this.examDateFrom = product.getExamDateFrom();this.sectorRunningField=product.getSectorRunningField();
         this.examDateTo = product.getExamDateTo();
 
         this.lateDateToPayFee = product.getLateDateToPayFee();

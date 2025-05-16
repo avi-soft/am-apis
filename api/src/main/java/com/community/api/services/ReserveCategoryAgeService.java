@@ -64,6 +64,8 @@ public class ReserveCategoryAgeService {
                dto.setReserveCategory(ref.getCustomReserveCategory().getReserveCategoryName());
                dto.setGenderId(ref.getGender().getGenderId());
                dto.setBornBefore(ref.getBornBefore());
+               dto.setGenderRunningField(ref.getGenderRunningField());
+               dto.setCategoryRunningField(ref.getCategoryRunningField());
                dto.setBornAfter(ref.getBornAfter());
                dto.setGenderName(ref.getGender().getGenderName());
                dto.setReserveCategoryId(ref.getCustomReserveCategory().getReserveCategoryId());

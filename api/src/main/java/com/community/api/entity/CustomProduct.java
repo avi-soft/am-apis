@@ -137,6 +137,9 @@ public class CustomProduct extends ProductImpl {
     @JoinColumn(name = "sector_id")
     protected CustomSector sector;
 
+    @Column(name = "sector_running_field")
+    protected String sectorRunningField;
+
     @NotNull
     @Column(name = "created_date")
     protected Date createdDate;
@@ -168,5 +171,8 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "additional_comments")
     @JsonProperty("additional_comments")
     private String additionalComments;
+
+    @Column(name = "fee_additional_comments")
+    private String feeAdditionalComments;
 
 }

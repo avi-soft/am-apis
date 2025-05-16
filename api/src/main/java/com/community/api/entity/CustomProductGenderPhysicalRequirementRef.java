@@ -33,6 +33,9 @@ public class CustomProductGenderPhysicalRequirementRef {
     @JoinColumn(name = "gender_id")
     protected CustomGender customGender;
 
+
+    private String genderRunningfield;
+
     @Column(name = "height")
     Double height;
 

@@ -20,6 +20,7 @@ import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.service.OrderService;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
@@ -57,6 +59,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ServiceProviderTicketService {
     private static final Logger logger = LoggerFactory.getLogger(ServiceProviderTicketService.class);
@@ -66,7 +69,6 @@ public class ServiceProviderTicketService {
 
     @Autowired
     OrderStateRefService orderStateRefService;
-
 
     @Autowired
     CustomOrderService customOrderService;
@@ -136,7 +138,6 @@ public class ServiceProviderTicketService {
         }
     }
 
-
     public List<Long> getAssignedTickets() throws IOException {
         List<Long> ticketList = new ArrayList<>();
         String scriptPathForAutoAssigner = "auto_assigner.sql";
@@ -162,7 +163,7 @@ public class ServiceProviderTicketService {
                     Matcher matcher = pattern.matcher(message);
                     if (matcher.find()) {
                         String assignedTicketsValue = matcher.group(1);
-                        System.out.println("Assigned Tickets Value: " + assignedTicketsValue);
+                        logger.info("Assigned Tickets Value: " + assignedTicketsValue);
 
                         // Check if the value is an array (in curly braces)
                         if (assignedTicketsValue.startsWith("{") && assignedTicketsValue.endsWith("}")) {
@@ -175,10 +176,10 @@ public class ServiceProviderTicketService {
                                     ticketList.add(Long.parseLong(ticketId.trim()));
                                 } catch (NumberFormatException e) {
                                     // Handle the case where a value is not a valid Long
-                                    System.err.println("Invalid ticket ID: " + ticketId);
+                                    logger.error("Invalid ticket ID: " + ticketId);
                                 }
                             }
-                            System.out.println("Converted ticket IDs to List<Long>: " + ticketList);
+                            logger.info("Converted ticket IDs to List<Long>: " + ticketList);
                         }
                     }
 
@@ -195,13 +196,6 @@ public class ServiceProviderTicketService {
         // Now that the callback has completed, return the populated ticketList
         return ticketList;
     }
-
-
-
-
-
-
-
 
     public List<CustomTicketWrapper> autoAssigner() throws Exception {
         try {
@@ -236,7 +230,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
-            System.out.println("size"+customOrders.size());
+            logger.info("size"+customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -418,7 +412,7 @@ public class ServiceProviderTicketService {
 
             customServiceProviderTicket.setOrder(order);
 
-            if(createTicketDto.getTicketType()==3) {
+            if (createTicketDto.getTicketType() == 3) {
                 customServiceProviderTicket.setDesc(createTicketDto.getTask());
             }
 
@@ -431,32 +425,81 @@ public class ServiceProviderTicketService {
             customServiceProviderTicket.setAssigneeRole(role);
             customServiceProviderTicket.setAssignee(assignedUserTo);
 
+            CustomTicketState ticketState = null;
             if (createTicketDto.getTicketState() != null) {
-                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
+                ticketState = ticketStateService.getTicketStateByTicketId(createTicketDto.getTicketState());
                 customServiceProviderTicket.setTicketState(ticketState);
             } else {
                 throw new IllegalArgumentException("Ticket State is mandatory field while creating a ticket");
             }
 
+            CustomTicketType ticketType = null;
             if (createTicketDto.getTicketType() != null) {
-                CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
+                ticketType = ticketTypeService.getTicketTypeByTicketTypeId(createTicketDto.getTicketType());
                 customServiceProviderTicket.setTicketType(ticketType);
             } else {
                 throw new IllegalArgumentException("Ticket Type is mandatory field while creating a ticket");
             }
 
+            CustomTicketStatus ticketStatus = null;
             if (createTicketDto.getTicketStatus() != null) {
-                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDto.getTicketStatus());
+                customServiceProviderTicket.setTicketStatus(ticketStatus);
+            } else {
+                ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // By Default set to To-Do Status.
                 customServiceProviderTicket.setTicketStatus(ticketStatus);
             }
-            if(createTicketDto.getAssigneeRole()==4)
-            {
-                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,createTicketDto.getAssignee());
-                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+
+            ticketStatusService.verifyStatus(ticketState, ticketStatus, ticketType);
+
+            if (createTicketDto.getAssigneeRole() == 4) {
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
                 entityManager.merge(serviceProvider);
             }
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
             return customServiceProviderTicket;
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            log.info("inside serviceProviderTicketService");
+            throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
+        } catch (PersistenceException persistenceException) {
+            exceptionHandlingService.handleException(persistenceException);
+            throw new Exception(persistenceException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket) throws Exception {
+        try {
+
+            CustomServiceProviderTicket reviewTicket = new CustomServiceProviderTicket();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+            String formattedDate = dateFormat.format(new Date());
+            Date createdDate = dateFormat.parse(formattedDate);
+
+            // Setting up the dates
+            reviewTicket.setCreatedDate(createdDate);
+//            customServiceProviderTicket.setTicketAssignDate(createdDate);
+            reviewTicket.setModifiedDate(createdDate);
+//            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
+
+            reviewTicket.setParentTicket(parentTicket);
+
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L); // Sate (to-do)
+            CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L); // Status with state linkage (to-do)
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L); // Review Ticket
+
+            reviewTicket.setTicketState(ticketState);
+            reviewTicket.setTicketStatus(ticketStatus);
+            reviewTicket.setTicketType(ticketType);
+
+            reviewTicket = entityManager.merge(reviewTicket);
+            return reviewTicket;
 
         } catch (IllegalArgumentException illegalArgumentException) {
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
@@ -650,19 +693,17 @@ public class ServiceProviderTicketService {
             logger.info("Service Provider in rank2c: " + rank2c.size());
             logger.info("Service Provider in rank2d: " + rank2d.size());
 
-            /*
 
-            // For debugging purposes
+            /*// For debugging purposes
             Iterator<ServiceProviderEntity> iterator2 = rank1d.iterator();
             while (!rank1d.isEmpty()) {
                 ServiceProviderEntity serviceProvider = rank1d.poll();
-                System.out.println("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
+                logger.info("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
                 double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
-                System.out.println("BANDWDTH : " + bandwidth );
-                System.out.println(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
-            }
+                logger.info("BANDWDTH : " + bandwidth );
+                logger.info(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
+            }*/
 
-            */
 
             // Iterator for traversing orders.
             while (iterator.hasNext()) {
@@ -740,7 +781,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses,List<Long> assigneeUserIds) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -793,6 +834,10 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.assignee = :userId AND c.assigneeRole = :role ");
             }
 
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                jpql.append("AND c.assignee IN :assigneeUserIds ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -808,6 +853,10 @@ public class ServiceProviderTicketService {
             if (!customTicketTypes.isEmpty()) {
                 query.setParameter("types", customTicketTypes);
             }
+            if (assigneeUserIds != null && !assigneeUserIds.isEmpty()) {
+                query.setParameter("assigneeUserIds", assigneeUserIds);
+            }
+
             if (dateFrom != null ) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
