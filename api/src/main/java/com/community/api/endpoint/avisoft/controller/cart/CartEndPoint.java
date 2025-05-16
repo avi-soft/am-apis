@@ -26,6 +26,7 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
+import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
@@ -652,21 +653,7 @@ public class CartEndPoint extends BaseEndpoint {
                     }
                 }
                 customCustomer.setNumberOfOrders(batchNumber);
-                ServiceProviderEntity refSp=entityManager.find(ServiceProviderEntity.class,customProduct.getUserId());
-                if(refSp!=null) {
-                    Query query=entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
-                    query.setParameter("customerId",customCustomer.getId());
-                    query.setParameter("spId",customProduct.getUserId());
-                    Integer result=((BigInteger) query.getSingleResult()).intValue();
-                    if(result==0) {
-                        CustomerReferrer customerReferrer = new CustomerReferrer();
-                        customerReferrer.setCustomer(customCustomer);
-                        customerReferrer.setServiceProvider(refSp);
-                        customerReferrer.setCreatedAt(LocalDateTime.now());
-                        customCustomer.getMyReferrer().add(customerReferrer);
-                    }
-                }
-                entityManager.merge(customCustomer);
+
                 entityManager.merge(cart);
                 List<CombinedOrderDTO> orderDTOS=new ArrayList<>();
                 for(Order order:individualOrders)
@@ -686,25 +673,72 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Error creating order "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @PutMapping("/confirm-order/{orderId}")
-    public ResponseEntity<?>confirmOrderStatus(@PathVariable Long orderId,@RequestBody Map<String,String>paymentStatus)
-    {
-        Order order=orderService.findOrderById(orderId);
-        String success="success";
-        if(order==null)
-            return ResponseService.generateErrorResponse("Cannot find order with given Id",HttpStatus.NOT_FOUND);
-        String status =(String)paymentStatus.get("status");
-        if(success.equals(status.trim().toLowerCase()))
-        {
-            OrderStatus orderStatus=new OrderStatus("NEW",null);
-            order.setStatus(orderStatus);
-            CustomOrderState customOrderState=entityManager.find(CustomOrderState.class,orderId);
-            customOrderState.setOrderStateId(ORDER_STATE_NEW);
-            customOrderState.setOrderStatusId(ORDER_STATUS_NEW);
-            order.setSubmitDate(LocalDate.now());
-            CustomProduct product=entityManager.find(CustomProduct.class,order.getPo)
+    @Transactional
+    @PutMapping("/confirm-order")
+    public ResponseEntity<?>confirmOrderStatus(@RequestParam List<Long>orderIds,@RequestBody Map<String,String>paymentStatus) {
+        boolean failed=false;
+        List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
+        CustomCustomer customCustomer=null;
+        for (Long orderId : orderIds) {
+            Order order = orderService.findOrderById(orderId);
+            String success = "success";
+            if (order == null)
+                return ResponseService.generateErrorResponse("Cannot find order with given Id", HttpStatus.NOT_FOUND);
+            String status = (String) paymentStatus.get("status");
+            if (success.equals(status.trim().toLowerCase())) {
+                OrderStatus orderStatus = new OrderStatus("NEW", null);
+                order.setStatus(orderStatus);
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
+                customOrderState.setOrderStatusId(1);
+                order.setSubmitDate(new Date());
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Product product = findProductFromItemAttribute(orderItem);
+                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+                ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
+                customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                if (refSp != null) {
+                    Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
+                    query.setParameter("customerId", order.getCustomer().getId());
+                    query.setParameter("spId", customProduct.getUserId());
+                    Integer result = ((BigInteger) query.getSingleResult()).intValue();
+                    if (result == 0) {
+                        CustomerReferrer customerReferrer = new CustomerReferrer();
+                        customerReferrer.setCustomer(customCustomer);
+                        customerReferrer.setServiceProvider(refSp);
+                        customerReferrer.setCreatedAt(LocalDateTime.now());
+                        customCustomer.getMyReferrer().add(customerReferrer);
+                    }
+                }
+                entityManager.merge(customCustomer);
+                entityManager.merge(order);
+            } else {
+                failed = true;
+                OrderStatus orderStatus = new OrderStatus("PAYMENT_FAILED", null);
+                order.setStatus(orderStatus);
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+                customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
+                customOrderState.setOrderStatusId(null);
+                order.setSubmitDate(new Date());
+            }
+
+            for (Long orders : orderIds) {
+                order = orderService.findOrderById(orders);
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
+                Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customCustomer.getId(), customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
+            }
         }
-    }
+            if(!failed)
+                return ResponseService.generateSuccessResponse("Order Placed successfully", orderDTOS, HttpStatus.OK);
+            else
+                return ResponseService.generateErrorResponse(
+                    "Order placement failed due to payment error.",
+                    HttpStatus.PAYMENT_REQUIRED
+            );
+        }
     @RequestMapping(value ="cart-recovery-log/{customerId}",method = RequestMethod.GET)
     public ResponseEntity<?>getCartRecoveryLog(@PathVariable Long customerId)
     {
@@ -712,7 +746,7 @@ public class CartEndPoint extends BaseEndpoint {
             Long id = Long.valueOf(customerId);
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
-                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
+            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
                 if(customCustomer==null)
                     return ResponseService.generateErrorResponse("Cannot find customer for this id",HttpStatus.NOT_FOUND);
                 List<Map<String,Object>>productList=new ArrayList<>();
