@@ -103,6 +103,10 @@ public class AddProductDto {
     Long sector;
     @JsonProperty("is_review_required")
     Boolean isReviewRequired;
+    @JsonProperty("resubmit_comment")
+    protected String resubmitComment;
+    @JsonProperty("is_resubmit_product")
+    protected Boolean isResubmitProduct;
     @JsonProperty("advertisement_id")
     Long advertisement;
     @JsonProperty("posts")

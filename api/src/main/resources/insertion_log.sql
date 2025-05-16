@@ -65,7 +65,9 @@ BEGIN
         (4, 'REJECTED', 'Rejected State.'),
         (5, 'LIVE', 'Live State.'),
         (6, 'EXPIRED', 'Expired State.'),
-        (7, 'DRAFT', 'Draft State.');
+        (7, 'DRAFT', 'Draft State.'),
+        (8, 'RESUBMIT', 'A product state when the product is nor Approved nor Rejected but needs to Resubmit'),
+        (9, 'RESUBMITTED','A product state when the product is resubmitted by SP');
      END IF;
 
 	 IF (SELECT COUNT(*) FROM custom_ticket_state) = 0 THEN

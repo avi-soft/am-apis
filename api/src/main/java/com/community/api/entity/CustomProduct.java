@@ -141,8 +141,11 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "created_date")
     protected Date createdDate;
 
-    @Column(name = "is_review_required",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @Column(name = "is_review_required")
     protected Boolean isReviewRequired;
+
+    @Column(name = "resubmit_comment",columnDefinition = "text")
+    protected String resubmitComment;
 
     @ManyToOne
     @JoinColumn(name = "advertisement_id")

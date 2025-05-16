@@ -1,15 +1,9 @@
 package com.community.api.component;
 
 import com.community.api.entity.CustomOrderState;
-import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
-import org.broadleafcommerce.common.currency.domain.BroadleafCurrencyImpl;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.broadleafcommerce.core.catalog.domain.ProductOptionValueAdminPresentation.FieldOrder.order;
 
 public class Constant {
 
@@ -108,6 +102,8 @@ public class Constant {
     public static String PRODUCT_STATE_MODIFIED = "MODIFIED";
     public static String PRODUCT_STATE_LIVE = "LIVE";
     public static String PRODUCT_STATE_APPROVED = "APPROVED";
+    public static String PRODUCT_STATE_RESUBMIT = "RESUBMIT";
+    public static String PRODUCT_STATE_RESUBMITTED = "RESUBMITTED";
     public static String PRODUCT_STATE_EXPIRED = "EXPIRED";
     public static String PRODUCT_STATE_END = "END";
     public static String PRODUCT_STATE_REJECTED = "REJECTED";
@@ -125,6 +121,7 @@ public class Constant {
     public static String GET_RESERVED_CATEGORY_BY_ID = "SELECT c FROM CustomReserveCategory c WHERE c.reserveCategoryId = :reserveCategoryId";
     public static String APPLICATION_SCOPE_STATE = "STATE";
     public static String PRIVILEGE_UPDATE_PRODUCT = "UPDATE_PRODUCT";
+    public static String PRIVILEGE_DELETE_PRODUCT = "DELETE_PRODUCT";
     public static String APPLICATION_SCOPE_CENTER = "CENTER";
     public static String PRIVILEGE_APPROVE_PRODUCT = "APPROVE_PRODUCT";
     public static String PRIVILEGE_REJECT_PRODUCT = "REJECT_PRODUCT";
