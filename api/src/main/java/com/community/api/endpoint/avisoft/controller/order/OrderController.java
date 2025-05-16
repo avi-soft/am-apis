@@ -746,11 +746,11 @@ public class OrderController {
         try {
             List<OrderStateRef> orderStates = orderStateRefService.getAllOrderState();
             if (orderStates == null || orderStates.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No order states found.");
+                return ResponseService.generateErrorResponse("No order states found.", HttpStatus.NOT_FOUND);
             }
-            return ResponseEntity.ok(orderStates);
+            return ResponseService.generateSuccessResponse("Order States :", orderStates, HttpStatus.OK);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while fetching order states.");
+            return ResponseService.generateErrorResponse("An error occurred while fetching order states.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
