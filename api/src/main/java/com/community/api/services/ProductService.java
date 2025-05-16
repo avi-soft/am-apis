@@ -2523,10 +2523,10 @@ public class ProductService {
                     List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
                     for (Privileges privilege : privileges) {
                         if ((privilege.getPrivilege_name().equals(Constant.PRIVILEGE_APPROVE_PRODUCT) && customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED))) {
-                            if (addProductDto.getIsReviewRequired() == null) {
-                                throw new IllegalArgumentException("Is review Required cannot be null");
-                            }
-                            customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+//                            if (addProductDto.getIsReviewRequired() == null) {
+//                                throw new IllegalArgumentException("Is review Required cannot be null");
+//                            }
+//                            customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                             customProduct.setProductState(customProductState);
                             customProduct.setIsApproved(true);
                             return true;
@@ -2557,10 +2557,10 @@ public class ProductService {
                         }
                     }
                     else if (customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED)) {
-                        if (addProductDto.getIsReviewRequired() == null) {
-                            throw new IllegalArgumentException("Is review Required cannot be null");
-                        }
-                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+//                        if (addProductDto.getIsReviewRequired() == null) {
+//                            throw new IllegalArgumentException("Is review Required cannot be null");
+//                        }
+//                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                         customProduct.setProductState(customProductState);
                         customProduct.setIsApproved(true);
                     }
