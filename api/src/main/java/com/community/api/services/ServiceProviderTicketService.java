@@ -408,11 +408,12 @@ public class ServiceProviderTicketService {
         }
     }
 
+    // TODO REJECTED LIST LOGIC IS PENDING. @RAMAN.
     @Transactional
     public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            logger.info("Random Binding Ticket Allocation (RBTA)");
-            logger.info("Total Orders received by RBTA are: " + customOrders.size());
+            log.info("Random Binding Ticket Allocation (RBTA)");
+            log.info("Total Orders received by RBTA are: {}", customOrders.size());
 
             boolean assigned;
 
@@ -448,30 +449,43 @@ public class ServiceProviderTicketService {
                     if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     }
+                    if(assigned){
+                        iterator.remove();
+                        break;
+                    }
                 }
 
                 // For the Remaining Referees
                 if (!assigned) {
                     for (CustomerReferrer referrer : referrers) {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
-                        logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
+                        log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        if(assigned){
+                            iterator.remove();
+                            break;
+                        }
                     }
                 }
 
                 // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
                 if (!assigned) {
 
-                    logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                    log.info("Inside the Creator of the Product logic OF RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
-                    allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+
+                    assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    if(assigned){
+                        iterator.remove();
+                        break;
+                    }
                 }
             }
-            logger.info("Total orders assigned by RBTA method is: " + assignedTickets.size());
+            log.info("Total orders assigned by RBTA method is: {}", assignedTickets.size());
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -529,6 +543,7 @@ public class ServiceProviderTicketService {
                         log.info("Primary Referrer !!");
                         assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
                         if(assigned){
+                            iterator.remove();
                             break;
                         }
                     }
@@ -544,6 +559,7 @@ public class ServiceProviderTicketService {
                         if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
                             assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
                             if(assigned){
+                                iterator.remove();
                                 break;
                             }
                         }
@@ -560,7 +576,11 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
                     if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
-                        allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    }
+                    if(assigned){
+                        iterator.remove();
+                        break;
                     }
                 }
 
@@ -854,9 +874,117 @@ public class ServiceProviderTicketService {
     @Transactional
     public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<ServiceProviderEntity> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            logger.info("Vertical Distribution Ticket Allocation");
-            logger.info("Total orders received for VDTA: " + customOrders.size());
-            logger.info("Total Service Provider: " + availableServiceProvider.size());
+            log.info("Vertical Distribution Ticket Allocation");
+            log.info("Total orders received for VDTA: {}", customOrders.size());
+            log.info("Total Service Provider: {}", availableServiceProvider.size());
+
+            Iterator<CustomOrderState> iterator = customOrders.iterator();
+
+            // Initialized the service provider with different ranks.
+            PriorityQueue<ServiceProviderEntity> rank1a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1d = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2d = new PriorityQueue<>(new ServiceProviderComparator());
+            bifurcateAvailableServiceProviders(availableServiceProvider, rank1a, rank1b, rank1c, rank1d, rank2a, rank2b, rank2c, rank2d);
+
+            logger.info("Service Provider in rank1a: " + rank1a.size());
+            logger.info("Service Provider in rank1b: " + rank1b.size());
+            logger.info("Service Provider in rank1c: " + rank1c.size());
+            logger.info("Service Provider in rank1d: " + rank1d.size());
+
+            logger.info("Service Provider in rank2a: " + rank2a.size());
+            logger.info("Service Provider in rank2b: " + rank2b.size());
+            logger.info("Service Provider in rank2c: " + rank2c.size());
+            logger.info("Service Provider in rank2d: " + rank2d.size());
+
+
+            /*// For debugging purposes
+            Iterator<ServiceProviderEntity> iterator2 = rank1d.iterator();
+            while (!rank1d.isEmpty()) {
+                ServiceProviderEntity serviceProvider = rank1d.poll();
+                logger.info("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
+                double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
+                logger.info("BANDWDTH : " + bandwidth );
+                logger.info(serviceProvider.getService_provider_id() + " - Name: " + serviceProvider.getFirst_name());
+            }*/
+
+
+            // Iterator for traversing orders.
+            while (iterator.hasNext()) {
+
+                CustomOrderState customOrderState = iterator.next();
+
+                ObjectMapper objectMapper = new ObjectMapper();
+                String jsonString = objectMapper.writeValueAsString(customOrderState);
+                logger.info(jsonString);
+
+                Order order = orderService.findOrderById(customOrderState.getOrderId());
+
+                // created a switch statement which will execute in vertical order.
+                switch (1) {
+                    case 1:
+                        if (!rank1a.isEmpty() && processRank(rank1a, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 2:
+                        if (!rank1b.isEmpty() && processRank(rank1b, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 3:
+                        if (!rank1c.isEmpty() && processRank(rank1c, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 4:
+                        if (!rank1d.isEmpty() && processRank(rank1d, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 5:
+                        if (!rank2a.isEmpty() && processRank(rank2a, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 6:
+                        if (!rank2b.isEmpty() && processRank(rank2b, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 7:
+                        if (!rank2c.isEmpty() && processRank(rank2c, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 8:
+                        if (!rank2d.isEmpty() && processRank(rank2d, order, assignedTickets, customOrderState)) {
+                            iterator.remove();
+                            break;
+                        }
+                    default:
+                        break;
+                }
+            }
+            logger.info("Total orders assigned by VDTA method is: " + assignedTickets.size());
+
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public void verticalDistributionTicketAllocationForTickets(List<CustomOrderState> customOrders, List<ServiceProviderEntity> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
+        try {
+            log.info("Vertical Distribution Ticket Allocation");
+            log.info("Total orders received for VDTA: {}", customOrders.size());
+            log.info("Total Service Provider: {}", availableServiceProvider.size());
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
