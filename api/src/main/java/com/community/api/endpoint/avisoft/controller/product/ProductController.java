@@ -246,6 +246,10 @@ public class ProductController extends CatalogEndpoint {
                                             HttpStatus.BAD_REQUEST
                                     );
                                 }
+                                if (!otherText.matches("^[a-zA-Z0-9 ]*$")) {
+                                    throw new IllegalArgumentException("Only alphanumeric characters are allowed in otherOrStateCategory");
+                                }
+
                             } else {
                                 // If false/null, field must NOT be filled
                                 if (otherText != null && !otherText.trim().isEmpty()) {

@@ -48,7 +48,7 @@ public class QualificationController {
 
         // Filter out qualifications safely
         List<Qualification> filteredQualifications = qualifications.stream()
-                .filter(q ->!q.getQualification_name().equalsIgnoreCase("MASTERS/POST_GRADUATION"))
+//                .filter(q ->!q.getQualification_name().equalsIgnoreCase("MASTERS/POST_GRADUATION"))
                 .collect(Collectors.toList());
 
         if (filteredQualifications.isEmpty()) {
