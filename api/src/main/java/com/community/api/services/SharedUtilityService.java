@@ -333,6 +333,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
+            customerDetailsForMobile.put("is_password_created",customCustomer.getIsPasswordCreated());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -501,6 +502,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
             customerDetailsForDesktop.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForDesktop.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            customerDetailsForDesktop.put("is_password_created",customCustomer.getIsPasswordCreated());
             // List<ServiceProviderEntity>refSp=new ArrayList<>();
             // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
             // {
@@ -824,6 +826,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
         serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
+        serviceProviderDetails.put("is_password_created",serviceProvider.getIsPasswordCreated());
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
