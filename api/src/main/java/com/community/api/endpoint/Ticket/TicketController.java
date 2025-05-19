@@ -122,7 +122,7 @@ public class TicketController {
                 orderDTO.add(combinedOrderDTO);
             }*/
             serviceProviderTicketService.rejectedTicketLogic();
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", "Running fine.", HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
