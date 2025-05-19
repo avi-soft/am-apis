@@ -267,7 +267,7 @@ public class ServiceProviderTicketService {
             stateIdList.add(Constant.TICKET_STATE_RETURNED);
 
             // Firstly we fetch all the tickets which are in return state.
-            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null);
+            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null, null);
             log.info("ticket recieved for auto-assignment: {}", tickets.size());
 
             randomBindingTicketAllocationForTickets(tickets, assignedTickets);
@@ -1150,7 +1150,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -1207,6 +1207,10 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.assignee IN :assigneeUserIds ");
             }
 
+            if (dueInThreeDays != null) {
+                jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -1233,6 +1237,19 @@ public class ServiceProviderTicketService {
             if (userId != null && role != null) {
                 query.setParameter("userId", userId);
                 query.setParameter("role", role);
+            }
+
+            if (dueInThreeDays != null) {
+                Date now = new Date(); // current time
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(now);
+                calendar.add(Calendar.DATE, 3); // add 3 days
+
+                Date threeDaysLater = calendar.getTime();
+
+                query.setParameter("now", now);
+                query.setParameter("threeDaysLater", threeDaysLater);
             }
 
             // Execute and return the result

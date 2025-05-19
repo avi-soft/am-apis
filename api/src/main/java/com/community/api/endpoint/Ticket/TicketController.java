@@ -190,7 +190,8 @@ public class TicketController {
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit,
-            @RequestParam(value = "personal", required = false) Boolean personal) {
+            @RequestParam(value = "personal", required = false) Boolean personal,
+            @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays) {
         try {
 
             if (offset < 0) {
@@ -233,7 +234,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays);
 
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -252,8 +253,22 @@ public class TicketController {
 
             List<CustomTicketWrapper> responses = paginatedTickets.stream().map(ticket -> {
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
-                if (!ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                            customer.getId(),
+                            customer.getFirstName() + " " + customer.getLastName(),
+                            customer.getEmailAddress(),
+                            customCustomer.getMobileNumber(),
+                            addressFetcher.fetch(customer),
+                            customer.getUsername());
+
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                    wrapper.customWrapDetails(ticket, orderDto);
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
                     Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
