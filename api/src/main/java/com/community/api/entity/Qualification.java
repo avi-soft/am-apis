@@ -38,6 +38,9 @@ public class Qualification
     @Column(name = "overlapping")
     private Long overlap;
 
+    @Column(name = "sort_order", nullable = false)
+    private Long sort_order;
+
     @JsonIgnore
     @ManyToMany
     @JoinTable(

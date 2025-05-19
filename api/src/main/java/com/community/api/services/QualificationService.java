@@ -56,6 +56,14 @@ public class QualificationService {
         if (!(qualification.getQualification_description() instanceof String)) {
             throw new IllegalArgumentException("Qualification description must be a string");
         }
+        if(qualification.getIs_stream_required()==null)
+        {
+            throw new IllegalArgumentException("You have to give whether stream required or not for qualification");
+        }
+        if(qualification.getIs_subjects_required()==null)
+        {
+            throw new IllegalArgumentException("You have to give whether subject required or not for qualification");
+        }
         String description = qualification.getQualification_description();
         if (description.isEmpty()) {
             throw new IllegalArgumentException("Qualification description cannot be empty");
@@ -71,25 +79,42 @@ public class QualificationService {
         qualificationToBeSaved.setQualification_id(id);
         qualificationToBeSaved.setQualification_name(qualification.getQualification_name());
         qualificationToBeSaved.setQualification_description(qualification.getQualification_description());
+        Long maxSortOrder = getSecondMaxSortOrder();
+        qualificationToBeSaved.setSort_order(maxSortOrder + 1);
+        qualificationToBeSaved.setIs_stream_required(qualification.getIs_stream_required());
+        qualificationToBeSaved.setIs_subjects_required(qualification.getIs_subjects_required());
         entityManager.persist(qualificationToBeSaved);
         return qualificationToBeSaved;
+    }
+    public Long getSecondMaxSortOrder() {
+        String query = "SELECT q.sort_order FROM Qualification q ORDER BY q.sort_order DESC";
+        List<Long> sortOrders = entityManager.createQuery(query, Long.class)
+                .setMaxResults(2)
+                .getResultList();
+        if (sortOrders.size() == 2) {
+            return sortOrders.get(1); // second max
+        } else if (sortOrders.size() == 1) {
+            return sortOrders.get(0); // only one exists, use it
+        } else {
+            return 0L; // none exists
+        }
     }
 
     //need to be change here
     public int findCount() throws Exception {
         try {
-        String queryString = Constant.GET_QUALIFICATIONS_COUNT;
-        TypedQuery<Integer> query = entityManager.createQuery(queryString, Integer.class);
-        return query.getSingleResult();
+            String queryString = Constant.GET_QUALIFICATIONS_COUNT;
+            TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
+            return query.getSingleResult().intValue();
         } catch (NoResultException e) {
             exceptionHandlingService.handleException(e);
-            throw new NoResultException("No any qualification is found");
-        }
-        catch (Exception exception) {
+            throw new NoResultException("No qualification is found");
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOMETHING WENT WRONG: "+ exception.getMessage());
+            throw new Exception("SOMETHING WENT WRONG: " + exception.getMessage());
         }
     }
+
 
     public Qualification getQualificationByQualificationId(Integer qualificationId) throws Exception {
         try {
