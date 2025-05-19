@@ -139,6 +139,9 @@ public class ServiceProviderEntity  {
     @Nullable
     private Boolean is_running_business_unit=false;
 
+    @Column(name = "is_password_created")
+    private Boolean isPasswordCreated = false;
+
     @Nullable
     private String business_name;
     @Nullable
