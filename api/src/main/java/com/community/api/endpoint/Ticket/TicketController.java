@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.TicketStatisticsDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -132,6 +133,69 @@ public class TicketController {
         } catch (RuntimeException runtimeException) {
             exceptionHandlingService.handleException(runtimeException);
             return ResponseService.generateErrorResponse("Runtime Exception Caught: " + runtimeException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get-all-ticket-stats")
+    public ResponseEntity<?> retrieveAllTicketsStatistics() {
+        try {
+
+            List<TicketStatisticsDto> response = new ArrayList();
+            List<Long> ticketTypes = new ArrayList<>();
+            List<CustomServiceProviderTicket> tickets = new ArrayList<>();
+            List<Long> rejectedState = new ArrayList<>();
+            rejectedState.add(6L);
+
+            // PRIMARY TICKET
+            ticketTypes.add(1L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto primaryTicketStats = new TicketStatisticsDto();
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
+            primaryTicketStats.setTicketType(ticketType);
+            primaryTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            primaryTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            primaryTicketStats.setDueInThreeDays(tickets.size());
+
+            response.add(primaryTicketStats);
+            // REVIEW TICKET
+            ticketTypes.set(0, 2L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto reviewTicketStats = new TicketStatisticsDto();
+            ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L);
+            reviewTicketStats.setTicketType(ticketType);
+            reviewTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            reviewTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            reviewTicketStats.setDueInThreeDays(tickets.size());
+            response.add(reviewTicketStats);
+
+            // MISCELLANEOUS TICKET
+            ticketTypes.add(1L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
+            ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
+            miscellaneousTicketStats.setTicketType(ticketType);
+            miscellaneousTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            miscellaneousTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            miscellaneousTicketStats.setDueInThreeDays(tickets.size());
+            response.add(miscellaneousTicketStats);
+
+            return ResponseService.generateSuccessResponse("Tickets Found", response, HttpStatus.OK);
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
