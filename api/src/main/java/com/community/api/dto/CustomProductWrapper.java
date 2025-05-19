@@ -382,8 +382,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.creatorRoleId = customProduct.getCreatoRole();
         this.modifierUserId = customProduct.getModifierUserId();
         this.modifierRoleId = customProduct.getModifierRole();
-        this.isApproved=customProduct.getIsApproved();
-
 
         this.domicileRequired = customProduct.getDomicileRequired();
         this.examDateFrom = customProduct.getExamDateFrom();
@@ -425,7 +423,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
         this.numberOfPosts= customProduct.getPosts().size();
-        this.isApproved=customProduct.getIsApproved();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -526,7 +523,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.additionalComments=customProduct.getAdditionalComments();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
-        this.isApproved=customProduct.getIsApproved();
 
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
