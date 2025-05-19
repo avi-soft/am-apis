@@ -25,6 +25,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.codec.binary.Hex;
+
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -1927,6 +1932,15 @@ public class SharedUtilityService {
             throw new IllegalArgumentException("In document upload section, "+ans+ " is not uploaded");
         }
         return true;
+    }
+
+
+    public String hmacSha256(String data, String secret) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(keySpec);
+        byte[] hashBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        return Hex.encodeHexString(hashBytes);
     }
 
 
