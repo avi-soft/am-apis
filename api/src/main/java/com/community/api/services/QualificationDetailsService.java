@@ -182,7 +182,9 @@ public class QualificationDetailsService {
 
         }
         CustomCustomer customCustomer = findCustomCustomerById(userId);
-        dateValidations();
+        if(!qualificationDetails.getQualificationIsOngoing()) {
+            dateValidations();
+        }
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
         List<Qualification> qualifications = qualificationService.getAllQualifications();
         Integer qualificationToAdd= findQualificationId(qualificationDetails.getQualification_id(), qualifications);
@@ -236,6 +238,11 @@ public class QualificationDetailsService {
         {
             subjectValidationCheck=qualificationToSearch.getIs_subjects_required();
         }
+
+        if (Boolean.TRUE.equals(qualificationDetails.getQualificationIsOngoing())) {
+            subjectValidationCheck = false;
+        }
+
         if(subjectValidationCheck.equals(true)) {
             if (qualificationDetails.getSubject_ids() == null || qualificationDetails.getSubject_ids().isEmpty()) {
                 throw new IllegalArgumentException("Subjects list cannot be empty");
@@ -280,6 +287,26 @@ public class QualificationDetailsService {
 
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
+        Boolean isOngoing = qualificationDetails.getQualificationIsOngoing();
+        System.out.println(isOngoing+"djshfjsdhafljka");
+        qualificationDetails.setQualificationIsOngoing(isOngoing != null ? isOngoing : false);
+        if (!qualificationDetails.getQualificationIsOngoing()) {
+            if (qualificationDetails.getTotal_marks_type() == null || qualificationDetails.getTotal_marks_type().isEmpty()) {
+                throw new IllegalArgumentException("You have to select whether you are adding total marks in actual marks, CGPA or Grade");
+            }
+            if (qualificationDetails.getTotal_marks() == null || qualificationDetails.getTotal_marks().isEmpty()) {
+                throw new IllegalArgumentException("Total marks cannot be null");
+            }
+            if (qualificationDetails.getDate_of_passing() == null) {
+                throw new IllegalArgumentException("Date of passing is required");
+            }
+            if (qualificationDetails.getCumulative_percentage_value() == null) {
+                throw new IllegalArgumentException("Overall cumulative Percentage cannot be null");
+            } else if (qualificationDetails.getCumulative_percentage_value() < 0 || qualificationDetails.getCumulative_percentage_value() > 100) {
+                throw new IllegalArgumentException("Overall cumulative Percentage must be between 0 and 100");
+            }
+        }
+
         entityManager.persist(qualificationDetails);
         CustomStream customStream=null;
         if(streamToAdd!=null)
@@ -1181,34 +1208,34 @@ public class QualificationDetailsService {
         return entityManager.merge(qualificationDetailsToUpdate);
     }
 
-    public void validateQualificationDetail(QualificationDetails qualificationDetails, Integer roleId)
-    {
-        Qualification qualification=entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
-        if(qualification==null)
+    public void validateQualificationDetail(QualificationDetails qualificationDetails, Integer roleId) {
+        Qualification qualification = entityManager.find(Qualification.class, qualificationDetails.getQualification_id());
+        if (qualification == null)
 
-        System.out.println(qualification.getIs_subjects_required());
+
+            System.out.println(qualification.getIs_subjects_required() + "sdkfjdaskljflkasdjfklj");
         System.out.println(qualification.getIs_stream_required());
-        if(qualification.getIs_stream_required()&&qualificationDetails.getStream_id()==null)
-        {
+        System.out.println(qualification.getIs_subjects_required() + "sdkfjdaskljflkasdjfklj");
+        if (qualification.getIs_stream_required() && qualificationDetails.getStream_id() == null) {
             throw new IllegalArgumentException("Stream id cannot be null");
         }
-        if(roleId==5) {
-            if (qualification.getIs_subjects_required() && (qualificationDetails.getSubject_details() == null || qualificationDetails.getSubject_details().isEmpty())) {
-                throw new IllegalArgumentException("Subject ids cannot be null");
+        if (roleId == 5) {
+            if (!qualificationDetails.getQualificationIsOngoing()) {
+                if (qualification.getIs_subjects_required() && (qualificationDetails.getSubject_details() == null || qualificationDetails.getSubject_details().isEmpty())) {
+                    throw new IllegalArgumentException("Subject ids cannot be null");
+                }
             }
         }
-        if(qualificationDetails.getTotal_marks_type()==null)
-        {
-            throw new IllegalArgumentException("You have to select whether the you want to add the total marks in percentage or cgpa ");
-        }
-        if(!qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage")&& !qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA") )
-        {
-            throw new IllegalArgumentException("Total marks type must be either percentage or CGPA");
-        }
-        if(qualificationDetails.getTotal_marks_type().trim().isEmpty())
-        {
-            throw new IllegalArgumentException("Total marks type cannot be empty");
-        }
+        if (!qualificationDetails.getQualificationIsOngoing()) {
+            if (qualificationDetails.getTotal_marks_type() == null) {
+                throw new IllegalArgumentException("You have to select whether the you want to add the total marks in percentage or cgpa ");
+            }
+            if (!qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage") && !qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA")) {
+                throw new IllegalArgumentException("Total marks type must be either percentage or CGPA");
+            }
+            if (qualificationDetails.getTotal_marks_type().trim().isEmpty()) {
+                throw new IllegalArgumentException("Total marks type cannot be empty");
+            }
 
             String marksObtainedStr = qualificationDetails.getMarks_obtained();
             String totalMarksStr = qualificationDetails.getTotal_marks();
@@ -1229,16 +1256,12 @@ public class QualificationDetailsService {
             if (totalMarks <= 0) {
                 throw new IllegalArgumentException("Overall Total marks must be greater than zero ");
             }
-            if(marksObtained>totalMarks)
-            {
+            if (marksObtained > totalMarks) {
                 throw new IllegalArgumentException("Overall Marks obtained cannot be greater than the total marks ");
             }
-            if(qualificationDetails.getIs_grade()!=null)
-            {
-                if(qualificationDetails.getIs_grade().equals(true))
-                {
-                    if(qualificationDetails.getGrade_value()==null)
-                    {
+            if (qualificationDetails.getIs_grade() != null) {
+                if (qualificationDetails.getIs_grade().equals(true)) {
+                    if (qualificationDetails.getGrade_value() == null) {
                         throw new IllegalArgumentException("You have to enter a overall grade value ");
                     }
                     String gradeObtained = qualificationDetails.getGrade_value();
@@ -1250,16 +1273,12 @@ public class QualificationDetailsService {
                 }
             }
 
-            if(qualificationDetails.getIs_division()!=null)
-            {
-                if(qualificationDetails.getIs_division().equals(true))
-                {
-                    if(qualificationDetails.getDivision_value()==null)
-                    {
+            if (qualificationDetails.getIs_division() != null) {
+                if (qualificationDetails.getIs_division().equals(true)) {
+                    if (qualificationDetails.getDivision_value() == null) {
                         throw new IllegalArgumentException("You have to enter a overall division value");
                     }
-                    if(qualificationDetails.getDivision_value().trim().isEmpty())
-                    {
+                    if (qualificationDetails.getDivision_value().trim().isEmpty()) {
                         throw new IllegalArgumentException("Overall division value cannot be empty");
                     }
 
@@ -1270,16 +1289,13 @@ public class QualificationDetailsService {
                 }
             }
 
-        if(qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage"))
-        {
-            Double percentage= (Double.parseDouble(qualificationDetails.getMarks_obtained())/Double.parseDouble(qualificationDetails.getTotal_marks()))*100;
-            qualificationDetails.setCumulative_percentage_value(percentage);
-        }
-        else if(qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA"))
-        {
-            if(qualificationDetails.getCumulative_percentage_value()==null)
-            {
-                throw new IllegalArgumentException("Overall Cumulative Percentage value cannot be null");
+            if (qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage")) {
+                Double percentage = (Double.parseDouble(qualificationDetails.getMarks_obtained()) / Double.parseDouble(qualificationDetails.getTotal_marks())) * 100;
+                qualificationDetails.setCumulative_percentage_value(percentage);
+            } else if (qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA")) {
+                if (qualificationDetails.getCumulative_percentage_value() == null) {
+                    throw new IllegalArgumentException("Overall Cumulative Percentage value cannot be null");
+                }
             }
         }
     }
@@ -1530,8 +1546,10 @@ public class QualificationDetailsService {
         if (subjectIds == null || subjectIds.isEmpty()) {
             throw new IllegalArgumentException("Subject IDs list cannot be empty");
         }
-        if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
-            throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
+        if(!qualificationDetail.getQualificationIsOngoing()) {
+            if (userProvidedDetails == null || userProvidedDetails.isEmpty() || userProvidedDetails.size() != subjectIds.size()) {
+                throw new IllegalArgumentException("Subject details must be provided for all subject IDs");
+            }
         }
 
 // Validate that "Other Subjects" count matches the number of ID 54 occurrences
