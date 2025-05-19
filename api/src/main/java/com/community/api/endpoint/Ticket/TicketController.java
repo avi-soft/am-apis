@@ -121,7 +121,10 @@ public class TicketController {
                 CombinedOrderDTO combinedOrderDTO = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                 orderDTO.add(combinedOrderDTO);
             }*/
-            serviceProviderTicketService.rejectedTicketLogic();
+
+            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
+            serviceProviderTicketService.rejectedTicketLogic(assignedTickets);
+
             return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

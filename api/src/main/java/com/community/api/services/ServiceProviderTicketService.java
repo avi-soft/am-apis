@@ -268,18 +268,15 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public void rejectedTicketLogic() {
+    public void rejectedTicketLogic(List<CustomTicketWrapper> assignedTickets) {
         try {
 
             List<Long> stateIdList = new ArrayList<>();
             stateIdList.add(Constant.TICKET_STATE_RETURNED);
 
-            // created a list which will keep the records of the tickets that are assigned by the auto-assigned.
-            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
-
             // Firstly we fetch all the tickets which are in return state.
             List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null);
-            log.info(String.valueOf(tickets.size()));
+            log.info("ticket recieved for auto-assignment: {}", tickets.size());
 
             randomBindingTicketAllocationForTickets(tickets, assignedTickets);
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -334,9 +331,8 @@ public class ServiceProviderTicketService {
 
     public boolean reallocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomServiceProviderTicket ticket, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            log.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: {}", serviceProvider.getService_provider_id());
+            log.info("Referrer(SERVICE PROVIDER) with id: {}", serviceProvider.getService_provider_id());
             if ((serviceProvider.getMaximumTicketSize() != null && (serviceProvider.getIsActive().equals(true)) && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
-                // assign him the ticket
 
                 // Set ticket state to TO-DO.
                 CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L);
@@ -357,6 +353,7 @@ public class ServiceProviderTicketService {
                 Date currentDate = dateFormat.parse(formattedDate);
 
                 ticket.setModifiedDate(currentDate);
+                ticket.setTicketAssignDate(currentDate);
 
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTime(currentDate);
@@ -529,7 +526,11 @@ public class ServiceProviderTicketService {
 
                     // Check if the referee is the primary Referee.
                     if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        log.info("Primary Referrer !!");
                         assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                        if(assigned){
+                            break;
+                        }
                     }
                 }
 
@@ -537,11 +538,14 @@ public class ServiceProviderTicketService {
                 if (!assigned) {
                     for (CustomerReferrer referrer : referrers) {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
-                        log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
+                        log.info("Other Referrer !!");
 
                         // check that it should not assigned to any sp who already rejected the ticket.
                         if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
-                            assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                            assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                            if(assigned){
+                                break;
+                            }
                         }
                     }
                 }
@@ -549,12 +553,15 @@ public class ServiceProviderTicketService {
                 // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
                 if (!assigned) {
 
-                    log.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                    log.info("Inside the Creator of the Product Logic of RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
-                    assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+
+                    if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    }
                 }
 
             }
