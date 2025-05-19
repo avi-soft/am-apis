@@ -25,6 +25,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.codec.binary.Hex;
+
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -328,6 +333,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
+            customerDetailsForMobile.put("is_password_created",customCustomer.getIsPasswordCreated());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -496,6 +502,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
             customerDetailsForDesktop.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForDesktop.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            customerDetailsForDesktop.put("is_password_created",customCustomer.getIsPasswordCreated());
             // List<ServiceProviderEntity>refSp=new ArrayList<>();
             // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
             // {
@@ -819,6 +826,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
         serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
+        serviceProviderDetails.put("is_password_created",serviceProvider.getIsPasswordCreated());
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
@@ -1924,6 +1932,15 @@ public class SharedUtilityService {
             throw new IllegalArgumentException("In document upload section, "+ans+ " is not uploaded");
         }
         return true;
+    }
+
+
+    public String hmacSha256(String data, String secret) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(keySpec);
+        byte[] hashBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        return Hex.encodeHexString(hashBytes);
     }
 
 

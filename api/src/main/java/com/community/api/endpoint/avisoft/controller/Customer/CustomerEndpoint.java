@@ -912,6 +912,9 @@ public class CustomerEndpoint {
                     if (details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty()) {
                         return ResponseService.generateErrorResponse("other or state Category value cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
+                    if (!details.get("otherOrStateCategory").toString().matches("^[a-zA-Z0-9 ]*$")) {
+                        throw new IllegalArgumentException("Only alphanumeric characters are allowed in otherOrStateCategory");
+                    }
                     if (details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty()) {
                         return ResponseService.generateErrorResponse("otherCategory DateOfIssue cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
@@ -2382,12 +2385,17 @@ public class CustomerEndpoint {
                 if (customer.getPassword() == null || customer.getPassword().isEmpty()) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
+
+                    CustomCustomer customCustomer =  customCustomerService.findCustomCustomerById( customer.getId());
+                    customCustomer.setIsPasswordCreated(true);
+                    em.merge(customCustomer);
                     return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
                 }
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
-
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
+
+
                     return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
                 } else {
                     return ResponseService.generateErrorResponse("Old Password and new Password cannot be same", HttpStatus.BAD_REQUEST);
