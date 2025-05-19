@@ -912,6 +912,9 @@ public class CustomerEndpoint {
                     if (details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty()) {
                         return ResponseService.generateErrorResponse("other or state Category value cannot be empty ", HttpStatus.BAD_REQUEST);
                     }
+                    if (!details.get("otherOrStateCategory").toString().matches("^[a-zA-Z0-9 ]*$")) {
+                        throw new IllegalArgumentException("Only alphanumeric characters are allowed in otherOrStateCategory");
+                    }
                     if (details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty()) {
                         return ResponseService.generateErrorResponse("otherCategory DateOfIssue cannot be empty ", HttpStatus.BAD_REQUEST);
                     }

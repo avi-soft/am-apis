@@ -277,7 +277,7 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "is_other_or_state_category")
     private Boolean isOtherOrStateCategory;
 
-    @Column(name = "other_or_state_category", columnDefinition = "text")
+    @Column(name = "other_or_state_category")
     private String otherOrStateCategory;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
