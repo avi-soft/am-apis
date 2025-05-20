@@ -181,7 +181,7 @@ public class TicketController {
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
-            ticketTypes.add(1L);
+            ticketTypes.add(3L);
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
@@ -359,7 +359,10 @@ public class TicketController {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            logger.info("Total tickets: " + responses.size());
+            log.info("Total tickets: {}", responses.size());
+            if(responses.isEmpty()) {
+                return ResponseService.generateSuccessResponse("Ticket Not Found with provided constraints.", response, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("Tickets Found successfully", response, HttpStatus.OK);
 
         } catch (IllegalArgumentException exception) {
