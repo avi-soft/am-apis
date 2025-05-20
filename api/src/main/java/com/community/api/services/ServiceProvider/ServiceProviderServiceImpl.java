@@ -1728,23 +1728,25 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
     public List<ServiceProviderEntity> getActiveAndApprovedServiceProviders() throws Exception {
         try {
-            Query query2 = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
-            query2.setParameter("test_status_id", 3L);
-            List<ServiceProviderTestStatus> serviceProviderTestStatus = query2.getResultList();
-            if (serviceProviderTestStatus.size() == 0) {
+            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderTestStatus s WHERE s.test_status_id = :test_status_id", ServiceProviderTestStatus.class);
+            // test status for 3L is APPROVED.
+            query.setParameter("test_status_id", 3L);
+
+            List<ServiceProviderTestStatus> serviceProviderTestStatus = query.getResultList();
+            if (serviceProviderTestStatus.isEmpty()) {
                 throw new IllegalArgumentException("No Test Status is found with this id");
             }
 
-            Query query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive", ServiceProviderEntity.class);
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
+            query.setParameter("isApproved", true);
 
-            List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
-            return serviceProviderEntityList;
+            return query.getResultList();
 
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
+            throw new Exception("Exception caught fetching approve and active SP: " + exception.getMessage());
         }
     }
 

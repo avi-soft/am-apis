@@ -3896,6 +3896,9 @@ public class ProductService {
                 {
                     throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
                 }
+                if (!categoryDistribution.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
+                    throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
+                }
             }
             if(categoryDistribution.getIsGenderWise()==null)
             {
