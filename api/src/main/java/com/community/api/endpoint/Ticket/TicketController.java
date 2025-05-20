@@ -140,6 +140,7 @@ public class TicketController {
     }
 
     @GetMapping("/get-all-ticket-stats")
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> retrieveAllTicketsStatistics() {
         try {
 
@@ -160,7 +161,7 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             primaryTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
             response.add(primaryTicketStats);
@@ -175,12 +176,12 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             reviewTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             reviewTicketStats.setDueInThreeDays(tickets.size());
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
-            ticketTypes.add(1L);
+            ticketTypes.set(0, 3L);
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
@@ -190,7 +191,7 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             miscellaneousTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
             response.add(miscellaneousTicketStats);
 
@@ -231,7 +232,7 @@ public class TicketController {
             OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
             CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-            wrapper.customWrapDetails(ticket, orderDto);
+            wrapper.customWrapDetails(ticket, orderDto, entityManager);
 
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
 
@@ -330,10 +331,10 @@ public class TicketController {
                             customer.getUsername());
 
                     CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
-                    wrapper.customWrapDetails(ticket, orderDto);
-                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
-                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getParentTicket().getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
                             customer.getId(),
@@ -343,10 +344,12 @@ public class TicketController {
                             addressFetcher.fetch(customer),
                             customer.getUsername());
 
-                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
-                    wrapper.customWrapDetails(ticket, orderDto);
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getParentTicket().getOrder(), orderState, ticket, customerDetailsDTO);
+                    wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                    wrapper.customWrapDetails(ticket, null, entityManager);
                 } else {
-                    wrapper.customWrapDetails(ticket, null);
+                    wrapper.customWrapDetails(ticket, null, entityManager);
                 }
 
                 return wrapper;
@@ -358,7 +361,10 @@ public class TicketController {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            logger.info("Total tickets: " + responses.size());
+            log.info("Total tickets: {}", responses.size());
+            if(responses.isEmpty()) {
+                return ResponseService.generateSuccessResponse("Ticket Not Found with provided constraints.", response, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("Tickets Found successfully", response, HttpStatus.OK);
 
         } catch (IllegalArgumentException exception) {

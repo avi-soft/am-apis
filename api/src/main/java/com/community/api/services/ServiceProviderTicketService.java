@@ -313,7 +313,7 @@ public class ServiceProviderTicketService {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-                wrapper.customWrapDetails(ticket, orderDto);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
                 assignedTickets.add(wrapper);
                 return true;
             } else {
@@ -392,7 +392,7 @@ public class ServiceProviderTicketService {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-                wrapper.customWrapDetails(ticket, orderDto);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
                 assignedTickets.add(wrapper);
                 return true;
 
@@ -856,7 +856,7 @@ public class ServiceProviderTicketService {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-                wrapper.customWrapDetails(ticket, orderDto);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
                 assignedTickets.add(wrapper);
 
                 logger.info("Order with id: " + order.getId() + " is assigned to Service Provider with id: " + serviceProvider.getService_provider_id() + " with ticket id: " + ticket.getTicketId());
@@ -915,7 +915,7 @@ public class ServiceProviderTicketService {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-                wrapper.customWrapDetails(ticket, orderDto);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
                 assignedTickets.add(wrapper);
 
                 log.info("Order with id: {} is assigned to Service Provider with id: {} , with ticket id: {}", order.getId(), serviceProvider.getService_provider_id(), ticket.getTicketId());
@@ -1209,6 +1209,21 @@ public class ServiceProviderTicketService {
 
             if (dueInThreeDays != null) {
                 jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
+                if(states == null) {
+                    states = new ArrayList<>();
+                    states.add(1L);
+                    states.add(2L);
+                    states.add(3L);
+                    states.add(4L);
+                    for (Long id = 1L; id<=4; id++) {
+                        CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(id);
+                        if (ticketState == null) {
+                            throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
+                        }
+                        customTicketStates.add(ticketState);
+                    }
+                    jpql.append("AND c.ticketState IN :states ");
+                }
             }
 
             // Create the query with the final JPQL string
