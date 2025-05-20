@@ -7,20 +7,21 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.Role;
-import com.community.api.services.OrderDTOService;
+import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
-import org.broadleafcommerce.core.order.domain.OrderImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
-import javax.persistence.Access;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
 public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomTicketWrapper.class);
+
     @JsonProperty("ticket_id")
     protected Long id;
 
@@ -68,13 +69,11 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     @JsonProperty("order")
     protected CombinedOrderDTO order;
+
     @JsonProperty("task_description")
     protected String task_desc;
-    @Autowired
-    private EntityManager entityManager;
 
-
-    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
+    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
@@ -97,16 +96,21 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
-        ServiceProviderEntity serviceProvider=null;
+        ServiceProviderEntity serviceProvider = null;
         try {
             System.out.println("id is"+customServiceProviderTicket.getAssignee());
             serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
             System.out.println("name is"+serviceProvider.getFirst_name());
             serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
-            this.assigneeName = serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
+            this.assigneeName = serviceProvider.getFirst_name();
+            if(serviceProvider.getLast_name() != null) {
+                this.assigneeName += " " + serviceProvider.getLast_name();
+            }
         }
         catch (Exception e)
         {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
         }
 
