@@ -98,10 +98,14 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
         ServiceProviderEntity serviceProvider = null;
         try {
-            serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
-            this.assigneeName = serviceProvider.getFirst_name();
-            if(serviceProvider.getLast_name() != null) {
-                this.assigneeName += " " + serviceProvider.getLast_name();
+            if(customServiceProviderTicket.getAssignee() != null) {
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
+                this.assigneeName = serviceProvider.getFirst_name();
+                if (serviceProvider.getLast_name() != null) {
+                    this.assigneeName += " " + serviceProvider.getLast_name();
+                }
+            } else {
+                this.assigneeName = "-";
             }
         }
         catch (Exception e)
