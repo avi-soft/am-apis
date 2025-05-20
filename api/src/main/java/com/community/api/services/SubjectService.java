@@ -78,7 +78,7 @@ public class SubjectService {
             String jpql = """
                 SELECT s FROM CustomStream cs 
                 JOIN cs.subjects s 
-                WHERE cs.streamId = :streamId""";
+                WHERE cs.streamId = :streamId ORDER BY cs.sortOrder ASC""";
 
             List<CustomSubject> subjects = entityManager.createQuery(jpql, CustomSubject.class)
                     .setParameter("streamId", streamId)
