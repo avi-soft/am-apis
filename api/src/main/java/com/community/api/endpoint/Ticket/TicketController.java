@@ -181,7 +181,7 @@ public class TicketController {
             response.add(reviewTicketStats);
 
             // MISCELLANEOUS TICKET
-            ticketTypes.add(3L);
+            ticketTypes.set(0, 3L);
             tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
 
             TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
@@ -332,9 +332,9 @@ public class TicketController {
 
                     CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                     wrapper.customWrapDetails(ticket, orderDto);
-                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
-                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getParentTicket().getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
                             customer.getId(),
@@ -344,8 +344,10 @@ public class TicketController {
                             addressFetcher.fetch(customer),
                             customer.getUsername());
 
-                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getParentTicket().getOrder(), orderState, ticket, customerDetailsDTO);
                     wrapper.customWrapDetails(ticket, orderDto);
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                    wrapper.customWrapDetails(ticket, null);
                 } else {
                     wrapper.customWrapDetails(ticket, null);
                 }
