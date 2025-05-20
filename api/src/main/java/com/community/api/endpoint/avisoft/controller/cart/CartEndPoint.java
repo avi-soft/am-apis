@@ -66,6 +66,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
@@ -96,6 +97,7 @@ public class CartEndPoint extends BaseEndpoint {
     private OrderService orderService;
     private CatalogService catalogService;
     private ExceptionHandlingImplement exceptionHandling;
+
     private EntityManager entityManager;
     private OrderItemService orderItemService;
     private CartService cartService;
@@ -192,7 +194,7 @@ public class CartEndPoint extends BaseEndpoint {
         this.exceptionHandling = exceptionHandling;
     }
 
-    @Autowired
+    @PersistenceContext
     public void setEntityManager(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
@@ -602,7 +604,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setOrder(individualOrder);
                     orderItemRequest.setQuantity(1);
                     orderItemRequest.setCategory(product.getCategory());
-                    orderItemRequest.setItemName(product.getName());
+                    orderItemRequest.setItemName(product.getDisplayTemplate());
                     Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
                     atrtributes.put("productId", product.getId().toString());
                     //atrtributes.put("assigneeSPId",null);
@@ -903,6 +905,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     //constanlty updates order's status
 
+    @Transactional
     @PostMapping("/order-events")
     public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
                                 @RequestBody String payload) {
@@ -927,12 +930,12 @@ public class CartEndPoint extends BaseEndpoint {
             System.out.println("order id:" + paymentEntity.getString("order_id"));
             Query query = entityManager.createNativeQuery("SELECT order_id from blc_order where order_number = :rzpId");
             query.setParameter("rzpId", paymentEntity.getString("order_id"));
-            List<Long> orderIds = query.getResultList();
+            List<BigInteger> orderIds = query.getResultList();
 
                     // Extract payment info and update order status to PAID
-                    for(Long id:orderIds) {
+                    for(BigInteger id:orderIds) {
                         System.out.println("orderId" + id);
-                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id);
+                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id.longValue());
                         details.setStatus(paymentEntity.getString("status"));
                         details.setRazorpayPaymentId(paymentEntity.getString("id"));
                         entityManager.merge(details);

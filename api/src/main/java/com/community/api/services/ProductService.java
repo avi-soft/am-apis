@@ -471,7 +471,7 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
-            jpql.append("WHERE 1=1 ");  // Base condition to allow easy AND appending
+            // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
             {
