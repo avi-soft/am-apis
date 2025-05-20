@@ -4,23 +4,13 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
-import com.community.api.endpoint.avisoft.controller.ServiceProvider.ServiceProviderController;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.CustomProduct;
-import com.community.api.entity.DocumentValidity;
-import com.community.api.entity.Qualification;
-import com.community.api.entity.QualificationDetails;
-import com.community.api.entity.Post;
+import com.community.api.entity.*;
 import com.community.api.entity.Role;
-import com.community.api.entity.StateCode;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -28,7 +18,6 @@ import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
-import org.apache.tomcat.util.bcel.Const;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
@@ -55,14 +44,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
 import javax.persistence.Query;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
-import javax.persistence.PersistenceException;
 import javax.persistence.Column;
 import javax.persistence.TypedQuery;
 import javax.persistence.PersistenceContext;
@@ -261,6 +248,7 @@ public class CustomerEndpoint {
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String roleName= roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             List<String> errorMessages = new ArrayList<>();
 
@@ -299,6 +287,7 @@ public class CustomerEndpoint {
             if (customCustomer.getArchived().equals(true)) {
                 return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
             }
+            List<OtherItem> existingItems = customCustomer.getOtherItems();
             String secondaryMobileNumber = (String) details.get("secondaryMobileNumber");
             String mobileNumber = (String) details.get("mobileNumber");
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
@@ -1158,16 +1147,206 @@ public class CustomerEndpoint {
                     field.set(customCustomer, newValue);
                 }
             }
-            if (details.containsKey("category")) {
-                if (((String) details.get("category")).equalsIgnoreCase("GEN")) {
-                    customCustomer.setCategoryIssueDate(null);
-                    customCustomer.setCategoryValidUpto(null);
+
+          /*  if (details.containsKey("religion")) {
+                Boolean isOtherReligion = false;
+                List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
+                Long reserveCategoryToAddId=null;
+                for(CustomReserveCategory customReserveCategory : reserveCategories)
+                {
+                    if(customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category")))
+                    {
+                        reserveCategoryToAddId= customReserveCategory.getReserveCategoryId();
+                        System.out.println(reserveCategoryToAddId);
+                    }
                 }
+                if(reserveCategoryToAddId==null)
+                {
+                    throw new IllegalArgumentException("Reserve category with name "+ details.get("category").toString()+ " does not exist");
+                }
+                OtherItem categoryOtherItemToAdd = null;
+                customCustomer.setCategory(details.get("category").toString());
+
+                if (details.get("category").toString().equalsIgnoreCase("Others")) {
+                    isOtherReligion = true;
+                }
+
+                Boolean userExists= false;
+                if (isOtherReligion.equals(false)) {
+                    System.out.println("is other category is false");
+                    customCustomer.setOtherCategory(null);
+                    List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
+                    if (!currentOtherItems.isEmpty()) {
+                        System.out.println("if not empty");
+                        Iterator<OtherItem> iterator = currentOtherItems.iterator();
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if(customCustomer.getId().equals(otherItem.getUser_id()))
+                            {
+                                System.out.println();
+                                userExists=true;
+                            }
+                            if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                    otherItem.getField_name().equalsIgnoreCase("reserve_category") && userExists ) {
+                                iterator.remove();
+                            }
+                        }
+                        customCustomer.setOtherCategory(null);
+                        customCustomer.setOtherItems(currentOtherItems);
+                    }
+                } else if (isOtherReligion.equals(true)) {
+                    existingItems = customCustomer.getOtherItems();
+                    if (existingItems != null && !existingItems.isEmpty()) {
+                        boolean itemUpdated = false;
+                        Iterator<OtherItem> iterator = existingItems.iterator();
+
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                    otherItem.getField_name().equalsIgnoreCase("reserve_category")) {
+                                if(!details.containsKey("otherCategory"))
+                                {
+                                    throw new IllegalArgumentException("You have to enter text for other reserved category");
+                                }
+                                otherItem.setTyped_text(details.get("otherCategory").toString());
+                                otherItem.setSource_name("customer profile update page");
+                                entityManager.merge(otherItem);
+                                itemUpdated = true;
+                            }
+                        }
+
+                        if (!itemUpdated) {
+                            categoryOtherItemToAdd =sharedUtilityService. handleOtherCaseForReserveCategory(
+                                    details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                            existingItems.add(categoryOtherItemToAdd);
+                        }
+                    } else {
+                        System.out.println("existing items are null and empty");
+                        if (existingItems == null) {
+                            existingItems = new ArrayList<>();
+                        }
+                        categoryOtherItemToAdd = sharedUtilityService.handleOtherCaseForReserveCategory(
+                                details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                        existingItems.add(categoryOtherItemToAdd);
+                    }
+
+                    customCustomer.setOtherItems(existingItems);
+                    customCustomer.setOtherCategory((String)details.get("otherCategory"));
+                    entityManager.merge(customCustomer);
+                }
+//
             }else if(!details.containsKey("category")) {
                 if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                     customCustomer.setCategoryIssueDate(null);
                     customCustomer.setCategoryValidUpto(null);
                 }
+            }
+            if(details.containsKey("otherCategory"))
+            {
+                details.remove("otherCategory");
+            }*/
+
+            if (details.containsKey("category")) {
+                if (((String) details.get("category")).equalsIgnoreCase("GEN")) {
+                    customCustomer.setCategoryIssueDate(null);
+                    customCustomer.setCategoryValidUpto(null);
+                }
+//                if (((String) details.get("category")).equalsIgnoreCase("OTHERS")) {
+                    Boolean isOtherCategory = false;
+                    List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
+                    Long reserveCategoryToAddId=null;
+                    for(CustomReserveCategory customReserveCategory : reserveCategories)
+                        {
+                            if(customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category")))
+                            {
+                                reserveCategoryToAddId= customReserveCategory.getReserveCategoryId();
+                                System.out.println(reserveCategoryToAddId);
+                            }
+                        }
+                    if(reserveCategoryToAddId==null)
+                    {
+                        throw new IllegalArgumentException("Reserve category with name "+ details.get("category").toString()+ " does not exist");
+                    }
+                    OtherItem categoryOtherItemToAdd = null;
+                    customCustomer.setCategory(details.get("category").toString());
+
+                    if (details.get("category").toString().equalsIgnoreCase("Others")) {
+                        isOtherCategory = true;
+                    }
+
+                    Boolean userExists= false;
+                    if (isOtherCategory.equals(false)) {
+                        System.out.println("is other category is false");
+                        customCustomer.setOtherCategory(null);
+                        List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
+                        if (!currentOtherItems.isEmpty()) {
+                            System.out.println("if not empty");
+                            Iterator<OtherItem> iterator = currentOtherItems.iterator();
+                            while (iterator.hasNext()) {
+                                OtherItem otherItem = iterator.next();
+                                if(customCustomer.getId().equals(otherItem.getUser_id()))
+                                {
+                                    System.out.println();
+                                    userExists=true;
+                                }
+                                if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                        otherItem.getField_name().equalsIgnoreCase("reserve_category") && userExists ) {
+                                    iterator.remove();
+                                }
+                            }
+                            customCustomer.setOtherCategory(null);
+                            customCustomer.setOtherItems(currentOtherItems);
+                        }
+                    } else if (isOtherCategory.equals(true)) {
+                        existingItems = customCustomer.getOtherItems();
+                        if (existingItems != null && !existingItems.isEmpty()) {
+                            boolean itemUpdated = false;
+                            Iterator<OtherItem> iterator = existingItems.iterator();
+
+                            while (iterator.hasNext()) {
+                                OtherItem otherItem = iterator.next();
+                                if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                        otherItem.getField_name().equalsIgnoreCase("reserve_category")) {
+                                    if(!details.containsKey("otherCategory"))
+                                    {
+                                        throw new IllegalArgumentException("You have to enter text for other reserved category");
+                                    }
+                                    otherItem.setTyped_text(details.get("otherCategory").toString());
+                                    otherItem.setSource_name("customer profile update page");
+                                    entityManager.merge(otherItem);
+                                    itemUpdated = true;
+                                }
+                            }
+
+                            if (!itemUpdated) {
+                                categoryOtherItemToAdd =sharedUtilityService. handleOtherCaseForReserveCategory(
+                                        details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                                existingItems.add(categoryOtherItemToAdd);
+                            }
+                        } else {
+                            System.out.println("existing items are null and empty");
+                            if (existingItems == null) {
+                                existingItems = new ArrayList<>();
+                            }
+                            categoryOtherItemToAdd = sharedUtilityService.handleOtherCaseForReserveCategory(
+                                    details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                            existingItems.add(categoryOtherItemToAdd);
+                        }
+
+                        customCustomer.setOtherItems(existingItems);
+                        customCustomer.setOtherCategory((String)details.get("otherCategory"));
+                        entityManager.merge(customCustomer);
+                    }
+//
+                }else if(!details.containsKey("category")) {
+                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
+                    customCustomer.setCategoryIssueDate(null);
+                    customCustomer.setCategoryValidUpto(null);
+                }
+            }
+            if(details.containsKey("otherCategory"))
+            {
+                details.remove("otherCategory");
             }
             // Update address if needed
             if (details.containsKey("categoryIssueDate") && details.containsKey("categoryValidUpto")) {

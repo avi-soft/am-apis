@@ -254,6 +254,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForMobile.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForMobile.put("categoryIssueDate", customCustomer.getCategoryIssueDate());
+            customerDetailsForMobile.put("otherCategory", customCustomer.getOtherCategory());
             customerDetailsForMobile.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
@@ -539,6 +540,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
+            customerDetailsForDesktop.put("otherCategory", customCustomer.getOtherCategory());
             customerDetailsForDesktop.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
@@ -1941,6 +1943,29 @@ public class SharedUtilityService {
         mac.init(keySpec);
         byte[] hashBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         return Hex.encodeHexString(hashBytes);
+    }
+
+    public OtherItem handleOtherCaseForReserveCategory(String foundedBoardUniversityId,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
+    {
+        if(foundedBoardUniversityId.equalsIgnoreCase("Others"))
+        {
+            if(rerserveCategoryOthers==null) {
+                throw new IllegalArgumentException("You have to enter a text for other reserve category");
+            }
+            if(rerserveCategoryOthers.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other reserve category");
+            }
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(rerserveCategoryOthers);
+            otherItem.setField_name("reserve_category");
+            otherItem.setSource_name(sourceName);
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
     }
 
 
