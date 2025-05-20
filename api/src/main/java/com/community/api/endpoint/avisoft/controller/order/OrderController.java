@@ -683,7 +683,7 @@ public class OrderController {
             CombinedOrderDTO combinedOrderDTO = orderDTOService.wrapOrder(order, customOrderState, customServiceProviderTicket, customerDetailsDTO);
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
-            wrapper.customWrapDetails(customServiceProviderTicket, combinedOrderDTO);
+            wrapper.customWrapDetails(customServiceProviderTicket, combinedOrderDTO, entityManager);
 
             return ResponseService.generateSuccessResponse("Order Assigned", wrapper, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
