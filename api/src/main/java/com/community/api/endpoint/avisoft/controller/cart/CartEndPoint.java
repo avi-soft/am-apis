@@ -17,6 +17,8 @@ import com.community.api.entity.RazorpayDetails;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
@@ -43,6 +45,9 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -56,10 +61,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
@@ -90,6 +97,7 @@ public class CartEndPoint extends BaseEndpoint {
     private OrderService orderService;
     private CatalogService catalogService;
     private ExceptionHandlingImplement exceptionHandling;
+
     private EntityManager entityManager;
     private OrderItemService orderItemService;
     private CartService cartService;
@@ -186,7 +194,7 @@ public class CartEndPoint extends BaseEndpoint {
         this.exceptionHandling = exceptionHandling;
     }
 
-    @Autowired
+    @PersistenceContext
     public void setEntityManager(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
@@ -596,7 +604,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setOrder(individualOrder);
                     orderItemRequest.setQuantity(1);
                     orderItemRequest.setCategory(product.getCategory());
-                    orderItemRequest.setItemName(product.getName());
+                    orderItemRequest.setItemName(product.getDisplayTemplate());
                     Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
                     atrtributes.put("productId", product.getId().toString());
                     //atrtributes.put("assigneeSPId",null);
@@ -699,14 +707,15 @@ public class CartEndPoint extends BaseEndpoint {
     public ResponseEntity<?> confirmOrderStatus(@RequestParam List<Long> orderIds, @RequestBody Map<String, String> paymentStatus) {
         String razorpayOrderId = paymentStatus.get("razorpay_order_id");
         String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
-        String razorpaySignature = paymentStatus.get("razorpay_signature");
-        String status = paymentStatus.get("status");
+       /* String razorpaySignature = paymentStatus.get("razorpay_signature");*/
+        String status = getPaymentStatus(razorpayPaymentId);
 
-        if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
+       /* if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
             return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
-        }
+        }*/
 
 
+/*
         try {
             String data = razorpayOrderId + "|" + razorpayPaymentId;
             String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
@@ -717,6 +726,7 @@ public class CartEndPoint extends BaseEndpoint {
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+*/
 
 
         // Rest of the order processing (same as before)
@@ -746,7 +756,7 @@ public class CartEndPoint extends BaseEndpoint {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
 
-            if ("order.paid".equalsIgnoreCase(status)) {
+            if ("captured".equalsIgnoreCase(status)) {
 
                 orderStatus = new OrderStatus("NEW", null);
                 details.setTimeStamp(LocalDate.now());
@@ -776,7 +786,7 @@ public class CartEndPoint extends BaseEndpoint {
                 }
 
                 entityManager.merge(customCustomer);
-            } else if ("payment.failed".equalsIgnoreCase(status)) {
+            } else if ("failed".equalsIgnoreCase(status)) {
                 failed = true;
                 orderStatus = new OrderStatus("PAYMENT_FAILED", null);
                 details.setTimeStamp(LocalDate.now());
@@ -895,6 +905,7 @@ public class CartEndPoint extends BaseEndpoint {
 
     //constanlty updates order's status
 
+    @Transactional
     @PostMapping("/order-events")
     public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
                                 @RequestBody String payload) {
@@ -919,19 +930,41 @@ public class CartEndPoint extends BaseEndpoint {
             System.out.println("order id:" + paymentEntity.getString("order_id"));
             Query query = entityManager.createNativeQuery("SELECT order_id from blc_order where order_number = :rzpId");
             query.setParameter("rzpId", paymentEntity.getString("order_id"));
-            List<Long> orderIds = query.getResultList();
+            List<BigInteger> orderIds = query.getResultList();
 
                     // Extract payment info and update order status to PAID
-                    for(Long id:orderIds) {
+                    for(BigInteger id:orderIds) {
                         System.out.println("orderId" + id);
-                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id);
-                        details.setStatus(event);
+                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id.longValue());
+                        details.setStatus(paymentEntity.getString("status"));
+                        details.setRazorpayPaymentId(paymentEntity.getString("id"));
                         entityManager.merge(details);
                     }
         } catch (Exception e) {
             System.out.println("Exception : "+e.getMessage());
         }
     }
+    public String getPaymentStatus(String paymentId) {
+        String uri = "https://api.razorpay.com/v1/payments/" + paymentId;
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(razorpayId, razorpaySecret);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            String status = jsonNode.get("status").asText();  // e.g. "captured", "failed", etc.
+            return status;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
     }
 
