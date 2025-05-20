@@ -160,7 +160,7 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             primaryTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             primaryTicketStats.setDueInThreeDays(tickets.size());
 
             response.add(primaryTicketStats);
@@ -175,7 +175,7 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             reviewTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             reviewTicketStats.setDueInThreeDays(tickets.size());
             response.add(reviewTicketStats);
 
@@ -190,7 +190,7 @@ public class TicketController {
 
             tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
             miscellaneousTicketStats.setRejected(tickets.size());
-            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, true);
             miscellaneousTicketStats.setDueInThreeDays(tickets.size());
             response.add(miscellaneousTicketStats);
 
