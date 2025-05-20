@@ -110,7 +110,7 @@
         <class>com.community.api.entity.Transaction</class>
         <class>com.community.api.entity.TicketStateLinkage</class>
         <class>com.community.api.entity.CustomWorkQuality</class>
-
+        <class>com.community.api.entity.RazorpayDetails</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
