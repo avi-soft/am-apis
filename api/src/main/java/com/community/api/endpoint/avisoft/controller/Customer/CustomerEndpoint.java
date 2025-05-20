@@ -1149,9 +1149,9 @@ public class CustomerEndpoint {
                 }
             }
 
-          /*  if (details.containsKey("religion")) {
+            if (details.containsKey("religion")) {
                 Boolean isOtherReligion = false;
-                List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
+               /* List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
                 Long reserveCategoryToAddId=null;
                 for(CustomReserveCategory customReserveCategory : reserveCategories)
                 {
@@ -1164,35 +1164,32 @@ public class CustomerEndpoint {
                 if(reserveCategoryToAddId==null)
                 {
                     throw new IllegalArgumentException("Reserve category with name "+ details.get("category").toString()+ " does not exist");
-                }
-                OtherItem categoryOtherItemToAdd = null;
-                customCustomer.setCategory(details.get("category").toString());
+                }*/
+                OtherItem religionOtherItemToAdd = null;
+                customCustomer.setReligion(details.get("religion").toString());
 
-                if (details.get("category").toString().equalsIgnoreCase("Others")) {
+                if (details.get("religion").toString().equalsIgnoreCase("Others")) {
                     isOtherReligion = true;
                 }
 
                 Boolean userExists= false;
                 if (isOtherReligion.equals(false)) {
-                    System.out.println("is other category is false");
-                    customCustomer.setOtherCategory(null);
+                    customCustomer.setOtherReligion(null);
                     List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
                     if (!currentOtherItems.isEmpty()) {
-                        System.out.println("if not empty");
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
                         while (iterator.hasNext()) {
                             OtherItem otherItem = iterator.next();
                             if(customCustomer.getId().equals(otherItem.getUser_id()))
                             {
-                                System.out.println();
                                 userExists=true;
                             }
                             if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
-                                    otherItem.getField_name().equalsIgnoreCase("reserve_category") && userExists ) {
+                                    otherItem.getField_name().equalsIgnoreCase("religion") && userExists ) {
                                 iterator.remove();
                             }
                         }
-                        customCustomer.setOtherCategory(null);
+                        customCustomer.setOtherReligion(null);
                         customCustomer.setOtherItems(currentOtherItems);
                     }
                 } else if (isOtherReligion.equals(true)) {
@@ -1204,12 +1201,12 @@ public class CustomerEndpoint {
                         while (iterator.hasNext()) {
                             OtherItem otherItem = iterator.next();
                             if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
-                                    otherItem.getField_name().equalsIgnoreCase("reserve_category")) {
-                                if(!details.containsKey("otherCategory"))
+                                    otherItem.getField_name().equalsIgnoreCase("religion")) {
+                                if(!details.containsKey("otherReligion"))
                                 {
-                                    throw new IllegalArgumentException("You have to enter text for other reserved category");
+                                    throw new IllegalArgumentException("You have to enter text for other religion");
                                 }
-                                otherItem.setTyped_text(details.get("otherCategory").toString());
+                                otherItem.setTyped_text(details.get("otherReligion").toString());
                                 otherItem.setSource_name("customer profile update page");
                                 entityManager.merge(otherItem);
                                 itemUpdated = true;
@@ -1217,42 +1214,35 @@ public class CustomerEndpoint {
                         }
 
                         if (!itemUpdated) {
-                            categoryOtherItemToAdd =sharedUtilityService. handleOtherCaseForReserveCategory(
-                                    details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
-                            existingItems.add(categoryOtherItemToAdd);
+                            religionOtherItemToAdd =sharedUtilityService. handleOtherCaseForReligion(
+                                    details.get("religion").toString(), (String)details.get("otherReligion"), roleId, customerId, "customer profile update page");
+                            existingItems.add(religionOtherItemToAdd);
                         }
                     } else {
-                        System.out.println("existing items are null and empty");
                         if (existingItems == null) {
                             existingItems = new ArrayList<>();
                         }
-                        categoryOtherItemToAdd = sharedUtilityService.handleOtherCaseForReserveCategory(
-                                details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
-                        existingItems.add(categoryOtherItemToAdd);
+                        religionOtherItemToAdd = sharedUtilityService.handleOtherCaseForReligion(
+                                details.get("religion").toString(), (String)details.get("otherReligion"), roleId, customerId, "customer profile update page");
+                        existingItems.add(religionOtherItemToAdd);
                     }
 
                     customCustomer.setOtherItems(existingItems);
-                    customCustomer.setOtherCategory((String)details.get("otherCategory"));
+                    customCustomer.setOtherReligion((String)details.get("otherReligion"));
                     entityManager.merge(customCustomer);
                 }
 //
-            }else if(!details.containsKey("category")) {
-                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
-                    customCustomer.setCategoryIssueDate(null);
-                    customCustomer.setCategoryValidUpto(null);
-                }
             }
-            if(details.containsKey("otherCategory"))
+            if(details.containsKey("otherReligion"))
             {
-                details.remove("otherCategory");
-            }*/
+                details.remove("otherReligion");
+            }
 
             if (details.containsKey("category")) {
                 if (((String) details.get("category")).equalsIgnoreCase("GEN")) {
                     customCustomer.setCategoryIssueDate(null);
                     customCustomer.setCategoryValidUpto(null);
                 }
-//                if (((String) details.get("category")).equalsIgnoreCase("OTHERS")) {
                     Boolean isOtherCategory = false;
                     List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
                     Long reserveCategoryToAddId=null;
@@ -1277,17 +1267,14 @@ public class CustomerEndpoint {
 
                     Boolean userExists= false;
                     if (isOtherCategory.equals(false)) {
-                        System.out.println("is other category is false");
                         customCustomer.setOtherCategory(null);
                         List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
                         if (!currentOtherItems.isEmpty()) {
-                            System.out.println("if not empty");
                             Iterator<OtherItem> iterator = currentOtherItems.iterator();
                             while (iterator.hasNext()) {
                                 OtherItem otherItem = iterator.next();
                                 if(customCustomer.getId().equals(otherItem.getUser_id()))
                                 {
-                                    System.out.println();
                                     userExists=true;
                                 }
                                 if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
@@ -1325,7 +1312,6 @@ public class CustomerEndpoint {
                                 existingItems.add(categoryOtherItemToAdd);
                             }
                         } else {
-                            System.out.println("existing items are null and empty");
                             if (existingItems == null) {
                                 existingItems = new ArrayList<>();
                             }
