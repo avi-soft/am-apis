@@ -33,11 +33,7 @@ public class QualificationService {
     public List<Qualification> getAllQualifications() {
         TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
         List<Qualification> qualifications = query.getResultList();
-        List<Qualification> filteredQualifications = qualifications.stream()
-                .filter(q -> !q.getQualification_name().equalsIgnoreCase("BACHELORS/GRADUATION") &&
-                        !q.getQualification_name().equalsIgnoreCase("MASTERS/POST_GRADUATION"))
-                .collect(Collectors.toList());
-        return filteredQualifications;
+        return qualifications;
     }
 //    @todo:- Need to work on add qualification function so that entries should be inserted in document table also make sure to add one exam text in dscription
     @Transactional

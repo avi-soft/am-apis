@@ -216,6 +216,17 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "city")
     private String city;
 
+    @Column(name = "otherCategory")
+    private String otherCategory;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinTable(
+            name = "custom_customer_other_item",
+            joinColumns = @JoinColumn(name = "custom_customer_id"),
+            inverseJoinColumns = @JoinColumn(name = "other_item_id")
+    )
+    private List<OtherItem> otherItems = new ArrayList<>();
+
     @Nullable
     @Column(name = "pincode")
     @Pattern(regexp = "^[0-9]{6}$", message = "Pincode must be a 6-digit numeric value.")
