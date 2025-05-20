@@ -360,7 +360,7 @@ public class TicketController {
             response.put("currentPage", offset);
 
             log.info("Total tickets: {}", responses.size());
-            if(response.isEmpty()) {
+            if(responses.isEmpty()) {
                 return ResponseService.generateSuccessResponse("Ticket Not Found with provided constraints.", response, HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("Tickets Found successfully", response, HttpStatus.OK);
