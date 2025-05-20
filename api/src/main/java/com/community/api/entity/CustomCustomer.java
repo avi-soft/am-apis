@@ -219,6 +219,10 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "otherCategory")
     private String otherCategory;
 
+    @Column(name = "otherReligion")
+    private String otherReligion;
+
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinTable(
             name = "custom_customer_other_item",

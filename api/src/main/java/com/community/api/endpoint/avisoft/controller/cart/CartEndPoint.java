@@ -13,11 +13,13 @@ import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.Post;
+import com.community.api.entity.RazorpayDetails;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 import net.bytebuddy.asm.Advice;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
@@ -46,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -102,6 +105,8 @@ public class CartEndPoint extends BaseEndpoint {
     private String razorpayId;
     @Value("${razorpay.key.secret}")
     private String razorpaySecret;
+    @Value(("${razorpay.webhook.secret}"))
+    private String razorpayWebhookSecret;
 
     @Autowired
     BroadleafCurrencyService broadleafCurrencyService;
@@ -638,6 +643,16 @@ public class CartEndPoint extends BaseEndpoint {
                         individualOrder.setOrderNumber(razorpayOrder.get("id"));
                         OrderStatus orderStatus = new OrderStatus("CREATED", null);
                         individualOrder.setStatus(orderStatus);
+
+                        //creating razorpay order
+                        RazorpayDetails razorpayDetails=new RazorpayDetails();
+                        razorpayDetails.setOrderId(individualOrder.getId());
+                        razorpayDetails.setRazorpayOrderId(razorpayOrder.get("id"));
+                        razorpayDetails.setTimeStamp(LocalDate.now());
+                        razorpayDetails.setStatus("CREATED");
+                        entityManager.persist(razorpayDetails);
+                        //
+
                     } else
                         return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
                     orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
@@ -691,7 +706,7 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
         }
 
-        // 🔐 Razorpay Signature Verification
+
         try {
             String data = razorpayOrderId + "|" + razorpayPaymentId;
             String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
@@ -714,6 +729,16 @@ public class CartEndPoint extends BaseEndpoint {
 
         for (Long orderId : orderIds) {
             Order order = orderService.findOrderById(orderId);
+            RazorpayDetails details=entityManager.find(RazorpayDetails.class,orderId);
+            if(!details.getStatus().equals(status))
+            {
+                JSONObject jsonObject=new JSONObject();
+                jsonObject.put("order_status","failed");
+                jsonObject.put("razorpay_payment_status",details.getStatus());
+                jsonObject.put("recieved_status",status);
+
+                return ResponseService.generateSuccessResponse("ORDER FAILED",jsonObject,HttpStatus.INTERNAL_SERVER_ERROR);
+            }
             if (order == null) {
                 return ResponseService.generateErrorResponse("Cannot find order with ID: " + orderId, HttpStatus.NOT_FOUND);
             }
@@ -721,8 +746,10 @@ public class CartEndPoint extends BaseEndpoint {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
 
-            if ("success".equalsIgnoreCase(status)) {
+            if ("order.paid".equalsIgnoreCase(status)) {
+
                 orderStatus = new OrderStatus("NEW", null);
+                details.setTimeStamp(LocalDate.now());
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
                 customOrderState.setOrderStatusId(1);
@@ -749,9 +776,10 @@ public class CartEndPoint extends BaseEndpoint {
                 }
 
                 entityManager.merge(customCustomer);
-            } else if ("failure".equalsIgnoreCase(status)) {
+            } else if ("payment.failed".equalsIgnoreCase(status)) {
                 failed = true;
                 orderStatus = new OrderStatus("PAYMENT_FAILED", null);
+                details.setTimeStamp(LocalDate.now());
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
                 customOrderState.setOrderStatusId(null);
@@ -779,7 +807,7 @@ public class CartEndPoint extends BaseEndpoint {
         if (!failed) {
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
-            return ResponseService.generateErrorResponse("Order placement failed due to payment error.", HttpStatus.PAYMENT_REQUIRED);
+            return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
         }
     }
 
@@ -853,6 +881,7 @@ public class CartEndPoint extends BaseEndpoint {
         return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
 
 }
+
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;
     }
@@ -861,6 +890,47 @@ public class CartEndPoint extends BaseEndpoint {
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
         Product product = catalogService.findProductById(productId);
         return product;
+    }
+
+
+    //constanlty updates order's status
+
+    @PostMapping("/order-events")
+    public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
+                                @RequestBody String payload) {
+
+        System.out.println("SERVER HAS CALLED THE WEBHOOK");
+        try {
+            // Verify webhook signature to confirm authenticity
+            boolean isValid = Utils.verifyWebhookSignature(payload, razorpaySignature,razorpayWebhookSecret);
+
+            if (!isValid) {
+                throw new Exception("SIGNATURE VERIFICATION FAILED");
+            }
+            System.out.println(payload);
+
+            // Parse the payload JSON (use your preferred JSON library)
+            JSONObject webhookData = new JSONObject(payload);
+            String event = webhookData.getString("event");
+            System.out.println(event);
+            JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                    .getJSONObject("payment")
+                    .getJSONObject("entity");
+            System.out.println("order id:" + paymentEntity.getString("order_id"));
+            Query query = entityManager.createNativeQuery("SELECT order_id from blc_order where order_number = :rzpId");
+            query.setParameter("rzpId", paymentEntity.getString("order_id"));
+            List<Long> orderIds = query.getResultList();
+
+                    // Extract payment info and update order status to PAID
+                    for(Long id:orderIds) {
+                        System.out.println("orderId" + id);
+                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id);
+                        details.setStatus(event);
+                        entityManager.merge(details);
+                    }
+        } catch (Exception e) {
+            System.out.println("Exception : "+e.getMessage());
+        }
     }
 
     }
