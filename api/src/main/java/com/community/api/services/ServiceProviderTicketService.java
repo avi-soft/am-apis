@@ -1209,6 +1209,21 @@ public class ServiceProviderTicketService {
 
             if (dueInThreeDays != null) {
                 jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
+                if(states == null) {
+                    states = new ArrayList<>();
+                    states.add(1L);
+                    states.add(2L);
+                    states.add(3L);
+                    states.add(4L);
+                    for (Long id = 1L; id<=4; id++) {
+                        CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(id);
+                        if (ticketState == null) {
+                            throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
+                        }
+                        customTicketStates.add(ticketState);
+                    }
+                    jpql.append("AND c.ticketState IN :states ");
+                }
             }
 
             // Create the query with the final JPQL string
