@@ -124,7 +124,7 @@ public class TicketController {
             }*/
 
             List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
-            serviceProviderTicketService.rejectedTicketLogic(assignedTickets);
+            serviceProviderTicketService.reviewTicketLogic(assignedTickets);
 
             return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {

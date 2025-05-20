@@ -55,6 +55,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -266,8 +267,12 @@ public class ServiceProviderTicketService {
             List<Long> stateIdList = new ArrayList<>();
             stateIdList.add(Constant.TICKET_STATE_RETURNED);
 
+            List<Long> typeIdList = new ArrayList<>();
+            typeIdList.add(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET);
+            typeIdList.add(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET);
+
             // Firstly we fetch all the tickets which are in return state.
-            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null, null);
+            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, typeIdList, null, null, null, null, null, null, null);
             log.info("ticket recieved for auto-assignment: {}", tickets.size());
 
             randomBindingTicketAllocationForTickets(tickets, assignedTickets);
@@ -275,6 +280,49 @@ public class ServiceProviderTicketService {
             // Here we are fetching all the service provider who are approved and active.
             List<ServiceProviderEntity> availableServiceProvider = serviceProviderService.getActiveAndApprovedServiceProviders();
 
+            verticalDistributionTicketAllocationForTickets(tickets, availableServiceProvider, assignedTickets);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new IllegalArgumentException(exception.getMessage());
+        }
+    }
+
+    public void reviewTicketLogic(List<CustomTicketWrapper> assignedTickets) {
+        try {
+
+            List<CustomTicketState> ticketStateList = new ArrayList<>();
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
+            ticketStateList.add(ticketState);
+
+            List<CustomTicketType> ticketTypeList = new ArrayList<>();
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET);
+            ticketTypeList.add(ticketType);
+
+            // Initialize the JPQL query
+            StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
+                    .append("WHERE 1=1 ") // Use this to simplify appending conditions
+                    .append("AND c.assignee IS NULL ")
+                    .append("AND c.ticketState IN :states ")
+                    .append("AND c.ticketType IN :types ");
+
+            // Create the query with the final JPQL string
+            TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
+
+            query.setParameter("states", ticketStateList);
+            query.setParameter("types", ticketTypeList);
+
+            // Firstly we fetch all the tickets which are in return state.
+            List<CustomServiceProviderTicket> tickets = query.getResultList();
+            log.info("ticket recieved for auto-assignment: {}", tickets.size());
+
+            randomBindingTicketAllocationForTickets(tickets, assignedTickets);
+
+            // Here we are fetching all the service provider who are approved and active.
+            List<ServiceProviderEntity> availableServiceProvider = serviceProviderService.getActiveAndApprovedServiceProviders();
+            log.info("available service provider: {}", availableServiceProvider.size());
             verticalDistributionTicketAllocationForTickets(tickets, availableServiceProvider, assignedTickets);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -387,12 +435,16 @@ public class ServiceProviderTicketService {
                 // Ticket Wrapper for the response in auto-assigner.
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
-                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    wrapper.customWrapDetails(ticket, null, entityManager);
+                } else {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                    wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                }
 
-                wrapper.customWrapDetails(ticket, orderDto, entityManager);
                 assignedTickets.add(wrapper);
                 return true;
 
@@ -538,11 +590,16 @@ public class ServiceProviderTicketService {
 
                     // Check if the referee is the primary Referee.
                     if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+
                         log.info("Primary Referrer !!");
-                        assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
-                        if(assigned){
-                            iterator.remove();
-                            break;
+                        if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
+                            log.info("cannot assign ticket to assignee of parent ticket");
+                        } else {
+                            assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                            if(assigned){
+                                iterator.remove();
+                                break;
+                            }
                         }
                     }
                 }
@@ -555,10 +612,15 @@ public class ServiceProviderTicketService {
 
                         // check that it should not assigned to any sp who already rejected the ticket.
                         if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
-                            assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
-                            if(assigned){
-                                iterator.remove();
-                                break;
+
+                            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
+                                log.info("cannot assign ticket to assignee of parent ticket");
+                            } else {
+                                assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                                if (assigned) {
+                                    iterator.remove();
+                                    break;
+                                }
                             }
                         }
                     }
@@ -574,11 +636,15 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
                     if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
-                        assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
-                    }
-                    if(assigned){
-                        iterator.remove();
-                        break;
+                        if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), serviceProvider.getService_provider_id())) {
+                            log.info("cannot assign ticket to assignee of parent ticket");
+                        } else {
+                            assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                            if (assigned) {
+                                iterator.remove();
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -876,7 +942,7 @@ public class ServiceProviderTicketService {
             // while the rankedService Provider is not empty.
             while (!rankedServiceProvider.isEmpty()) {
                 ServiceProviderEntity serviceProvider = rankedServiceProvider.poll();
-
+                log.info("trying to assign ticket to sp with id: {}", serviceProvider.getService_provider_id());
                 double bandwidth = 0.0;
                 if (serviceProvider.getMaximumTicketSize() != null) {
                     bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getMaximumTicketSize() * 100;
@@ -892,10 +958,15 @@ public class ServiceProviderTicketService {
                 CustomCustomer readCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
                 CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
 
-                // assign him the ticket
-                Boolean assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, readCustomer,assignedTickets);
-                if(!assigned) {
-                    throw new IllegalArgumentException("Not able to assigned ticket");
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), serviceProvider.getService_provider_id())) {
+                    log.info("cannot assign ticket to assignee of parent ticket: {}", serviceProvider.getService_provider_id());
+                    continue;
+                } else {
+                    // assign him the ticket
+                    Boolean assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, readCustomer,assignedTickets);
+                    if(!assigned) {
+                        throw new IllegalArgumentException("Not able to assigned ticket");
+                    }
                 }
 
                 customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
@@ -909,13 +980,18 @@ public class ServiceProviderTicketService {
 
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
-                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    wrapper.customWrapDetails(ticket, null, entityManager);
+                } else {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
 
-                wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                    wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                }
+
                 assignedTickets.add(wrapper);
 
                 log.info("Order with id: {} is assigned to Service Provider with id: {} , with ticket id: {}", order.getId(), serviceProvider.getService_provider_id(), ticket.getTicketId());
@@ -1058,6 +1134,9 @@ public class ServiceProviderTicketService {
 
             log.info("Service Provider in rank1a: {}", rank1a.size());
             log.info("Service Provider in rank1b: {}", rank1b.size());
+            for(ServiceProviderEntity serviceProvider: rank1b) {
+                log.info("service_provider in rank 2b: {}", serviceProvider.getService_provider_id());
+            }
             log.info("Service Provider in rank1c: {}", rank1c.size());
             log.info("Service Provider in rank1d: {}", rank1d.size());
 
