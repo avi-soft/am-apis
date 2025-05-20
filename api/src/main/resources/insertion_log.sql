@@ -123,9 +123,9 @@ BEGIN
 --        (8, 'IN_REVIEW', 'Order is in review.');
 --END IF;
 --
-IF (SELECT COUNT(*) FROM order_ticket_linkage) = 39 THEN
-    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
-    VALUES
+--IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
+--    INSERT INTO order_ticket_linkage (linkage_id, order_state_id, ticket_type_id, ticket_state_id, ticket_status_id)
+--    VALUES
 --        PRIMARY TICKET STATUS FOR CORRESPONDING STATES.
 --        (1, 1, 1, 0, 0), -- TODO - NOT Sure about its usage @Raman
 --        (2, 3, 1, 1, 0),
@@ -172,29 +172,29 @@ IF (SELECT COUNT(*) FROM order_ticket_linkage) = 39 THEN
 --        (39, 6, 3, 7, 13),
 
 --        DEFAULT STATUS
-        (40, 1, 1, 1, 16),
-        (41, 1, 1, 2, 16),
-        (42, 1, 1, 3, 16),
-        (43, 1, 1, 4, 16),
-        (44, 1, 1, 5, 16),
-        (45, 1, 1, 6, 16),
-        (46, 1, 1, 7, 16),
-        (47, 1, 2, 1, 16),
-        (48, 1, 2, 2, 16),
-        (49, 1, 2, 3, 16),
-        (50, 1, 2, 4, 16),
-        (51, 1, 2, 5, 16),
-        (52, 1, 2, 6, 16),
-        (53, 1, 2, 7, 16),
-        (54, 1, 3, 1, 16),
-        (55, 1, 3, 2, 16),
-        (56, 1, 3, 3, 16),
-        (57, 1, 3, 4, 16),
-        (58, 1, 3, 5, 16),
-        (59, 1, 3, 6, 16),
-        (60, 1, 3, 7, 16);
-
-END IF;
+--        (40, 1, 1, 1, 16),
+--        (41, 1, 1, 2, 16),
+--        (42, 1, 1, 3, 16),
+--        (43, 1, 1, 4, 16),
+--        (44, 1, 1, 5, 16),
+--        (45, 1, 1, 6, 16),
+--        (46, 1, 1, 7, 16),
+--        (47, 1, 2, 1, 16),
+--        (48, 1, 2, 2, 16),
+--        (49, 1, 2, 3, 16),
+--        (50, 1, 2, 4, 16),
+--        (51, 1, 2, 5, 16),
+--        (52, 1, 2, 6, 16),
+--        (53, 1, 2, 7, 16),
+--        (54, 1, 3, 1, 16),
+--        (55, 1, 3, 2, 16),
+--        (56, 1, 3, 3, 16),
+--        (57, 1, 3, 4, 16),
+--        (58, 1, 3, 5, 16),
+--        (59, 1, 3, 6, 16),
+--        (60, 1, 3, 7, 16);
+--
+--END IF;
 --
 --IF (SELECT COUNT(*) FROM ticket_state_linkage) = 21 THEN
 --    INSERT INTO ticket_state_linkage (ticket_state_linkage_id, ticket_type_id, ticket_state_id_from, ticket_state_id_to, role_id)
