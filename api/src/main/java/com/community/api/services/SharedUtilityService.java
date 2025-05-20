@@ -300,6 +300,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
             customerDetailsForMobile.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
             customerDetailsForMobile.put("religion", customCustomer.getReligion());
+            customerDetailsForMobile.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForMobile.put("belongsToMinority", customCustomer.getBelongsToMinority());
             customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForMobile.put("whatsappNumber", customCustomer.getWhatsappNumber());
@@ -544,6 +545,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
             customerDetailsForDesktop.put("otherCategory", customCustomer.getOtherCategory());
+            customerDetailsForDesktop.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForDesktop.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
@@ -1948,9 +1950,9 @@ public class SharedUtilityService {
         return Hex.encodeHexString(hashBytes);
     }
 
-    public OtherItem handleOtherCaseForReserveCategory(String foundedBoardUniversityId,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
+    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
     {
-        if(foundedBoardUniversityId.equalsIgnoreCase("Others"))
+        if(foundedCategory.equalsIgnoreCase("Others"))
         {
             if(rerserveCategoryOthers==null) {
                 throw new IllegalArgumentException("You have to enter a text for other reserve category");
@@ -1970,6 +1972,30 @@ public class SharedUtilityService {
         }
         return null;
     }
+
+    public OtherItem handleOtherCaseForReligion(String foundedReligion,String religionOthers,Integer roleId,Long userId,String sourceName)
+    {
+        if(foundedReligion.equalsIgnoreCase("Others"))
+        {
+            if(religionOthers==null) {
+                throw new IllegalArgumentException("You have to enter a text for other religion");
+            }
+            if(religionOthers.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other religion");
+            }
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(religionOthers);
+            otherItem.setField_name("religion");
+            otherItem.setSource_name(sourceName);
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
+    }
+
 
 
 }
