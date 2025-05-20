@@ -13,11 +13,13 @@ import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.Post;
+import com.community.api.entity.RazorpayDetails;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 import net.bytebuddy.asm.Advice;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
@@ -46,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -76,6 +79,7 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
+import static org.apache.commons.codec.digest.HmacUtils.hmacSha256;
 
 @RestController
 @RequestMapping(value = "/cart",
@@ -101,10 +105,11 @@ public class CartEndPoint extends BaseEndpoint {
     private String razorpayId;
     @Value("${razorpay.key.secret}")
     private String razorpaySecret;
+    @Value(("${razorpay.webhook.secret}"))
+    private String razorpayWebhookSecret;
 
     @Autowired
     BroadleafCurrencyService broadleafCurrencyService;
-
 
 
     private RazorpayClient razorpayCLient;
@@ -119,20 +124,26 @@ public class CartEndPoint extends BaseEndpoint {
     public void setCustomerService(CustomerService customerService) {
         this.customerService = customerService;
     }
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
     @Autowired
     public void setGenderService(GenderService genderService) {
         this.genderService = genderService;
     }
+
     @Autowired
     private CustomerEndpoint customerEndpoint;
+
     @Autowired
     public void setOrderDTOService(OrderDTOService orderDTOService) {
         this.orderDTOService = orderDTOService;
     }
+
     @Autowired
     private CustomerAddressFetcher addressFetcher;
+
     @Autowired
     public void setSharedUtilityService(SharedUtilityService sharedUtilityService) {
         this.sharedUtilityService = sharedUtilityService;
@@ -146,21 +157,25 @@ public class CartEndPoint extends BaseEndpoint {
     public void setResponseService(ResponseService responseService) {
         this.responseService = responseService;
     }
+
     @Autowired
-    public void setReserveCategoryService(ReserveCategoryService reserveCategoryService){
-        this.reserveCategoryService=reserveCategoryService;
+    public void setReserveCategoryService(ReserveCategoryService reserveCategoryService) {
+        this.reserveCategoryService = reserveCategoryService;
     }
+
     @Autowired
-    public void setReserveCategoryFeePostRefService(ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService)
-    {
-        this.reserveCategoryFeePostRefService=reserveCategoryFeePostRefService;
+    public void setReserveCategoryFeePostRefService(ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService) {
+        this.reserveCategoryFeePostRefService = reserveCategoryFeePostRefService;
     }
+
     @Autowired
     public void setOrderService(OrderService orderService) {
         this.orderService = orderService;
     }
+
     @Autowired
     private OrderStatusByStateService orderStatusByStateService;
+
     @Autowired
     public void setCatalogService(CatalogService catalogService) {
         this.catalogService = catalogService;
@@ -187,7 +202,6 @@ public class CartEndPoint extends BaseEndpoint {
     }
 
 
-
     @Transactional
     @RequestMapping(value = "empty/{customerId}", method = RequestMethod.DELETE)
     public ResponseEntity<?> emptyTheCart(@PathVariable Long customerId) { //@TODO-empty cart should remove each item one by one
@@ -196,8 +210,8 @@ public class CartEndPoint extends BaseEndpoint {
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            if(id==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if (id == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             Customer customer = customerService.readCustomerById(customerId);//finding the customer to get cart associated with it
             Order cart = null;
             if (customer == null) {
@@ -208,8 +222,8 @@ public class CartEndPoint extends BaseEndpoint {
                 if (cart == null) {
                     return ResponseService.generateErrorResponse("Cart Not Found", HttpStatus.NOT_FOUND);
                 }
-                if(cart.getOrderItems().isEmpty())
-                    return ResponseService.generateErrorResponse("Cart already empty",HttpStatus.OK);
+                if (cart.getOrderItems().isEmpty())
+                    return ResponseService.generateErrorResponse("Cart already empty", HttpStatus.OK);
                 if (cart.getStatus().equals(OrderStatus.IN_PROCESS)) {//ensuring its cart and not an order
                     List<OrderItem> items = cart.getOrderItems();
                     Iterator<OrderItem> iterator = items.iterator();
@@ -232,7 +246,7 @@ public class CartEndPoint extends BaseEndpoint {
                     return ResponseService.generateErrorResponse("Error removing all items from cart", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
 
@@ -243,18 +257,18 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
-    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId,@RequestBody Map<String,Object>map) {
+    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId, @RequestBody Map<String, Object> map) {
         try {
 
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            if(id==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if (id == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             Customer customer = customerService.readCustomerById(customerId);
-            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-            if (customer == null||customCustomer==null) {
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            if (customer == null || customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
             }
             if (customer.getFirstName() == null ||
@@ -262,9 +276,8 @@ public class CartEndPoint extends BaseEndpoint {
                     customer.getEmailAddress() == null ||
                     customCustomer.getCategory() == null ||
                     customer.getUsername() == null ||
-                    customer.getPassword() == null||
-                    customCustomer.getGender()==null)
-            {
+                    customer.getPassword() == null ||
+                    customCustomer.getGender() == null) {
                 return ResponseService.generateErrorResponse(
                         "All fields must be completed: First Name, Last Name, Primary Email, Username, Password, Gender and Category are required before setting up the cart.",
                         HttpStatus.BAD_REQUEST
@@ -274,21 +287,21 @@ public class CartEndPoint extends BaseEndpoint {
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null) {
                 cart = orderService.createNewCartForCustomer(customer);
-                cart.setOrderNumber("C-"+customerId);
-              /*  cart.setName("CART-"+customerId);*/
-                }
+                cart.setOrderNumber("C-" + customerId);
+                /*  cart.setName("CART-"+customerId);*/
+            }
             Product product = catalogService.findProductById(productId);
             if (product == null) {
                 return ResponseService.generateErrorResponse("Product not found", HttpStatus.NOT_FOUND);
             }
-            CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
-            List<Long>postPreference=getLongList(map,"postPreference");
-            if(postPreference.isEmpty()&&customProduct.getPosts().size()>1)
-                return ResponseService.generateErrorResponse("Post Preference cannot be empty",HttpStatus.BAD_REQUEST);
-            Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            if(reserveCategoryId==null)
-                return ResponseService.generateErrorResponse("Invalid Category",HttpStatus.INTERNAL_SERVER_ERROR);
-            double noReserveCategoryFee=0.0;
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            List<Long> postPreference = getLongList(map, "postPreference");
+            if (postPreference.isEmpty() && customProduct.getPosts().size() > 1)
+                return ResponseService.generateErrorResponse("Post Preference cannot be empty", HttpStatus.BAD_REQUEST);
+            Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+            if (reserveCategoryId == null)
+                return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
+            double noReserveCategoryFee = 0.0;
             /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null) {
                 //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                 noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L);//1 for general
@@ -299,7 +312,7 @@ public class CartEndPoint extends BaseEndpoint {
 
             }*/
             if ((((Status) customProduct).getArchived() == 'Y' || !customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
-                return ResponseService.generateErrorResponse("Cannot add an archived product",HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Cannot add an archived product", HttpStatus.BAD_REQUEST);
             }
             OrderItemRequest orderItemRequest = new OrderItemRequest();
             orderItemRequest.setProduct(product);
@@ -309,37 +322,32 @@ public class CartEndPoint extends BaseEndpoint {
             orderItemRequest.setItemName(product.getName());
             Map<String, String> atrtributes = orderItemRequest.getItemAttributes();
             atrtributes.put("productId", product.getId().toString());
-            List<Long>actualPostIds=new ArrayList<>();
-            for(Post post:customProduct.getPosts())
-            {
+            List<Long> actualPostIds = new ArrayList<>();
+            for (Post post : customProduct.getPosts()) {
                 actualPostIds.add(post.getPostId());
             }
-            if(customProduct.getPosts().size()>=2)
-            {
-                for(Long pId:postPreference)
-                {
-                    if(!actualPostIds.contains(pId))
-                        return ResponseService.generateErrorResponse("Invalid post id in preference list",HttpStatus.BAD_REQUEST);
+            if (customProduct.getPosts().size() >= 2) {
+                for (Long pId : postPreference) {
+                    if (!actualPostIds.contains(pId))
+                        return ResponseService.generateErrorResponse("Invalid post id in preference list", HttpStatus.BAD_REQUEST);
                 }
-                if(postPreference.size()<1&&customProduct.getPosts().size()>=1)
-                    return ResponseService.generateErrorResponse("Need to provide atleast one post for preference",HttpStatus.BAD_REQUEST);
-                if(postPreference.size()>customProduct.getPosts().size())
-                    return ResponseService.generateErrorResponse("Invalid post ids provided",HttpStatus.BAD_REQUEST);
+                if (postPreference.size() < 1 && customProduct.getPosts().size() >= 1)
+                    return ResponseService.generateErrorResponse("Need to provide atleast one post for preference", HttpStatus.BAD_REQUEST);
+                if (postPreference.size() > customProduct.getPosts().size())
+                    return ResponseService.generateErrorResponse("Invalid post ids provided", HttpStatus.BAD_REQUEST);
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
                 atrtributes.put("postPreference", postPreferenceString);
-            } else if(customProduct.getPosts().size()==1){
+            } else if (customProduct.getPosts().size() == 1) {
                 postPreference.removeAll(postPreference);
                 postPreference.add(customProduct.getPosts().get(0).getPostId());
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
                         .collect(Collectors.joining(","));
-                atrtributes.put("postPreference",postPreferenceString);
-            }
-            else
-            {
-                atrtributes.put("postPreference","NO_AVAILABLE_POSTS");
+                atrtributes.put("postPreference", postPreferenceString);
+            } else {
+                atrtributes.put("postPreference", "NO_AVAILABLE_POSTS");
             }
             orderItemRequest.setItemAttributes(atrtributes);
             OrderItem orderItem = orderItemService.createOrderItem(orderItemRequest);
@@ -359,7 +367,7 @@ public class CartEndPoint extends BaseEndpoint {
             responseBody.put("added_product_id", orderItem.getOrderItemAttributes().get("productId").getValue());
             return ResponseService.generateSuccessResponse("Cart updated", responseBody, HttpStatus.OK);
 
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
 
@@ -371,8 +379,8 @@ public class CartEndPoint extends BaseEndpoint {
     public ResponseEntity<?> retrieveCartItemsCount(@PathVariable long customerId) {
         try {
             Long id = Long.valueOf(customerId);
-            if(id==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if (id == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -387,7 +395,7 @@ public class CartEndPoint extends BaseEndpoint {
             } else
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
 
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
@@ -398,28 +406,29 @@ public class CartEndPoint extends BaseEndpoint {
 
     @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall",required = false,defaultValue = "false")boolean inFunctionCall) {
+    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall", required = false, defaultValue = "false") boolean inFunctionCall) {
         try {
             Customer customer = customerService.readCustomerById(customerId);
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null)
                 return ResponseService.generateErrorResponse("Cart not activated", HttpStatus.OK);
-            double productFee=0.0;
-            Double individualFee=0.0;
-            List<OrderItem>archievedItems=new ArrayList<>();
+            double productFee = 0.0;
+            Double individualFee = 0.0;
+            List<OrderItem> archievedItems = new ArrayList<>();
             Long id = Long.valueOf(customerId);
-            if(id==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if (id == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             Double subTotal = 0.0;
-            Double platformfee=10.0;
+            Double platformfee = 10.0;
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Serivces not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
             if (customer == null) {
                 return ResponseService.generateErrorResponse("customer does not exist", HttpStatus.NOT_FOUND);
             }
-                CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-            Long reserveCategoryId=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();;
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+            ;
             List<Product> listOfProducts = new ArrayList<>();
             List<OrderItem> orderItemList = cart.getOrderItems();
             if (orderItemList != null && (!orderItemList.isEmpty())) {
@@ -427,45 +436,44 @@ public class CartEndPoint extends BaseEndpoint {
                 List<Map<String, Object>> products = new ArrayList<>();
                 for (OrderItem orderItem : orderItemList) {
                     Product product = findProductFromItemAttribute(orderItem);
-                    CustomProduct customProduct=entityManager.find(CustomProduct.class,product.getId());
+                    CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
                     if (product != null) {
                         if ((((Status) customProduct).getArchived() == 'Y' || !customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
                             archievedItems.add(orderItem);
                             continue;
                         }
-                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId());
+                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId());
                         products.add(productDetails);
-                        individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                        if(individualFee==null)
-                            individualFee=0.0;
-                        if(individualFee==null)
+                        individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        if (individualFee == null)
+                            individualFee = 0.0;
+                        if (individualFee == null)
                             //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
-                            individualFee=reserveCategoryService.getReserveCategoryFee(product.getId(),1L,genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                            if(individualFee==null)
-                                individualFee=0.0;
-                        }
-                        productFee=productFee+individualFee;
+                            individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                        if (individualFee == null)
+                            individualFee = 0.0;
+                    }
+                    productFee = productFee + individualFee;
 
                 }
-                subTotal=orderItemList.size()*platformfee+productFee;
+                subTotal = orderItemList.size() * platformfee + productFee;
                 response.put("cart_id", cart.getId());
                 response.put("products", products.toArray());
                 response.put("sub_total", subTotal);
                 response.put("price", productFee);
-                response.put("total_platform_fee", orderItemList.size()*platformfee);
-                for(OrderItem orderItem:archievedItems)
-                {
+                response.put("total_platform_fee", orderItemList.size() * platformfee);
+                for (OrderItem orderItem : archievedItems) {
                     cart.getOrderItems().remove(orderItem);
                 }
                 archievedItems.clear();
-                if(!inFunctionCall)
+                if (!inFunctionCall)
                     return ResponseService.generateSuccessResponse("Cart items", response, HttpStatus.OK);
                 else
                     return ResponseService.generateSuccessResponse("Cart items after modifying post preference", response, HttpStatus.OK);
             } else
                 return ResponseService.generateErrorResponse("No items in cart", HttpStatus.OK);
 
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
 
         } catch (Exception e) {
@@ -481,8 +489,8 @@ public class CartEndPoint extends BaseEndpoint {
             @PathVariable Long orderItemId) {
         try {
             Long id = Long.valueOf(customerId);
-            if(id==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if (id == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -495,94 +503,88 @@ public class CartEndPoint extends BaseEndpoint {
             if (cart == null || cart.getOrderItems() == null) {
                 return ResponseService.generateErrorResponse("Cart Empty", HttpStatus.OK);
             }
-            OrderItem orderItemToRemove=null;
-            for(OrderItem orderItem:cart.getOrderItems())
-            {
-                if(orderItem.getId().equals(orderItemId)) {
+            OrderItem orderItemToRemove = null;
+            for (OrderItem orderItem : cart.getOrderItems()) {
+                if (orderItem.getId().equals(orderItemId)) {
                     orderItemToRemove = orderItem;
                     break;
                 }
             }
-            if(orderItemToRemove==null)
-            {
-                return ResponseService.generateErrorResponse("Item to remove not found",HttpStatus.NOT_FOUND);
+            if (orderItemToRemove == null) {
+                return ResponseService.generateErrorResponse("Item to remove not found", HttpStatus.NOT_FOUND);
             }
-            long pid=Long.parseLong(orderItemToRemove.getOrderItemAttributes().get("productId").getValue());
-            CustomProduct customProduct=entityManager.find(CustomProduct.class,pid);
+            long pid = Long.parseLong(orderItemToRemove.getOrderItemAttributes().get("productId").getValue());
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, pid);
             if (customProduct != null) {
                 if (!customCustomer.getCartRecoveryLog().contains(customProduct))
                     customCustomer.getCartRecoveryLog().add(customProduct);
             }
             boolean itemRemoved = cartService.removeItemFromCart(cart, orderItemId);
             /*OrderItem orderItem=entityManager.find(OrderItem.class,orderItemId);*/
-            if(itemRemoved)
-            {
+            if (itemRemoved) {
                 return ResponseService.generateSuccessResponse("Item Removed", null, HttpStatus.OK);
             } else {
                 return ResponseService.generateErrorResponse("Error removing item from cart: item not present in cart", HttpStatus.NOT_FOUND);
             }
 
-        }catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Transactional
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
-    public ResponseEntity<?> placeOrder(@PathVariable Long customerId,@RequestBody Map<String,Object>map,@RequestHeader(value = "Authorization")String authHeader) {
+    public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
 
-            CustomProduct customProduct=null;
-           /* Long id = Long.valueOf(customerId);*/
-            List<Long>orderItemIds=getLongList(map,"orderItemIds");
-            if(customerId==null)
-                return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            CustomProduct customProduct = null;
+            /* Long id = Long.valueOf(customerId);*/
+            List<Long> orderItemIds = getLongList(map, "orderItemIds");
+            if (customerId == null)
+                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             Map<String, Object> responseMap = new HashMap<>();
             List<Order> individualOrders = new ArrayList<>();
             Customer customer = customerService.readCustomerById(customerId);
-            CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
-            if (customer == null|| customCustomer==null)
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            if (customer == null || customCustomer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null)
                 return ResponseService.generateErrorResponse("Cart not found", HttpStatus.NOT_FOUND);
-            if(cart.getOrderItems().isEmpty())
-                return ResponseService.generateErrorResponse("Cart is empty",HttpStatus.NOT_FOUND);
-            List<Long>cartItemIds=new ArrayList<>();
-            List<String>errors=new ArrayList<>();
-            int batchNumber=0;
-            if(customCustomer.getNumberOfOrders()==null)
-                batchNumber=1;
-            else
-            {
-                batchNumber=customCustomer.getNumberOfOrders();
+            if (cart.getOrderItems().isEmpty())
+                return ResponseService.generateErrorResponse("Cart is empty", HttpStatus.NOT_FOUND);
+            List<Long> cartItemIds = new ArrayList<>();
+            List<String> errors = new ArrayList<>();
+            int batchNumber = 0;
+            if (customCustomer.getNumberOfOrders() == null)
+                batchNumber = 1;
+            else {
+                batchNumber = customCustomer.getNumberOfOrders();
                 ++batchNumber;
             }
-            for(OrderItem orderItem : cart.getOrderItems())
-            {
+            for (OrderItem orderItem : cart.getOrderItems()) {
                 cartItemIds.add(orderItem.getId());
             }
-            if(orderItemIds.isEmpty())
-                return ResponseService.generateErrorResponse("No items Selected",HttpStatus.BAD_REQUEST);
+            if (orderItemIds.isEmpty())
+                return ResponseService.generateErrorResponse("No items Selected", HttpStatus.BAD_REQUEST);
 
-                for (Long orderItemId:orderItemIds)
-            {
-                if(!cartItemIds.contains(orderItemId))
-                {
-                    errors.add("Order Item Id : "+orderItemId+" does not belong to cart");
+            for (Long orderItemId : orderItemIds) {
+                if (!cartItemIds.contains(orderItemId)) {
+                    errors.add("Order Item Id : " + orderItemId + " does not belong to cart");
                 }
             }
-            List<Order>newOrders=new ArrayList<>();
-            if(!errors.isEmpty())
-                return ResponseService.generateErrorResponse("Error Placing order : "+errors.toString(),HttpStatus.BAD_REQUEST);
+            List<Order> newOrders = new ArrayList<>();
+            if (!errors.isEmpty())
+                return ResponseService.generateErrorResponse("Error Placing order : " + errors.toString(), HttpStatus.BAD_REQUEST);
 
             for (OrderItem orderItem : cart.getOrderItems()) {
                 if (orderItemIds.contains(orderItem.getId())) {
                     Product product = findProductFromItemAttribute(orderItem);
-                    if(product!=null)
-                        customProduct=entityManager.find(CustomProduct.class,product.getId());
+                    if (product != null)
+                        customProduct = entityManager.find(CustomProduct.class, product.getId());
 
                     Order individualOrder = orderService.createNamedOrderForCustomer(orderItem.getName(), customer);
                     individualOrder.setCustomer(customer);
@@ -601,173 +603,214 @@ public class CartEndPoint extends BaseEndpoint {
                     orderItemRequest.setItemAttributes(atrtributes);
                     OrderItem orderItemForIndividualOrder = orderItemService.createOrderItem(orderItemRequest);
                     individualOrder.addOrderItem(orderItemForIndividualOrder);
-                    Double platformFee=0.0;
-                    if(customProduct.getPlatformFee()!=null)
-                        platformFee= customProduct.getPlatformFee();
-                    Money subTotal=new Money(platformFee);
+                    Double platformFee = 0.0;
+                    if (customProduct.getPlatformFee() != null)
+                        platformFee = customProduct.getPlatformFee();
+                    Money subTotal = new Money(platformFee);
                     individualOrder.setSubTotal(subTotal);
-                    individualOrder.setOrderNumber("O-"+customer.getId()+"-B-"+batchNumber);
+                    individualOrder.setOrderNumber("O-" + customer.getId() + "-B-" + batchNumber);
                     //Checking for cost according to the category and gender of the customer
-                    Double totalCost=reserveCategoryService.getReserveCategoryFee(product.getId(),reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),genderService.getGenderByName(customCustomer.getGender()).getGenderId());
-                    if(totalCost==null) {
+                    Double totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());
+                    if (totalCost == null) {
                         //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
                         totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                    if(totalCost==null)
-                        totalCost=0.0;
+                        if (totalCost == null)
+                            totalCost = 0.0;
 
-                    }totalCost=totalCost+platformFee;
-                    Money total=new Money(totalCost);
+                    }
+                    totalCost = totalCost + platformFee;
+                    Money total = new Money(totalCost);
                     individualOrder.setTotal(total);
                     LocalDateTime localDateTime = LocalDateTime.now();
                     Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
                     individualOrder.setSubmitDate(date);
                     individualOrder.setSubmitDate(date);
-                    String retrievedPostPreferenceString =(String)(orderItem.getOrderItemAttributes().get("postPreference").getValue());
-                    OrderAttributeImpl orderAttribute=new OrderAttributeImpl();
+                    String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    OrderAttributeImpl orderAttribute = new OrderAttributeImpl();
                     orderAttribute.setOrder(individualOrder);
                     orderAttribute.setName("postPreference");
                     orderAttribute.setValue(retrievedPostPreferenceString);
-                    individualOrder.getOrderAttributes().put("sorted",orderAttribute);
+                    individualOrder.getOrderAttributes().put("sorted", orderAttribute);
                     entityManager.merge(individualOrder);
                     individualOrder.setEmailAddress(customer.getEmailAddress());
-                    CustomOrderState orderState=new CustomOrderState();
+                    CustomOrderState orderState = new CustomOrderState();
                     JSONObject options = new JSONObject();
                     options.put("amount", (subTotal.getAmount().doubleValue() * 100)); // amount in paise
                     options.put("currency", "INR");
-                    options.put("receipt",customer.getEmailAddress());
+                    options.put("receipt", customer.getEmailAddress());
                     com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
-                    if(razorpayOrder != null) {
+                    if (razorpayOrder != null) {
                         individualOrder.setOrderNumber(razorpayOrder.get("id"));
-                        OrderStatus orderStatus=new OrderStatus("CREATED",null);
+                        OrderStatus orderStatus = new OrderStatus("CREATED", null);
                         individualOrder.setStatus(orderStatus);
-                    }
-                    else
-                        return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION",HttpStatus.INTERNAL_SERVER_ERROR);
+
+                        //creating razorpay order
+                        RazorpayDetails razorpayDetails=new RazorpayDetails();
+                        razorpayDetails.setOrderId(individualOrder.getId());
+                        razorpayDetails.setRazorpayOrderId(razorpayOrder.get("id"));
+                        razorpayDetails.setTimeStamp(LocalDate.now());
+                        razorpayDetails.setStatus("CREATED");
+                        entityManager.persist(razorpayDetails);
+                        //
+
+                    } else
+                        return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
                     orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
-                   // Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
+                    // Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
                     //orderState.setOrderStatusId(orderStatusId);
                     //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
-                    customerEndpoint.setReferrerForCustomer(customerId,customProduct.getUserId(),authHeader);
+                    customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), authHeader);
                     individualOrders.add(individualOrder);
                 }
             }
-                responseMap.put("Orders", individualOrders);
-                List<OrderItem> items = cart.getOrderItems();
-                Iterator<OrderItem> iterator = items.iterator();
-                while (iterator.hasNext()) {
-                    OrderItem item = iterator.next();
-                    if(orderItemIds.contains(item.getId())) {
-                        iterator.remove();
-                        entityManager.remove(item);
-                    }
+            responseMap.put("Orders", individualOrders);
+            List<OrderItem> items = cart.getOrderItems();
+            Iterator<OrderItem> iterator = items.iterator();
+            while (iterator.hasNext()) {
+                OrderItem item = iterator.next();
+                if (orderItemIds.contains(item.getId())) {
+                    iterator.remove();
+                    entityManager.remove(item);
                 }
-                customCustomer.setNumberOfOrders(batchNumber);
-
-                entityManager.merge(cart);
-                List<CombinedOrderDTO> orderDTOS=new ArrayList<>();
-                for(Order order:individualOrders)
-                {
-                    CustomOrderState orderState=entityManager.find(CustomOrderState.class,order.getId());
-                    OrderCustomerDetailsDTO customerDetailsDTO=new OrderCustomerDetailsDTO(customerId,customer.getFirstName()+" "+customCustomer.getLastName(),customer.getEmailAddress(),customCustomer.getMobileNumber(),addressFetcher.fetch(customer),customer.getUsername());
-                    orderDTOS.add(orderDTOService.wrapOrder(order,orderState,null,customerDetailsDTO));
-                }
-                return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
-        }catch (RazorpayException razorpayException)
-        {
-            return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception",HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        catch (Exception e) {
-
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error creating order "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    @Transactional
-    @PutMapping("/confirm-order")
-    public ResponseEntity<?>confirmOrderStatus(@RequestParam List<Long>orderIds,@RequestBody Map<String,String>paymentStatus) {
-        BroadleafCurrency broadleafCurrency=broadleafCurrencyService.create();
-        broadleafCurrency.setCurrencyCode("INR");
-        broadleafCurrency.setFriendlyName("Indian Rupeee");
-        boolean failed=false;
-        List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
-        CustomCustomer customCustomer=null;
-        for (Long orderId : orderIds) {
-            Order order = orderService.findOrderById(orderId);
-            if (order == null)
-                return ResponseService.generateErrorResponse("Cannot find order with given Id", HttpStatus.NOT_FOUND);
-            String status = (String) paymentStatus.get("status");
-            switch (status.trim().toLowerCase()) {
-                case "success": {
-                    OrderStatus orderStatus = new OrderStatus("NEW", null);
-                    order.setStatus(orderStatus);
-                    CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
-                    customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
-                    customOrderState.setOrderStatusId(1);
-                    order.setSubmitDate(new Date());
-
-                    OrderItem orderItem = order.getOrderItems().get(0);
-                    Product product = findProductFromItemAttribute(orderItem);
-                    CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                    ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
-                    customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
-
-                    if (refSp != null) {
-                        Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
-                        query.setParameter("customerId", order.getCustomer().getId());
-                        query.setParameter("spId", customProduct.getUserId());
-                        Integer result = ((BigInteger) query.getSingleResult()).intValue();
-                        if (result == 0) {
-                            CustomerReferrer customerReferrer = new CustomerReferrer();
-                            customerReferrer.setCustomer(customCustomer);
-                            customerReferrer.setServiceProvider(refSp);
-                            customerReferrer.setCreatedAt(LocalDateTime.now());
-                            customCustomer.getMyReferrer().add(customerReferrer);
-                        }
-                    }
-
-                    entityManager.merge(customCustomer);
-                    entityManager.merge(order);
-                    break;
-                }
-                case "failure": {
-                    failed = true;
-                    OrderStatus orderStatus = new OrderStatus("PAYMENT_FAILED", null);
-                    order.setStatus(orderStatus);
-                    CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
-                    customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
-                    customOrderState.setOrderStatusId(null);
-                    order.setSubmitDate(new Date());
-                    entityManager.merge(order);
-                    break;
-                }
-                default:
-                    return ResponseService.generateErrorResponse("Invalid payment status", HttpStatus.BAD_REQUEST);
             }
+            customCustomer.setNumberOfOrders(batchNumber);
 
-
-            for (Long orders : orderIds) {
-                order = orderService.findOrderById(orders);
-
-                order.setCurrency(broadleafCurrency);
+            entityManager.merge(cart);
+            List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
+            for (Order order : individualOrders) {
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
-                Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-                customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
-                System.out.println("cusId"+order.getCustomer().getId());
-                Customer customer = customerService.readCustomerById(order.getCustomer().getId());
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customerId, customer.getFirstName() + " " + customCustomer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 orderDTOS.add(orderDTOService.wrapOrder(order, orderState, null, customerDetailsDTO));
             }
+            return ResponseService.generateSuccessResponse("Order Created", orderDTOS, HttpStatus.OK);
+        } catch (RazorpayException razorpayException) {
+            return ResponseService.generateErrorResponse("Error creating order due to a Razorpay Exception", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Error creating order " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-            if(!failed)
-                return ResponseService.generateSuccessResponse("Order Placed successfully", orderDTOS, HttpStatus.OK);
-            else
-                return ResponseService.generateErrorResponse(
-                    "Order placement failed due to payment error.",
-                    HttpStatus.PAYMENT_REQUIRED
+    }
+
+    @Transactional
+    @PutMapping("/confirm-order")
+    public ResponseEntity<?> confirmOrderStatus(@RequestParam List<Long> orderIds, @RequestBody Map<String, String> paymentStatus) {
+        String razorpayOrderId = paymentStatus.get("razorpay_order_id");
+        String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
+        String razorpaySignature = paymentStatus.get("razorpay_signature");
+        String status = paymentStatus.get("status");
+
+        if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
+            return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
+        }
+
+
+        try {
+            String data = razorpayOrderId + "|" + razorpayPaymentId;
+            String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
+
+            if (!generatedSignature.equals(razorpaySignature)) {
+                return ResponseService.generateErrorResponse("Signature verification failed", HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+
+        // Rest of the order processing (same as before)
+        BroadleafCurrency broadleafCurrency = broadleafCurrencyService.create();
+        broadleafCurrency.setCurrencyCode("INR");
+        broadleafCurrency.setFriendlyName("Indian Rupee");
+
+        boolean failed = false;
+        List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
+
+        for (Long orderId : orderIds) {
+            Order order = orderService.findOrderById(orderId);
+            RazorpayDetails details=entityManager.find(RazorpayDetails.class,orderId);
+            if(!details.getStatus().equals(status))
+            {
+                JSONObject jsonObject=new JSONObject();
+                jsonObject.put("order_status","failed");
+                jsonObject.put("razorpay_payment_status",details.getStatus());
+                jsonObject.put("recieved_status",status);
+
+                return ResponseService.generateSuccessResponse("ORDER FAILED",jsonObject,HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            if (order == null) {
+                return ResponseService.generateErrorResponse("Cannot find order with ID: " + orderId, HttpStatus.NOT_FOUND);
+            }
+            OrderStatus orderStatus;
+            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+
+            if ("order.paid".equalsIgnoreCase(status)) {
+
+                orderStatus = new OrderStatus("NEW", null);
+                details.setTimeStamp(LocalDate.now());
+                order.setStatus(orderStatus);
+                customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
+                customOrderState.setOrderStatusId(1);
+                order.setSubmitDate(new Date());
+
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Product product = findProductFromItemAttribute(orderItem);
+                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+                ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
+
+                if (refSp != null) {
+                    Query query = entityManager.createNativeQuery(Constant.CHECK_FOR_REPEATED_REF);
+                    query.setParameter("customerId", customCustomer.getId());
+                    query.setParameter("spId", customProduct.getUserId());
+                    Integer result = ((BigInteger) query.getSingleResult()).intValue();
+
+                    if (result == 0) {
+                        CustomerReferrer customerReferrer = new CustomerReferrer();
+                        customerReferrer.setCustomer(customCustomer);
+                        customerReferrer.setServiceProvider(refSp);
+                        customerReferrer.setCreatedAt(LocalDateTime.now());
+                        customCustomer.getMyReferrer().add(customerReferrer);
+                    }
+                }
+
+                entityManager.merge(customCustomer);
+            } else if ("payment.failed".equalsIgnoreCase(status)) {
+                failed = true;
+                orderStatus = new OrderStatus("PAYMENT_FAILED", null);
+                details.setTimeStamp(LocalDate.now());
+                order.setStatus(orderStatus);
+                customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
+                customOrderState.setOrderStatusId(null);
+                order.setSubmitDate(new Date());
+            } else {
+                return ResponseService.generateErrorResponse("Invalid payment status: " + status, HttpStatus.BAD_REQUEST);
+            }
+
+            order.setCurrency(broadleafCurrency);
+            entityManager.merge(order);
+
+            // Prepare DTO
+            Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+            Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                    customer.getId(),
+                    customer.getFirstName() + " " + customer.getLastName(),
+                    customer.getEmailAddress(),
+                    customCustomer.getMobileNumber(),
+                    addressFetcher.fetch(customer),
+                    customer.getUsername()
             );
+            orderDTOS.add(orderDTOService.wrapOrder(order, customOrderState, null, customerDetailsDTO));
         }
+        if (!failed) {
+            return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
+        } else {
+            return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
+        }
+    }
+
     @RequestMapping(value ="cart-recovery-log/{customerId}",method = RequestMethod.GET)
     public ResponseEntity<?>getCartRecoveryLog(@PathVariable Long customerId)
     {
@@ -838,6 +881,7 @@ public class CartEndPoint extends BaseEndpoint {
         return ResponseService.generateErrorResponse("Error updating post preference", HttpStatus.BAD_REQUEST);
 
 }
+
     private boolean isAnyServiceNull() {
         return customerService == null || orderService == null || catalogService == null;
     }
@@ -846,6 +890,47 @@ public class CartEndPoint extends BaseEndpoint {
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
         Product product = catalogService.findProductById(productId);
         return product;
+    }
+
+
+    //constanlty updates order's status
+
+    @PostMapping("/order-events")
+    public void handleWebhook(@RequestHeader("X-Razorpay-Signature") String razorpaySignature,
+                                @RequestBody String payload) {
+
+        System.out.println("SERVER HAS CALLED THE WEBHOOK");
+        try {
+            // Verify webhook signature to confirm authenticity
+            boolean isValid = Utils.verifyWebhookSignature(payload, razorpaySignature,razorpayWebhookSecret);
+
+            if (!isValid) {
+                throw new Exception("SIGNATURE VERIFICATION FAILED");
+            }
+            System.out.println(payload);
+
+            // Parse the payload JSON (use your preferred JSON library)
+            JSONObject webhookData = new JSONObject(payload);
+            String event = webhookData.getString("event");
+            System.out.println(event);
+            JSONObject paymentEntity = webhookData.getJSONObject("payload")
+                    .getJSONObject("payment")
+                    .getJSONObject("entity");
+            System.out.println("order id:" + paymentEntity.getString("order_id"));
+            Query query = entityManager.createNativeQuery("SELECT order_id from blc_order where order_number = :rzpId");
+            query.setParameter("rzpId", paymentEntity.getString("order_id"));
+            List<Long> orderIds = query.getResultList();
+
+                    // Extract payment info and update order status to PAID
+                    for(Long id:orderIds) {
+                        System.out.println("orderId" + id);
+                        RazorpayDetails details = entityManager.find(RazorpayDetails.class, id);
+                        details.setStatus(event);
+                        entityManager.merge(details);
+                    }
+        } catch (Exception e) {
+            System.out.println("Exception : "+e.getMessage());
+        }
     }
 
     }

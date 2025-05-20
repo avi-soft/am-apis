@@ -81,7 +81,7 @@ public class StreamService {
     public List<CustomStream> getStreamByQualificationId(Integer qualificationId) {
         try {
             List<CustomStream> streamList = entityManager.createQuery(
-                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId",
+                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId ORDER BY s.sortOrder ASC",
                             CustomStream.class)
                     .setParameter("qualificationId", qualificationId)
                     .getResultList();
