@@ -16,6 +16,7 @@ import java.util.TimeZone;
 import com.community.api.dto.*;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import javassist.NotFoundException;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -884,7 +885,7 @@ public class PostService {
         return categoryDistributions;
     }
     private void updatePostGenderDistribution(PostDto postDto, Post post) {
-
+        System.out.println("reached update gender");
         GenderDistributionDto genderDto = postDto.getGenderWiseDistribution();
         if (genderDto == null) {
             return;
@@ -951,6 +952,7 @@ public class PostService {
                 if(catDto.getIsStateLevelCategory().equals(true))
                 {
                     catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
+
                     catDist.setStateLevelCategory(catDto.getStateLevelCategory());
                     CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 6L);
                     if (category == null) {
@@ -969,7 +971,18 @@ public class PostService {
                     catDist.setIsStateLevelCategory(false);
                     catDist.setCategory(category);
                 }
-
+                if(catDto.getIsGenderWise()) {
+                    if(catDto.getMaleVacancy()+catDto.getFemaleVacancy()!=catDto.getCategoryVacancies())
+                        throw new IllegalArgumentException("Total vacancy should be equal to sum of male and female in category distribution");
+                    catDist.setMaleVacancy(catDto.getMaleVacancy());
+                    catDist.setFemaleVacancy(catDto.getFemaleVacancy());
+                    catDist.setTotalVacancy(catDist.getTotalVacancy());
+                }
+                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                    throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
+                if(catDto.getCategoryId()==6&&(catDto.getCategoryRunningField()==null||catDto.getCategoryRunningField().trim().isEmpty()))
+                    throw new IllegalArgumentException("Running field required when selecting category : OTHERS");
+                catDist.setCategoryRunningField(catDto.getCategoryRunningField());
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
 
                 entityManager.persist(catDist);
