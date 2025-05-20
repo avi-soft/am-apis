@@ -208,7 +208,7 @@ public class OrderController {
             String baseQuery =
                     "FROM blc_order o " +
                             "JOIN order_state os ON o.order_id = os.order_id " +
-                            "WHERE o.order_number LIKE :orderNumber AND o.tax_override IS NULL";
+                            "WHERE o.customer_id = :customerId AND o.tax_override IS NULL";
 
             if (orderStateId != null) {
                 baseQuery += " AND os.order_state_id = :orderStateId";
@@ -229,7 +229,8 @@ public class OrderController {
             // Count query
             String countQueryStr = "SELECT COUNT(*) " + baseQuery;
             Query countQuery = entityManager.createNativeQuery(countQueryStr);
-            countQuery.setParameter("orderNumber", "O-" + customerId + "%");
+            countQuery.setParameter("customerId", customerId);
+
 
             if (orderStateId != null) {
                 countQuery.setParameter("orderStateId", orderStateId);
@@ -259,10 +260,11 @@ public class OrderController {
                 dataQueryStr += " ORDER BY o.order_id ASC";
             }
 
+
             Query dataQuery = entityManager.createNativeQuery(dataQueryStr);
             dataQuery.setFirstResult(offset * limit);
             dataQuery.setMaxResults(limit);
-            dataQuery.setParameter("orderNumber", "O-" + customerId + "%");
+            dataQuery.setParameter("customerId", customerId);
 
             if (orderStateId != null) {
                 dataQuery.setParameter("orderStateId", orderStateId);
