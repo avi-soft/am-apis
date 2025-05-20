@@ -1,7 +1,6 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -21,8 +20,11 @@ import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
+import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
@@ -34,7 +36,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
@@ -71,44 +72,29 @@ public class ServiceProviderTicketService {
     OrderStateRefService orderStateRefService;
 
     @Autowired
-    CustomOrderService customOrderService;
-
+    CatalogService catalogService;
     @Autowired
-    private javax.sql.DataSource dataSource;
-
+    CustomOrderService customOrderService;
     @Autowired
     OrderService orderService;
-
     @Autowired
     JdbcTemplate jdbcTemplate;
-
     @Autowired
     TicketStateService ticketStateService;
-
     @Autowired
     TicketTypeService ticketTypeService;
-
     @Autowired
     TicketStatusService ticketStatusService;
-
-    @Autowired
-    JwtUtil jwtTokenUtil;
-
     @Autowired
     ProductService productService;
-
     @Autowired
     RoleService roleService;
-
     @Autowired
     EntityManager entityManager;
-
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
     @Autowired
     CustomerAddressFetcher addressFetcher;
-    @Autowired
-    private RestTemplate restTemplate;
     @Autowired
     private OrderDTOService orderDTOService;
     @Autowired
@@ -230,7 +216,7 @@ public class ServiceProviderTicketService {
 
             // Fetch all the Orders for auto-assignment and handle the exception as well.
             List<CustomOrderState> customOrders = customOrderService.getCustomOrdersByOrderStateId(orderStateRef.getOrderStateId());
-            logger.info("size"+customOrders.size());
+            logger.info("size" + customOrders.size());
             if (customOrders.isEmpty()) {
                 throw new IllegalArgumentException("No Orders to Assign");
             }
@@ -266,16 +252,43 @@ public class ServiceProviderTicketService {
 
             return assignedTickets;
         } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    public void rejectedTicketLogic(List<CustomTicketWrapper> assignedTickets) {
+        try {
+
+            List<Long> stateIdList = new ArrayList<>();
+            stateIdList.add(Constant.TICKET_STATE_RETURNED);
+
+            // Firstly we fetch all the tickets which are in return state.
+            List<CustomServiceProviderTicket> tickets = filterTicket(stateIdList, null, null, null, null, null, null, null, null);
+            log.info("ticket recieved for auto-assignment: {}", tickets.size());
+
+            randomBindingTicketAllocationForTickets(tickets, assignedTickets);
+
+            // Here we are fetching all the service provider who are approved and active.
+            List<ServiceProviderEntity> availableServiceProvider = serviceProviderService.getActiveAndApprovedServiceProviders();
+
+            verticalDistributionTicketAllocationForTickets(tickets, availableServiceProvider, assignedTickets);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new IllegalArgumentException(exception.getMessage());
         }
     }
 
     public boolean allocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
             logger.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: " + serviceProvider.getService_provider_id());
-            if ((serviceProvider.getMaximumTicketSize() != null &&(serviceProvider.getIsActive().equals(true))&& serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
+            if ((serviceProvider.getMaximumTicketSize() != null && (serviceProvider.getIsActive().equals(true)) && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
                 // assign him the ticket
                 // create a entry in serviceProvider ticket table where the info about which serviceProvider is linked with which ticket is stored.
                 CreateTicketDto createTicketDto = new CreateTicketDto();
@@ -314,10 +327,91 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
+    public boolean reallocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomServiceProviderTicket ticket, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
+        try {
+            log.info("Referrer(SERVICE PROVIDER) with id: {}", serviceProvider.getService_provider_id());
+            if ((serviceProvider.getMaximumTicketSize() != null && (serviceProvider.getIsActive().equals(true)) && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
+
+                // Set ticket state to TO-DO.
+                CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L);
+                ticket.setTicketState(ticketState);
+
+                CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(0L);
+                ticket.setTicketStatus(ticketStatus);
+
+                ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
+
+                // setting assignee and its role.
+                ticket.setAssignee(serviceProvider.getService_provider_id());
+                Role assigneeRole = roleService.getRoleByRoleId(4);
+                ticket.setAssigneeRole(assigneeRole);
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
+                String formattedDate = dateFormat.format(new Date());
+                Date currentDate = dateFormat.parse(formattedDate);
+
+                ticket.setModifiedDate(currentDate);
+                ticket.setTicketAssignDate(currentDate);
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(currentDate);
+                Date newTargetDate = null;
+
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    calendar.add(Calendar.HOUR_OF_DAY, 2);
+                    newTargetDate = calendar.getTime();
+
+                    Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                    if(!newTargetDate.before(product.getActiveEndDate())) {
+                        log.info("cannot assign ticket at the target completion date is after or equal to application close date.");
+                        return false;
+                    }
+
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)){
+                    calendar.add(Calendar.HOUR_OF_DAY, 4);
+                    newTargetDate = calendar.getTime();
+
+                } else {
+                    throw new IllegalArgumentException("Cannot perform action on miscellaneous ticket");
+                }
+                ticket.setTargetCompletionDate(newTargetDate);
+
+                entityManager.merge(ticket);
+
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                entityManager.merge(customOrderState);
+
+                // Increment the ticket assigned to the Service Provider
+                serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                // Ticket Wrapper for the response in auto-assigner.
+                CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+
+                wrapper.customWrapDetails(ticket, orderDto);
+                assignedTickets.add(wrapper);
+                return true;
+
+            } else {
+                log.info("Service Provider limit exceeded for the day - serviceProvider details: {}", serviceProvider);
+            }
+            return false;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
+        }
+    }
+
+    // TODO REJECTED LIST LOGIC IS PENDING. @RAMAN.
+    @Transactional
     public void randomBindingTicketAllocation(List<CustomOrderState> customOrders, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            logger.info("Random Binding Ticket Allocation (RBTA)");
-            logger.info("Total Orders received by RBTA are: " + customOrders.size());
+            log.info("Random Binding Ticket Allocation (RBTA)");
+            log.info("Total Orders received by RBTA are: {}", customOrders.size());
 
             boolean assigned;
 
@@ -353,30 +447,143 @@ public class ServiceProviderTicketService {
                     if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     }
+                    if(assigned){
+                        iterator.remove();
+                        break;
+                    }
                 }
 
                 // For the Remaining Referees
                 if (!assigned) {
                     for (CustomerReferrer referrer : referrers) {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
-                        logger.info("REFERRER ID: " + serviceProvider.getService_provider_id());
+                        log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        if(assigned){
+                            iterator.remove();
+                            break;
+                        }
                     }
                 }
 
                 // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
                 if (!assigned) {
 
-                    logger.info("INSIDE THE CREATOR OF THE PRODUCT LOGIC OF RBTA");
+                    log.info("Inside the Creator of the Product logic OF RBTA");
                     Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                     CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
-                    allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+
+                    assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    if(assigned){
+                        iterator.remove();
+                        break;
+                    }
                 }
             }
-            logger.info("Total orders assigned by RBTA method is: " + assignedTickets.size());
+            log.info("Total orders assigned by RBTA method is: {}", assignedTickets.size());
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public void randomBindingTicketAllocationForTickets(List<CustomServiceProviderTicket> tickets, List<CustomTicketWrapper> assignedTickets) throws Exception {
+        try {
+            log.info("Random Binding Ticket Allocation (RBTA)");
+            log.info("Total Tickets received by RBTA are: {}", tickets.size());
+
+            boolean assigned;
+
+            // Created a iterator that will iterator each ticket.
+            Iterator<CustomServiceProviderTicket> iterator = tickets.iterator();
+            while (iterator.hasNext()) {
+
+                CustomServiceProviderTicket ticket = iterator.next();
+                assigned = false;
+
+                log.info("On ticket with id: {}", ticket.getTicketId());
+
+                // Fetch Order and customer from primary ticket or review ticket.
+                Order order = null;
+                CustomCustomer customer = null;
+
+                if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    order = ticket.getOrder();
+                    customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    order = ticket.getParentTicket().getOrder();
+                    customer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                } else {
+                    throw new IllegalArgumentException("Cannot found order or customer for this type of ticket.");
+                }
+
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+                // Fetch all the referees.
+                List<CustomerReferrer> referrers = customer.getMyReferrer();
+                log.info("Customer whose id is: {} have a referrer list of size: {}", customer.getId(), referrers.size());
+
+                if (referrers.isEmpty()) {
+                    continue;
+                }
+
+                // PRIMARY BINDED LOGIC OF RANDOM BINDING TICKET ALLOCATION (RBTA)
+                for (CustomerReferrer referrer : referrers) {
+                    // Traverse the Referrers one by one
+                    ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+
+                    // Check if the referee is the primary Referee.
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        log.info("Primary Referrer !!");
+                        assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                        if(assigned){
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                }
+
+                // For the Remaining Referees
+                if (!assigned) {
+                    for (CustomerReferrer referrer : referrers) {
+                        ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
+                        log.info("Other Referrer !!");
+
+                        // check that it should not assigned to any sp who already rejected the ticket.
+                        if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                            assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                            if(assigned){
+                                iterator.remove();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // If there is no one in referrer list of custom to whom we can assign this ticket then we will try to assign the ticket to the creator of the product.
+                if (!assigned) {
+
+                    log.info("Inside the Creator of the Product Logic of RBTA");
+                    Long productId = Long.parseLong(order.getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
+                    CustomProduct customProduct = productService.getCustomProductByCustomProductId(productId);
+
+                    ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
+
+                    if(!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, customer, assignedTickets);
+                    }
+                    if(assigned){
+                        iterator.remove();
+                        break;
+                    }
+                }
+
+            }
+            log.info("Total tickets re-assigned by RBTA method is: {}", assignedTickets.size());
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -462,7 +669,6 @@ public class ServiceProviderTicketService {
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            log.info("inside serviceProviderTicketService");
             throw new IllegalArgumentException("Illegal Exception Caught: " + illegalArgumentException.getMessage());
         } catch (PersistenceException persistenceException) {
             exceptionHandlingService.handleException(persistenceException);
@@ -612,7 +818,7 @@ public class ServiceProviderTicketService {
                 ServiceProviderEntity serviceProvider = rankedServiceProvider.poll();
 
                 double bandwidth = 0.0;
-                if(serviceProvider.getMaximumTicketSize() != null){
+                if (serviceProvider.getMaximumTicketSize() != null) {
                     bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getMaximumTicketSize() * 100;
                 } else {
                     bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
@@ -664,11 +870,70 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
+    public boolean processRankForTickets(PriorityQueue<ServiceProviderEntity> rankedServiceProvider, Order order, List<CustomTicketWrapper> assignedTickets, CustomServiceProviderTicket ticket) throws Exception {
+        try {
+
+            // while the rankedService Provider is not empty.
+            while (!rankedServiceProvider.isEmpty()) {
+                ServiceProviderEntity serviceProvider = rankedServiceProvider.poll();
+
+                double bandwidth = 0.0;
+                if (serviceProvider.getMaximumTicketSize() != null) {
+                    bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getMaximumTicketSize() * 100;
+                } else {
+                    bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
+                }
+                // if the capacity is reached then continue to next service provider.
+                if (bandwidth >= 100.0) {
+                    log.info("Service Provider limit exceeded for the day - serviceProvider details: {}", serviceProvider.getService_provider_id());
+                    continue;
+                }
+
+                CustomCustomer readCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
+                CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+
+                // assign him the ticket
+                Boolean assigned = reallocateTicket(order, serviceProvider, ticket, customOrderState, readCustomer,assignedTickets);
+                if(!assigned) {
+                    throw new IllegalArgumentException("Not able to assigned ticket");
+                }
+
+                customOrderState.setOrderStateId(Constant.ORDER_STATE_ASSIGNED.getOrderStateId());
+                entityManager.merge(customOrderState);
+
+                // updated service provider ticket assigned data in db
+                serviceProviderService.serviceProviderTicketAssignedIncrement(serviceProvider);
+
+                // updated service provider ticket assigned data in the PriorityQueue.
+                rankedServiceProvider.offer(serviceProvider);
+
+                CustomTicketWrapper wrapper = new CustomTicketWrapper();
+
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+
+                wrapper.customWrapDetails(ticket, orderDto);
+                assignedTickets.add(wrapper);
+
+                log.info("Order with id: {} is assigned to Service Provider with id: {} , with ticket id: {}", order.getId(), serviceProvider.getService_provider_id(), ticket.getTicketId());
+                return true;
+            }
+            return false;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Some Exception Caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
     public void verticalDistributionTicketAllocation(List<CustomOrderState> customOrders, List<ServiceProviderEntity> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            logger.info("Vertical Distribution Ticket Allocation");
-            logger.info("Total orders received for VDTA: " + customOrders.size());
-            logger.info("Total Service Provider: " + availableServiceProvider.size());
+            log.info("Vertical Distribution Ticket Allocation");
+            log.info("Total orders received for VDTA: {}", customOrders.size());
+            log.info("Total Service Provider: {}", availableServiceProvider.size());
 
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
@@ -771,6 +1036,110 @@ public class ServiceProviderTicketService {
         }
     }
 
+    @Transactional
+    public void verticalDistributionTicketAllocationForTickets(List<CustomServiceProviderTicket> tickets, List<ServiceProviderEntity> availableServiceProvider, List<CustomTicketWrapper> assignedTickets) throws Exception {
+        try {
+            log.info("Vertical Distribution Ticket Allocation");
+            log.info("Total tickets received for VDTA: {}", tickets.size());
+            log.info("Total Service Provider: {}", availableServiceProvider.size());
+
+            Iterator<CustomServiceProviderTicket> iterator = tickets.iterator();
+
+            // Initialized the service provider with different ranks.
+            PriorityQueue<ServiceProviderEntity> rank1a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank1d = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2a = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2b = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2c = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> rank2d = new PriorityQueue<>(new ServiceProviderComparator());
+            bifurcateAvailableServiceProviders(availableServiceProvider, rank1a, rank1b, rank1c, rank1d, rank2a, rank2b, rank2c, rank2d);
+
+            log.info("Service Provider in rank1a: {}", rank1a.size());
+            log.info("Service Provider in rank1b: {}", rank1b.size());
+            log.info("Service Provider in rank1c: {}", rank1c.size());
+            log.info("Service Provider in rank1d: {}", rank1d.size());
+
+            log.info("Service Provider in rank2a: {}", rank2a.size());
+            log.info("Service Provider in rank2b: {}", rank2b.size());
+            log.info("Service Provider in rank2c: {}", rank2c.size());
+            log.info("Service Provider in rank2d: {}", rank2d.size());
+
+            // Iterator for traversing orders.
+            while (iterator.hasNext()) {
+
+                CustomServiceProviderTicket ticket = iterator.next();
+
+//                ObjectMapper objectMapper = new ObjectMapper();
+//                String jsonString = objectMapper.writeValueAsString(customOrderState);
+//                logger.info(jsonString);
+
+                Order order = null;
+
+                if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    order = orderService.findOrderById(ticket.getOrder().getId());
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    order = orderService.findOrderById(ticket.getParentTicket().getOrder().getId());
+                } else {
+                    throw new IllegalArgumentException("auto-assigner cannot perform action on this type of ticket.");
+                }
+
+                // created a switch statement which will execute in vertical order.
+                switch (1) {
+                    case 1:
+                        if (!rank1a.isEmpty() && processRankForTickets(rank1a, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 2:
+                        if (!rank1b.isEmpty() && processRankForTickets(rank1b, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 3:
+                        if (!rank1c.isEmpty() && processRankForTickets(rank1c, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 4:
+                        if (!rank1d.isEmpty() && processRankForTickets(rank1d, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 5:
+                        if (!rank2a.isEmpty() && processRankForTickets(rank2a, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 6:
+                        if (!rank2b.isEmpty() && processRankForTickets(rank2b, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 7:
+                        if (!rank2c.isEmpty() && processRankForTickets(rank2c, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    case 8:
+                        if (!rank2d.isEmpty() && processRankForTickets(rank2d, order, assignedTickets, ticket)) {
+                            iterator.remove();
+                            break;
+                        }
+                    default:
+                        break;
+                }
+            }
+            log.info("Total orders assigned by VDTA method is: {}", assignedTickets.size());
+
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
         try {
             String sql = "SELECT * FROM custom_service_provider_ticket";
@@ -781,7 +1150,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses,List<Long> assigneeUserIds) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -805,9 +1174,9 @@ public class ServiceProviderTicketService {
             }
 
             if (statuses != null && !statuses.isEmpty()) {
-                for(Long id: statuses) {
+                for (Long id : statuses) {
                     CustomTicketStatus ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(id);
-                    if(ticketStatus == null) {
+                    if (ticketStatus == null) {
                         throw new IllegalArgumentException("No ticket status found with ID: " + id);
                     }
                     customTicketStatuses.add(ticketStatus);
@@ -838,6 +1207,10 @@ public class ServiceProviderTicketService {
                 jpql.append("AND c.assignee IN :assigneeUserIds ");
             }
 
+            if (dueInThreeDays != null) {
+                jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
+            }
+
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -857,13 +1230,26 @@ public class ServiceProviderTicketService {
                 query.setParameter("assigneeUserIds", assigneeUserIds);
             }
 
-            if (dateFrom != null ) {
+            if (dateFrom != null) {
                 query.setParameter("dateFrom", dateFrom);
                 query.setParameter("dateTo", dateTo);
             }
             if (userId != null && role != null) {
                 query.setParameter("userId", userId);
                 query.setParameter("role", role);
+            }
+
+            if (dueInThreeDays != null) {
+                Date now = new Date(); // current time
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(now);
+                calendar.add(Calendar.DATE, 3); // add 3 days
+
+                Date threeDaysLater = calendar.getTime();
+
+                query.setParameter("now", now);
+                query.setParameter("threeDaysLater", threeDaysLater);
             }
 
             // Execute and return the result
@@ -919,5 +1305,11 @@ public class ServiceProviderTicketService {
             // Sort by bandwidth (ascending order)
             return Double.compare(bandwidth1, bandwidth2); // for ascending order
         }
+    }
+
+    public Product findProductFromItemAttribute(OrderItem orderItem) {
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        Product product = catalogService.findProductById(productId);
+        return product;
     }
 }
