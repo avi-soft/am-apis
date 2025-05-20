@@ -1151,20 +1151,6 @@ public class CustomerEndpoint {
 
             if (details.containsKey("religion")) {
                 Boolean isOtherReligion = false;
-               /* List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
-                Long reserveCategoryToAddId=null;
-                for(CustomReserveCategory customReserveCategory : reserveCategories)
-                {
-                    if(customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category")))
-                    {
-                        reserveCategoryToAddId= customReserveCategory.getReserveCategoryId();
-                        System.out.println(reserveCategoryToAddId);
-                    }
-                }
-                if(reserveCategoryToAddId==null)
-                {
-                    throw new IllegalArgumentException("Reserve category with name "+ details.get("category").toString()+ " does not exist");
-                }*/
                 OtherItem religionOtherItemToAdd = null;
                 customCustomer.setReligion(details.get("religion").toString());
 
@@ -1251,7 +1237,6 @@ public class CustomerEndpoint {
                             if(customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category")))
                             {
                                 reserveCategoryToAddId= customReserveCategory.getReserveCategoryId();
-                                System.out.println(reserveCategoryToAddId);
                             }
                         }
                     if(reserveCategoryToAddId==null)
