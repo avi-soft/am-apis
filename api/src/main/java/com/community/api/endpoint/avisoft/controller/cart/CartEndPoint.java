@@ -17,6 +17,8 @@ import com.community.api.entity.RazorpayDetails;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
@@ -43,6 +45,9 @@ import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +61,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 
 import javax.annotation.PostConstruct;
@@ -699,14 +705,15 @@ public class CartEndPoint extends BaseEndpoint {
     public ResponseEntity<?> confirmOrderStatus(@RequestParam List<Long> orderIds, @RequestBody Map<String, String> paymentStatus) {
         String razorpayOrderId = paymentStatus.get("razorpay_order_id");
         String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
-        String razorpaySignature = paymentStatus.get("razorpay_signature");
-        String status = paymentStatus.get("status");
+       /* String razorpaySignature = paymentStatus.get("razorpay_signature");*/
+        String status = getPaymentStatus(razorpayPaymentId);
 
-        if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
+       /* if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
             return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
-        }
+        }*/
 
 
+/*
         try {
             String data = razorpayOrderId + "|" + razorpayPaymentId;
             String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
@@ -717,6 +724,7 @@ public class CartEndPoint extends BaseEndpoint {
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+*/
 
 
         // Rest of the order processing (same as before)
@@ -746,7 +754,7 @@ public class CartEndPoint extends BaseEndpoint {
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, orderId);
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, order.getCustomer().getId());
 
-            if ("order.paid".equalsIgnoreCase(status)) {
+            if ("captured".equalsIgnoreCase(status)) {
 
                 orderStatus = new OrderStatus("NEW", null);
                 details.setTimeStamp(LocalDate.now());
@@ -776,7 +784,7 @@ public class CartEndPoint extends BaseEndpoint {
                 }
 
                 entityManager.merge(customCustomer);
-            } else if ("payment.failed".equalsIgnoreCase(status)) {
+            } else if ("failed".equalsIgnoreCase(status)) {
                 failed = true;
                 orderStatus = new OrderStatus("PAYMENT_FAILED", null);
                 details.setTimeStamp(LocalDate.now());
@@ -925,13 +933,35 @@ public class CartEndPoint extends BaseEndpoint {
                     for(Long id:orderIds) {
                         System.out.println("orderId" + id);
                         RazorpayDetails details = entityManager.find(RazorpayDetails.class, id);
-                        details.setStatus(event);
+                        details.setStatus(paymentEntity.getString("status"));
+                        details.setRazorpayPaymentId(paymentEntity.getString("id"));
                         entityManager.merge(details);
                     }
         } catch (Exception e) {
             System.out.println("Exception : "+e.getMessage());
         }
     }
+    public String getPaymentStatus(String paymentId) {
+        String uri = "https://api.razorpay.com/v1/payments/" + paymentId;
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(razorpayId, razorpaySecret);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            String status = jsonNode.get("status").asText();  // e.g. "captured", "failed", etc.
+            return status;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
     }
 

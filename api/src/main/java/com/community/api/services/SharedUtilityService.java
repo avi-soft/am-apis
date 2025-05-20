@@ -128,6 +128,8 @@ public class SharedUtilityService {
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
         if(customProduct.getPosts().size()>=1) {
+            if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+            {
             String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
             if (retrievedPostPreferenceString != null) {
                 if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
@@ -158,6 +160,7 @@ public class SharedUtilityService {
         }
         productDetails.put("available_posts",availablePosts);
         productDetails.put("preference_order",postPreferenceOrder);
+        }
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
