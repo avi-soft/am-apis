@@ -5,6 +5,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.TicketStatisticsDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
@@ -109,7 +110,7 @@ public class TicketController {
     @PostMapping("/auto-assigner")
     public ResponseEntity<?> autoAssigner() {
         try {
-            List<Long> resultList = serviceProviderTicketService.getAssignedTickets();
+            /*List<Long> resultList = serviceProviderTicketService.getAssignedTickets();
             List<CombinedOrderDTO> orderDTO = new ArrayList<>();
             for (Long id : resultList) {
                 CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, id);
@@ -120,14 +121,81 @@ public class TicketController {
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                 CombinedOrderDTO combinedOrderDTO = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                 orderDTO.add(combinedOrderDTO);
-            }
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", orderDTO, HttpStatus.OK);
+            }*/
+
+            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
+            serviceProviderTicketService.rejectedTicketLogic(assignedTickets);
+
+            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (RuntimeException runtimeException) {
             exceptionHandlingService.handleException(runtimeException);
             return ResponseService.generateErrorResponse("Runtime Exception Caught: " + runtimeException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/get-all-ticket-stats")
+    public ResponseEntity<?> retrieveAllTicketsStatistics() {
+        try {
+
+            List<TicketStatisticsDto> response = new ArrayList();
+            List<Long> ticketTypes = new ArrayList<>();
+            List<CustomServiceProviderTicket> tickets = new ArrayList<>();
+            List<Long> rejectedState = new ArrayList<>();
+            rejectedState.add(6L);
+
+            // PRIMARY TICKET
+            ticketTypes.add(1L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto primaryTicketStats = new TicketStatisticsDto();
+            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(1L);
+            primaryTicketStats.setTicketType(ticketType);
+            primaryTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            primaryTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            primaryTicketStats.setDueInThreeDays(tickets.size());
+
+            response.add(primaryTicketStats);
+            // REVIEW TICKET
+            ticketTypes.set(0, 2L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto reviewTicketStats = new TicketStatisticsDto();
+            ticketType = ticketTypeService.getTicketTypeByTicketTypeId(2L);
+            reviewTicketStats.setTicketType(ticketType);
+            reviewTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            reviewTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            reviewTicketStats.setDueInThreeDays(tickets.size());
+            response.add(reviewTicketStats);
+
+            // MISCELLANEOUS TICKET
+            ticketTypes.add(1L);
+            tickets = serviceProviderTicketService.filterTicket(null, ticketTypes, null, null, null , null, null, null, null);
+
+            TicketStatisticsDto miscellaneousTicketStats = new TicketStatisticsDto();
+            ticketType = ticketTypeService.getTicketTypeByTicketTypeId(3L);
+            miscellaneousTicketStats.setTicketType(ticketType);
+            miscellaneousTicketStats.setTotal(tickets.size());
+
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, null);
+            miscellaneousTicketStats.setRejected(tickets.size());
+            tickets = serviceProviderTicketService.filterTicket(rejectedState, ticketTypes, null, null, null , null, null, null, true);
+            miscellaneousTicketStats.setDueInThreeDays(tickets.size());
+            response.add(miscellaneousTicketStats);
+
+            return ResponseService.generateSuccessResponse("Tickets Found", response, HttpStatus.OK);
+
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -186,7 +254,8 @@ public class TicketController {
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit,
-            @RequestParam(value = "personal", required = false) Boolean personal) {
+            @RequestParam(value = "personal", required = false) Boolean personal,
+            @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays) {
         try {
 
             if (offset < 0) {
@@ -229,7 +298,7 @@ public class TicketController {
             }
 
             List<CustomServiceProviderTicket> tickets = serviceProviderTicketService.filterTicket(
-                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds);
+                    ticket_state, ticket_type, userId, role, dateFrom, dateTo, ticket_status, assigneeUserIds, dueInThreeDays);
 
             int totalItems = tickets.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -248,8 +317,22 @@ public class TicketController {
 
             List<CustomTicketWrapper> responses = paginatedTickets.stream().map(ticket -> {
                 CustomTicketWrapper wrapper = new CustomTicketWrapper();
-                if (!ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                    CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                    OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
+                            customer.getId(),
+                            customer.getFirstName() + " " + customer.getLastName(),
+                            customer.getEmailAddress(),
+                            customCustomer.getMobileNumber(),
+                            addressFetcher.fetch(customer),
+                            customer.getUsername());
+
+                    CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                    wrapper.customWrapDetails(ticket, orderDto);
+                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
                     Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                     CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                     OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
