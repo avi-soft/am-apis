@@ -990,14 +990,15 @@ public class ProductController extends CatalogEndpoint {
             // Filtering out archived products
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                /*if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {*/
-                    CustomProductWrapper wrapper = new CustomProductWrapper();
-                    List<Post> postList= customProduct.getPosts();
-                    List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
-                    wrapper.wrapDetails(customProduct,postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
-                    responses.add(wrapper);
-                //}
-            }
+                /* if(customProduct != null && ((Status) customProduct).getArchived() != 'Y' && !archived){*/
+                        if (((Status) customProduct).getArchived() == 'Y') {
+                            CustomProductWrapper wrapper = new CustomProductWrapper();
+                            List<Post> postList = customProduct.getPosts();
+                            List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
+                            wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+                            responses.add(wrapper);
+                        }
+                    }
 
            /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
             CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
