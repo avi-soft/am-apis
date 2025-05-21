@@ -958,6 +958,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1114,6 +1115,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1499,11 +1501,11 @@ public class SharedUtilityService {
             customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Primary mobile number cannot be null or empty");
         }
-        if(customCustomer.getSecondaryMobileNumber()==null || (customCustomer.getSecondaryMobileNumber()!=null &&customCustomer.getSecondaryMobileNumber().trim().isEmpty()))
+        /*if(customCustomer.getSecondaryMobileNumber()==null || (customCustomer.getSecondaryMobileNumber()!=null &&customCustomer.getSecondaryMobileNumber().trim().isEmpty()))
         {
             customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("In Contact Details, Secondary mobile number cannot be null or empty");
-        }
+        }*/
         if(customCustomer.getWhatsappNumber()==null || (customCustomer.getWhatsappNumber()!=null &&customCustomer.getWhatsappNumber().trim().isEmpty()))
         {
             customCustomer.setProfileComplete(false);
@@ -1559,8 +1561,10 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("You have to select whether you will upload live photo or not ");
         }
-        if(!customCustomer.getCategory().equalsIgnoreCase("GEN") && (customCustomer.getCategoryIssueDate()==null || (customCustomer.getCategoryIssueDate()!=null &&customCustomer.getCategoryIssueDate().trim().isEmpty())))
-        {
+        if (!customCustomer.getCategory().equalsIgnoreCase("GEN")
+                && !customCustomer.getCategory().equalsIgnoreCase("OTHERS")
+                && (customCustomer.getCategoryIssueDate() == null
+                || customCustomer.getCategoryIssueDate().trim().isEmpty())) {
             throw new IllegalArgumentException("In Personal Details, Category issue date cannot be null or empty");
         }
         if(customCustomer.getIsOtherOrStateCategory()==null)
@@ -1858,7 +1862,7 @@ public class SharedUtilityService {
             documentsNotUploaded.add("Back Aadhaar card");
         }
 
-        if(customCustomer.getCategory()!=null && !customCustomer.getCategory().equalsIgnoreCase("GEN"))
+        if(customCustomer.getCategory()!=null && !customCustomer.getCategory().equalsIgnoreCase("GEN") && !customCustomer.getCategory().equalsIgnoreCase("OTHERS"))
         {
             if(!isCategoryCertificate)
             {
