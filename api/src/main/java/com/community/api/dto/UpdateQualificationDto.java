@@ -30,6 +30,8 @@ public class UpdateQualificationDto
 
     private Long stream_id;
 
+    private boolean qualification_is_ongoing;
+
     @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
     @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
     private Double cumulative_percentage_value;
