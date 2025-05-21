@@ -298,6 +298,9 @@ public class TicketStateService {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
                     ticket.setRejectedBy(rejectedList);
+
+                    ticket.setAssignee(null);
+                    ticket.setAssigneeRole(null);
                 }
 
                 ticket.setTicketStatus(ticketStatus);
@@ -415,15 +418,19 @@ public class TicketStateService {
             return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {
+            log.info("Inside persistence");
             exceptionHandlingService.handleException(persistenceException);
             throw new PersistenceException("Cannot find valid result : " + persistenceException.getMessage());
         } catch (IllegalArgumentException illegalArgumentException) {
+            log.info("Inside illegal argument exception");
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (NotFoundException notFoundException) {
+            log.info("Inside not found exception");
             exceptionHandlingService.handleException(notFoundException);
             throw new NotFoundException(notFoundException.getMessage());
         } catch (Exception exception) {
+            log.info("Inside exception");
             exceptionHandlingService.handleException(exception);
             throw new Exception("Error updating ticket :" + exception.getMessage());
         }
