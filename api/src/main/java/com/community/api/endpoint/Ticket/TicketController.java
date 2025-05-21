@@ -108,6 +108,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/auto-assigner")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> autoAssigner() {
         try {
             /*List<Long> resultList = serviceProviderTicketService.getAssignedTickets();
@@ -123,10 +124,9 @@ public class TicketController {
                 orderDTO.add(combinedOrderDTO);
             }*/
 
-            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
-            serviceProviderTicketService.rejectedTicketLogic(assignedTickets);
+            List<CustomTicketWrapper> assignedTickets = serviceProviderTicketService.autoAssigner();
 
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Orders and Tickets assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
