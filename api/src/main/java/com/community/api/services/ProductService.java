@@ -471,7 +471,7 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
-            jpql.append("WHERE 1=1 ");  // Base condition to allow easy AND appending
+            // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
             {
@@ -3895,6 +3895,9 @@ public class ProductService {
                 if(categoryDistribution.getStateLevelCategory()==null || categoryDistribution.getStateLevelCategory().trim().isEmpty())
                 {
                     throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
+                }
+                if (!categoryDistribution.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
+                    throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
                 }
             }
             if(categoryDistribution.getIsGenderWise()==null)

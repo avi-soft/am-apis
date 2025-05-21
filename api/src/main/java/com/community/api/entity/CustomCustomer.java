@@ -180,6 +180,10 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "permanent_address_is_same_as_current_address")
     private Boolean isSameAsCurrentAddress = false;
 
+    @Column(name = "is_password_created")
+    private Boolean isPasswordCreated = false;
+
+
     @Nullable
     @Pattern(regexp = "^[0-9]{10}$|^$", message = "Secondary number must be a valid 10-digit number.")
     @Column(name = "secondary_mobile_number")
@@ -211,6 +215,21 @@ public class CustomCustomer extends CustomerImpl {
     @Nullable
     @Column(name = "city")
     private String city;
+
+    @Column(name = "otherCategory")
+    private String otherCategory;
+
+    @Column(name = "otherReligion")
+    private String otherReligion;
+
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinTable(
+            name = "custom_customer_other_item",
+            joinColumns = @JoinColumn(name = "custom_customer_id"),
+            inverseJoinColumns = @JoinColumn(name = "other_item_id")
+    )
+    private List<OtherItem> otherItems = new ArrayList<>();
 
     @Nullable
     @Column(name = "pincode")
@@ -277,7 +296,7 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "is_other_or_state_category")
     private Boolean isOtherOrStateCategory;
 
-    @Column(name = "other_or_state_category", columnDefinition = "text")
+    @Column(name = "other_or_state_category")
     private String otherOrStateCategory;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")

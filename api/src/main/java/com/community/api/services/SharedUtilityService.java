@@ -25,6 +25,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.codec.binary.Hex;
+
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -123,6 +128,8 @@ public class SharedUtilityService {
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
         if(customProduct.getPosts().size()>=1) {
+            if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+            {
             String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
             if (retrievedPostPreferenceString != null) {
                 if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
@@ -153,6 +160,7 @@ public class SharedUtilityService {
         }
         productDetails.put("available_posts",availablePosts);
         productDetails.put("preference_order",postPreferenceOrder);
+        }
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         if (fee == null) {
             fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
@@ -249,6 +257,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForMobile.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForMobile.put("categoryIssueDate", customCustomer.getCategoryIssueDate());
+            customerDetailsForMobile.put("otherCategory", customCustomer.getOtherCategory());
             customerDetailsForMobile.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
@@ -291,6 +300,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
             customerDetailsForMobile.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
             customerDetailsForMobile.put("religion", customCustomer.getReligion());
+            customerDetailsForMobile.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForMobile.put("belongsToMinority", customCustomer.getBelongsToMinority());
             customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForMobile.put("whatsappNumber", customCustomer.getWhatsappNumber());
@@ -328,6 +338,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("archivedById",customCustomer.getArchivedById());
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
+            customerDetailsForMobile.put("is_password_created",customCustomer.getIsPasswordCreated());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -496,6 +507,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("hideMobileNumber", customCustomer.getHidePhoneNumber());
             customerDetailsForDesktop.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
             customerDetailsForDesktop.put("whatsappNumber", customCustomer.getWhatsappNumber());
+            customerDetailsForDesktop.put("is_password_created",customCustomer.getIsPasswordCreated());
             // List<ServiceProviderEntity>refSp=new ArrayList<>();
             // for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
             // {
@@ -532,6 +544,8 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
             customerDetailsForDesktop.put("secondaryEmail", customCustomer.getSecondaryEmail());
             customerDetailsForDesktop.put("category_issue_date", customCustomer.getCategoryIssueDate());
+            customerDetailsForDesktop.put("otherCategory", customCustomer.getOtherCategory());
+            customerDetailsForDesktop.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForDesktop.put("familyIncome",customCustomer.getFamilyIncome());
 
             if(customCustomer.getHeightCms() != null) {
@@ -820,6 +834,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("image_upload_score", serviceProvider.getImageUploadScore());
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
         serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
+        serviceProviderDetails.put("is_password_created",serviceProvider.getIsPasswordCreated());
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
@@ -1926,6 +1941,62 @@ public class SharedUtilityService {
         }
         return true;
     }
+
+
+    public String hmacSha256(String data, String secret) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(keySpec);
+        byte[] hashBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        return Hex.encodeHexString(hashBytes);
+    }
+
+    public OtherItem handleOtherCaseForReserveCategory(String foundedCategory,String rerserveCategoryOthers,Integer roleId,Long userId,String sourceName)
+    {
+        if(foundedCategory.equalsIgnoreCase("Others"))
+        {
+            if(rerserveCategoryOthers==null) {
+                throw new IllegalArgumentException("You have to enter a text for other reserve category");
+            }
+            if(rerserveCategoryOthers.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other reserve category");
+            }
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(rerserveCategoryOthers);
+            otherItem.setField_name("reserve_category");
+            otherItem.setSource_name(sourceName);
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
+    }
+
+    public OtherItem handleOtherCaseForReligion(String foundedReligion,String religionOthers,Integer roleId,Long userId,String sourceName)
+    {
+        if(foundedReligion.equalsIgnoreCase("Others"))
+        {
+            if(religionOthers==null) {
+                throw new IllegalArgumentException("You have to enter a text for other religion");
+            }
+            if(religionOthers.trim().isEmpty())
+            {
+                throw new IllegalArgumentException("The text field cannot be empty for adding other religion");
+            }
+            OtherItem otherItem =new OtherItem();
+            otherItem.setTyped_text(religionOthers);
+            otherItem.setField_name("religion");
+            otherItem.setSource_name(sourceName);
+            otherItem.setRole_id(roleId);
+            otherItem.setUser_id(userId);
+            entityManager.persist(otherItem);
+            return otherItem;
+        }
+        return null;
+    }
+
 
 
 }

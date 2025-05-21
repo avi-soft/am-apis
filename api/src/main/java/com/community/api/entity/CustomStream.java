@@ -68,6 +68,9 @@ public class CustomStream {
     @JsonProperty("creator_role")
     protected Role creatorRole;
 
+    @Column(name = "sort_order", nullable = false)
+    private Long sortOrder;
+
     @ManyToMany(mappedBy = "streams")
     @JsonIgnore
     private List<Qualification> qualifications = new ArrayList<>();

@@ -298,6 +298,7 @@ public class ServiceProviderController {
                 return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
             if (serviceProvider.getPassword() == null) {
                 serviceProvider.setPassword(passwordEncoder.encode(password));
+                serviceProvider.setIsPasswordCreated(true);
                 entityManager.merge(serviceProvider);
                 return responseService.generateSuccessResponse("Password created", serviceProvider, HttpStatus.OK);
             } else {
