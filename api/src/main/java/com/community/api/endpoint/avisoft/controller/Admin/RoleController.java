@@ -106,7 +106,7 @@ public class RoleController {
         }
     }
     @Transactional
-    @Authorize(value = {/*Constant.roleServiceProvider,*/Constant.roleAdmin,Constant.roleSuperAdmin,Constant.roleAdminServiceProvider})
+    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/change-role/{id}/{roleToBeId}")
     public ResponseEntity<?> changeRole(@RequestHeader(value = "Authorization") String authHeader,@PathVariable Long id,@PathVariable Integer roleToBeId)
     {
