@@ -3,16 +3,13 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.utils.CustomDateDeserializer;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.*;
 
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -55,13 +52,17 @@ public class QualificationDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long qualification_detail_id;
 
+    @Column(name = "qualification_is_ongoing", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("qualification_is_ongoing")
+    private Boolean qualificationIsOngoing = false;
+
     @NotNull(message = "Institution is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "institution_id", nullable = false)
     private Institution institution;
 
-    @NotNull(message = "Date of passing is required")
-    @Column(name = "date_of_passing", nullable = false)
+
+    @Column(name = "date_of_passing")
     @JsonDeserialize(using = CustomDateDeserializer.class)
     private Date date_of_passing;
 
@@ -82,12 +83,12 @@ public class QualificationDetails {
     @Column(name = "stream_id")
     private Long stream_id;
 
-    @NotNull(message = "total marks cannot be null")
-    @Column(name = "total_marks", nullable = false)
+
+    @Column(name = "total_marks")
     private String total_marks;
 
-    @NotNull(message = "marks obtained cannot be null")
-    @Column(name = "marks_obtained", nullable = false)
+
+    @Column(name = "marks_obtained")
     private String marks_obtained;
 
     @Column(name = "is_grade",columnDefinition = "BOOLEAN DEFAULT FALSE")
@@ -106,13 +107,12 @@ public class QualificationDetails {
     @Column(name = "qualification_id", nullable = false)
     private Integer qualification_id;
 
-    @NotNull(message = "You have to select whether you are adding total marks in actual marks, CGPA or Grade")
-    @Column(name = "total_marks_type", nullable = false)
+
+    @Column(name = "total_marks_type")
     private String total_marks_type;
 
-    @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
-    @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
-    @Column(name = "cumulative_percentage_value" , nullable = false)
+
+    @Column(name = "cumulative_percentage_value" )
     private Double cumulative_percentage_value;
 
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
