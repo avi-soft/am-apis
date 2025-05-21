@@ -1,0 +1,46 @@
+CREATE OR REPLACE PROCEDURE rejection_and_review_ticket_logic(
+    IN available_service_provider_cursor refcursor,
+    INOUT assigned_tickets_cursor refcursor
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    ticket_state_to_do RECORD;
+    ticket_state_returned RECORD;
+    ticket_type_review_ticket RECORD;
+    ticket_type_primary_ticket RECORD;
+    ticket_states TABLE(id INT);
+    ticket_types TABLE(id INT);
+    tickets CURSOR FOR
+        SELECT * FROM custom_service_provider_ticket c
+        WHERE c.assignee IS NULL
+          AND c.ticket_state IN (SELECT id FROM unnest(ARRAY[ticket_state_to_do.id, ticket_state_returned.id]) AS id)
+          AND c.ticket_type IN (SELECT id FROM unnest(ARRAY[ticket_type_review_ticket.id, ticket_type_primary_ticket.id]) AS id);
+BEGIN
+    -- Get ticket states
+    CALL get_ticket_state_by_ticket_id(1 /* Constant.TICKET_STATE_TO_DO */, ticket_state_to_do);
+    CALL get_ticket_state_by_ticket_id(2 /* Constant.TICKET_STATE_RETURNED */, ticket_state_returned);
+
+    -- Get ticket types
+    CALL get_ticket_type_by_ticket_type_id(10 /* Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET */, ticket_type_review_ticket);
+    CALL get_ticket_type_by_ticket_type_id(20 /* Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET */, ticket_type_primary_ticket);
+
+    -- Open the tickets cursor
+    OPEN tickets;
+
+    -- Call random binding allocation procedure
+    CALL random_binding_ticket_allocation_for_tickets(tickets, assigned_tickets_cursor);
+
+    -- Call vertical distribution allocation procedure
+    CALL vertical_distribution_ticket_allocation_for_tickets(tickets, available_service_provider_cursor, assigned_tickets_cursor);
+
+    -- Close tickets cursor
+    CLOSE tickets;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Your exception handling procedure (replace as needed)
+        PERFORM exception_handling_service_handle_exception(SQLERRM);
+        RAISE;
+END;
+$$;
