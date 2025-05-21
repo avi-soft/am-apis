@@ -1,6 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.product;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
@@ -53,6 +54,8 @@ import org.springframework.http.ResponseEntity;
 
 import com.community.api.services.exception.ExceptionHandlingService;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -1152,5 +1155,19 @@ public class ProductController extends CatalogEndpoint {
         }
         return postProjectionDTOS;
     }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
+
+    // Run every day at 12:00 AM
+    @Scheduled(cron = "0 0 0 * * *")
+    @PutMapping("/update-product-resources")
+    public void updateProductStates() {
+        try {
+            jdbcTemplate.execute("CALL update_all_product_states();");
+            System.out.println("Product states updated successfully at midnight.");
+        } catch (Exception e) {
+            System.err.println("Error updating product states: " + e.getMessage());
+        }
+    }
 }
