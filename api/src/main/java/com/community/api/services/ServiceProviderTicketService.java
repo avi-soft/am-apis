@@ -298,8 +298,9 @@ public class ServiceProviderTicketService {
             ticketStateList.add(ticketState);
 
             List<CustomTicketType> ticketTypeList = new ArrayList<>();
-            CustomTicketType ticketType = ticketTypeService.getTicketTypeByTicketTypeId(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET);
-            ticketTypeList.add(ticketType);
+            CustomTicketType ticketTypeReviewTicket = ticketTypeService.getTicketTypeByTicketTypeId(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET);
+            CustomTicketType ticketTypePrimaryTicket = ticketTypeService.getTicketTypeByTicketTypeId(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET);
+            ticketTypeList.add(ticketTypeReviewTicket);
 
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -335,7 +336,7 @@ public class ServiceProviderTicketService {
 
     public boolean allocateTicket(Order order, ServiceProviderEntity serviceProvider, CustomOrderState customOrderState, CustomCustomer customer, List<CustomTicketWrapper> assignedTickets) throws Exception {
         try {
-            logger.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: " + serviceProvider.getService_provider_id());
+            log.info("PRIMARY REFERRER(SERVICE PROVIDER) ID: {}", serviceProvider.getService_provider_id());
             if ((serviceProvider.getMaximumTicketSize() != null && (serviceProvider.getIsActive().equals(true)) && serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getMaximumTicketSize()) || (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending() < serviceProvider.getRanking().getMaximumTicketSize())) {
                 // assign him the ticket
                 // create a entry in serviceProvider ticket table where the info about which serviceProvider is linked with which ticket is stored.
@@ -365,7 +366,7 @@ public class ServiceProviderTicketService {
                 assignedTickets.add(wrapper);
                 return true;
             } else {
-                logger.info("Service Provider limit exceeded for the day - serviceProvider details: " + serviceProvider);
+                log.info("Service Provider limit exceeded for the day - serviceProvider details: {}", serviceProvider);
             }
             return false;
         } catch (Exception exception) {

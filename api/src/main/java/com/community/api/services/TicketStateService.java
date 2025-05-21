@@ -298,6 +298,9 @@ public class TicketStateService {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
                     ticket.setRejectedBy(rejectedList);
+
+                    ticket.setAssignee(null);
+                    ticket.setAssigneeRole(null);
                 }
 
                 ticket.setTicketStatus(ticketStatus);
