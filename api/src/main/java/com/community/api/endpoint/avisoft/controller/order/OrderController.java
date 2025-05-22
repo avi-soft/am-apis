@@ -627,6 +627,11 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Order with the provided id not found", HttpStatus.NOT_FOUND);
             }
 
+            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW) ) {
+                throw new IllegalArgumentException("Order can only be allowed to allocate at new state.");
+            }
+
             if (createTicketDto.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate()) == 1)
                     return ResponseService.generateErrorResponse("Target completion date cannot be in past", HttpStatus.BAD_REQUEST);
@@ -645,7 +650,7 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
             }
 
-            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+
             ServiceProviderEntity serviceProvider = null;
 
             Long assignedUserId;

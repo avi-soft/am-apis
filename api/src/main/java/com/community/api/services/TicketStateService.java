@@ -103,13 +103,16 @@ public class TicketStateService {
     @Transactional
     public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) throws Exception {
         try {
+            log.info("HERE {}, {}",oldSp, newSp);
             if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
                 ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
-                if (ticket.getTicketState().getTicketState().equals("TO-DO")) {
+                if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                    log.info("HERHEHREHRHEHR");
                     exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
-                } else if (!ticket.getTicketState().getTicketState().equals("TO-DO") && !ticket.getTicketState().getTicketState().equals("CLOSED")) {
+                } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
                 }
+                entityManager.merge(exServiceProvider);
 
                 ServiceProviderEntity newServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
                 if(nextState != null) {
@@ -369,6 +372,10 @@ public class TicketStateService {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
                     }
 
+                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                        throw new IllegalArgumentException("Already is the assignee");
+                    }
+
                     if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
                         if (ticketState == null) {
                             throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
@@ -385,7 +392,6 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
-                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
