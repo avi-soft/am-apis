@@ -296,10 +296,17 @@ public class TicketStateService {
                     }
 
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
-                    parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
-                    parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
-                    parentTicket.setIsComplete(createTicketDTO.getIsComplete());
-                    parentTicket.setWorkQuality(workQuality);
+                    if(createTicketDTO.getIsComplete()) {
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
+                        parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
+                        parentTicket.setIsComplete(createTicketDTO.getIsComplete());
+                        parentTicket.setWorkQuality(workQuality);
+                    } else {
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(2L));
+                        parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
+                        parentTicket.setIsComplete(createTicketDTO.getIsComplete());
+                        parentTicket.setWorkQuality(workQuality);
+                    }
 
                     entityManager.merge(parentTicket);
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
