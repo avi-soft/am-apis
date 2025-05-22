@@ -834,6 +834,10 @@ public class SharedUtilityService {
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
         serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
         serviceProviderDetails.put("is_password_created",serviceProvider.getIsPasswordCreated());
+        serviceProviderDetails.put("ticket_assigned",serviceProvider.getTicketAssigned());
+        serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
+        serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
+
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
