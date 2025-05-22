@@ -226,13 +226,17 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-            Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
-            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+            if(ticket.getTicketType().getTicketType().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
+            } else {
+                wrapper.customWrapDetails(ticket, null, entityManager);
+            }
 
-            wrapper.customWrapDetails(ticket, orderDto, entityManager);
 
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
 
