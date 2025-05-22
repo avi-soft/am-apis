@@ -20,13 +20,15 @@ BEGIN
     -- Step 2: Call Primary Ticket Flow (RBTA + VDTA)
     CALL public.primary_ticket_normal_flow(available_service_providers, primary_assigned_tickets);
 
-    -- Step 3: Call Rejection and Review Logic
-    CALL public.rejection_and_review_ticket_logic(available_service_providers, rejection_review_tickets);
-
-    -- Step 4: Merge both ticket assignments
-    total_assigned_tickets := primary_assigned_tickets || rejection_review_tickets;
-
-    RAISE NOTICE 'Total Tickets Assigned: %', total_assigned_tickets;
+    RAISE NOTICE 'Primary Ticket Assigned: %', primary_assigned_tickets;
+--
+--    -- Step 3: Call Rejection and Review Logic
+--    CALL public.rejection_and_review_ticket_logic(available_service_providers, rejection_review_tickets);
+--
+--    -- Step 4: Merge both ticket assignments
+--    total_assigned_tickets := primary_assigned_tickets || rejection_review_tickets;
+--
+--    RAISE NOTICE 'Total Tickets Assigned: %', total_assigned_tickets;
 END;
 $$;
 

@@ -4,13 +4,13 @@ CREATE OR REPLACE PROCEDURE public.get_active_and_approved_service_providers(
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    test_status_id CONSTANT BIGINT := 3;
+    v_test_status_id CONSTANT BIGINT := 3;
     found_status INT;
 BEGIN
     -- Check if test status exists
     SELECT COUNT(*) INTO found_status
     FROM service_provider
-    WHERE test_status_id = test_status_id;
+    WHERE test_status_id = v_test_status_id;
 
     IF found_status = 0 THEN
         RAISE EXCEPTION 'No Test Status is found with this id: %', test_status_id;
@@ -20,7 +20,7 @@ BEGIN
     SELECT ARRAY_AGG(service_provider_id)
     INTO available_sp_ids
     FROM service_provider
-    WHERE test_status_id = test_status_id
+    WHERE test_status_id = v_test_status_id
       AND is_active = TRUE
       AND approved = TRUE
       AND role = 4;
