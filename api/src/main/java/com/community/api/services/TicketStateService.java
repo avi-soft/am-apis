@@ -111,7 +111,23 @@ public class TicketStateService {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
                 }
 
-                entityManager.merge(exServiceProvider);
+                ServiceProviderEntity newServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
+                if(nextState != null) {
+                    if (nextState.getTicketState().equals("TO-DO")) {
+                        newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
+                    }
+                    if (nextState.getTicketState().equals("CLOSE")) {
+                        newServiceProvider.setTicketCompleted(newServiceProvider.getTicketCompleted() + 1);
+                    }
+                    if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
+                        newServiceProvider.setTicketPending(newServiceProvider.getTicketPending() + 1);
+                    }
+                } else {
+                    // Generally this is what going to run
+                    newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
+                }
+
+                entityManager.merge(newServiceProvider);
             } else if(newSp != null) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
 
@@ -357,6 +373,10 @@ public class TicketStateService {
                         if (ticketState == null) {
                             throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
                         }
+                    }
+
+                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                        throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
                     }
 
                     List<Long> rejectedBy = ticket.getRejectedBy();
