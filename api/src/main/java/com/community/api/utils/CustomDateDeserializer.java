@@ -15,6 +15,13 @@ public class CustomDateDeserializer extends JsonDeserializer<Date> {
     public Date deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException, JsonProcessingException {
         String date = jp.getText();
+
+        // Handle null or empty input gracefully
+        if (date == null || date.trim().isEmpty()) {
+            setValidationState(-3);  // Custom code for missing date
+            return null;
+        }
+
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             dateFormat.setLenient(false);
