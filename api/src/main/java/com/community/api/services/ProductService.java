@@ -267,6 +267,58 @@ public class ProductService {
                 sql.append(", is_multiple_post_same_fee");
                 values.append(", :isMultiplePostSameFee");
             }
+            if (addProductDto.getIsExamDateFromNa() != null) {
+                sql.append(", is_exam_date_from_na");
+                values.append(", :isExamDateFromNa");
+            }
+            if (addProductDto.getIsAnswerKeyAvailableDateNa() != null) {
+                sql.append(", is_answer_key_available_date_na");
+                values.append(", :isAnswerKeyAvailableDateNa");
+            }
+            if (addProductDto.getIsResultDeclarationDateNa() != null) {
+                sql.append(", is_result_declaration_date_na");
+                values.append(", :isResultDeclarationDateNa");
+            }
+            if (addProductDto.getIsCounsellingDateNa() != null) {
+                sql.append(", is_counselling_date_na");
+                values.append(", :isCounsellingDateNa");
+            }
+            if (addProductDto.getIsTentativeVerificationFromNa() != null) {
+                sql.append(", is_tentative_document_verification_from_na");
+                values.append(", :isTentativeVerificationFromNa");
+            }
+            if (addProductDto.getIsTentativeVerificationToNa() != null) {
+                sql.append(", is_tentative_document_verification_to_na");
+                values.append(", :isTentativeVerificationToNa");
+            }
+            if (addProductDto.getIsExamDateToNa() != null) {
+                sql.append(", is_exam_date_to_na");
+                values.append(", :isExamDateToNa");
+            }
+            if (addProductDto.getIsExamCenterAvailableDateNa() != null) {
+                sql.append(", is_exam_center_available_date_na");
+                values.append(", :isExamCenterAvailableDateNa");
+            }
+            if (addProductDto.getIsLateDateToPayFeeNa() != null) {
+                sql.append(", is_last_date_to_pay_fee_na");
+                values.append(", :isLateDateToPayFeeNa");
+            }
+            if (addProductDto.getIsAdmitCardDateFromNa() != null) {
+                sql.append(", is_admit_card_date_from_na");
+                values.append(", :isAdmitCardDateFromNa");
+            }
+            if (addProductDto.getIsAdmitCardDateToNa() != null) {
+                sql.append(", is_admit_card_date_to_na");
+                values.append(", :isAdmitCardDateToNa");
+            }
+            if (addProductDto.getIsModificationDateFromNa() != null) {
+                sql.append(", is_modification_date_from_na");
+                values.append(", :isModificationDateFromNa");
+            }
+            if (addProductDto.getIsModificationDateToNa() != null) {
+                sql.append(", is_modification_date_to_na");
+                values.append(", :isModificationDateToNa");
+            }
 
             // Complete the SQL statement
             sql.append(") ").append(values).append(")");
@@ -394,6 +446,46 @@ public class ProductService {
             if(addProductDto.getIsMultiplePostSameFee()!=null)
             {
                 query.setParameter("isMultiplePostSameFee",addProductDto.getIsMultiplePostSameFee());
+            }
+
+            if (addProductDto.getIsExamDateFromNa() != null) {
+                query.setParameter("isExamDateFromNa", addProductDto.getIsExamDateFromNa());
+            }
+            if (addProductDto.getIsAnswerKeyAvailableDateNa() != null) {
+                query.setParameter("isAnswerKeyAvailableDateNa", addProductDto.getIsAnswerKeyAvailableDateNa());
+            }
+            if (addProductDto.getIsResultDeclarationDateNa() != null) {
+                query.setParameter("isResultDeclarationDateNa", addProductDto.getIsResultDeclarationDateNa());
+            }
+            if (addProductDto.getIsCounsellingDateNa() != null) {
+                query.setParameter("isCounsellingDateNa", addProductDto.getIsCounsellingDateNa());
+            }
+            if (addProductDto.getIsTentativeVerificationFromNa() != null) {
+                query.setParameter("isTentativeVerificationFromNa", addProductDto.getIsTentativeVerificationFromNa());
+            }
+            if (addProductDto.getIsTentativeVerificationToNa() != null) {
+                query.setParameter("isTentativeVerificationToNa", addProductDto.getIsTentativeVerificationToNa());
+            }
+            if (addProductDto.getIsExamDateToNa() != null) {
+                query.setParameter("isExamDateToNa", addProductDto.getIsExamDateToNa());
+            }
+            if (addProductDto.getIsExamCenterAvailableDateNa() != null) {
+                query.setParameter("isExamCenterAvailableDateNa", addProductDto.getIsExamCenterAvailableDateNa());
+            }
+            if (addProductDto.getIsLateDateToPayFeeNa() != null) {
+                query.setParameter("isLateDateToPayFeeNa", addProductDto.getIsLateDateToPayFeeNa());
+            }
+            if (addProductDto.getIsAdmitCardDateFromNa() != null) {
+                query.setParameter("isAdmitCardDateFromNa", addProductDto.getIsAdmitCardDateFromNa());
+            }
+            if (addProductDto.getIsAdmitCardDateToNa() != null) {
+                query.setParameter("isAdmitCardDateToNa", addProductDto.getIsAdmitCardDateToNa());
+            }
+            if (addProductDto.getIsModificationDateFromNa() != null) {
+                query.setParameter("isModificationDateFromNa", addProductDto.getIsModificationDateFromNa());
+            }
+            if (addProductDto.getIsModificationDateToNa() != null) {
+                query.setParameter("isModificationDateToNa", addProductDto.getIsModificationDateToNa());
             }
 
             // Execute the update
@@ -918,6 +1010,111 @@ public class ProductService {
             }
              */
 
+            if(addProductDto.getIsExamDateFromNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether exam date from is NA or not");
+            }
+
+            if(addProductDto.getIsAnswerKeyAvailableDateNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether answer key available date is NA or not");
+            }
+            if(addProductDto.getIsResultDeclarationDateNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether result declaration date is NA or not");
+            }
+            if(addProductDto.getIsCounsellingDateNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether counselling date is NA or not");
+            }
+            if(addProductDto.getIsTentativeVerificationFromNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether tentative verification from  date is NA or not");
+            }
+            if(addProductDto.getIsTentativeVerificationToNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether tentative verification to date is NA or not");
+            }
+            if(addProductDto.getIsExamDateToNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether exam date to is NA or not");
+            }
+            if(addProductDto.getIsExamCenterAvailableDateNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether exam center available date is NA or not");
+            }
+            if(addProductDto.getIsLateDateToPayFeeNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether last date to pay fee date is NA or not");
+            }
+            if(addProductDto.getIsAdmitCardDateFromNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether admit card from date is NA or not");
+            }
+            if(addProductDto.getIsAdmitCardDateToNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether admit card to is NA or not");
+            }
+            if(addProductDto.getIsModificationDateFromNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether modification date from is NA or not");
+            }
+            if(addProductDto.getIsModificationDateToNa()==null)
+            {
+                throw new IllegalArgumentException("You have to select whether modification date to is NA or not");
+            }
+            if(addProductDto.getIsExamDateFromNa().equals(true))
+            {
+                addProductDto.setExamDateFrom(null);
+            }
+            if(addProductDto.getIsAnswerKeyAvailableDateNa().equals(true))
+            {
+                addProductDto.setAnswerKeyAvailableDate(null);
+            }
+            if(addProductDto.getIsResultDeclarationDateNa().equals(true))
+            {
+                addProductDto.setResultDeclarationDate(null);
+            }
+            if(addProductDto.getIsCounsellingDateNa().equals(true))
+            {
+                addProductDto.setCounsellingDate(null);
+            }
+            if(addProductDto.getIsTentativeVerificationFromNa().equals(true))
+            {
+                addProductDto.setTentativeVerificationFrom(null);
+            }
+            if(addProductDto.getIsTentativeVerificationToNa().equals(true))
+            {
+                addProductDto.setTentativeVerificationTo(null);
+            }
+            if(addProductDto.getIsExamDateToNa().equals(true))
+            {
+                addProductDto.setExamDateTo(null);
+            }
+            if(addProductDto.getIsExamCenterAvailableDateNa().equals(true))
+            {
+                addProductDto.setExamCenterAvailableDate(null);
+            }
+            if(addProductDto.getIsLateDateToPayFeeNa().equals(true))
+            {
+                addProductDto.setLastDateToPayFee(null);
+            }
+            if(addProductDto.getIsAdmitCardDateFromNa().equals(true))
+            {
+                addProductDto.setAdmitCardDateFrom(null);
+            }
+            if(addProductDto.getIsAdmitCardDateToNa().equals(true))
+            {
+                addProductDto.setAdmitCardDateTo(null);
+            }
+            if(addProductDto.getIsModificationDateFromNa().equals(true))
+            {
+                addProductDto.setModificationDateFrom(null);
+            }
+            if(addProductDto.getIsModificationDateToNa().equals(true))
+            {
+                addProductDto.setModificationDateTo(null);
+            }
             String formattedDate = dateFormat.format(new Date());
             Date activeStartDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
 
@@ -1697,6 +1894,201 @@ public class ProductService {
                 addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                 customProduct.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink());
             }
+            if(addProductDto.getIsExamDateFromNa()!=null)
+            {
+                if(addProductDto.getIsExamDateFromNa().equals(true))
+                {
+                    addProductDto.setExamDateFrom(null);
+                }
+                else if(addProductDto.getIsExamDateFromNa().equals(false))
+                {
+                    if(addProductDto.getExamDateFrom()==null && customProduct.getExamDateFrom()==null)
+                    {
+                        throw new IllegalArgumentException("Exam date from cannot be null if isExamDateFromNa is false");
+                    }
+                }
+                customProduct.setIsExamDateFromNa(addProductDto.getIsExamDateFromNa());
+            }
+            if(addProductDto.getIsAnswerKeyAvailableDateNa()!=null)
+            {
+                if(addProductDto.getIsAnswerKeyAvailableDateNa().equals(true))
+                {
+                    addProductDto.setAnswerKeyAvailableDate(null);
+                }
+                else if(addProductDto.getIsAnswerKeyAvailableDateNa().equals(false))
+                {
+                    if(addProductDto.getAnswerKeyAvailableDate()==null && customProduct.getAnswerKeyAvailableDate()==null)
+                    {
+                        throw new IllegalArgumentException("Answer Key Available date from cannot be null if isAnswerKeyAvailableDateNa is false");
+                    }
+                }
+                customProduct.setIsAnswerKeyAvailableDateNa(addProductDto.getIsAnswerKeyAvailableDateNa());
+            }
+            if(addProductDto.getIsResultDeclarationDateNa()!=null)
+            {
+                if(addProductDto.getIsResultDeclarationDateNa().equals(true))
+                {
+                    addProductDto.setResultDeclarationDate(null);
+                }
+                else if(addProductDto.getIsResultDeclarationDateNa().equals(false))
+                {
+                    if(addProductDto.getResultDeclarationDate()==null && customProduct.getResultDeclarationDate()==null)
+                    {
+                        throw new IllegalArgumentException("ResultDeclarationDate from cannot be null if isResultDeclarationDateNa is false");
+                    }
+                }
+                customProduct.setIsResultDeclarationDateNa(addProductDto.getIsResultDeclarationDateNa());
+            }
+            if(addProductDto.getIsCounsellingDateNa()!=null)
+            {
+                if(addProductDto.getIsCounsellingDateNa().equals(true))
+                {
+                    addProductDto.setCounsellingDate(null);
+                }
+                else if(addProductDto.getIsCounsellingDateNa().equals(false))
+                {
+                    if(addProductDto.getCounsellingDate()==null && customProduct.getCounsellingDate()==null)
+                    {
+                        throw new IllegalArgumentException("CounsellingDate from cannot be null if isCounsellingDateNa is false");
+                    }
+                }
+                customProduct.setIsCounsellingDateNa(addProductDto.getIsCounsellingDateNa());
+            }
+            if(addProductDto.getIsTentativeVerificationToNa()!=null)
+            {
+                if(addProductDto.getIsTentativeVerificationToNa().equals(true))
+                {
+                    addProductDto.setTentativeVerificationTo(null);
+                }
+                else if(addProductDto.getIsTentativeVerificationToNa().equals(false))
+                {
+                    if(addProductDto.getTentativeVerificationTo()==null && customProduct.getTentativeVerificationTo()==null)
+                    {
+                        throw new IllegalArgumentException("TentativeVerificationTo from cannot be null if isTentativeVerificationToNa is false");
+                    }
+                }
+                customProduct.setIsTentativeVerificationToNa(addProductDto.getIsTentativeVerificationToNa());
+            }
+            if(addProductDto.getIsTentativeVerificationFromNa()!=null)
+            {
+                if(addProductDto.getIsTentativeVerificationFromNa().equals(true))
+                {
+                    addProductDto.setTentativeVerificationFrom(null);
+                }
+                else if(addProductDto.getIsTentativeVerificationFromNa().equals(false))
+                {
+                    if(addProductDto.getTentativeVerificationFrom()==null && customProduct.getTentativeVerificationFrom()==null)
+                    {
+                        throw new IllegalArgumentException("tentativeVerificationFrom from cannot be null if isTentativeVerificationFromNa is false");
+                    }
+                }
+                customProduct.setIsTentativeVerificationFromNa(addProductDto.getIsTentativeVerificationFromNa());
+            }
+            if(addProductDto.getIsExamDateToNa()!=null)
+            {
+                if(addProductDto.getIsExamDateToNa().equals(true))
+                {
+                    addProductDto.setExamDateTo(null);
+                }
+                else if(addProductDto.getIsExamDateToNa().equals(false))
+                {
+                    if(addProductDto.getExamDateTo()==null && customProduct.getExamDateTo()==null)
+                    {
+                        throw new IllegalArgumentException("examDateTo from cannot be null if isExamDateToNa is false");
+                    }
+                }
+                customProduct.setIsExamDateToNa(addProductDto.getIsExamDateToNa());
+            }
+            if(addProductDto.getIsExamCenterAvailableDateNa()!=null)
+            {
+                if(addProductDto.getIsExamCenterAvailableDateNa().equals(true))
+                {
+                    addProductDto.setExamCenterAvailableDate(null);
+                }
+                else if(addProductDto.getIsExamCenterAvailableDateNa().equals(false))
+                {
+                    if(addProductDto.getExamCenterAvailableDate()==null && customProduct.getExamCenterAvailableDate()==null)
+                    {
+                        throw new IllegalArgumentException("examCenterAvailableDate from cannot be null if isExamCenterAvailableDateNa is false");
+                    }
+                }
+                customProduct.setIsExamCenterAvailableDateNa(addProductDto.getIsExamCenterAvailableDateNa());
+            }
+            if(addProductDto.getIsLateDateToPayFeeNa()!=null)
+            {
+                if(addProductDto.getIsLateDateToPayFeeNa().equals(true))
+                {
+                    addProductDto.setLastDateToPayFee(null);
+                }
+                else if(addProductDto.getIsLateDateToPayFeeNa().equals(false))
+                {
+                    if(addProductDto.getLastDateToPayFee()==null && customProduct.getLateDateToPayFee()==null)
+                    {
+                        throw new IllegalArgumentException("LastDateToPayFee from cannot be null if IsLateDateToPayFeeNa is false");
+                    }
+                }
+                customProduct.setIsLateDateToPayFeeNa(addProductDto.getIsLateDateToPayFeeNa());
+            }
+            if(addProductDto.getIsAdmitCardDateToNa()!=null)
+            {
+                if(addProductDto.getIsAdmitCardDateToNa().equals(true))
+                {
+                    addProductDto.setAdmitCardDateTo(null);
+                }
+                else if(addProductDto.getIsAdmitCardDateToNa().equals(false))
+                {
+                    if(addProductDto.getAdmitCardDateTo()==null && customProduct.getAdmitCardDateTo()==null)
+                    {
+                        throw new IllegalArgumentException("AdmitCardDateTo from cannot be null if isAdmitCardDateToNa is false");
+                    }
+                }
+                customProduct.setIsAdmitCardDateToNa(addProductDto.getIsAdmitCardDateToNa());
+            }
+            if(addProductDto.getIsAdmitCardDateFromNa()!=null)
+            {
+                if(addProductDto.getIsAdmitCardDateFromNa().equals(true))
+                {
+                    addProductDto.setAdmitCardDateFrom(null);
+                }
+                else if(addProductDto.getIsAdmitCardDateFromNa().equals(false))
+                {
+                    if(addProductDto.getAdmitCardDateFrom()==null && customProduct.getAdmitCardDateFrom()==null)
+                    {
+                        throw new IllegalArgumentException("AdmitCardDateFrom from cannot be null if isAdmitCardDateFromNa is false");
+                    }
+                }
+                customProduct.setIsAdmitCardDateFromNa(addProductDto.getIsAdmitCardDateFromNa());
+            }
+            if(addProductDto.getIsModificationDateFromNa()!=null)
+            {
+                if(addProductDto.getIsModificationDateFromNa().equals(true))
+                {
+                    addProductDto.setModificationDateFrom(null);
+                }
+                else if(addProductDto.getIsModificationDateFromNa().equals(false))
+                {
+                    if(addProductDto.getModificationDateFrom()==null && customProduct.getModificationDateFrom()==null)
+                    {
+                        throw new IllegalArgumentException("ModificationDateFrom from cannot be null if isModificationDateFromNa is false");
+                    }
+                }
+                customProduct.setIsModificationDateFromNa(addProductDto.getIsModificationDateFromNa());
+            }
+            if(addProductDto.getIsModificationDateToNa()!=null)
+            {
+                if(addProductDto.getIsModificationDateToNa().equals(true))
+                {
+                    addProductDto.setModificationDateTo(null);
+                }
+                else if(addProductDto.getIsModificationDateToNa().equals(false))
+                {
+                    if(addProductDto.getModificationDateTo()==null && customProduct.getModificationDateTo()==null)
+                    {
+                        throw new IllegalArgumentException("ModificationDateTo from cannot be null if isModificationDateToNa is false");
+                    }
+                }
+                customProduct.setIsModificationDateToNa(addProductDto.getIsModificationDateToNa());
+            }
 
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1868,10 +2260,10 @@ public class ProductService {
             // Check if lastDateToPayFee is null or empty (for when an empty value is passed)
             if (addProductDto.getLastDateToPayFee() == null) {
                 // If last date to pay fee is null or empty, set it to null in the custom product
-                customProduct.setLateDateToPayFee(null);
+             validateLastDateToPayFromForNullDates(customProduct);
                 return true;
             }
-
+            validateLastDateToPayFromForNonNullDates(customProduct);
             // Proceed with validation only if the date is not null
             dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
 
@@ -1937,6 +2329,8 @@ public class ProductService {
 
     public Boolean validateAndSetModifiedDates(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
         try {
+            validateModificationDateFromForNullDates(customProduct);
+            validateModificationDateToForNullDates(customProduct);
             // Case 1: Both dates are null - set both as null in customProduct and return
             if (addProductDto.getModificationDateFrom() == null && addProductDto.getModificationDateTo() == null) {
                 customProduct.setModificationDateFrom(null);
@@ -1946,6 +2340,8 @@ public class ProductService {
 
             // Case 2: Only ModificationDateFrom is provided
             if (addProductDto.getModificationDateFrom() != null && addProductDto.getModificationDateTo() == null) {
+                validateModificationDateFromForNonNullDates(customProduct);
+                validateModificationDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getModificationDateFrom()));
 
                 // Validate ModificationDateFrom against other dates
@@ -1959,6 +2355,8 @@ public class ProductService {
 
             // Case 3: Only ModificationDateTo is provided
             if (addProductDto.getModificationDateFrom() == null && addProductDto.getModificationDateTo() != null) {
+                validateModificationDateFromForNullDates(customProduct);
+                validateModificationDateToForNonNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getModificationDateTo()));
 
                 // Validate ModificationDateTo against other dates
@@ -1971,6 +2369,8 @@ public class ProductService {
             }
 
             // Case 4: Both dates are provided - full validation
+            validateModificationDateFromForNonNullDates(customProduct);
+            validateModificationDateToForNonNullDates(customProduct);
             dateFormat.parse(dateFormat.format(addProductDto.getModificationDateFrom()));
             dateFormat.parse(dateFormat.format(addProductDto.getModificationDateTo()));
 
@@ -2054,6 +2454,8 @@ public class ProductService {
         try {
             // Case 1: If both dates are provided, validate them
             if (addProductDto.getExamDateFrom() != null && addProductDto.getExamDateTo() != null) {
+                validateExamDateFromForNonNullDates(customProduct);
+                validateExamDateToForNonNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
 
@@ -2071,6 +2473,8 @@ public class ProductService {
             }
             // Case 2: If only from date is provided
             else if (addProductDto.getExamDateFrom() != null) {
+                validateExamDateFromForNonNullDates(customProduct);
+                validateExamDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
 
                 // Perform validation checks
@@ -2082,6 +2486,8 @@ public class ProductService {
             }
             // Case 3: If only to date is provided
             else if (addProductDto.getExamDateTo() != null) {
+                validateExamDateToForNonNullDates(customProduct);
+                validateExamDateFromForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
 
                 if (customProduct.getExamDateFrom() != null) {
@@ -2098,6 +2504,8 @@ public class ProductService {
             // Case 4: If both dates are null
             else {
                 // Set both dates to null
+                validateExamDateFromForNullDates(customProduct);
+                validateExamDateToForNullDates(customProduct);
                 customProduct.setExamDateFrom(null);
                 customProduct.setExamDateTo(null);
             }
@@ -2168,6 +2576,8 @@ public class ProductService {
         try {
             // Case 1: If both dates are provided, validate them
             if (addProductDto.getAdmitCardDateFrom() != null && addProductDto.getAdmitCardDateTo() != null) {
+                validateAdmitCardDateToForNonNullDates(customProduct);
+                validateAdmitDateFromForNonNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateFrom()));
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateTo()));
 
@@ -2185,6 +2595,8 @@ public class ProductService {
             }
             // Case 2: If only from date is provided
             else if (addProductDto.getAdmitCardDateFrom() != null) {
+                validateAdmitDateFromForNonNullDates(customProduct);
+                validateAdmitCardDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateFrom()));
 //                addProductDto.setAdmitCardDateTo(addProductDto.getAdmitCardDateFrom());
 
@@ -2197,6 +2609,8 @@ public class ProductService {
             }
             // Case 3: If only to date is provided
             else if (addProductDto.getAdmitCardDateTo() != null) {
+                validateAdmitCardDateToForNonNullDates(customProduct);
+                validateAdmitCardDateFromForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateTo()));
 
                 if (customProduct.getAdmitCardDateFrom() != null) {
@@ -2212,6 +2626,8 @@ public class ProductService {
             }
             // Case 4: If both dates are null
             else {
+                validateAdmitCardDateFromForNullDates(customProduct);
+                validateAdmitCardDateToForNullDates(customProduct);
                 // Set both dates to null
                 customProduct.setAdmitCardDateFrom(null);
                 customProduct.setAdmitCardDateTo(null);
@@ -2528,10 +2944,10 @@ public class ProductService {
                     List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
                     for (Privileges privilege : privileges) {
                         if ((privilege.getPrivilege_name().equals(Constant.PRIVILEGE_APPROVE_PRODUCT) && customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED))) {
-//                            if (addProductDto.getIsReviewRequired() == null) {
-//                                throw new IllegalArgumentException("Is review Required cannot be null");
-//                            }
-//                            customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+                            if (addProductDto.getIsReviewRequired() == null) {
+                                throw new IllegalArgumentException("Is review Required cannot be null");
+                            }
+                            customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                             customProduct.setProductState(customProductState);
                             customProduct.setIsApproved(true);
                             return true;
@@ -2562,10 +2978,10 @@ public class ProductService {
                         }
                     }
                     else if (customProductState.getProductState().equals(Constant.PRODUCT_STATE_APPROVED)) {
-//                        if (addProductDto.getIsReviewRequired() == null) {
-//                            throw new IllegalArgumentException("Is review Required cannot be null");
-//                        }
-//                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
+                        if (addProductDto.getIsReviewRequired() == null) {
+                            throw new IllegalArgumentException("Is review Required cannot be null");
+                        }
+                        customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
                         customProduct.setProductState(customProductState);
                         customProduct.setIsApproved(true);
                     }
@@ -4221,4 +4637,146 @@ public class ProductService {
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTime();
     }
+
+    public void validateLastDateToPayFromForNullDates( CustomProduct customProduct)
+    {
+        if(customProduct.getIsLateDateToPayFeeNa()!=null )
+        {
+            if(customProduct.getIsLateDateToPayFeeNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill IsLateDateToPayFeeNa as true if u want to remove last date to pay fee");
+            }
+        }
+    }
+    public void validateLastDateToPayFromForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsLateDateToPayFeeNa()!=null )
+        {
+            if(customProduct.getIsLateDateToPayFeeNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isLateDateToPayFeeNa as false if u want to give last date to pay fee");
+            }
+        }
+    }
+    public void validateModificationDateFromForNullDates( CustomProduct customProduct)
+    {
+        if(customProduct.getIsModificationDateFromNa()!=null )
+        {
+            if(customProduct.getIsModificationDateFromNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isModificationDateFromNa as true if u want to remove modification date from");
+            }
+        }
+    }
+    public void validateModificationDateFromForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsModificationDateFromNa()!=null )
+        {
+            if(customProduct.getIsModificationDateFromNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isModificationDateFromNa as false if u want to give modification date from");
+            }
+        }
+    }
+    public void validateModificationDateToForNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsModificationDateToNa()!=null )
+        {
+            if(customProduct.getIsModificationDateToNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isModificationDateToNa as true if u want to remove modification date to");
+            }
+        }
+    }
+    public void validateModificationDateToForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsModificationDateToNa()!=null )
+        {
+            if(customProduct.getIsModificationDateToNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isModificationDateToNa as false if u want to give modification date to");
+            }
+        }
+    }
+    public void validateAdmitCardDateFromForNullDates( CustomProduct customProduct)
+    {
+        if(customProduct.getIsAdmitCardDateFromNa()!=null )
+        {
+            if(customProduct.getIsAdmitCardDateFromNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isAdmitCardDateFromNa as true if u want to remove admit card date from");
+            }
+        }
+    }
+    public void validateAdmitDateFromForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsAdmitCardDateFromNa()!=null )
+        {
+            if(customProduct.getIsAdmitCardDateFromNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isAdmitCardDateFromNa as false if u want to give admit card date from");
+            }
+        }
+    }
+    public void validateAdmitCardDateToForNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsAdmitCardDateToNa()!=null )
+        {
+            if(customProduct.getIsAdmitCardDateToNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isAdmitCardDateToNa as true if u want to remove admit card date to");
+            }
+        }
+    }
+    public void validateAdmitCardDateToForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsAdmitCardDateToNa()!=null )
+        {
+            if(customProduct.getIsAdmitCardDateToNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isAdmitCardDateToNa as false if u want to give admit card date to");
+            }
+        }
+    }
+    public void validateExamDateFromForNullDates( CustomProduct customProduct)
+    {
+        if(customProduct.getIsExamDateFromNa()!=null )
+        {
+            if(customProduct.getIsExamDateFromNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isExamDateFromNa as true if u want to remove exam date from");
+            }
+        }
+    }
+    public void validateExamDateFromForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsExamDateFromNa()!=null )
+        {
+            if(customProduct.getIsExamDateFromNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isExamDateFromNa as false if u want to give exam date from");
+            }
+        }
+    }
+    public void validateExamDateToForNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsExamDateToNa()!=null )
+        {
+            if(customProduct.getIsExamDateToNa().equals(false))
+            {
+                throw new IllegalArgumentException("You have to fill isExamDateToNa as true if u want to remove exam date to");
+            }
+        }
+    }
+    public void validateExamDateToForNonNullDates(CustomProduct customProduct)
+    {
+        if(customProduct.getIsExamDateToNa()!=null )
+        {
+            if(customProduct.getIsExamDateToNa().equals(true))
+            {
+                throw new IllegalArgumentException("You have to fill isExamDateToNa as false if u want to give exam date to");
+            }
+        }
+    }
+
 }

@@ -70,7 +70,6 @@ public class QualificationDetailsController
 //            System.out.println("dfhasdkfjhalskdjf"+roleId);
              role = roleService.getRoleByRoleId(roleId).getRole_name();
             System.out.println("role name"+role);
-            System.out.println("customer "+);
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for "+role,newQualificationDetails,HttpStatus.CREATED);
         }

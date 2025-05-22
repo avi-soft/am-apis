@@ -627,9 +627,15 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Order with the provided id not found", HttpStatus.NOT_FOUND);
             }
 
+            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW) ) {
+                throw new IllegalArgumentException("Order can only be allowed to allocate at new state.");
+            }
+
             if (createTicketDto.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate()) == 1)
                     return ResponseService.generateErrorResponse("Target completion date cannot be in past", HttpStatus.BAD_REQUEST);
+
                 Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
                 if(createTicketDto.getTargetCompletionDate().after(product.getActiveEndDate()) || createTicketDto.getTargetCompletionDate().before(product.getActiveStartDate()) || !createTicketDto.getTargetCompletionDate().after(new Date())) {
                     log.info(String.valueOf(createTicketDto.getTargetCompletionDate()));
@@ -638,12 +644,13 @@ public class OrderController {
                     log.info(String.valueOf(product.getId()));
                     return ResponseService.generateErrorResponse("Target completion date must be b/w product open date and close data and after current date.", HttpStatus.BAD_REQUEST);
                 }
+                log.info("hello");
 
             } else {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
             }
 
-            CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
+
             ServiceProviderEntity serviceProvider = null;
 
             Long assignedUserId;
