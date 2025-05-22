@@ -667,8 +667,11 @@ public class ServiceProviderTicketService {
             Date createdDate = dateFormat.parse(formattedDate);
 
             // If target date is provided then it's fine else we give 4 hours to complete the ticket.
-            if (createTicketDto.getTargetCompletionDate() != null && !(createTicketDto.getTargetCompletionDate().after(new Date()))) {
-                ResponseService.generateErrorResponse("TARGET COMPLETION DATE MUST BE OF FUTURE", HttpStatus.NOT_FOUND);
+            log.info("date {}", createTicketDto.getTargetCompletionDate());
+            if (createTicketDto.getTargetCompletionDate() != null) {
+                if(!createTicketDto.getTargetCompletionDate().after(createdDate)) {
+                    throw new IllegalArgumentException("TARGET COMPLETION DATE MUST BE OF FUTURE");
+                }
             } else {
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTime(createdDate);

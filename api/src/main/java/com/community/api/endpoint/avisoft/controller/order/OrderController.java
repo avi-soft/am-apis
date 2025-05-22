@@ -630,6 +630,7 @@ public class OrderController {
             if (createTicketDto.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDto.getTargetCompletionDate()) == 1)
                     return ResponseService.generateErrorResponse("Target completion date cannot be in past", HttpStatus.BAD_REQUEST);
+
                 Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
                 if(createTicketDto.getTargetCompletionDate().after(product.getActiveEndDate()) || createTicketDto.getTargetCompletionDate().before(product.getActiveStartDate()) || !createTicketDto.getTargetCompletionDate().after(new Date())) {
                     log.info(String.valueOf(createTicketDto.getTargetCompletionDate()));
@@ -638,6 +639,7 @@ public class OrderController {
                     log.info(String.valueOf(product.getId()));
                     return ResponseService.generateErrorResponse("Target completion date must be b/w product open date and close data and after current date.", HttpStatus.BAD_REQUEST);
                 }
+                log.info("hello");
 
             } else {
                 return ResponseService.generateErrorResponse("Target Completion date is mandatory", HttpStatus.BAD_REQUEST);
