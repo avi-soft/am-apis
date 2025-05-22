@@ -1577,10 +1577,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
-                if (serviceProviderEntity != null)
-                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
-                else
-                    throw new PersistenceException("No results found for your input");
+                if (serviceProviderEntity != null) {
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                        return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+                }else {
+                    // Return empty response
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    return ResponseService.generateSuccessResponse("No Details found for the given mobile number", response, HttpStatus.OK);
+                }
             }
 
             if (userName != null && !userName.trim().isEmpty()) {
@@ -1590,10 +1595,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
-                if (serviceProviderEntity != null)
-                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
-                else
-                    throw new PersistenceException("No results found for your input username");
+                if (serviceProviderEntity != null) {
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                    return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+                } else {
+                    // Return empty response
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    return ResponseService.generateSuccessResponse("No Details found for the given UserName", response, HttpStatus.OK);
+                }
             }
 
             if (test_status_id != null) {
