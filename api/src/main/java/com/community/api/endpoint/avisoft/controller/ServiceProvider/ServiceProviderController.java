@@ -612,6 +612,10 @@ public ResponseEntity<?> getAllServiceProviders(
                 return ResponseService.generateErrorResponse("Username can only contain letters and numbers", HttpStatus.BAD_REQUEST);
             }
 
+            if (mobileNumber != null && !mobileNumber.matches("^[0-9]+$")) {
+                return ResponseService.generateErrorResponse("Mobile number must contain digits only", HttpStatus.BAD_REQUEST);
+            }
+
 
             String first_name = null;
             String last_name = null;
@@ -625,11 +629,54 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)  serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                List<Map<String, Object>> resultList = new ArrayList<>();
+                if (response.getBody() != null && response.getBody().getData() != null) {
+                    resultList = (List<Map<String, Object>>) response.getBody().getData();
+                }
+
+
+                int totalItems = resultList.size();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int currentPage = offset;
+
+                int fromIndex = Math.min(offset * limit, totalItems);
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+                List<Map<String, Object>> paginatedList = resultList.subList(fromIndex, toIndex);
+
+                Map<String, Object> finalResponse = new HashMap<>();
+                finalResponse.put("response", paginatedList);
+                finalResponse.put("totalItems", totalItems);
+                finalResponse.put("totalPages", totalPages);
+                finalResponse.put("currentPage", currentPage);
+                String message = resultList.isEmpty() ? "No Details Found" : "Details found";
+                return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
             }
 
+
             if (user_name != null && !user_name.isEmpty()) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)   serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                List<Map<String, Object>> resultList = new ArrayList<>();
+                if (response.getBody() != null && response.getBody().getData() != null) {
+                    resultList = (List<Map<String, Object>>) response.getBody().getData();
+                }
+
+                int totalItems = resultList.size();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int currentPage = offset;
+
+                int fromIndex = Math.min(offset * limit, totalItems);
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+                List<Map<String, Object>> paginatedList = resultList.subList(fromIndex, toIndex);
+
+                Map<String, Object> finalResponse = new HashMap<>();
+                finalResponse.put("response", paginatedList);
+                finalResponse.put("totalItems", totalItems);
+                finalResponse.put("totalPages", totalPages);
+                finalResponse.put("currentPage", currentPage);
+                String message = resultList.isEmpty() ? "No Details Found" : "Details found";
+                return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
+
             }
 
             // Handle search by full name (split into first and last names)

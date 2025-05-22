@@ -114,5 +114,31 @@ public class AddProductDto {
     private List<PostDto> posts;
     private String additionalComments;
     private String feeAdditionalComments;
+    @JsonProperty("is_exam_date_from_na")
+    protected Boolean isExamDateFromNa;
+    @JsonProperty("is_answer_key_available_date_na")
+    protected Boolean isAnswerKeyAvailableDateNa;
+    @JsonProperty( "is_result_declaration_date_na")
+    protected Boolean isResultDeclarationDateNa;
+    @JsonProperty( "is_counselling_date_na")
+    protected Boolean isCounsellingDateNa;
+    @JsonProperty("is_tentative_document_verification_from_na")
+    protected Boolean isTentativeVerificationFromNa;
+    @JsonProperty("is_tentative_document_verification_to_na")
+    protected Boolean isTentativeVerificationToNa;
+    @JsonProperty( "is_exam_date_to_na")
+    protected Boolean isExamDateToNa;
+    @JsonProperty("is_exam_center_available_date_na")
+    protected Boolean isExamCenterAvailableDateNa;
+    @JsonProperty("is_last_date_to_pay_fee_na")
+    protected Boolean isLateDateToPayFeeNa;
+    @JsonProperty( "is_admit_card_date_from_na")
+    protected Boolean isAdmitCardDateFromNa;
+    @JsonProperty( "is_admit_card_date_to_na")
+    protected Boolean isAdmitCardDateToNa;
+    @JsonProperty("is_modification_date_from_na")
+    protected Boolean isModificationDateFromNa;
+    @JsonProperty("is_modification_date_to_na")
+    protected Boolean isModificationDateToNa;
 
 }

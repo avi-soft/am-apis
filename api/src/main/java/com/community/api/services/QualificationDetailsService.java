@@ -75,7 +75,7 @@ public class QualificationDetailsService {
         List<OtherItem> allOtherItemsToSave=new ArrayList<>();
         String sourceName= "add_qualification";
         Qualification qualificationToSearch= entityManager.find(Qualification.class,qualificationDetails.getQualification_id());
-        if (roleName.equals(Constant.SERVICE_PROVIDER)) {
+        if (roleName.equals(Constant.SERVICE_PROVIDER) || roleName.equals(Constant.ADMIN) || roleName.equals(Constant.SUPER_ADMIN)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
             dateValidations();
 
