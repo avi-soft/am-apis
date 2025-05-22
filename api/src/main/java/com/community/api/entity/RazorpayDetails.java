@@ -32,6 +32,6 @@ public class RazorpayDetails{
     private LocalDateTime timeStamp;
 
     @Column(name = "verified",columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean verified;
+    public Boolean verified=false;
 
 }
