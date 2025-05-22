@@ -459,7 +459,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<Integer> infraList = getIntegerList(updates, "infra_list");
             List<Integer> skillList = getIntegerList(updates, "skill_list");
             List<Integer> languageList = getIntegerList(updates, "language_list");
-            existingServiceProvider.setOtherSkill(null);
             if (updates.containsKey("has_technical_knowledge")) {
                 if ((boolean) updates.get("has_technical_knowledge").equals(true)) {
                     if (!skillList.isEmpty()) {
@@ -482,6 +481,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                     existingServiceProvider.setOtherSkill(otherSkill);
 
                                 }
+                            }
+                            else {
+                                 existingServiceProvider.setOtherSkill(null);
                             }
                             if (skill != null) {
                                 if (!serviceProviderSkills.contains(skill))
