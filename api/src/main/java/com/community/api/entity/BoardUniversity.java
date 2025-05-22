@@ -41,4 +41,8 @@
 
         @Column(name = "modified_by")
         private String modified_by;
+
+        @Column(name = "sort_order", nullable = false)
+        private Long sortOrder;
+
     }
