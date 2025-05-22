@@ -178,4 +178,7 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "fee_additional_comments")
     private String feeAdditionalComments;
 
+    @Column(name = "views", columnDefinition = "BIGINT DEFAULT 0")
+    private Long views;
+
 }
