@@ -108,7 +108,7 @@ public class EarningsController {
         // Service Provider role-specific validation
         if (role.getRole_name().equals(Constant.roleServiceProvider)) {
             if (spId!=null) {
-                return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
             } else {
                 spId=tokenUserId;
             }
@@ -206,7 +206,7 @@ public class EarningsController {
             if(role.getRole_name().equals(Constant.roleServiceProvider))
             {
                 if(spId!=null)
-                    return ResponseService.generateErrorResponse("Invalid request",HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.FORBIDDEN);
                 else
                     spId=tokenUserId;
             }
