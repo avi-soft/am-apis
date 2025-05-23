@@ -402,7 +402,7 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
-                    ticket.setAssignee(createTicketDTO.getAssignee());
+//                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -451,7 +451,9 @@ public class TicketStateService {
             if(oldAssigneeId != null || newAssigneeId != null) {
                 updateSpTicketAvailibility(ticket, ticketState, oldAssigneeId, newAssigneeId);
             }
-
+            if(newAssigneeId != null) {
+                ticket.setAssignee(newAssigneeId);
+            }
             return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {
