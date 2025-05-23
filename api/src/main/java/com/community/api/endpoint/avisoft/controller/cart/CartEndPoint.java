@@ -685,7 +685,7 @@ public class CartEndPoint extends BaseEndpoint {
                         razorpayDetails.setOrderId(individualOrder.getId());
                         razorpayDetails.setRazorpayOrderId(razorpayOrder.get("id"));
                         razorpayDetails.setTimeStamp(LocalDateTime.now());
-                        razorpayDetails.setStatus("CREATED");
+                        razorpayDetails.setStatus("initiated");
                         entityManager.persist(razorpayDetails);
                         //
 
@@ -702,15 +702,6 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             responseMap.put("Orders", individualOrders);
-            List<OrderItem> items = cart.getOrderItems();
-            Iterator<OrderItem> iterator = items.iterator();
-            while (iterator.hasNext()) {
-                OrderItem item = iterator.next();
-                if (orderItemIds.contains(item.getId())) {
-                    iterator.remove();
-                    entityManager.remove(item);
-                }
-            }
             customCustomer.setNumberOfOrders(batchNumber);
 
             entityManager.merge(cart);
@@ -731,16 +722,21 @@ public class CartEndPoint extends BaseEndpoint {
     }
 
     @Transactional
-    @PutMapping("/confirm-order")
-    public ResponseEntity<?> confirmOrderStatus(@RequestParam List<Long> orderIds, @RequestBody Map<String, String> paymentStatus,@RequestParam(required = false)Boolean failed,@RequestHeader(value = "Authorization")String authHeader) {
+    @PutMapping("{customerId}/confirm-order")
+    public ResponseEntity<?> confirmOrderStatus(@PathVariable Long customerId,@RequestParam List<Long> orderIds, @RequestBody(required = false) Map<String, String> paymentStatus,@RequestParam(required = false,defaultValue = "false")Boolean failed,@RequestHeader(value = "Authorization")String authHeader) {
 
+        if(customerId==null)
+            return ResponseService.generateErrorResponse("Customer id is required",HttpStatus.BAD_REQUEST);
+        Customer customer=customerService.readCustomerById(customerId);
+        if(customer==null)
+            return ResponseService.generateErrorResponse("Customer not found",HttpStatus.BAD_REQUEST);
 
-        String razorpayOrderId = paymentStatus.get("razorpay_order_id");
-        String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
-        String razorpaySignature = paymentStatus.get("razorpay_signature");
-        String status = getPaymentStatus(razorpayPaymentId);
-
-        if(failed==null) {
+        String status=null;
+        if(!failed) {
+            String razorpayOrderId = paymentStatus.get("razorpay_order_id");
+            String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
+            String razorpaySignature = paymentStatus.get("razorpay_signature");
+             status= getPaymentStatus(razorpayPaymentId);
             if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
                 return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
             }
@@ -757,6 +753,10 @@ public class CartEndPoint extends BaseEndpoint {
                 return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
+        else
+        {
+            RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderIds.get(0));
+        }
 
 
         // Rest of the order processing (same as before)
@@ -764,17 +764,21 @@ public class CartEndPoint extends BaseEndpoint {
 
         boolean isFailed = false;
         List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
-
+        Order order;
         for (Long orderId : orderIds) {
-            Order order = orderService.findOrderById(orderId);
+
+             order = orderService.findOrderById(orderId);
+
             if(order!=null&&!verifyUser(authHeader,order.getCustomer().getId()))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
+            if(!order.getCustomer().getId().equals(customerId))
+                return ResponseService.generateErrorResponse("Order do not belong to selected customer",HttpStatus.BAD_REQUEST);
             RazorpayDetails details=entityManager.find(RazorpayDetails.class,orderId);
-            if(details.getVerified()==null||details.getVerified())
+            if(details.getVerified()!=null&&details.getVerified())
             {
                 return ResponseService.generateErrorResponse("Cannot verify payment : Order with id : "+orderId.longValue()+" already verified",HttpStatus.FORBIDDEN);
             }
-            if(!details.getStatus().equals(status)&&failed==null)
+            if(!failed&&!details.getStatus().equals(status))
             {
                 Map<String,String>jsonObject=new HashMap<>();
                 jsonObject.put("razorpay_payment_status",details.getStatus());
@@ -818,12 +822,13 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-
                 entityManager.merge(customCustomer);
-            } else if ("failed".equalsIgnoreCase(status)||(failed!=null&&failed)) {
+            } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
+                details.setVerified(true);
                 orderStatus = new OrderStatus("PAYMENT_FAILED", null);
                 details.setTimeStamp(LocalDateTime.now());
+                details.setStatus("failed");
                 details.setVerified(true);
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
@@ -839,7 +844,7 @@ public class CartEndPoint extends BaseEndpoint {
 
             // Prepare DTO
             Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-            Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+            customer = customerService.readCustomerById(order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
                     customer.getId(),
                     customer.getFirstName() + " " + customer.getLastName(),
@@ -850,9 +855,12 @@ public class CartEndPoint extends BaseEndpoint {
             );
             orderDTOS.add(orderDTOService.wrapOrder(order, customOrderState, null, customerDetailsDTO));
         }
+
         if (!isFailed) {
+            emptyTheCart(customerId,authHeader);
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
+
             return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
         }
     }

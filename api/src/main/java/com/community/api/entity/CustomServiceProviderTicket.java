@@ -99,15 +99,15 @@ public class CustomServiceProviderTicket {
     @JsonProperty("order")
     private OrderImpl order;
 
-    @Column(name = "comment")
+    @Column(name = "comment", columnDefinition = "TEXT")
     @JsonProperty("comment")
     private String comment;
 
-    @Column(name = "title")
+    @Column(name = "title", columnDefinition = "TEXT")
     @JsonProperty("title")
     private String title;
 
-    @Column(name = "task_desc")
+    @Column(name = "task_desc", columnDefinition = "TEXT")
     @JsonProperty("task_desc")
     private String desc;
 

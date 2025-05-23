@@ -482,9 +482,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                                 }
                             }
-                            else
-                            {
-                                existingServiceProvider.setOtherSkill(null);
+                            else {
+                                 existingServiceProvider.setOtherSkill(null);
                             }
                             if (skill != null) {
                                 if (!serviceProviderSkills.contains(skill))
@@ -1750,10 +1749,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 throw new IllegalArgumentException("No Test Status is found with this id");
             }
 
-            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved", ServiceProviderEntity.class);
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role = :roleId", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
             query.setParameter("isApproved", true);
+            query.setParameter("roleId", 4);
 
             return query.getResultList();
 
