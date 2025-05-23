@@ -1,22 +1,26 @@
-CREATE OR REPLACE PROCEDURE create_ticket(
-    IN p_ticket_state BIGINT,
-    IN p_ticket_type BIGINT,
-    IN p_ticket_status BIGINT,
-    IN p_assignee BIGINT,
-    IN p_assignee_role INTEGER,
-    IN p_creator_role_id INTEGER,
-    IN p_creator_id BIGINT,
-    IN p_order_id BIGINT,
-    IN p_task TEXT DEFAULT NULL,
-    IN p_target_completion TIMESTAMP DEFAULT NULL
-)
-LANGUAGE plpgsql
-AS $$
+-- PROCEDURE: public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone)
+
+-- DROP PROCEDURE IF EXISTS public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone);
+
+CREATE OR REPLACE PROCEDURE public.create_ticket(
+	IN p_ticket_state bigint,
+	IN p_ticket_type bigint,
+	IN p_ticket_status bigint,
+	IN p_assignee bigint,
+	IN p_assignee_role integer,
+	IN p_order_id bigint,
+	OUT v_ticket_id bigint,
+	IN p_task text DEFAULT NULL::text,
+	IN p_target_completion timestamp without time zone DEFAULT NULL::timestamp without time zone)
+LANGUAGE 'plpgsql'
+AS $BODY$
 DECLARE
     v_created_date TIMESTAMP := now();
     v_target_date TIMESTAMP;
-    v_ticket_id BIGINT;
 BEGIN
+
+	RAISE NOTICE '7. create ticket';
+
     -- Validate Target Completion Date
     IF p_target_completion IS NOT NULL THEN
         IF p_target_completion <= v_created_date THEN
@@ -30,18 +34,16 @@ BEGIN
     -- Insert ticket
     INSERT INTO custom_service_provider_ticket (
         created_date,
-        ticket_assign_date,
+        ticket_assign_time,
         modified_date,
-        target_completion_date,
+        target_completion_time,
         order_id,
-        assignee,
-        assignee_role,
-        ticket_state,
-        ticket_type,
-        ticket_status,
-        "desc",
-        user_id,
-        creator_role
+        assignee_user_id,
+        assignee_role_id,
+        ticket_state_id,
+        ticket_type_id,
+        ticket_status_id,
+        task_desc
     )
     VALUES (
         v_created_date,
@@ -54,11 +56,9 @@ BEGIN
         p_ticket_state,
         p_ticket_type,
         COALESCE(p_ticket_status, 0),
-        p_task,
-        p_creator_id,
-        p_creator_role_id
+        p_task
     )
-    RETURNING id INTO v_ticket_id;
+    RETURNING ticket_id INTO v_ticket_id;
 
     -- Increment ticket count if assignee is a service provider
     IF p_assignee_role = 4 THEN
@@ -70,4 +70,6 @@ BEGIN
     RAISE NOTICE 'Ticket Created with ID: %', v_ticket_id;
 
 END;
-$$;
+$BODY$;
+ALTER PROCEDURE public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone)
+    OWNER TO postgres;
