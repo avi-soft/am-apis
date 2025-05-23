@@ -1,23 +1,30 @@
+-- PROCEDURE: public.primary_ticket_normal_flow(bigint[])
+
+-- DROP PROCEDURE IF EXISTS public.primary_ticket_normal_flow(bigint[]);
+
 CREATE OR REPLACE PROCEDURE public.primary_ticket_normal_flow(
-    IN available_service_providers BIGINT[],      -- Input: List of available SPs
-    OUT assigned_tickets BIGINT[]                 -- Output: List of assigned ticket IDs
-)
-LANGUAGE plpgsql
-AS $$
+	IN available_service_providers bigint[],
+	OUT assigned_tickets bigint[])
+LANGUAGE 'plpgsql'
+AS $BODY$
+
 DECLARE
     v_order_state_id CONSTANT INTEGER := 1;         -- "NEW" order state
     custom_orders BIGINT[];                       -- Orders in NEW state
 BEGIN
+
+	RAISE NOTICE '3. PRIMARY TICKET STORED PROCEDURE';
+
     -- Step 1: Simulate fetching order state = 1 (NEW)
     IF v_order_state_id IS NULL THEN
         RAISE EXCEPTION 'No Order State Ref Found with id 1 (NEW).';
     END IF;
 
     -- Step 2: Fetch custom orders with order_state_id = 1
-    CALL public.get_order_state_by_order_state_id(v_order_state_id, custom_orders);
+    CALL public.get_order_by_order_state_id(v_order_state_id, custom_orders);
 
     IF custom_orders IS NULL OR array_length(custom_orders, 1) = 0 THEN
-        RAISE EXCEPTION 'No Orders to Assign';
+        RAISE NOTICE 'No Orders to Assign';
     END IF;
 
     RAISE NOTICE 'Number of custom orders in NEW state: %', array_length(custom_orders, 1);
@@ -26,15 +33,13 @@ BEGIN
 
     -- Step 3: RBTA logic — will append to assigned_tickets
     CALL public.random_binding_ticket_allocation(custom_orders, assigned_tickets);
+	RAISE NOTICE 'Assigned Tickets (RBTA) {for normal flow}: %', assigned_tickets;
 
     -- Step 4: VDTA logic — will also append to assigned_tickets
     CALL public.vertical_distribution_ticket_allocation(custom_orders, available_service_providers, assigned_tickets);
+    RAISE NOTICE 'Final Assigned Tickets (RBTA + VDTA) {for normal flow}: %', assigned_tickets;
 
-    RAISE NOTICE 'Final Assigned Tickets (RBTA + VDTA): %', assigned_tickets;
 END;
-$$;
-
-ALTER PROCEDURE public.primary_ticket_normal_flow(
-    IN available_service_providers BIGINT[],
-    OUT assigned_tickets BIGINT[]
-) OWNER TO postgres;
+$BODY$;
+ALTER PROCEDURE public.primary_ticket_normal_flow(bigint[])
+    OWNER TO postgres;
