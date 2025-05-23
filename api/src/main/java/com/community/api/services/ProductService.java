@@ -23,6 +23,8 @@ import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
+import org.broadleafcommerce.core.catalog.domain.ProductImpl;
+import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -563,6 +565,7 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
+            jpql.append("JOIN ProductImpl pi WITH pi.archiveStatus.archived = 'N' WHERE 1=1 ");
             // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
@@ -580,7 +583,7 @@ public class ProductService {
             }*/
             // Initialize the JPQL query
 
-
+            jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
             // List to hold query parameters
             List<CustomProductState> customProductStates = new ArrayList<>();
             List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
@@ -710,6 +713,7 @@ public class ProductService {
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
+            System.out.println(jpql.toString());
             query.setFirstResult(offset*limit);     // e.g., offset = 20
             query.setMaxResults(limit);// e.g., limit = 10
             // Set parameters
@@ -764,6 +768,7 @@ public class ProductService {
             int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
              response.put("products",query.getResultList());
+            System.out.println("hello i have returned");
             // Execute and return the result
             return response;
         } catch (IllegalArgumentException illegalArgumentException) {
