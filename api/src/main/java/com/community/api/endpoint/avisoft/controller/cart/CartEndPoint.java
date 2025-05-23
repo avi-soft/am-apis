@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.cart;
 
 import com.broadleafcommerce.rest.api.endpoint.BaseEndpoint;
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
@@ -23,6 +24,7 @@ import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
 import net.bytebuddy.asm.Advice;
+import org.aspectj.weaver.ast.Or;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
 import org.broadleafcommerce.common.money.Money;
@@ -119,6 +121,12 @@ public class CartEndPoint extends BaseEndpoint {
     @Autowired
     BroadleafCurrencyService broadleafCurrencyService;
 
+    @Autowired
+    private JwtUtil jwtTokenUtil;
+
+    @Autowired
+    private RoleService roleService;
+
 
     private RazorpayClient razorpayCLient;
 
@@ -212,8 +220,10 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "empty/{customerId}", method = RequestMethod.DELETE)
-    public ResponseEntity<?> emptyTheCart(@PathVariable Long customerId) { //@TODO-empty cart should remove each item one by one
+    public ResponseEntity<?> emptyTheCart(@PathVariable Long customerId,@RequestHeader(value = "Authorization")String authHeader) { //@TODO-empty cart should remove each item one by one
         try {
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -265,9 +275,10 @@ public class CartEndPoint extends BaseEndpoint {
 
     @Transactional
     @RequestMapping(value = "add-to-cart/{customerId}/{productId}", method = RequestMethod.POST)
-    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId, @RequestBody Map<String, Object> map) {
+    public ResponseEntity<?> addToCart(@PathVariable long customerId, @PathVariable long productId, @RequestBody Map<String, Object> map,@RequestHeader(value = "Authorization")String authHeader) {
         try {
-
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             Long id = Long.valueOf(customerId);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
@@ -384,9 +395,11 @@ public class CartEndPoint extends BaseEndpoint {
     }
 
     @RequestMapping(value = "number-of-items/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItemsCount(@PathVariable long customerId) {
+    public ResponseEntity<?> retrieveCartItemsCount(@PathVariable long customerId,@RequestHeader(value = "Authorization")String authHeader) {
         try {
             Long id = Long.valueOf(customerId);
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             if (id == null)
                 return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             if (isAnyServiceNull()) {
@@ -414,8 +427,10 @@ public class CartEndPoint extends BaseEndpoint {
 
     @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall", required = false, defaultValue = "false") boolean inFunctionCall) {
+    public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall", required = false, defaultValue = "false") boolean inFunctionCall,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             Customer customer = customerService.readCustomerById(customerId);
             Order cart = orderService.findCartForCustomer(customer);
             if (cart == null)
@@ -494,11 +509,14 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "remove-item/{customerId}/{orderItemId}", method = RequestMethod.DELETE)
     public ResponseEntity<?> removeCartItems(
             @PathVariable long customerId,
-            @PathVariable Long orderItemId) {
+            @PathVariable Long orderItemId,
+        @RequestHeader(value = "Authorization")String authHeader){
         try {
             Long id = Long.valueOf(customerId);
             if (id == null)
                 return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             if (isAnyServiceNull()) {
                 return ResponseService.generateErrorResponse("One or more Services not initialized", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -547,7 +565,8 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             CustomProduct customProduct = null;
             /* Long id = Long.valueOf(customerId);*/
             List<Long> orderItemIds = getLongList(map, "orderItemIds");
@@ -587,7 +606,20 @@ public class CartEndPoint extends BaseEndpoint {
             List<Order> newOrders = new ArrayList<>();
             if (!errors.isEmpty())
                 return ResponseService.generateErrorResponse("Error Placing order : " + errors.toString(), HttpStatus.BAD_REQUEST);
-
+            JSONObject options = new JSONObject();
+            double totalAmt=0.0;
+            for (OrderItem orderItem : cart.getOrderItems()) {
+                if (orderItemIds.contains(orderItem.getId())) {
+                    Product product = findProductFromItemAttribute(orderItem);
+                    if (product != null)
+                        customProduct = entityManager.find(CustomProduct.class, product.getId());
+                    totalAmt+=customProduct.getPlatformFee();
+                }
+            }
+            options.put("amount", (totalAmt* 100)); // amount in paise
+            options.put("currency", "INR");
+            options.put("receipt", customer.getEmailAddress());
+            com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
             for (OrderItem orderItem : cart.getOrderItems()) {
                 if (orderItemIds.contains(orderItem.getId())) {
                     Product product = findProductFromItemAttribute(orderItem);
@@ -642,11 +674,7 @@ public class CartEndPoint extends BaseEndpoint {
                     entityManager.merge(individualOrder);
                     individualOrder.setEmailAddress(customer.getEmailAddress());
                     CustomOrderState orderState = new CustomOrderState();
-                    JSONObject options = new JSONObject();
-                    options.put("amount", (subTotal.getAmount().doubleValue() * 100)); // amount in paise
-                    options.put("currency", "INR");
-                    options.put("receipt", customer.getEmailAddress());
-                    com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
+
                     if (razorpayOrder != null) {
                         individualOrder.setOrderNumber(razorpayOrder.get("id"));
                         OrderStatus orderStatus = new OrderStatus("CREATED", null);
@@ -656,8 +684,8 @@ public class CartEndPoint extends BaseEndpoint {
                         RazorpayDetails razorpayDetails=new RazorpayDetails();
                         razorpayDetails.setOrderId(individualOrder.getId());
                         razorpayDetails.setRazorpayOrderId(razorpayOrder.get("id"));
-                        razorpayDetails.setTimeStamp(LocalDate.now());
-                        razorpayDetails.setStatus("CREATED");
+                        razorpayDetails.setTimeStamp(LocalDateTime.now());
+                        razorpayDetails.setStatus("initiated");
                         entityManager.persist(razorpayDetails);
                         //
 
@@ -674,15 +702,6 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             responseMap.put("Orders", individualOrders);
-            List<OrderItem> items = cart.getOrderItems();
-            Iterator<OrderItem> iterator = items.iterator();
-            while (iterator.hasNext()) {
-                OrderItem item = iterator.next();
-                if (orderItemIds.contains(item.getId())) {
-                    iterator.remove();
-                    entityManager.remove(item);
-                }
-            }
             customCustomer.setNumberOfOrders(batchNumber);
 
             entityManager.merge(cart);
@@ -703,51 +722,69 @@ public class CartEndPoint extends BaseEndpoint {
     }
 
     @Transactional
-    @PutMapping("/confirm-order")
-    public ResponseEntity<?> confirmOrderStatus(@RequestParam List<Long> orderIds, @RequestBody Map<String, String> paymentStatus) {
-        String razorpayOrderId = paymentStatus.get("razorpay_order_id");
-        String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
-       /* String razorpaySignature = paymentStatus.get("razorpay_signature");*/
-        String status = getPaymentStatus(razorpayPaymentId);
+    @PutMapping("{customerId}/confirm-order")
+    public ResponseEntity<?> confirmOrderStatus(@PathVariable Long customerId,@RequestParam List<Long> orderIds, @RequestBody(required = false) Map<String, String> paymentStatus,@RequestParam(required = false,defaultValue = "false")Boolean failed,@RequestHeader(value = "Authorization")String authHeader) {
 
-       /* if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
-            return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
-        }*/
+        if(customerId==null)
+            return ResponseService.generateErrorResponse("Customer id is required",HttpStatus.BAD_REQUEST);
+        Customer customer=customerService.readCustomerById(customerId);
+        if(customer==null)
+            return ResponseService.generateErrorResponse("Customer not found",HttpStatus.BAD_REQUEST);
 
-
-/*
-        try {
-            String data = razorpayOrderId + "|" + razorpayPaymentId;
-            String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
-
-            if (!generatedSignature.equals(razorpaySignature)) {
-                return ResponseService.generateErrorResponse("Signature verification failed", HttpStatus.UNAUTHORIZED);
+        String status=null;
+        if(!failed) {
+            String razorpayOrderId = paymentStatus.get("razorpay_order_id");
+            String razorpayPaymentId = paymentStatus.get("razorpay_payment_id");
+            String razorpaySignature = paymentStatus.get("razorpay_signature");
+             status= getPaymentStatus(razorpayPaymentId);
+            if (razorpayOrderId == null || razorpayPaymentId == null || razorpaySignature == null || status == null) {
+                return ResponseService.generateErrorResponse("Missing required payment verification fields", HttpStatus.BAD_REQUEST);
             }
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+
+
+            try {
+                String data = razorpayOrderId + "|" + razorpayPaymentId;
+                String generatedSignature = sharedUtilityService.hmacSha256(data, razorpaySecret); // Use your actual Razorpay key secret
+
+                if (!generatedSignature.equals(razorpaySignature)) {
+                    return ResponseService.generateErrorResponse("Signature verification failed", HttpStatus.UNAUTHORIZED);
+                }
+            } catch (Exception e) {
+                return ResponseService.generateErrorResponse("Error verifying Razorpay signature: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
-*/
+        else
+        {
+            RazorpayDetails razorpayDetails=entityManager.find(RazorpayDetails.class,orderIds.get(0));
+        }
 
 
         // Rest of the order processing (same as before)
-        BroadleafCurrency broadleafCurrency = broadleafCurrencyService.create();
-        broadleafCurrency.setCurrencyCode("INR");
-        broadleafCurrency.setFriendlyName("Indian Rupee");
+        BroadleafCurrency broadleafCurrency = broadleafCurrencyService.findDefaultBroadleafCurrency();
 
-        boolean failed = false;
+        boolean isFailed = false;
         List<CombinedOrderDTO> orderDTOS = new ArrayList<>();
-
+        Order order;
         for (Long orderId : orderIds) {
-            Order order = orderService.findOrderById(orderId);
+
+             order = orderService.findOrderById(orderId);
+
+            if(order!=null&&!verifyUser(authHeader,order.getCustomer().getId()))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
+            if(!order.getCustomer().getId().equals(customerId))
+                return ResponseService.generateErrorResponse("Order do not belong to selected customer",HttpStatus.BAD_REQUEST);
             RazorpayDetails details=entityManager.find(RazorpayDetails.class,orderId);
-            if(!details.getStatus().equals(status))
+            if(details.getVerified()!=null&&details.getVerified())
             {
-                JSONObject jsonObject=new JSONObject();
-                jsonObject.put("order_status","failed");
+                return ResponseService.generateErrorResponse("Cannot verify payment : Order with id : "+orderId.longValue()+" already verified",HttpStatus.FORBIDDEN);
+            }
+            if(!failed&&!details.getStatus().equals(status))
+            {
+                Map<String,String>jsonObject=new HashMap<>();
                 jsonObject.put("razorpay_payment_status",details.getStatus());
                 jsonObject.put("recieved_status",status);
 
-                return ResponseService.generateSuccessResponse("ORDER FAILED",jsonObject,HttpStatus.INTERNAL_SERVER_ERROR);
+                return ResponseService.generateSuccessResponse("ORDER FAILED:Status mismatch",jsonObject,HttpStatus.INTERNAL_SERVER_ERROR);
             }
             if (order == null) {
                 return ResponseService.generateErrorResponse("Cannot find order with ID: " + orderId, HttpStatus.NOT_FOUND);
@@ -759,7 +796,8 @@ public class CartEndPoint extends BaseEndpoint {
             if ("captured".equalsIgnoreCase(status)) {
 
                 orderStatus = new OrderStatus("NEW", null);
-                details.setTimeStamp(LocalDate.now());
+                details.setTimeStamp(LocalDateTime.now());
+                details.setVerified(true);
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
                 customOrderState.setOrderStatusId(1);
@@ -784,16 +822,19 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-
                 entityManager.merge(customCustomer);
-            } else if ("failed".equalsIgnoreCase(status)) {
-                failed = true;
+            } else if ((failed)||"failed".equalsIgnoreCase(status)) {
+                isFailed = true;
+                details.setVerified(true);
                 orderStatus = new OrderStatus("PAYMENT_FAILED", null);
-                details.setTimeStamp(LocalDate.now());
+                details.setTimeStamp(LocalDateTime.now());
+                details.setStatus("failed");
+                details.setVerified(true);
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
                 customOrderState.setOrderStatusId(null);
                 order.setSubmitDate(new Date());
+                entityManager.merge(order);
             } else {
                 return ResponseService.generateErrorResponse("Invalid payment status: " + status, HttpStatus.BAD_REQUEST);
             }
@@ -803,7 +844,7 @@ public class CartEndPoint extends BaseEndpoint {
 
             // Prepare DTO
             Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-            Customer customer = customerService.readCustomerById(order.getCustomer().getId());
+            customer = customerService.readCustomerById(order.getCustomer().getId());
             OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
                     customer.getId(),
                     customer.getFirstName() + " " + customer.getLastName(),
@@ -814,20 +855,25 @@ public class CartEndPoint extends BaseEndpoint {
             );
             orderDTOS.add(orderDTOService.wrapOrder(order, customOrderState, null, customerDetailsDTO));
         }
-        if (!failed) {
+
+        if (!isFailed) {
+            emptyTheCart(customerId,authHeader);
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
+
             return ResponseService.generateErrorResponse("Failed to place order", HttpStatus.PAYMENT_REQUIRED);
         }
     }
 
     @RequestMapping(value ="cart-recovery-log/{customerId}",method = RequestMethod.GET)
-    public ResponseEntity<?>getCartRecoveryLog(@PathVariable Long customerId)
+    public ResponseEntity<?>getCartRecoveryLog(@PathVariable Long customerId,@RequestHeader(value = "Authorization")String authHeader)
     {
         try{
             Long id = Long.valueOf(customerId);
             if(id==null)
                 return ResponseService.generateErrorResponse("Customer Id not specified",HttpStatus.BAD_REQUEST);
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,customerId);
                 if(customCustomer==null)
                     return ResponseService.generateErrorResponse("Cannot find customer for this id",HttpStatus.NOT_FOUND);
@@ -848,8 +894,10 @@ public class CartEndPoint extends BaseEndpoint {
     }
     @Transactional
     @RequestMapping(value = "{customerId}/update-preference/{productId}", method = RequestMethod.PUT)
-    public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId) {
+    public ResponseEntity<?> updatePreference(@PathVariable Long customerId,@PathVariable Long productId,@RequestBody Map<String, Object> map,@RequestParam Long orderItemId,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+            if(!verifyUser(authHeader,customerId))
+                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             List<Long> postPreference = getLongList(map, "postPreference");
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
             if (customProduct == null)
@@ -877,7 +925,7 @@ public class CartEndPoint extends BaseEndpoint {
                         "AND EXISTS (SELECT 1 FROM blc_order_item WHERE order_item_id = ?)";
                 int rowsUpdated = jdbcTemplate.update(sql, postPreferenceString, orderItemId, orderItemId);
                 if (rowsUpdated >= 0) {
-                    return retrieveCartItems(customerId, true);
+                    return retrieveCartItems(customerId, true,authHeader);
                 }
             }else
                 return ResponseService.generateErrorResponse("No Posts available for product",HttpStatus.NOT_FOUND);
@@ -931,14 +979,23 @@ public class CartEndPoint extends BaseEndpoint {
             Query query = entityManager.createNativeQuery("SELECT order_id from blc_order where order_number = :rzpId");
             query.setParameter("rzpId", paymentEntity.getString("order_id"));
             List<BigInteger> orderIds = query.getResultList();
-
                     // Extract payment info and update order status to PAID
                     for(BigInteger id:orderIds) {
                         System.out.println("orderId" + id);
+                        Order order=orderService.findOrderById(id.longValue());
+                        if(broadleafCurrencyService.findDefaultBroadleafCurrency()==null) {
+                            BroadleafCurrency broadleafCurrency = broadleafCurrencyService.create();
+                            broadleafCurrency.setFriendlyName("INDIAN RUPEE");
+                            broadleafCurrency.setCurrencyCode("INR");
+                            broadleafCurrency.setDefaultFlag(true);
+                        }
+                        else
+                            order.setCurrency(broadleafCurrencyService.findDefaultBroadleafCurrency());
                         RazorpayDetails details = entityManager.find(RazorpayDetails.class, id.longValue());
                         details.setStatus(paymentEntity.getString("status"));
                         details.setRazorpayPaymentId(paymentEntity.getString("id"));
                         entityManager.merge(details);
+                        entityManager.merge(order);
                     }
         } catch (Exception e) {
             System.out.println("Exception : "+e.getMessage());
@@ -965,6 +1022,15 @@ public class CartEndPoint extends BaseEndpoint {
             e.printStackTrace();
             return "error";
         }
+    }
+
+    public Boolean verifyUser(String authHeader,Long userId)
+    {
+        String jwtToken = authHeader.substring(7);
+        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+        String roleName= roleService.findRoleName(roleId);
+        Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+        return roleUser.equals(roleName) && tokenUserId.equals(userId);
     }
     }
 

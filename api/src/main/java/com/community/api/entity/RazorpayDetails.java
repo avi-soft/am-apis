@@ -5,10 +5,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -27,6 +29,9 @@ public class RazorpayDetails{
 
     private String status;
 
-    private LocalDate timeStamp;
+    private LocalDateTime timeStamp;
+
+    @Column(name = "verified",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    public Boolean verified=false;
 
 }

@@ -834,6 +834,10 @@ public class SharedUtilityService {
         serviceProviderDetails.put("total_score", serviceProvider.getTotalScore());
         serviceProviderDetails.put("registration_number",serviceProvider.getRegistration_number());
         serviceProviderDetails.put("is_password_created",serviceProvider.getIsPasswordCreated());
+        serviceProviderDetails.put("ticket_assigned",serviceProvider.getTicketAssigned());
+        serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
+        serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
+
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 serviceProviderDetails.put("number_of_employees", serviceProvider.getNumber_of_employees());
@@ -958,6 +962,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1114,6 +1119,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());

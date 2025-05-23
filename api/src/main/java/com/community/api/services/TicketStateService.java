@@ -103,15 +103,34 @@ public class TicketStateService {
     @Transactional
     public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) throws Exception {
         try {
+            log.info("HERE {}, {}",oldSp, newSp);
             if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
                 ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
-                if (ticket.getTicketState().getTicketState().equals("TO-DO")) {
+                if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                    log.info("HERHEHREHRHEHR");
                     exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
-                } else if (!ticket.getTicketState().getTicketState().equals("TO-DO") && !ticket.getTicketState().getTicketState().equals("CLOSED")) {
+                } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
                 }
-
                 entityManager.merge(exServiceProvider);
+
+                ServiceProviderEntity newServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
+                if(nextState != null) {
+                    if (nextState.getTicketState().equals("TO-DO")) {
+                        newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
+                    }
+                    if (nextState.getTicketState().equals("CLOSE")) {
+                        newServiceProvider.setTicketCompleted(newServiceProvider.getTicketCompleted() + 1);
+                    }
+                    if (nextState.getTicketState().equals("IN-PROGRESS") && ticket.getTicketState().equals("TO-DO")) {
+                        newServiceProvider.setTicketPending(newServiceProvider.getTicketPending() + 1);
+                    }
+                } else {
+                    // Generally this is what going to run
+                    newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
+                }
+
+                entityManager.merge(newServiceProvider);
             } else if(newSp != null) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
 
@@ -277,10 +296,17 @@ public class TicketStateService {
                     }
 
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
-                    parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
-                    parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
-                    parentTicket.setIsComplete(createTicketDTO.getIsComplete());
-                    parentTicket.setWorkQuality(workQuality);
+                    if(createTicketDTO.getIsComplete()) {
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
+                        parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
+                        parentTicket.setIsComplete(createTicketDTO.getIsComplete());
+                        parentTicket.setWorkQuality(workQuality);
+                    } else {
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(2L));
+                        parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
+                        parentTicket.setIsComplete(createTicketDTO.getIsComplete());
+                        parentTicket.setWorkQuality(workQuality);
+                    }
 
                     entityManager.merge(parentTicket);
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
@@ -298,6 +324,9 @@ public class TicketStateService {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
                     ticket.setRejectedBy(rejectedList);
+
+                    ticket.setAssignee(null);
+                    ticket.setAssigneeRole(null);
                 }
 
                 ticket.setTicketStatus(ticketStatus);
@@ -350,10 +379,18 @@ public class TicketStateService {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
                     }
 
+                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                        throw new IllegalArgumentException("Already is the assignee");
+                    }
+
                     if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
                         if (ticketState == null) {
                             throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
                         }
+                    }
+
+                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                        throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
                     }
 
                     List<Long> rejectedBy = ticket.getRejectedBy();
@@ -362,7 +399,6 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
-                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -415,15 +451,19 @@ public class TicketStateService {
             return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {
+            log.info("Inside persistence");
             exceptionHandlingService.handleException(persistenceException);
             throw new PersistenceException("Cannot find valid result : " + persistenceException.getMessage());
         } catch (IllegalArgumentException illegalArgumentException) {
+            log.info("Inside illegal argument exception");
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (NotFoundException notFoundException) {
+            log.info("Inside not found exception");
             exceptionHandlingService.handleException(notFoundException);
             throw new NotFoundException(notFoundException.getMessage());
         } catch (Exception exception) {
+            log.info("Inside exception");
             exceptionHandlingService.handleException(exception);
             throw new Exception("Error updating ticket :" + exception.getMessage());
         }

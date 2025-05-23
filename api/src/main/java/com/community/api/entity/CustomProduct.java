@@ -45,23 +45,44 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "exam_date_from")
     protected Date examDateFrom;
+    @Column(name = "is_exam_date_from_na")
+    protected Boolean isExamDateFromNa;
 
     @Column(name = "answer_key_available_date")
     protected Date answerKeyAvailableDate;
+    @Column(name = "is_answer_key_available_date_na")
+    protected Boolean isAnswerKeyAvailableDateNa;
 
     @Column(name = "result_declaration_date")
     protected Date resultDeclarationDate;
+    @Column(name = "is_result_declaration_date_na")
+    protected Boolean isResultDeclarationDateNa;
 
     @Column(name = "counselling_date")
     protected Date counsellingDate;
+    @Column(name = "is_counselling_date_na")
+    protected Boolean isCounsellingDateNa;
+
     @Column(name = "tentative_document_verification_from")
     Date tentativeVerificationFrom;
+    @Column(name = "is_tentative_document_verification_from_na")
+    protected Boolean isTentativeVerificationFromNa;
+
     @Column(name = "tentative_document_verification_to")
     Date tentativeVerificationTo;
+    @Column(name = "is_tentative_document_verification_to_na")
+    protected Boolean isTentativeVerificationToNa;
+
     @Column(name = "exam_date_to")
     protected Date examDateTo;
+    @Column(name = "is_exam_date_to_na")
+    protected Boolean isExamDateToNa;
+
     @Column(name = "exam_center_available_date")
     Date examCenterAvailableDate;
+    @Column(name = "is_exam_center_available_date_na")
+    protected Boolean isExamCenterAvailableDateNa;
+
     @Column(name = "last_modified")
     protected Date modifiedDate;
 
@@ -104,20 +125,30 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "last_date_to_pay_fee")
     protected Date lateDateToPayFee;
+    @Column(name = "is_last_date_to_pay_fee_na")
+    protected Boolean isLateDateToPayFeeNa;
 
     @Nullable
     @Column(name = "admit_card_date_from")
     protected Date admitCardDateFrom;
+    @Column(name = "is_admit_card_date_from_na")
+    protected Boolean isAdmitCardDateFromNa;
 
     @Nullable
     @Column(name = "admit_card_date_to")
     protected Date admitCardDateTo;
+    @Column(name = "is_admit_card_date_to_na")
+    protected Boolean isAdmitCardDateToNa;
 
     @Column(name = "modification_date_from")
     protected Date modificationDateFrom;
+    @Column(name = "is_modification_date_from_na")
+    protected Boolean isModificationDateFromNa;
 
     @Column(name = "modification_date_to")
     protected Date modificationDateTo;
+    @Column(name = "is_modification_date_to_na")
+    protected Boolean isModificationDateToNa;
 
     @Column(name = "download_notification_link")
     protected String downloadNotificationLink;
@@ -177,5 +208,11 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "fee_additional_comments")
     private String feeAdditionalComments;
+
+    @Column(name = "views", columnDefinition = "BIGINT DEFAULT 0")
+    private Long views;
+
+    @Column(name = "soft_delete", columnDefinition = "VARCHAR DEFAULT 'N'")
+    private String del;
 
 }

@@ -459,7 +459,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<Integer> infraList = getIntegerList(updates, "infra_list");
             List<Integer> skillList = getIntegerList(updates, "skill_list");
             List<Integer> languageList = getIntegerList(updates, "language_list");
-            existingServiceProvider.setOtherSkill(null);
             if (updates.containsKey("has_technical_knowledge")) {
                 if ((boolean) updates.get("has_technical_knowledge").equals(true)) {
                     if (!skillList.isEmpty()) {
@@ -482,6 +481,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                     existingServiceProvider.setOtherSkill(otherSkill);
 
                                 }
+                            }
+                            else {
+                                 existingServiceProvider.setOtherSkill(null);
                             }
                             if (skill != null) {
                                 if (!serviceProviderSkills.contains(skill))
@@ -1577,10 +1579,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
-                if (serviceProviderEntity != null)
-                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
-                else
-                    throw new PersistenceException("No results found for your input");
+                if (serviceProviderEntity != null) {
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                        return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+                }else {
+                    // Return empty response
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    return ResponseService.generateSuccessResponse("No Details found for the given mobile number", response, HttpStatus.OK);
+                }
             }
 
             if (userName != null && !userName.trim().isEmpty()) {
@@ -1590,10 +1597,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
-                if (serviceProviderEntity != null)
-                    return ResponseService.generateSuccessResponse("Service Providers", sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity), HttpStatus.OK);
-                else
-                    throw new PersistenceException("No results found for your input username");
+                if (serviceProviderEntity != null) {
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                    return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+                } else {
+                    // Return empty response
+                    List<Map<String, Object>> response = new ArrayList<>();
+                    return ResponseService.generateSuccessResponse("No Details found for the given UserName", response, HttpStatus.OK);
+                }
             }
 
             if (test_status_id != null) {
@@ -1737,10 +1749,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 throw new IllegalArgumentException("No Test Status is found with this id");
             }
 
-            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved", ServiceProviderEntity.class);
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role = :roleId", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
             query.setParameter("isApproved", true);
+            query.setParameter("roleId", 4);
 
             return query.getResultList();
 

@@ -108,6 +108,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/auto-assigner")
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> autoAssigner() {
         try {
             /*List<Long> resultList = serviceProviderTicketService.getAssignedTickets();
@@ -123,10 +124,9 @@ public class TicketController {
                 orderDTO.add(combinedOrderDTO);
             }*/
 
-            List<CustomTicketWrapper> assignedTickets = new ArrayList<>();
-            serviceProviderTicketService.rejectedTicketLogic(assignedTickets);
+            List<CustomTicketWrapper> assignedTickets = serviceProviderTicketService.autoAssigner();
 
-            return ResponseService.generateSuccessResponse("Orders assigned by auto-assigner", assignedTickets, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Orders and Tickets assigned by auto-assigner", assignedTickets, HttpStatus.OK);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -226,13 +226,17 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
-            Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
-            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
-            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
-            CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+            if(ticket.getTicketType().getTicketType().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager);
+            } else {
+                wrapper.customWrapDetails(ticket, null, entityManager);
+            }
 
-            wrapper.customWrapDetails(ticket, orderDto, entityManager);
 
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
 
