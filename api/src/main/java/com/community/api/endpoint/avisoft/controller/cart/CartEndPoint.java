@@ -317,9 +317,10 @@ public class CartEndPoint extends BaseEndpoint {
             List<Long> postPreference = getLongList(map, "postPreference");
             if (postPreference.isEmpty() && customProduct.getPosts().size() > 1)
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty", HttpStatus.BAD_REQUEST);
-            Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            if (reserveCategoryId == null)
-                return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
+            if (!cartService.isCustomerEligibleForProduct(customCustomer, customProduct))
+            {
+                throw new IllegalArgumentException("Customer is not Eligible for this product");
+            }
             double noReserveCategoryFee = 0.0;
             /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId)==null) {
                 //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
@@ -360,6 +361,8 @@ public class CartEndPoint extends BaseEndpoint {
                 atrtributes.put("postPreference", postPreferenceString);
             } else if (customProduct.getPosts().size() == 1) {
                 postPreference.removeAll(postPreference);
+                postPreference = new ArrayList<>(postPreference);
+                postPreference.clear();
                 postPreference.add(customProduct.getPosts().get(0).getPostId());
                 String postPreferenceString = postPreference.stream()
                         .map(String::valueOf)
