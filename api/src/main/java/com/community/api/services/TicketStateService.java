@@ -379,7 +379,7 @@ public class TicketStateService {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
                     }
 
-                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                    if(ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
                         throw new IllegalArgumentException("Already is the assignee");
                     }
 
