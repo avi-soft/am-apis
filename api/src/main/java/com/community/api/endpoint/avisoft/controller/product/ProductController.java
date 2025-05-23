@@ -47,6 +47,7 @@ import org.broadleafcommerce.core.catalog.domain.Sku;
 
 import org.broadleafcommerce.core.catalog.service.type.ProductType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -120,6 +121,9 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     DistrictService districtService;
+
+    @Value("${origin.url}")
+    private String origin;
 
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
@@ -594,11 +598,13 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    @Transactional
     @GetMapping("/get-product-by-id/{productId}")
     public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath) {
 
         try {
+
+            String recOrigin=request.getHeader("Origin");
 
             Long productId = Long.parseLong(productIdPath);
             if (productId <= 0) {
@@ -613,7 +619,12 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+            //set views
 
+            if(origin.trim().equals(recOrigin.trim())) {
+                customProduct.setViews(customProduct.getViews() + 1);
+                entityManager.merge(customProduct);
+            }
             if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
                 CustomProductWrapper wrapper = new CustomProductWrapper();
