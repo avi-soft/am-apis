@@ -565,7 +565,7 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
-            jpql.append("JOIN ProductImpl pi WITH pi.archiveStatus.archived = 'N' WHERE 1=1 ");
+            jpql.append("WHERE p.del = 'N' ");
             // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
@@ -583,7 +583,7 @@ public class ProductService {
             }*/
             // Initialize the JPQL query
 
-            jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
+           /* jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate >= CURRENT_TIMESTAMP ");*/
             // List to hold query parameters
             List<CustomProductState> customProductStates = new ArrayList<>();
             List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
