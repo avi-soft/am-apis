@@ -212,4 +212,7 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "views", columnDefinition = "BIGINT DEFAULT 0")
     private Long views;
 
+    @Column(name = "soft_delete", columnDefinition = "VARCHAR DEFAULT 'N'")
+    private String del;
+
 }
