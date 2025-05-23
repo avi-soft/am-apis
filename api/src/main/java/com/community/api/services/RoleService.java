@@ -97,11 +97,11 @@ public class RoleService {
         List<Role> allRoles = roleService.findAllRoleList();
         switch (roleId) {
             case 1:
-                allRoles.remove(4);
+                allRoles.remove(3);
                 allRoles.remove(0);
                 break;
             case 2:
-                allRoles.remove(4);
+                allRoles.remove(3);
                 allRoles.remove(0);
                 break;
             case 3:
