@@ -583,7 +583,7 @@ public class ProductService {
             }*/
             // Initialize the JPQL query
 
-            jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate >= CURRENT_TIMESTAMP ");
+           /* jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate >= CURRENT_TIMESTAMP ");*/
             // List to hold query parameters
             List<CustomProductState> customProductStates = new ArrayList<>();
             List<CustomProductRejectionStatus> productRejectionStatuses = new ArrayList<>();
