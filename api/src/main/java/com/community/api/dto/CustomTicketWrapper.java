@@ -6,6 +6,7 @@ import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -70,8 +71,20 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("order")
     protected CombinedOrderDTO order;
 
+    @JsonProperty("title")
+    protected String title;
+
     @JsonProperty("task_description")
     protected String task_desc;
+
+    @JsonProperty("is_review_required")
+    protected Boolean isReviewRequired;
+
+    @JsonProperty("work_quality")
+    protected CustomWorkQuality customWorkQuality;
+
+    @JsonProperty("is_completed")
+    protected Boolean isCompleted;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
@@ -89,13 +102,16 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.modifierRole = customServiceProviderTicket.getModifierRole();
         this.customTicketState = customServiceProviderTicket.getTicketState();
         this.comment = customServiceProviderTicket.getComment();
-        if(customServiceProviderTicket.getTicketType().getTicketTypeId()==3)
-        {
-            this.task_desc=customServiceProviderTicket.getDesc();
-        }
+
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
+        this.title = customServiceProviderTicket.getTitle();
+        this.task_desc = customServiceProviderTicket.getDesc();
+        this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
+        this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
+        this.isCompleted = customServiceProviderTicket.getIsComplete();
+
         ServiceProviderEntity serviceProvider = null;
         try {
             if(customServiceProviderTicket.getAssignee() != null) {
