@@ -1311,7 +1311,7 @@ public class CustomerEndpoint {
                     }
 //
                 }else if(!details.containsKey("category")) {
-                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
+                if (customCustomer.getCategory()!=null && customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                     customCustomer.setCategoryIssueDate(null);
                     customCustomer.setCategoryValidUpto(null);
                 }

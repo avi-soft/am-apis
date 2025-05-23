@@ -591,7 +591,7 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId || role == 5))
+            if (role != null && (role <= roleId)&&roleId!=5)
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
