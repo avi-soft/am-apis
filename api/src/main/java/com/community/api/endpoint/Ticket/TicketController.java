@@ -386,6 +386,7 @@ public class TicketController {
         try {
 
             CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+
             return ResponseService.generateSuccessResponse("Ticket Updated successfully", ticket, HttpStatus.OK);
 
         } catch (NotFoundException notAuthorizedException) {
