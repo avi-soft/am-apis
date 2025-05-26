@@ -256,7 +256,9 @@ public class TicketStateService {
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
                 if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
-                    throw new IllegalArgumentException("Forbidden Access");
+                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
+                        throw new IllegalArgumentException("Forbidden Access");
+                    }
                 }
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
@@ -334,13 +336,13 @@ public class TicketStateService {
                         }
                     } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                         CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
-                        if(customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                        if(customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
 
                     if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
-                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                        throw new IllegalArgumentException("Comment is mandatory");
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
