@@ -1002,17 +1002,20 @@ public class ProductController extends CatalogEndpoint {
             }
 
             // Filtering out archived products
+            int skipped=0;
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                /* if(customProduct != null && ((Status) customProduct).getArchived() != 'Y' && !archived){*/
-                        if (((Status) customProduct).getArchived() == 'Y') {
-                            CustomProductWrapper wrapper = new CustomProductWrapper();
-                            List<Post> postList = customProduct.getPosts();
-                            List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
-                            wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
-                            responses.add(wrapper);
-                        }
-                    }
+               /* if (customProduct != null && ((Status) customProduct).getArchived() != 'Y') {*/
+                    CustomProductWrapper wrapper = new CustomProductWrapper();
+                    List<Post> postList = customProduct.getPosts();
+                    List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
+                    wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+                    responses.add(wrapper);
+                } /*else
+                {
+                    skipped++;
+                }*/
+
 
            /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
             CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
@@ -1024,20 +1027,19 @@ public class ProductController extends CatalogEndpoint {
 
             TypedQuery<Long> query = entityManager.createQuery(countQuery);*/
 
-            // Pagination logic
-            int totalItems = (Integer)opresponse.get("count");
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int fromIndex = offset * limit;
-            int toIndex = Math.min(fromIndex + limit, totalItems);
+                // Pagination logic
+                int totalItems = (Integer) opresponse.get("count");
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int fromIndex = offset * limit;
+                int toIndex = Math.min(fromIndex + limit, totalItems);
 
-            if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more products availabe");
-            }
-            // Validate offset request
-            if (fromIndex >= totalItems && offset!=0) {
-                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
-            }
-
+                if (offset >= totalPages && offset != 0) {
+                    throw new IllegalArgumentException("No more products availabe");
+                }
+                // Validate offset request
+                if (fromIndex >= totalItems && offset != 0) {
+                    return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+                }
 
 
             // Construct paginated response

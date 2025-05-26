@@ -628,7 +628,7 @@ public class OrderController {
             }
 
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
-            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW) ) {
+            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId()) ) {
                 throw new IllegalArgumentException("Order can only be allowed to allocate at new state.");
             }
 

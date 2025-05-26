@@ -248,6 +248,9 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
+                if(!ticket.getAssignee().equals(tokenUserId)) {
+                    throw new IllegalArgumentException("Forbidden Access");
+                }
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
@@ -375,11 +378,11 @@ public class TicketStateService {
                             throw new NotFoundException("Assignee not found");
                     }
 
-                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                    if(ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
                     }
 
-                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                    if(ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
                         throw new IllegalArgumentException("Already is the assignee");
                     }
 
@@ -399,6 +402,7 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
+//                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -447,7 +451,9 @@ public class TicketStateService {
             if(oldAssigneeId != null || newAssigneeId != null) {
                 updateSpTicketAvailibility(ticket, ticketState, oldAssigneeId, newAssigneeId);
             }
-
+            if(newAssigneeId != null) {
+                ticket.setAssignee(newAssigneeId);
+            }
             return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {

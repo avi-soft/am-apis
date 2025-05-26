@@ -934,27 +934,54 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pincode = (String) updates.get("pincode");
         String city = (String) updates.get("city");
         String residentialAddress = (String) updates.get("residential_address");
+
         String[] fieldNames = {"state", "district", "pincode", "residential_address", "city"};
         String[] fieldValues = {state, district, pincode, residentialAddress, city};
+
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
                 errorMessages.add(fieldNames[i] + " cannot be empty");
             }
         }
+
+        // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
-        if (!java.util.regex.Pattern.matches(pattern, pincode))
+        if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
             errorMessages.add("Pincode should contain only numbers and should be of length 6");
+        }
+
+        // Validate city format
         pattern = Constant.CITY_REGEXP;
-        if (!java.util.regex.Pattern.matches(pattern, city))
+        if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
             errorMessages.add("Field city should only contain letters");
-        String stateName = districtService.findStateById(Integer.parseInt(state));
-        if (stateName == null)
-            errorMessages.add("Invalid State");
-        String districtName = districtService.findDistrictById(Integer.parseInt(district));
-        if (districtName == null)
-            errorMessages.add("Invalid district");
+        }
+
+        // Only parse and validate state/district if they're non-empty
+        if (state != null && !state.trim().isEmpty()) {
+            try {
+                String stateName = districtService.findStateById(Integer.parseInt(state));
+                if (stateName == null) {
+                    errorMessages.add("Invalid State");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.add("Invalid Current State ID format");
+            }
+        }
+
+        if (district != null && !district.trim().isEmpty()) {
+            try {
+                String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                if (districtName == null) {
+                    errorMessages.add("Invalid District");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.add("Invalid Current District ID format");
+            }
+        }
+
         return errorMessages;
     }
+
     public List<String> validatePAddressFields(Map<String, Object> updates) {
         List<String> errorMessages = new ArrayList<>();
         String state = (String) updates.get("permanent_state");
@@ -962,28 +989,61 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         String pincode = (String) updates.get("permanent_pincode");
         String city = (String) updates.get("permanent_city");
         String residentialAddress = (String) updates.get("permanent_residential_address");
-        String[] fieldNames = {"permanent_state", "permanent_district", "permanent_pincode", "permanent_residential_address", "permanent_city"};
-        String[] fieldValues = {state, district, pincode, residentialAddress, city};
+
+        String[] fieldNames = {
+                "permanent_state", "permanent_district",
+                "permanent_pincode", "permanent_residential_address",
+                "permanent_city"
+        };
+        String[] fieldValues = {
+                state, district, pincode, residentialAddress, city
+        };
+
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
                 errorMessages.add(fieldNames[i] + " cannot be empty");
             }
         }
+
+        // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
-        if (!java.util.regex.Pattern.matches(pattern, pincode))
+        if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
             errorMessages.add("Pincode should contain only numbers and should be of length 6");
+        }
+
+        // Validate city format
         pattern = Constant.CITY_REGEXP;
-        if (!java.util.regex.Pattern.matches(pattern, city))
+        if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
             errorMessages.add("Field city should only contain letters");
-        String stateName = districtService.findStateById(Integer.parseInt(state));
-        if (stateName == null)
-            errorMessages.add("Invalid State");
-        String districtName = districtService.findDistrictById(Integer.parseInt(district));
-        if (districtName == null)
-            errorMessages.add("Invalid district");
+        }
+
+        // Validate permanent_state
+        if (state != null && !state.trim().isEmpty()) {
+            try {
+                String stateName = districtService.findStateById(Integer.parseInt(state));
+                if (stateName == null) {
+                    errorMessages.add("Invalid State");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.add("Invalid Permanent State ID format");
+            }
+        }
+
+        // Validate permanent_district
+        if (district != null && !district.trim().isEmpty()) {
+            try {
+                String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                if (districtName == null) {
+                    errorMessages.add("Invalid District");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.add("Invalid Permanent District ID format");
+            }
+        }
 
         return errorMessages;
     }
+
 
     @Override
     public ServiceProviderEntity getServiceProviderById(Long userId) {
