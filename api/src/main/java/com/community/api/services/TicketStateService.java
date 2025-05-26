@@ -254,7 +254,7 @@ public class TicketStateService {
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
-                if(!ticket.getAssignee().equals(tokenUserId)) {
+                if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
                     throw new IllegalArgumentException("Forbidden Access");
                 }
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
@@ -333,7 +333,7 @@ public class TicketStateService {
                         }
                     } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                         CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
-                        if(customProduct.getIsReviewRequired()) {
+                        if(customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
@@ -344,7 +344,7 @@ public class TicketStateService {
                     ticket.setComment(createTicketDTO.getComment().trim());
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
                     if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
-                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close, in-review and support.");
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
@@ -572,7 +572,9 @@ public class TicketStateService {
             Long ticketStateFromId = ticketStateFrom.getTicketStateId();
             Long ticketStateToId = ticketStateTo.getTicketStateId();
             Integer roleId = role.getRole_id();
-
+            if(roleId.equals(2) || roleId.equals(1)) {
+                roleId = 2;
+            }
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
             query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateIdFrom", ticketStateFromId);
