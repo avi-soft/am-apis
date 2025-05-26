@@ -21,6 +21,7 @@ import io.micrometer.core.lang.Nullable;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
+import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.profile.core.domain.*;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CountryService;
@@ -3712,4 +3713,15 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
+  /*  @GetMapping("/{customerId}/recommend")
+    public ResponseEntity<?>getRecos(@PathVariable Long customerId) {
+        Customer customer = customerService.readCustomerById(customerId);
+        if (customer == null)
+            return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+        CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+        if (customCustomer.getNumberOfOrders() == 0)
+        {
+
+        }
+    }*/
 }

@@ -3367,7 +3367,7 @@ public class ProductService {
             if (addProductDto.getLastDateToPayFee() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
 
-                if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                if (addProductDto.getModificationDateFrom()!=null&&!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                     throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
                 }
             } /*else {
