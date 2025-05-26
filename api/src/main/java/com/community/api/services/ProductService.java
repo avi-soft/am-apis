@@ -3265,9 +3265,13 @@ public class ProductService {
             if (addProductDto.getLastDateToPayFee() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
 
-                if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
-                    throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
+                if(addProductDto.getModificationDateFrom()!=null)
+                {
+                    if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                        throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
+                    }
                 }
+
             } /*else {
                 if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
                     throw new IllegalArgumentException("Modification date from has to be future of active end date.");
@@ -4202,13 +4206,18 @@ public class ProductService {
         }
 
         for (CategoryDistributionDto categoryDistribution : categoryDistributions) {
-            if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
-                throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
-            }
+
             if(categoryDistribution.getIsStateLevelCategory()==null)
             {
                 throw new IllegalArgumentException("isStateLevelCategory cannot be null");
             }
+            if(categoryDistribution.getIsStateLevelCategory().equals(false))
+            {
+                if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
+                    throw new IllegalArgumentException("Category ID and vacancies must be provided for each category if isStateLevelCategory is false.");
+                }
+            }
+
             if(categoryDistribution.getIsStateLevelCategory().equals(true))
             {
                 if(categoryDistribution.getStateLevelCategory()==null || categoryDistribution.getStateLevelCategory().trim().isEmpty())
