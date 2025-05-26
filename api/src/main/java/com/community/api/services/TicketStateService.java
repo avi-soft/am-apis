@@ -277,6 +277,10 @@ public class TicketStateService {
 
                 // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
                 if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
                     if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                         if(!ticket.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");
@@ -297,8 +301,12 @@ public class TicketStateService {
                     if(workQuality == null) {
                         throw new NotFoundException("Work Quality Not found with this Id");
                     }
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
 
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
+                    parentTicket.setComment(createTicketDTO.getComment().trim());
                     if(createTicketDTO.getIsComplete()) {
                         parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
@@ -323,6 +331,11 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
+
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
