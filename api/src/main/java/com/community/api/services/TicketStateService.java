@@ -35,6 +35,7 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -572,14 +573,18 @@ public class TicketStateService {
             Long ticketStateFromId = ticketStateFrom.getTicketStateId();
             Long ticketStateToId = ticketStateTo.getTicketStateId();
             Integer roleId = role.getRole_id();
+            List<Integer> roleIds = new ArrayList<>();
             if(roleId.equals(2) || roleId.equals(1)) {
-                roleId = 2;
+                roleIds.add(2);
+                roleIds.add(4);
+            } else {
+                roleIds.add(4);
             }
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
             query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateIdFrom", ticketStateFromId);
             query.setParameter("ticketStateIdTo", ticketStateToId);
-            query.setParameter("roleId", roleId);
+            query.setParameter("roleId", roleIds);
 
             List<TicketStateLinkage> ticketStateLinkageList = query.getResultList();
             if(ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {
