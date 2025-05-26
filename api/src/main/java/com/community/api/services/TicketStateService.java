@@ -387,8 +387,10 @@ public class TicketStateService {
                     }
 
                     if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
-                        if (ticketState == null) {
-                            throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
+                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
+                        } else {
+                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
                         }
                     }
 
@@ -418,9 +420,11 @@ public class TicketStateService {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == -1)
                     throw new IllegalArgumentException("Invalid Date-Time");
 
-                Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
-                if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
-                    throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
+                    if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                    }
                 }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
