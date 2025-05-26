@@ -709,7 +709,9 @@ public class ProductService {
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+            jpql.append("ORDER BY p.createdDate DESC ");
+
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql.toString().replace("ORDER BY p.createdDate DESC ", "")).toString(),Long.class);
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);

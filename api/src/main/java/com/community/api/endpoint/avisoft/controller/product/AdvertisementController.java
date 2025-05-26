@@ -377,6 +377,13 @@ public class AdvertisementController {
                                     // Product is active if end date is today or in the future
                                     return !activeEndDate.before(today);
                                 })
+                                // Sorting
+                                .sorted((p1, p2) -> {
+                                    if (p1.getCreatedDate() == null && p2.getCreatedDate() == null) return 0;
+                                    if (p1.getCreatedDate() == null) return 1;
+                                    if (p2.getCreatedDate() == null) return -1;
+                                    return p2.getCreatedDate().compareTo(p1.getCreatedDate()); // DESC order
+                                })
                                 .collect(Collectors.toList());
 
                         activeProducts = filteredProducts;
