@@ -391,7 +391,8 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-            if(ticket.getTicketType().getTicketType().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
