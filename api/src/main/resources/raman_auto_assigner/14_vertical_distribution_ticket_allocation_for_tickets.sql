@@ -9,6 +9,7 @@ CREATE OR REPLACE PROCEDURE public.vertical_distribution_ticket_allocation_for_t
 LANGUAGE 'plpgsql'
 AS $BODY$
 
+
 DECLARE
     v_ticket_id BIGINT;
     v_order_id BIGINT;
@@ -44,6 +45,8 @@ BEGIN
     -- Step 2: Process each ticket
     FOREACH v_ticket_id IN ARRAY ticket_ids LOOP
         v_assigned := FALSE;
+
+       RAISE NOTICE 'ticket id is: %', v_ticket_id;
 
         -- Fetch ticket type and order information
         SELECT ticket_type_id, parent_ticket_id, order_id
