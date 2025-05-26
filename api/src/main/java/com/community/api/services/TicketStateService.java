@@ -380,6 +380,8 @@ public class TicketStateService {
 
                     if(ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    } else if(ticket.getAssignee() == null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to parent assignee");
                     }
 
                     if(ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
