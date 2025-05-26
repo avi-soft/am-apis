@@ -248,6 +248,12 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
+                if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is required");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                }
                 if(!ticket.getAssignee().equals(tokenUserId)) {
                     throw new IllegalArgumentException("Forbidden Access");
                 }
@@ -261,7 +267,7 @@ public class TicketStateService {
                 if(ticketStatus == null)
                     throw new NotFoundException("Ticket status not found");
 
-                ticketStateService.verifyState(ticket.getTicketType(), ticket.getTicketState(), ticketState);
+                ticketStateService.verifyState(roleService.getRoleByRoleId(roleId), ticket.getTicketType(), ticket.getTicketState(), ticketState);
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 // TODO Understand canTransitTicket with more clarity @Raman
@@ -332,6 +338,11 @@ public class TicketStateService {
                         }
                     }
 
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
                     if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
                         throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
                     }
@@ -551,7 +562,7 @@ public class TicketStateService {
         }
     }
 
-    public TicketStateLinkage verifyState(CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
+    public TicketStateLinkage verifyState(Role role, CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
         try {
             if(ticketType == null || ticketStateFrom == null || ticketStateTo == null) {
                 throw new IllegalArgumentException("Ticket Type, Ticket State From and Ticket State To cannot be NULL");
@@ -560,11 +571,13 @@ public class TicketStateService {
             Long ticketTypeId = ticketType.getTicketTypeId();
             Long ticketStateFromId = ticketStateFrom.getTicketStateId();
             Long ticketStateToId = ticketStateTo.getTicketStateId();
+            Integer roleId = role.getRole_id();
 
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
             query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateIdFrom", ticketStateFromId);
             query.setParameter("ticketStateIdTo", ticketStateToId);
+            query.setParameter("roleId", roleId);
 
             List<TicketStateLinkage> ticketStateLinkageList = query.getResultList();
             if(ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {

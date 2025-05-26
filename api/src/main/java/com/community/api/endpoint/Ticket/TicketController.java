@@ -237,7 +237,6 @@ public class TicketController {
                 wrapper.customWrapDetails(ticket, null, entityManager);
             }
 
-
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
 
         } catch (Exception exception) {
