@@ -764,7 +764,7 @@ public class ServiceProviderTicketService {
 //            customServiceProviderTicket.setTicketAssignDate(createdDate);
             reviewTicket.setModifiedDate(createdDate);
 //            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
-
+            reviewTicket.setComment(parentTicket.getComment());
             reviewTicket.setParentTicket(parentTicket);
 
             CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L); // Sate (to-do)
