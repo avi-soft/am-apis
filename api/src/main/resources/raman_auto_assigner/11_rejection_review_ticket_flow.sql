@@ -8,6 +8,8 @@ CREATE OR REPLACE PROCEDURE public.rejection_and_review_ticket_logic(
 LANGUAGE 'plpgsql'
 AS $BODY$
 
+
+
 DECLARE
     ticket_state_to_do CONSTANT BIGINT := 1;
     ticket_state_returned CONSTANT BIGINT := 6;
@@ -30,12 +32,12 @@ BEGIN
     RAISE NOTICE 'Tickets received for auto-assignment: %', array_length(tickets_to_process, 1);
 
     -- Step 2: Random Binding Ticket Allocation
---    CALL public.random_binding_ticket_allocation_for_tickets(
---        tickets_to_process,
---        assigned_tickets
---    );
+    CALL public.random_binding_ticket_allocation_for_tickets(
+        tickets_to_process,
+        assigned_tickets
+    );
 
-	RAISE NOTICE 'Tickets assigned by rbta for tickets: %', array_length(tickets_to_process, 1);
+	RAISE NOTICE 'Tickets recieved for rvdta for tickets: %', array_length(tickets_to_process, 1);
 
 	-- Step 3: Vertical Distribution Ticket Allocation
     CALL public.vertical_distribution_ticket_allocation_for_tickets(
