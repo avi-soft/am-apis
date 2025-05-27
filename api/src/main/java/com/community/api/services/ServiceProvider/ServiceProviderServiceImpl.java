@@ -19,6 +19,7 @@ import com.community.api.services.CustomCustomerService;
 import com.community.api.services.DistrictService;
 import com.community.api.services.RateLimiterService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderInfraService;
 import com.community.api.services.ServiceProviderLanguageService;
 import com.community.api.services.ServiceProviderTestService;
@@ -88,6 +89,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     private DistrictService districtService;
     @Autowired
     private SkillService skillService;
+    @Autowired
+    private RoleService roleService;
+    @Autowired
+    private JwtUtil jwtTokenUtil;
     @Autowired
     private ServiceProviderInfraService serviceProviderInfraService;
     @Autowired
@@ -164,8 +169,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates) {
+    public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates,String authHeader) {
         try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
+            }
+            String jwtToken = authHeader.substring(7);
+            List<String> deleteLogs = new ArrayList<>();
+            Integer roleId;
+            Long tokenUserId;
+            roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            String role= roleService.findRoleName(roleId);
+
             updates = sharedUtilityService.trimStringValues(updates);
             List<String> errorMessages = new ArrayList<>();
 
@@ -175,7 +191,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider == null) {
                 errorMessages.add("ServiceProvider with ID " + userId + " not found");
             }
-
+            String type= null;
             if (updates.containsKey("type")) {
                 String typeStr = (String) updates.get("type");
 
@@ -187,7 +203,43 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     return ResponseService.generateErrorResponse("Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.", HttpStatus.BAD_REQUEST);
                 }
                 existingServiceProvider.setType(typeStr.toUpperCase());
+                type= typeStr.toUpperCase();
                 updates.remove("type");
+            }
+            else
+            {
+                type= existingServiceProvider.getType();
+            }
+            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN))
+            {
+                if(updates.containsKey("rankId"))
+                {
+                    Object rankIdObj = updates.get("rankId");
+                    Long rankId = rankIdObj instanceof Number ? ((Number) rankIdObj).longValue() : null;
+                    ServiceProviderRank serviceProviderRank= entityManager.find(ServiceProviderRank.class,rankId);
+                    if(serviceProviderRank==null)
+                    {
+                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist",HttpStatus.BAD_REQUEST);
+                    }
+                    if(type.equalsIgnoreCase("PROFESSIONAL") && rankId >4)
+                    {
+                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d",HttpStatus.BAD_REQUEST);
+                    }
+                    else  if (type.equalsIgnoreCase("INDIVIDUAL" )&& rankId<5)
+                    {
+                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
+                    }
+                    existingServiceProvider.setRanking(serviceProviderRank);
+                    existingServiceProvider.setAutoScoring(false);
+                }
+                updates.remove("rankId");
+            }
+            else
+            {
+                if(updates.containsKey("rankId") && updates.get("rankId")!=null)
+                {
+                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provier. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
 
@@ -374,6 +426,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // running business unit
             List<String> businessKeys = new ArrayList<>();
             businessKeys.add("business_name");
+
+
             businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
@@ -841,9 +895,25 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         existingServiceProvider.setBusinessUnitInfraScore(0);
                     }
                 }
-
-                if (updates.containsKey("number_of_employees")) {
-                    if (existingServiceProvider.getNumber_of_employees() != null && existingServiceProvider.getNumber_of_employees() < 2 || updates.get("is_running_business_unit").equals(false)) {
+                Integer numberOfEmployees=0;
+                Object numEmpObj = updates.get("number_of_employees");
+                if (numEmpObj != null) {
+                    if (numEmpObj instanceof Number) {
+                        numberOfEmployees = ((Number) numEmpObj).intValue();
+                    } else if (numEmpObj instanceof String) {
+                        try {
+                            numberOfEmployees = Integer.parseInt((String) numEmpObj);
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Invalid number_of_employees format: must be an integer string", e);
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Unsupported type for number_of_employees: " + numEmpObj.getClass());
+                    }
+                }
+                else {
+                    numberOfEmployees=existingServiceProvider.getNumber_of_employees();
+                }
+                    if (numberOfEmployees != null && numberOfEmployees < 2 || updates.get("is_running_business_unit").equals(false)) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
@@ -851,8 +921,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
                         }
-                    } else if (existingServiceProvider.getNumber_of_employees() != null && existingServiceProvider.getNumber_of_employees() >= 2
-                            && existingServiceProvider.getNumber_of_employees() <= 4 && updates.get("is_running_business_unit").equals(true)) {
+                    } else if (numberOfEmployees != null && numberOfEmployees >= 2
+                            && numberOfEmployees <= 4 && updates.get("is_running_business_unit").equals(true)) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(11L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
@@ -860,7 +930,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
                         }
-                    } else if (existingServiceProvider.getNumber_of_employees() != null && existingServiceProvider.getNumber_of_employees() > 4 && updates.get("is_running_business_unit").equals(true)) {
+                    } else if (numberOfEmployees != null && numberOfEmployees > 4 && updates.get("is_running_business_unit").equals(true)) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(10L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
@@ -869,7 +939,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap = null;
                         }
                     }
-                }
             }
 
             if (existingServiceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
@@ -912,18 +981,21 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     public void assignRank(ServiceProviderEntity existingServiceProvider, Integer totalScore) {
-        if (existingServiceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
-            ServiceProviderRank serviceProviderRank = serviceProviderTestService.assignRankingForProfessional(totalScore);
-            if (serviceProviderRank == null) {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+        if(existingServiceProvider.getAutoScoring().equals(true))
+        {
+            if (existingServiceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
+                ServiceProviderRank serviceProviderRank = serviceProviderTestService.assignRankingForProfessional(totalScore);
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+                }
+                existingServiceProvider.setRanking(serviceProviderRank);
+            } else {
+                ServiceProviderRank serviceProviderRank = serviceProviderTestService.assignRankingForIndividual(totalScore);
+                if (serviceProviderRank == null) {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
+                }
+                existingServiceProvider.setRanking(serviceProviderRank);
             }
-            existingServiceProvider.setRanking(serviceProviderRank);
-        } else {
-            ServiceProviderRank serviceProviderRank = serviceProviderTestService.assignRankingForIndividual(totalScore);
-            if (serviceProviderRank == null) {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
-            }
-            existingServiceProvider.setRanking(serviceProviderRank);
         }
     }
 
