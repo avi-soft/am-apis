@@ -3791,6 +3791,7 @@ public class CustomerEndpoint {
             dto.setFee(fee);
             dto.setAgeLimit(ageLimit);
             dto.setId(id.longValue());
+dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
             dto.setMetaTitle(customProduct.getMetaTitle());
             dto.setDisplayTemplate(customProduct.getDisplayTemplate());
             dto.setActiveEndDate(customProduct.getActiveEndDate());
