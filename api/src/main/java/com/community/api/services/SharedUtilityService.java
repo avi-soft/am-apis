@@ -837,6 +837,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_assigned",serviceProvider.getTicketAssigned());
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
+        serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {

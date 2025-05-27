@@ -127,14 +127,14 @@ public class ServiceProviderController {
 
     @Transactional
     @PutMapping("save-service-provider")
-    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
+    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (serviceProvider.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
-            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
+            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails,authHeader);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
