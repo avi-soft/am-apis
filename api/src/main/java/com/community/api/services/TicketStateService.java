@@ -35,6 +35,7 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -248,6 +249,17 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
+                if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is required");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                }
+                if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
+                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
+                        throw new IllegalArgumentException("Forbidden Access");
+                    }
+                }
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
@@ -258,7 +270,7 @@ public class TicketStateService {
                 if(ticketStatus == null)
                     throw new NotFoundException("Ticket status not found");
 
-                ticketStateService.verifyState(ticket.getTicketType(), ticket.getTicketState(), ticketState);
+                ticketStateService.verifyState(roleService.getRoleByRoleId(roleId), ticket.getTicketType(), ticket.getTicketState(), ticketState);
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 // TODO Understand canTransitTicket with more clarity @Raman
@@ -274,6 +286,10 @@ public class TicketStateService {
 
                 // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
                 if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
                     if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                         if(!ticket.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");
@@ -294,8 +310,12 @@ public class TicketStateService {
                     if(workQuality == null) {
                         throw new NotFoundException("Work Quality Not found with this Id");
                     }
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
 
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
+                    parentTicket.setComment(createTicketDTO.getComment().trim());
                     if(createTicketDTO.getIsComplete()) {
                         parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
@@ -316,10 +336,20 @@ public class TicketStateService {
                         }
                     } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                         CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
-                        if(customProduct.getIsReviewRequired()) {
+                        if(customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
+
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if(createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close, in-review and support.");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
                 } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
@@ -375,17 +405,21 @@ public class TicketStateService {
                             throw new NotFoundException("Assignee not found");
                     }
 
-                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                    if(ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
                         throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    } else if(ticket.getAssignee() == null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to parent assignee");
                     }
 
-                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                    if(ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
                         throw new IllegalArgumentException("Already is the assignee");
                     }
 
                     if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
-                        if (ticketState == null) {
-                            throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
+                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
+                        } else {
+                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
                         }
                     }
 
@@ -399,6 +433,7 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
+//                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -414,9 +449,11 @@ public class TicketStateService {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == -1)
                     throw new IllegalArgumentException("Invalid Date-Time");
 
-                Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
-                if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
-                    throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
+                    if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                    }
                 }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
@@ -447,7 +484,9 @@ public class TicketStateService {
             if(oldAssigneeId != null || newAssigneeId != null) {
                 updateSpTicketAvailibility(ticket, ticketState, oldAssigneeId, newAssigneeId);
             }
-
+            if(newAssigneeId != null) {
+                ticket.setAssignee(newAssigneeId);
+            }
             return entityManager.merge(ticket);
 
         } catch (PersistenceException persistenceException) {
@@ -526,7 +565,7 @@ public class TicketStateService {
         }
     }
 
-    public TicketStateLinkage verifyState(CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
+    public TicketStateLinkage verifyState(Role role, CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
         try {
             if(ticketType == null || ticketStateFrom == null || ticketStateTo == null) {
                 throw new IllegalArgumentException("Ticket Type, Ticket State From and Ticket State To cannot be NULL");
@@ -535,11 +574,19 @@ public class TicketStateService {
             Long ticketTypeId = ticketType.getTicketTypeId();
             Long ticketStateFromId = ticketStateFrom.getTicketStateId();
             Long ticketStateToId = ticketStateTo.getTicketStateId();
-
+            Integer roleId = role.getRole_id();
+            List<Integer> roleIds = new ArrayList<>();
+            if(roleId.equals(2) || roleId.equals(1)) {
+                roleIds.add(2);
+                roleIds.add(4);
+            } else {
+                roleIds.add(4);
+            }
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
             query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateIdFrom", ticketStateFromId);
             query.setParameter("ticketStateIdTo", ticketStateToId);
+            query.setParameter("roleId", roleIds);
 
             List<TicketStateLinkage> ticketStateLinkageList = query.getResultList();
             if(ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {
