@@ -357,39 +357,40 @@ public class ServiceProviderTestService {
         serviceProvider.setWrittenTestScore(typingTestScore);
         entityManager.merge(test);
         serviceProvider.setTotalScore(0);
-
-        if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
+        if(serviceProvider.getAutoScoring().equals(true))
         {
-            Integer totalScore=typingTestScore+ serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
-            if(serviceProvider.getImageUploadScore()!=null)
+            if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
             {
-                totalScore= totalScore+serviceProvider.getImageUploadScore();
+                Integer totalScore=typingTestScore+ serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
+                if(serviceProvider.getImageUploadScore()!=null)
+                {
+                    totalScore= totalScore+serviceProvider.getImageUploadScore();
+                }
+                serviceProvider.setTotalScore(totalScore);
+                ServiceProviderRank serviceProviderRank= assignRankingForProfessional(serviceProvider.getTotalScore());
+                if(serviceProviderRank==null)
+                {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
             }
-            serviceProvider.setTotalScore(totalScore);
-            ServiceProviderRank serviceProviderRank= assignRankingForProfessional(serviceProvider.getTotalScore());
-            if(serviceProviderRank==null)
-            {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+            else {
+                Integer totalScore=typingTestScore+ serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
+                if(serviceProvider.getImageUploadScore()!=null)
+                {
+                    totalScore= totalScore+serviceProvider.getImageUploadScore();
+                }
+                serviceProvider.setTotalScore(totalScore);
+                ServiceProviderRank serviceProviderRank= assignRankingForIndividual(serviceProvider.getTotalScore());
+                if(serviceProviderRank==null)
+                {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
             }
-            serviceProvider.setRanking(serviceProviderRank);
-        }
-        else {
-            Integer totalScore=typingTestScore+ serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
-            if(serviceProvider.getImageUploadScore()!=null)
-            {
-                totalScore= totalScore+serviceProvider.getImageUploadScore();
-            }
-            serviceProvider.setTotalScore(totalScore);
-            ServiceProviderRank serviceProviderRank= assignRankingForIndividual(serviceProvider.getTotalScore());
-            if(serviceProviderRank==null)
-            {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
-            }
-            serviceProvider.setRanking(serviceProviderRank);
         }
         entityManager.merge(serviceProvider);
         return test;
-
     }
 
     @Transactional
@@ -646,35 +647,39 @@ public class ServiceProviderTestService {
 
         serviceProvider.setTotalScore(0);
         Integer totalScore=0;
-        if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
+        if(serviceProvider.getAutoScoring().equals(true))
         {
-            totalScore+=giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
-            if(serviceProvider.getWrittenTestScore()!=null)
+            if(serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL"))
             {
-                totalScore+=serviceProvider.getWrittenTestScore();
+                totalScore+=giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getBusinessUnitInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getStaffScore();
+                if(serviceProvider.getWrittenTestScore()!=null)
+                {
+                    totalScore+=serviceProvider.getWrittenTestScore();
+                }
+                serviceProvider.setTotalScore(totalScore);
+                ServiceProviderRank serviceProviderRank= assignRankingForProfessional(totalScore);
+                if(serviceProviderRank==null)
+                {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
             }
-            serviceProvider.setTotalScore(totalScore);
-            ServiceProviderRank serviceProviderRank= assignRankingForProfessional(totalScore);
-            if(serviceProviderRank==null)
-            {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Professional ServiceProvider");
+            else {
+                totalScore+= giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
+                if(serviceProvider.getWrittenTestScore()!=null)
+                {
+                    totalScore+=serviceProvider.getWrittenTestScore();
+                }
+                serviceProvider.setTotalScore(totalScore);
+                ServiceProviderRank serviceProviderRank= assignRankingForIndividual(totalScore);
+                if(serviceProviderRank==null)
+                {
+                    throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
+                }
+                serviceProvider.setRanking(serviceProviderRank);
             }
-            serviceProvider.setRanking(serviceProviderRank);
         }
-        else {
-           totalScore+= giveUploadedImageScoreDTO.getImage_test_scores()+serviceProvider.getInfraScore()+serviceProvider.getWorkExperienceScore()+serviceProvider.getTechnicalExpertiseScore()+ serviceProvider.getQualificationScore()+serviceProvider.getPartTimeOrFullTimeScore();
-            if(serviceProvider.getWrittenTestScore()!=null)
-            {
-                totalScore+=serviceProvider.getWrittenTestScore();
-            }
-            serviceProvider.setTotalScore(totalScore);
-            ServiceProviderRank serviceProviderRank= assignRankingForIndividual(totalScore);
-            if(serviceProviderRank==null)
-            {
-                throw new IllegalArgumentException("Service Provider Rank is not found for assigning a rank to the Individual ServiceProvider");
-            }
-            serviceProvider.setRanking(serviceProviderRank);
-        }
+
         entityManager.merge(serviceProvider);
                 return ResponseService.generateSuccessResponse("Image test scores updated successfully",serviceProviderTest,HttpStatus.OK);
     }
