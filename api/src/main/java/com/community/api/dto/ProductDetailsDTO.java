@@ -22,4 +22,6 @@ public class ProductDetailsDTO {
     Date activeEndDate;
     @JsonProperty("active_start_date")
     Date activeStartDate;
+    @JsonProperty("total_vacancies_in_product")
+    Long totalVacanicies;
 }
