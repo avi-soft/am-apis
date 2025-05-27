@@ -3793,6 +3793,8 @@ public class CustomerEndpoint {
             dto.setId(id.longValue());
             dto.setMetaTitle(customProduct.getMetaTitle());
             dto.setDisplayTemplate(customProduct.getDisplayTemplate());
+            dto.setActiveEndDate(customProduct.getActiveEndDate());
+            dto.setActiveStartDate(customProduct.getActiveStartDate());
             wrappers.add(dto);
         }
         Map<String,Object>response=new HashMap<>();
