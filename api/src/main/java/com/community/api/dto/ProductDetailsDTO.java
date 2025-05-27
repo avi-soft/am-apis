@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -15,4 +17,6 @@ public class ProductDetailsDTO {
     String displayTemplate;
     Double fee;
     String ageLimit;
+    Date activeEndDate;
+    Date activeStartDate;
 }
