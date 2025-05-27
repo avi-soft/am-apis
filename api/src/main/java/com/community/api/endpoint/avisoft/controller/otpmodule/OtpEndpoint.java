@@ -14,6 +14,10 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.slf4j.Logger;
@@ -31,6 +35,8 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +83,8 @@ public class OtpEndpoint {
     @Autowired
     private SanitizerService sanitizerService;
 
+
+
     @Autowired
     private ResponseService responseService;
 
@@ -103,20 +111,14 @@ public class OtpEndpoint {
                     : customerDetails.getCountryCode();
 
 
-            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
-            if(customAdmin!=null)
-            {
-                if(customAdmin.getRole()==1)
-                {
-                    return ResponseService.generateErrorResponse("Number already registered as "+"SuperAdmin", HttpStatus.BAD_REQUEST);
-                }
-                else if(customAdmin.getRole()==2)
-                {
-                    return ResponseService.generateErrorResponse("Number already registered as "+"Admin", HttpStatus.BAD_REQUEST);
-                }
-                else if(customAdmin.getRole()==3)
-                {
-                    return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
+            CustomAdmin customAdmin = adminService.findAdminByPhone(mobileNumber, countryCode);
+            if (customAdmin != null) {
+                if (customAdmin.getRole() == 1) {
+                    return ResponseService.generateErrorResponse("Number already registered as " + "SuperAdmin", HttpStatus.BAD_REQUEST);
+                } else if (customAdmin.getRole() == 2) {
+                    return ResponseService.generateErrorResponse("Number already registered as " + "Admin", HttpStatus.BAD_REQUEST);
+                } else if (customAdmin.getRole() == 3) {
+                    return ResponseService.generateErrorResponse("Number already registered as " + "Service Provider Admin", HttpStatus.BAD_REQUEST);
                 }
             }
 
@@ -131,18 +133,32 @@ public class OtpEndpoint {
                     return responseService.generateErrorResponse(ApiConstants.INVALID_MOBILE_NUMBER, HttpStatus.BAD_REQUEST);
 
                 }
+                //*******************************
+                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode, authHeader);
 
-                ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode,authHeader);
-                Map<String, Object> responseBody = otpResponse.getBody();
+                if (otpResponse.getBody().get("otp") != null) {
+                    return ResponseService.generateErrorResponse("OTP has been sent on registered mobile number", HttpStatus.OK);
+                }
+                else {
+                    return ResponseService.generateErrorResponse(otpResponse.getBody().get("message").toString(), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
 
-                if (responseBody.get("otp")!=null) {
+
+
+
+                //****************************
+
+
+               /* if (responseBody.get("otp")!=null) {
                     return responseService.generateSuccessResponse((String) responseBody.get("message"), responseBody.get("otp"), HttpStatus.OK);
                 } else {
                     return responseService.generateErrorResponse((String) responseBody.get("message"), HttpStatus.BAD_REQUEST);
-                }
-            } else {
+                }*/
+            else {
                 return responseService.generateErrorResponse(ApiConstants.RATE_LIMIT_EXCEEDED, HttpStatus.BANDWIDTH_LIMIT_EXCEEDED);
             }
+
         }catch (PersistenceException persistenceException)
         {
             return ResponseService.generateErrorResponse("Error sending otp:"+persistenceException.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);

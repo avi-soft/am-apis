@@ -4,6 +4,7 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
@@ -66,6 +67,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -3713,15 +3715,50 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
-  /*  @GetMapping("/{customerId}/recommend")
-    public ResponseEntity<?>getRecos(@PathVariable Long customerId) {
+    @Autowired
+    GenderService genderService;
+    public ResponseEntity<?>getRecos(Long customerId) {
         Customer customer = customerService.readCustomerById(customerId);
         if (customer == null)
             return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
         CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
-        if (customCustomer.getNumberOfOrders() == 0)
-        {
+        int age=sharedUtilityService.calculateAge(customCustomer.getDob());
+        Long reservedCategory=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+        Long genderId=genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+        String sql = """
+        SELECT p.product_id
+        FROM custom_product p
+        JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+        JOIN post_details post ON post.product_id = p.product_id
+        JOIN blc_product bp ON bp.product_id = c.product_id
+        JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+        JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+        JOIN qualification_eligibility qf ON qf.post_id = post.postid
+        JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+        WHERE qd.qualification_id = :qualificationId
+        AND c.gender_id = :genderId
+        AND rf.gender_id = :genderId
+        AND c.reserve_category_id = :reserveCategoryId
+        AND rf.reserve_category_id = :reserveCategoryId
+        AND :age BETWEEN rf.minimum_age AND rf.maximum_age
+        AND sku.active_end_date <= CURRENT_DATE
+        ORDER BY p.views DESC
+    """;
 
+        List<BigInteger>res= entityManager.createNativeQuery(sql)
+                .setParameter("qualificationId", 2)
+                .setParameter("genderId", genderId)
+                .setParameter("reserveCategoryId", reservedCategory)
+                .setParameter("age", age)
+                .getResultList();
+        List<CustomProductWrapper>wrappers=new ArrayList<>();
+        for(BigInteger id:res)
+        {
+            CustomProduct customProduct=entityManager.find(CustomProduct.class,id.longValue());
+            CustomProductWrapper wrapper=new CustomProductWrapper();
+            wrapper.wrapDetails(customProduct);
+            wrappers.add(wrapper);
         }
-    }*/
+        return ResponseService.generateSuccessResponse("Found products",wrappers,HttpStatus.OK);
+    }
 }

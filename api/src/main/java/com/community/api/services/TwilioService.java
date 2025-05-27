@@ -9,6 +9,10 @@ import com.community.api.entity.ServiceProviderAddress;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.tomcat.util.bcel.Const;
 import org.broadleafcommerce.common.audit.Auditable;
 import org.broadleafcommerce.common.audit.AuditableListener;
@@ -51,7 +55,8 @@ public class TwilioService {
     private String twilioPhoneNumber;
 
 
-
+    @Value("${fast2sms.api.key}")
+    private String apiKey;
 
     @Autowired
     private JwtUtil jwtTokenUtil;
@@ -98,6 +103,29 @@ public class TwilioService {
             Twilio.init(accountSid, authToken);
             String completeMobileNumber = countryCode + mobileNumber;
             String otp = generateOTP();
+            OkHttpClient client = new OkHttpClient();
+
+            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+
+            String message = "Your otp for login is " + otp;
+            String jsonBody = "{"
+                    + "\"route\":\"q\","
+                    + "\"message\":\"" + message + "\","
+                    + "\"flash\":0,"
+                    + "\"numbers\":\"" + mobileNumber + "\""
+                    + "}";
+
+            okhttp3.RequestBody body = okhttp3.RequestBody.create(jsonBody, mediaType);
+
+            Request request = new Request.Builder()
+                    .url("https://www.fast2sms.com/dev/bulkV2")
+                    .post(body)
+                    .addHeader("authorization", apiKey)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+
+
 
             // Uncomment the code to send OTP via SMS
             /*
@@ -142,6 +170,21 @@ public class TwilioService {
                     customerDetails.setCreatedById(customer.getId());
                     entityManager.merge(customerDetails);
                 }
+                try {
+                    Response response = client.newCall(request).execute();
+                    if(response.code()!=200)
+                    {
+                        return ResponseEntity.ok(Map.of(
+                                "message", "Cannot send OTP :"+response.message()
+                        ));
+                    }
+                    System.out.println(response);
+                }catch (Exception e)
+                {
+                    return ResponseEntity.ok(Map.of(
+                            "message", e.getMessage()
+                    ));
+                }
                 return ResponseEntity.ok(Map.of(
                         "otp", otp,
                         "message", "Otp has been sent successfully on " + maskedNumber
@@ -170,6 +213,21 @@ public class TwilioService {
                 }
                 existingCustomer.setOtp(otp);
                 entityManager.merge(existingCustomer);
+                try {
+                    Response response = client.newCall(request).execute();
+                    if(response.code()!=200)
+                    {
+                        return ResponseEntity.ok(Map.of(
+                                "message", "Cannot send OTP :"+response.message()
+                        ));
+                    }
+                    System.out.println(response);
+                }catch (Exception e)
+                {
+                    return ResponseEntity.ok(Map.of(
+                            "message", e.getMessage()
+                    ));
+                }
                 return ResponseEntity.ok(Map.of(
 
                         "otp", otp,
