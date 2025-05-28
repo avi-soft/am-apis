@@ -10,10 +10,10 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -34,8 +34,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.reflect.Method;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,8 +51,8 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
-import javax.annotation.PreDestroy;
-import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.Query;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -65,6 +64,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.*;
 
+@Slf4j
 @Service
 public class DocumentStorageService {
 
@@ -1120,6 +1120,144 @@ public class DocumentStorageService {
             } catch (IOException e) {
                 System.err.println("Failed to cleanup temporary file: " + e.getMessage());
             }
+        }
+    }
+
+    public List<String> deleteDocument(String role, List<Integer> fileTypes, Long customerId, String otherDocument, Long qualificationDetailId) throws Exception {
+        try {
+            log.info("inside delete document logic");
+            List<String> deleteLogs = new ArrayList<>();
+
+            String queryStringArchive = null;
+            String queryStringArchiveId = null;
+
+            if (role.equals(Constant.roleUser)) {
+                queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
+                queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "document", "custom_customer_id");
+            } else if (role.equals(Constant.roleServiceProvider)) {
+                queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "service_provider_documents", "service_provider_id");
+                queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "service_provider_documents", "service_provider_id");
+            }
+            for (Integer fileType : fileTypes) {
+                DocumentType documentTypeObj = em.createQuery(
+                                "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                        .setParameter("documentTypeId", fileType)
+                        .getResultStream()
+                        .findFirst()
+                        .orElse(null);
+
+                if (documentTypeObj == null) {
+                    throw new IllegalArgumentException("Unknown document type for file: ");
+                }
+                if(documentTypeObj.getDocument_type_id().equals(12))
+                {
+                    if(qualificationDetailId==null)
+                    {
+                        throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
+                    }
+                }
+                if(documentTypeObj.getDocument_type_id().equals(13))
+                {
+                    if(otherDocument==null)
+                    {
+                        throw new IllegalArgumentException("other document is required to delete a other document");
+                    }
+                }
+                boolean isQualificationDocumentToDelete=false;
+                boolean isOtherDocumentToDelete=false;
+
+                String archiveIdQuery = queryStringArchiveId;
+                String archiveQuery = queryStringArchive;
+
+                // Append qualification_detail_id condition if provided
+                if(documentTypeObj.getDocument_type_id().equals(12) && qualificationDetailId != null)
+                {
+                    isQualificationDocumentToDelete=true;
+                    archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
+                    archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
+                }
+                if(documentTypeObj.getDocument_type_id().equals(13) && otherDocument != null)
+                {
+                    isOtherDocumentToDelete=true;
+                    archiveIdQuery += " AND otherdocument = :otherDocument";
+                    archiveQuery += " AND otherdocument = :otherDocument";
+                }
+
+                Query query = entityManager.createNativeQuery(archiveIdQuery);
+                query.setParameter("userId", customerId);
+                query.setParameter("documentTypeId", fileType);
+                if (isQualificationDocumentToDelete) {
+                    query.setParameter("qualificationDetailId", qualificationDetailId);
+                }
+                if(isOtherDocumentToDelete)
+                {
+                    query.setParameter("otherDocument", otherDocument);
+                }
+
+                BigInteger id = (BigInteger) query.getSingleResult();
+
+                query = entityManager.createNativeQuery(archiveQuery);
+                query.setParameter("userId", customerId);
+                query.setParameter("documentTypeId", fileType);
+                if (isQualificationDocumentToDelete) {
+                    query.setParameter("qualificationDetailId", qualificationDetailId);
+                }
+                if(isOtherDocumentToDelete)
+                {
+                    query.setParameter("otherDocument", otherDocument);
+                }
+
+                int result = query.executeUpdate();
+
+                if (result == 1) {
+                    switch (role) {
+                        case Constant.roleUser:
+                            Document document = entityManager.find(Document.class, id.longValue());
+                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                            if (customCustomer.getDocuments() != null) {
+                                Iterator<Document> iterator = customCustomer.getDocuments().iterator();
+                                while (iterator.hasNext()) {
+                                    Document documentToDeleteC = iterator.next();
+                                    if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                        iterator.remove();  // safely remove the document
+                                        entityManager.merge(customCustomer);  // merge after modification
+                                        break;
+                                    }
+                                }
+                                deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                            }
+                            break;
+                        case Constant.roleServiceProvider:
+                            ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
+                            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+                            if (serviceProvider.getDocuments() != null) {
+                                Iterator<ServiceProviderDocument> iterator = serviceProvider.getDocuments().iterator();
+                                while (iterator.hasNext()) {
+                                    ServiceProviderDocument documentToDelete = iterator.next();
+                                    if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                        iterator.remove();  // safely remove the document
+                                        entityManager.merge(serviceProvider);  // merge after modification
+                                        break;
+                                    }
+                                }
+                                deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                            }
+                            break;
+                    }
+                } else {
+                    throw new NoResultException("No documents found");
+                }
+            }
+            return deleteLogs;
+        } catch (NoResultException noResultException) {
+            exceptionHandlingService.handleException(noResultException);
+            throw new NoResultException("No record found: " + noResultException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
         }
     }
 }

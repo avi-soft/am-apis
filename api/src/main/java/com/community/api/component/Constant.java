@@ -272,6 +272,7 @@ public class Constant {
     public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
     public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
 
-
+    public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
+    public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
 
 }
