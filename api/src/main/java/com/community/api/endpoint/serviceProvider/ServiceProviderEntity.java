@@ -307,6 +307,8 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ActionLog> actionLogs;
 
+    @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean autoScoring=true;
 }
 
 
