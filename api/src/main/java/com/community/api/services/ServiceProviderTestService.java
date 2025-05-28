@@ -8,8 +8,6 @@ import com.community.api.entity.*;
 import com.community.api.entity.Image;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import io.swagger.models.auth.In;
-import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -30,7 +28,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 
 @Service
@@ -75,91 +72,144 @@ public class ServiceProviderTestService {
     }
 
     @Transactional
-    public Map<String, Object> startTest(Long serviceProviderId,HttpServletRequest request) throws EntityDoesNotExistsException{
-        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
-        if(serviceProvider==null)
+    public Map<String, Object> startTest(Long serviceProviderId,HttpServletRequest request) throws Exception {
+        try
         {
-            throw new EntityDoesNotExistsException("Service Provider not found");
+            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
+            if(serviceProvider==null)
+            {
+                throw new EntityDoesNotExistsException("Service Provider not found");
+            }
+            if(serviceProvider.getTestStatus()!=null)
+            {
+                ServiceProviderTestStatus serviceProviderTestStatus= entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
+                if(serviceProviderTestStatus==null)
+                {
+                    throw new IllegalArgumentException("Test Status id "+ Constant.TEST_COMPLETED_STATUS+" Not found so cannot start test of ServiceProvider");
+                }
+                Long testStatus= serviceProviderTestStatus.getTest_status_id();
+                if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getTestStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
+                {
+                    ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
+                    String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
+                    String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
+                    String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
+                    String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("test", test);
+                    response.put("imageValidation", imageValidation);
+                    response.put("downloadImageUrl", imageUrl);
+                    response.put("downloadPdfImageUrl", randomPdfUrl);
+                    response.put("downloadSignImageUrl", randomSignUrl);
+                    response.put("minResizedImageSize",minImageSize);
+                    response.put("maxResizedImageSize",maxImageSize);
+                    response.put("minSignatureImageSize",minSignatureImageSize);
+                    response.put("maxSignatureImageSize",maxSignatureImageSize);
+                    response.put("minPdfSize",minPdfSize);
+                    response.put("maxPdfSize",maxPdfSize);
+                    response.put("requiredSignatureImageWidth",targetWidth);
+                    response.put("requiredSignatureImageHeight",targetHeight);
+                    response.put("uploadedResizedImage",test.getResized_image());
+                    response.put("uploadedSignatureImage",test.getSignature_image());
+                    response.put("uploadedPdf",test.getUploadedPdf());
+                    return response;
+                }
+                if(serviceProvider.getTestStatus().getTest_status_id().equals(testStatus) )
+                {
+                    throw new IllegalArgumentException("Skill Test has already been submitted.You cannot start a new test.");
+                }
+
+                ServiceProviderTestStatus serviceProviderTestStatusForApproved= entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_TEST);
+                if(serviceProviderTestStatus==null)
+                {
+                    throw new IllegalArgumentException("Test Status id "+ Constant.APPROVED_TEST+" Not found so cannot start test of ServiceProvider");
+                }
+                if(serviceProvider.getTestStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id()))
+                {
+                    throw new IllegalArgumentException("Skill Test has already been approved. No need to start test again.");
+                }
+            }
+
+            Image randomImage = getRandomImageByTypeId(1);
+            if(randomImage==null )
+            {
+                throw new IllegalArgumentException("There is no any random image present. Add a image to be selected randomly.");
+            }
+            String randomText= getRandomTypingText();
+            if(randomText==null)
+            {
+                throw new IllegalArgumentException("There is no any random typing text present. Add a typing text to be selected randomly.");
+            }
+
+            Image randomPdfImage = getRandomImageByTypeId(2);
+            if(randomPdfImage==null )
+            {
+                throw new IllegalArgumentException("There is no any random pdf image present. Add a image for pdfs to be selected randomly.");
+            }
+
+            Image randomSignImage = getRandomImageByTypeId(3);
+            if(randomSignImage==null )
+            {
+                throw new IllegalArgumentException("There is no any random signature image present. Add a image for signatures to be selected randomly.");
+            }
+
+            ServiceProviderTest test = new ServiceProviderTest();
+            test.setService_provider(serviceProvider);
+            test.setDownloaded_image(randomImage);
+            test.setDownloaded_pdf_image(randomPdfImage);
+            test.setDownloaded_signature_image(randomSignImage);
+            test.setDownloaded_image(randomImage);
+            test.setTyping_test_text(randomText);
+            test.setIs_test_completed(false);
+            entityManager.persist(test);
+            serviceProvider.getServiceProviderTests().add(test);
+            entityManager.merge(serviceProvider);
+
+            String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
+            String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
+            String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
+            String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
+            Map<String, Object> response = new HashMap<>();
+            response.put("test", test);
+            response.put("imageValidation", imageValidation);
+            response.put("downloadImageUrl", imageUrl);
+            response.put("downloadPdfImageUrl", randomPdfUrl);
+            response.put("downloadSignImageUrl", randomSignUrl);
+            response.put("minResizedImageSize",minImageSize);
+            response.put("maxResizedImageSize",maxImageSize);
+            response.put("minSignatureImageSize",minSignatureImageSize);
+            response.put("maxSignatureImageSize",maxSignatureImageSize);
+            response.put("minPdfSize",minPdfSize);
+            response.put("maxPdfSize",maxPdfSize);
+            response.put("requiredSignatureImageWidth",targetWidth);
+            response.put("requiredSignatureImageHeight",targetHeight);
+            response.put("uploadedResizedImage",test.getResized_image());
+            response.put("uploadedSignatureImage",test.getSignature_image());
+            response.put("uploadedPdf",test.getUploadedPdf());
+
+            return response;
         }
-        if(serviceProvider.getTestStatus()!=null)
+        catch (EntityDoesNotExistsException e)
         {
-            ServiceProviderTestStatus serviceProviderTestStatus= entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
-            if(serviceProviderTestStatus==null)
-            {
-                throw new IllegalArgumentException("Test Status id "+ Constant.TEST_COMPLETED_STATUS+" Not found so cannot start test of ServiceProvider");
-            }
-            Long testStatus= serviceProviderTestStatus.getTest_status_id();
-            if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getTestStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
-            {
-                ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
-                String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-                String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
-                Map<String, Object> response = new HashMap<>();
-                response.put("test", test);
-                response.put("imageValidation", imageValidation);
-                response.put("downloadImageUrl", imageUrl);
-                response.put("minResizedImageSize",minImageSize);
-                response.put("maxResizedImageSize",maxImageSize);
-                response.put("minSignatureImageSize",minSignatureImageSize);
-                response.put("maxSignatureImageSize",maxSignatureImageSize);
-                response.put("minPdfSize",minPdfSize);
-                response.put("maxPdfSize",maxPdfSize);
-                response.put("requiredSignatureImageWidth",targetWidth);
-                response.put("requiredSignatureImageHeight",targetHeight);
-                return response;
-            }
-            if(serviceProvider.getTestStatus().getTest_status_id().equals(testStatus) )
-            {
-                throw new IllegalArgumentException("Skill Test has already been submitted.You cannot start a new test.");
-            }
-
-            ServiceProviderTestStatus serviceProviderTestStatusForApproved= entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_TEST);
-            if(serviceProviderTestStatus==null)
-            {
-                throw new IllegalArgumentException("Test Status id "+ Constant.APPROVED_TEST+" Not found so cannot start test of ServiceProvider");
-            }
-            if(serviceProvider.getTestStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id()))
-            {
-                throw new IllegalArgumentException("Skill Test has already been approved. No need to start test again.");
-            }
+            exceptionHandlingImplement.handleException(e);
+            throw new EntityDoesNotExistsException(e.getMessage());
         }
-
-        Image randomImage = getRandomImage();
-        if(randomImage==null )
+        catch (IllegalArgumentException e)
         {
-            throw new IllegalArgumentException("There is no any random image present. Add a image to be selected randomly.");
+            exceptionHandlingImplement.handleException(e);
+            throw new IllegalArgumentException(e.getMessage());
         }
-        String randomText= getRandomTypingText();
-        if(randomText==null)
+        catch (RuntimeException e)
         {
-            throw new IllegalArgumentException("There is no any random typing text present. Add a typing text to be selected randomly.");
+            exceptionHandlingImplement.handleException(e);
+            throw new RuntimeException(e.getMessage());
+        }
+        catch (Exception e)
+        {
+            exceptionHandlingImplement.handleException(e);
+            throw new Exception(e.getMessage());
         }
 
-        ServiceProviderTest test = new ServiceProviderTest();
-        test.setService_provider(serviceProvider);
-        test.setDownloaded_image(randomImage);
-        test.setTyping_test_text(randomText);
-        test.setIs_test_completed(false);
-        entityManager.persist(test);
-        serviceProvider.getServiceProviderTests().add(test);
-        entityManager.merge(serviceProvider);
-
-        String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
-        String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
-        Map<String, Object> response = new HashMap<>();
-        response.put("test", test);
-        response.put("imageValidation", imageValidation);
-        response.put("downloadImageUrl", imageUrl);
-        response.put("minResizedImageSize",minImageSize);
-        response.put("maxResizedImageSize",maxImageSize);
-        response.put("minSignatureImageSize",minSignatureImageSize);
-        response.put("maxSignatureImageSize",maxSignatureImageSize);
-        response.put("minPdfSize",minPdfSize);
-        response.put("maxPdfSize",maxPdfSize);
-        response.put("requiredSignatureImageWidth",targetWidth);
-        response.put("requiredSignatureImageHeight",targetHeight);
-
-        return response;
     }
 
     @Transactional
@@ -233,6 +283,8 @@ public class ServiceProviderTestService {
         resizedImage.setFile_path(dbPath);
         resizedImage.setImage_data(resizedFile.getBytes());
         resizedImage.setServiceProvider(serviceProvider);
+        Long resizedFileSize=(long) resizedFile.getSize();
+        resizedImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(resizedFileSize));
 
 
         // Set the image data and validate the resized image
@@ -314,6 +366,8 @@ public class ServiceProviderTestService {
         uploadedPdf.setFile_type(pdfFile.getContentType());
         uploadedPdf.setFile_path(dbPath);
         uploadedPdf.setPdf_data(pdfFile.getBytes());
+        Long uploadedPdfSize=(long) pdfFile.getSize();
+        uploadedPdf.setPdf_size(ImageSizeConfig.convertBytesToReadableSize(uploadedPdfSize));
         uploadedPdf.setServiceProvider(serviceProvider);
 
         entityManager.merge(test);
@@ -431,7 +485,7 @@ public class ServiceProviderTestService {
         validateImageDimension(signatureFile.getBytes(), targetWidth, targetHeight, tolerance);
 
         // Validate image size
-        if (signatureFile.getSize() < Constant.MIN_SIGNATURE_IMAGE_SIZE || signatureFile.getSize() > Constant.MAX_FILE_SIZE) {
+        if (signatureFile.getSize() < Constant.MIN_SIGNATURE_IMAGE_SIZE || signatureFile.getSize() > Constant.MAX_SIGNATURE_IMAGE_SIZE) {
             test.setIs_image_test_passed(false);
             entityManager.merge(test);
 
@@ -466,6 +520,8 @@ public class ServiceProviderTestService {
         signatureImage.setFile_type(signatureFile.getContentType());
         signatureImage.setFile_path(dbPath);
         signatureImage.setImage_data(signatureFile.getBytes());
+        Long uploadedSignSize=(long) signatureFile.getSize();
+        signatureImage.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedSignSize));
         signatureImage.setServiceProvider(serviceProvider);
 
         test.setIs_test_completed(true);
@@ -579,15 +635,30 @@ public class ServiceProviderTestService {
             return ResponseService.generateSuccessResponse("Service Provider has not completed any test yet",null,HttpStatus.OK);
         }
         String downloadedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_image().getFile_path(),request);
+        String downloadedPdfUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_pdf_image().getFile_path(),request);
+        String downloadedSignatureUrl= fileService.getFileUrl(serviceProviderTestToReturn.getDownloaded_signature_image().getFile_path(),request);
         String resizedImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getResized_image().getFile_path(),request);
         String signatureImageUrl= fileService.getFileUrl(serviceProviderTestToReturn.getSignature_image().getFile_path(),request);
         String pdfUrl=fileService.getFileUrl(serviceProviderTestToReturn.getUploadedPdf().getFile_path(),request);
         Map<String,Object> completedTestMap= new HashMap<>();
-        completedTestMap.put("completed_test",serviceProviderTestToReturn);
-        completedTestMap.put("downloaded_image_url",downloadedImageUrl);
-        completedTestMap.put("resized_image_url",resizedImageUrl);
-        completedTestMap.put("signature_image_url",signatureImageUrl);
-        completedTestMap.put("uploaded_pdf_url",pdfUrl);
+        completedTestMap.put("completedTest",serviceProviderTestToReturn);
+        completedTestMap.put("downloadedImageUrl",downloadedImageUrl);
+        completedTestMap.put("downloadedSignatureImageUrl",downloadedSignatureUrl);
+        completedTestMap.put("downloadedPdfImageUrl",downloadedPdfUrl);
+        completedTestMap.put("resizedImageUrl",resizedImageUrl);
+        completedTestMap.put("signatureImageUrl",signatureImageUrl);
+        completedTestMap.put("uploadedPdfUrl",pdfUrl);
+        completedTestMap.put("minResizedImageSize",minImageSize);
+        completedTestMap.put("maxResizedImageSize",maxImageSize);
+        completedTestMap.put("minSignatureImageSize",minSignatureImageSize);
+        completedTestMap.put("maxSignatureImageSize",maxSignatureImageSize);
+        completedTestMap.put("minPdfSize",minPdfSize);
+        completedTestMap.put("maxPdfSize",maxPdfSize);
+        completedTestMap.put("requiredSignatureImageWidth",targetWidth);
+        completedTestMap.put("requiredSignatureImageHeight",targetHeight);
+        completedTestMap.put("uploadedResizedImage",serviceProviderTestToReturn.getResized_image());
+        completedTestMap.put("uploadedSignatureImage",serviceProviderTestToReturn.getSignature_image());
+        completedTestMap.put("uploadedPdf",serviceProviderTestToReturn.getUploadedPdf());
 
         return ResponseService.generateSuccessResponse("Completed test is found",completedTestMap,HttpStatus.OK);
     }
@@ -696,14 +767,22 @@ public class ServiceProviderTestService {
         }
     }
 
-    private Image getRandomImage() {
-        // Fetch a random Image entity from the database
-        long count = (long) entityManager.createQuery("SELECT COUNT(i) FROM Image i").getSingleResult();
+    private Image getRandomImageByTypeId(int typeId) {
+        // Count images with the given type ID
+        Long count = (Long) entityManager.createQuery(
+                        "SELECT COUNT(i) FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId")
+                .setParameter("typeId", typeId)
+                .getSingleResult();
+
         if (count == 0) {
-            throw new EntityNotFoundException("No images available");
+            throw new EntityNotFoundException("No images available for type ID: " + typeId);
         }
-        int randomIndex = new Random().nextInt((int) count);
-        return (Image) entityManager.createQuery("SELECT i FROM Image i")
+
+        int randomIndex = new Random().nextInt(count.intValue());
+
+        return (Image) entityManager.createQuery(
+                        "SELECT i FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId")
+                .setParameter("typeId", typeId)
                 .setFirstResult(randomIndex)
                 .setMaxResults(1)
                 .getSingleResult();

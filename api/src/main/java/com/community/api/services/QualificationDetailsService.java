@@ -899,6 +899,9 @@ public class QualificationDetailsService {
         if (Objects.nonNull(qualification.getExamination_role_number())) {
             qualificationDetailsToUpdate.setExamination_role_number(qualification.getExamination_role_number());
         }
+        if (Objects.nonNull(qualification.getInstitution_address())) {
+            qualificationDetailsToUpdate.setInstitution_address(qualification.getInstitution_address());
+        }
         if (Objects.nonNull(qualification.getExamination_registration_number())) {
             qualificationDetailsToUpdate.setExamination_registration_number(qualification.getExamination_registration_number());
         }
