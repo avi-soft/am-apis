@@ -913,7 +913,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 else {
                     numberOfEmployees=existingServiceProvider.getNumber_of_employees();
                 }
-                    if (numberOfEmployees != null && numberOfEmployees < 2 || updates.get("is_running_business_unit").equals(false)) {
+                Boolean isRunning = Boolean.parseBoolean(String.valueOf(updates.get("is_running_business_unit")));
+                    if (numberOfEmployees != null && numberOfEmployees < 2 || !isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
@@ -922,7 +923,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap = null;
                         }
                     } else if (numberOfEmployees != null && numberOfEmployees >= 2
-                            && numberOfEmployees <= 4 && updates.get("is_running_business_unit").equals(true)) {
+                            && numberOfEmployees <= 4 && isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(11L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
@@ -930,7 +931,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
                         }
-                    } else if (numberOfEmployees != null && numberOfEmployees > 4 && updates.get("is_running_business_unit").equals(true)) {
+                    } else if (numberOfEmployees != null && numberOfEmployees > 4 && isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(10L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
                             return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
