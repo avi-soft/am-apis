@@ -116,4 +116,86 @@ public class OrderDTOService {
                 combinedOrderDTO.setCustomerDetails(customerDetails);
                 return combinedOrderDTO;
     }
+
+    @Transactional
+    public CombinedOrderDTO wrapOrderCustomer(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
+    {
+        OrderDTO orderDTO = null;
+        Long assigneeId = null;
+        if (ticket != null)
+            assigneeId = ticket.getAssignee();
+
+        List<Long> preferenceOrder = null;
+        List<PostDetailsDTO> postPreferenceOrder = new ArrayList<>();
+        OrderAttribute orderAttribute = (OrderAttribute) order.getOrderAttributes().get("sorted");
+        if (orderAttribute != null) {
+            String retrievedPostPreferenceString = orderAttribute.getValue();
+            if (!"NO_AVAILABLE_POSTS".equals(retrievedPostPreferenceString)) {
+                if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                    preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                            .map(Long::parseLong)
+                            .collect(Collectors.toList());
+                }
+                for (Long id : preferenceOrder) {
+                    Post post = entityManager.find(Post.class, id);
+                    if (post != null) {
+                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                        detailsDTO.setPostId(post.getPostId());
+                        detailsDTO.setPostName(post.getPostName());
+                        detailsDTO.setPostCode(post.getPostCode());
+                        postPreferenceOrder.add(detailsDTO);
+                    }
+                }
+            }
+        }
+
+        // Set the state group name (New, In Progress, Completed, Canceled)
+        String orderStateName = mapOrderStateIdToGroup(orderState.getOrderStateId());
+
+        orderDTO = new OrderDTO(
+                order.getId(),
+                postPreferenceOrder,
+                order.getName(),
+                order.getTotal(),
+                order.getSubmitDate(),
+                order.getOrderNumber(),
+                order.getEmailAddress(),
+                order.getCustomer().getId(),
+                order.getSubTotal(),
+                orderState.getOrderStateId(),
+                orderStateName,
+                assigneeId
+        );
+
+        OrderItem orderItem = order.getOrderItems().get(0);
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+        CustomProductWrapper customProductWrapper = null;
+        if (customProduct != null) {
+            customProductWrapper = new CustomProductWrapper();
+            List<Post> postList = customProduct.getPosts();
+            customProductWrapper.wrapDetails(customProduct, postList, null, feePostRefService);
+        }
+
+        CombinedOrderDTO combinedOrderDTO = new CombinedOrderDTO();
+        combinedOrderDTO.setOrderDetails(orderDTO);
+        combinedOrderDTO.setProductDetails(customProductWrapper);
+        combinedOrderDTO.setTicket(ticket);
+        combinedOrderDTO.setCustomerDetails(customerDetails);
+
+        return combinedOrderDTO;
+    }
+
+    private String mapOrderStateIdToGroup(Integer orderStateId) {
+        if (orderStateId == null) return null;
+
+        if (Arrays.asList(1,0,3).contains(orderStateId)) return "New";
+        if (Arrays.asList(2,  4, 6, 8).contains(orderStateId)) return "In Progress";
+        if (orderStateId.equals(7)) return "Fulfilled";
+        if (Arrays.asList(999, 5).contains(orderStateId)) return "Canceled";
+
+        return "Unknown";
+    }
+
+
 }
