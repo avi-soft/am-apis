@@ -27,9 +27,9 @@ public class ImageController
     ExceptionHandlingImplement exceptionHandlingImplement;
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, @RequestParam("random_image_type") Integer randomImageTypeId) {
         try {
-            Image savedImage = imageService.saveImage(file);
+            Image savedImage = imageService.saveImage(file, randomImageTypeId);
             return ResponseService.generateSuccessResponse("Image is saved",savedImage,HttpStatus.OK);
         } catch (IOException e) {
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
@@ -37,7 +37,8 @@ public class ImageController
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
-    @PostMapping("/upload-all")
+
+    /*@PostMapping("/upload-all")
     public ResponseEntity<?> uploadImages(@RequestParam("files") List<MultipartFile> files) {
         try {
             // Call the updated service method to save multiple images
@@ -52,7 +53,7 @@ public class ImageController
             // Handle general exceptions and return error response
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-    }
+    }*/
 
 
     @GetMapping("/get-all")

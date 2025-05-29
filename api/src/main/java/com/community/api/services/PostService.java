@@ -576,19 +576,35 @@ public class PostService {
                 CategoryDistribution catDist = new CategoryDistribution();
                 catDist.setStateDistribution(stateDistribution);
 
-                CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
-                if (category == null) {
-                    throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
+                if(catDto.getCategoryId()!=null)
+                {
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
+                    if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                        throw new IllegalArgumentException("Cannot add running field for Category except OTHERS");
+                    else if (catDto.getCategoryId() == 6 &&
+                            (catDto.getCategoryRunningField() == null ||
+                                    catDto.getCategoryRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+                    }
+                    catDist.setCategory(category);
                 }
-                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
-                    throw new IllegalArgumentException("Cannot add running field for Category except OTHERS");
-                else if (catDto.getCategoryId() == 6 &&
-                        (catDto.getCategoryRunningField() == null ||
-                                catDto.getCategoryRunningField().trim().isEmpty())) {
-                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+                if(catDto.getIsStateLevelCategory().equals(true))
+                {
+                    catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
+
+                    catDist.setStateLevelCategory(catDto.getStateLevelCategory());
+                    catDist.setCategory(null);
+
+                }
+                else {
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
+                    if (category == null) {
+                        throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
+                    }
+                    catDist.setIsStateLevelCategory(false);
+                    catDist.setCategory(category);
                 }
                 catDist.setCategoryRunningField(catDto.getCategoryRunningField());
-                catDist.setCategory(category);
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
                 catDist.setMaleVacancy(catDto.getMaleVacancy());
                 catDist.setFemaleVacancy(catDto.getFemaleVacancy());
@@ -954,14 +970,8 @@ public class PostService {
                     catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
 
                     catDist.setStateLevelCategory(catDto.getStateLevelCategory());
-                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 6L);
-                    if (category == null) {
-                        throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
-                    }
-                    if(category.getReserveCategoryName().equalsIgnoreCase("Others"))
-                    {
-                        catDist.setCategory(category);
-                    }
+                    catDist.setCategory(null);
+
                 }
                 else {
                     CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
@@ -978,10 +988,13 @@ public class PostService {
                     catDist.setFemaleVacancy(catDto.getFemaleVacancy());
                     catDist.setTotalVacancy(catDist.getTotalVacancy());
                 }
-                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
-                    throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
-                if(catDto.getCategoryId()==6&&(catDto.getCategoryRunningField()==null||catDto.getCategoryRunningField().trim().isEmpty()))
-                    throw new IllegalArgumentException("Running field required when selecting category : OTHERS");
+                if(catDto.getCategoryId()!=null)
+                {
+                    if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                        throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
+                    if(catDto.getCategoryId()==6&&(catDto.getCategoryRunningField()==null||catDto.getCategoryRunningField().trim().isEmpty()))
+                        throw new IllegalArgumentException("Running field required when selecting category : OTHERS");
+                }
                 catDist.setCategoryRunningField(catDto.getCategoryRunningField());
                 catDist.setCategoryVacancies(catDto.getCategoryVacancies());
 

@@ -42,15 +42,10 @@ public class ServiceProviderTestController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
-        catch (IllegalArgumentException e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
         catch (Exception e)
         {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -75,6 +70,11 @@ public class ServiceProviderTestController {
         {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (RuntimeException e)
+        {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException(e.getMessage());
         }
         catch (Exception e)
         {

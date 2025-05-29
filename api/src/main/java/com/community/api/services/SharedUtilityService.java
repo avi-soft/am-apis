@@ -215,8 +215,8 @@ public class SharedUtilityService {
                 customerDetailsForMobile.put("cartId", cart.getId());
             else
                 customerDetailsForMobile.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
@@ -495,8 +495,9 @@ public class SharedUtilityService {
                 customerDetailsForDesktop.put("cartId", cart.getId());
             else
                 customerDetailsForDesktop.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForDesktop.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
@@ -837,6 +838,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_assigned",serviceProvider.getTicketAssigned());
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
+        serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
@@ -850,6 +852,7 @@ public class SharedUtilityService {
         }
         serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
         serviceProviderDetails.put("permanent_address_is_same_as_current_address",serviceProvider.getIsSameAsCurrentAddress());
+        serviceProviderDetails.put("work_experience_in",serviceProvider.getWork_experience_in());
 
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
@@ -963,6 +966,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1119,6 +1123,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {

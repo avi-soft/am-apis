@@ -67,14 +67,14 @@ public class QualificationDetails {
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
-    private Long examination_role_number;
+    private String examination_role_number;
 
     @Column(name = "course_duration_in_months",nullable = true)
     private Long course_duration_in_months;
 
     //    @NotNull(message = "Examination Registration Number is required")
     @Column(name = "examination_registration_number",nullable = true)
-    private Long examination_registration_number;
+    private String examination_registration_number;
 
     @NotNull(message = "board or university id is required")
     @Column(name = "board_university_id", nullable = false)
@@ -136,6 +136,9 @@ public class QualificationDetails {
     @CollectionTable(name = "highest_qualification_subject_names", joinColumns = @JoinColumn(name = "qualification_detail_id"))
     @Column(name = "subject_name")
     private List<String> highest_qualification_subject_names;
+
+    @Column(name = "institution_address")
+    private String institution_address;
 
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne

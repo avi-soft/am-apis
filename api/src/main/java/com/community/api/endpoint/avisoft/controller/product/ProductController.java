@@ -621,9 +621,12 @@ public class ProductController extends CatalogEndpoint {
             }
             //set views
 
-            if(origin.trim().equals(recOrigin.trim())) {
-                customProduct.setViews(customProduct.getViews() + 1);
-                entityManager.merge(customProduct);
+            if(recOrigin!=null)
+            {
+                if(origin.trim().equals(recOrigin.trim())) {
+                    customProduct.setViews(customProduct.getViews() + 1);
+                    entityManager.merge(customProduct);
+                }
             }
             if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
 
