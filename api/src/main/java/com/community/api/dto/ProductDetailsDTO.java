@@ -14,7 +14,9 @@ import java.util.Date;
 @Setter
 public class ProductDetailsDTO {
     String metaTitle;
+    @JsonProperty("product_id")
     Long id;
+    @JsonProperty("display_template")
     String displayTemplate;
     Double fee;
     String ageLimit;
