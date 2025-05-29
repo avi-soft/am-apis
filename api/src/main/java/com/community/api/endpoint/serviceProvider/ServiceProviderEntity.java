@@ -51,7 +51,7 @@ public class ServiceProviderEntity  {
     @SequenceGenerator(
             name = "service_provider_seq",
             sequenceName = "service_provider_sequence",
-            initialValue = 100,
+            initialValue = 128,
             allocationSize = 1
     )
     private Long service_provider_id;

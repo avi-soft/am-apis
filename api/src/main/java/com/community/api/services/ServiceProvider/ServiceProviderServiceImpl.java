@@ -62,6 +62,8 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import javax.validation.constraints.Pattern;
 
+import static com.community.api.component.Constant.PHONE_QUERY_SERVICE_PROVIDER_FILTER;
+
 @Service
 public class ServiceProviderServiceImpl implements ServiceProviderService {
 
@@ -230,7 +232,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
                     existingServiceProvider.setRanking(serviceProviderRank);
-                    existingServiceProvider.setAutoScoring(false);
+//                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
             }
@@ -1733,7 +1735,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (mobileNumber != null) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
+                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(PHONE_QUERY_SERVICE_PROVIDER_FILTER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
                         .setParameter("country_code", "+91")
                         .getResultStream()
