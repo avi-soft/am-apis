@@ -2870,7 +2870,7 @@ public class CustomerEndpoint {
         }
     }
 
-    @GetMapping(value = "/forms/show-filled-forms")
+    @GetMapping(value = "/forms/show-applied-forms")
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
