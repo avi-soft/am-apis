@@ -1,9 +1,12 @@
 package com.community.api.endpoint.avisoft.controller;
 import com.community.api.component.JwtUtil;
-import com.community.api.services.*;
+import com.community.api.services.CustomCustomerService;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.RateLimiterService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.SanitizerService;
 import io.github.bucket4j.Bucket;
 import io.jsonwebtoken.security.Keys;
-import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,14 +16,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Map;
@@ -95,7 +91,6 @@ public class TestController {
         return "Documents inserted successfully";
     }
 
-
     @PostMapping("/alter/document")
     @Transactional
     public String alterDocument(@RequestParam String userId) {
@@ -140,7 +135,6 @@ public class TestController {
         }
     }
 
-
     @PostMapping("/add-column-to-a-table/{entityName}/{columnName}/{dataType}")
     @Transactional
     public String addColumn(@PathVariable String entityName,@PathVariable String columnName,@PathVariable String dataType) {
@@ -154,7 +148,6 @@ public class TestController {
 
         }
     }
-
 
     @PostMapping("/add/typing-text")
     public String addTypingText(@RequestParam String userId) {

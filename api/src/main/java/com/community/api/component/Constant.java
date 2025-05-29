@@ -277,6 +277,13 @@ public class Constant {
 
     public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
     public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
+    public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
     public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
+
+    public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name IS NOT NULL ";
+
+    public static final String GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) AND d.name = :documentName AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL";
 
 }

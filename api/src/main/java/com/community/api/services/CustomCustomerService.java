@@ -9,6 +9,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +34,7 @@ import java.util.regex.Pattern;
 import static com.community.api.component.Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID;
 import static com.community.api.component.Constant.request;
 
+@Slf4j
 @Service
 public class CustomCustomerService {
     @Autowired
@@ -274,6 +276,7 @@ public class CustomCustomerService {
             String dateFormat = "yyyy-MM-dd";
             MultipartFile processedFile = null;
 
+            // Keep track of documents to be saved
             HashSet<Document> documentsToSave = new HashSet<>();
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
@@ -342,12 +345,9 @@ public class CustomCustomerService {
 
                     Document existingDocument = null;
 
+                    // Condition for qualification document or not
                     if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
-                        existingDocument = em.createQuery(
-                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType " +
-                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
-                                                "AND d.name IS NOT NULL", Document.class)
+                        existingDocument = em.createQuery(Constant.GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER, Document.class)
                                 .setParameter("customCustomer", customCustomer)
                                 .setParameter("documentType", documentTypeObj)
                                 .setParameter("qualificationDetailId", qualificationDetailId)
@@ -355,15 +355,15 @@ public class CustomCustomerService {
                                 .findFirst()
                                 .orElse(null);
                     } else {
-                        existingDocument = em.createQuery(
-                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                        existingDocument = em.createQuery(Constant.GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID, Document.class)
                                 .setParameter("customCustomer", customCustomer)
                                 .setParameter("documentType", documentTypeObj)
                                 .getResultStream()
                                 .findFirst()
                                 .orElse(null);
                     }
+
+                    // For live photograph we will upload processed image (that's in jpg) else we upload the file as it is.
                     if (documentTypeObj.getDocument_type_id().equals(DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
                         fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                     } else {
@@ -385,7 +385,6 @@ public class CustomCustomerService {
                         documentsToSave.add(existingDocument);
 
                         deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
-
                         continue;
                     }
 
@@ -393,11 +392,7 @@ public class CustomCustomerService {
                         String newFileName = file.getOriginalFilename();
 
                         // Check for existing document with the same name
-                        Document existingDocumentWithOtherDocumentType = em.createQuery(
-                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
-                                                "AND d.documentType = :documentType " +
-                                                "AND LOWER(d.otherDocument) = LOWER(:otherDocument) " +  // Case-insensitive check
-                                                "AND d.name IS NOT NULL", Document.class)
+                        Document existingDocumentWithOtherDocumentType = em.createQuery(Constant.GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID + "AND LOWER(d.otherDocument) = LOWER(:otherDocument) ", Document.class)
                                 .setParameter("customCustomer", customCustomer)
                                 .setParameter("documentType", documentTypeObj)
                                 .setParameter("otherDocument", otherDocument.toLowerCase())  // Ensure consistency
@@ -434,7 +429,6 @@ public class CustomCustomerService {
                     else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
                         String filePath = existingDocument.getFilePath();
                         if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
-//                                processedFile = documentStorageService.convertToJpg(file);
                             customCustomer.setIsLivePhotoNa(false);
                         }
                         if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
@@ -500,6 +494,7 @@ public class CustomCustomerService {
                         }
                         entityManager.merge(existingDocument);
                         documentsToSave.add(existingDocument);
+
                     } else {
                         // If the file is not empty create the document
                         if (!file.isEmpty() || file != null && (fileNameId != 13)) {
@@ -544,6 +539,8 @@ public class CustomCustomerService {
             }
 
             entityManager.merge(customCustomer);
+
+            // Upadating the response.
             List<Map<String, Object>> filteredDocuments = new ArrayList<>();
             for (Document document : documentsToSave) {
                 if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
@@ -574,6 +571,7 @@ public class CustomCustomerService {
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
+
                         String fileUrl = fileService.getFileUrl(filePath, request);
                         /* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*/
                         Map<String, Object> documentTypeResponse = new HashMap<>();
@@ -598,6 +596,8 @@ public class CustomCustomerService {
                     }
                 }
             }
+
+            log.info("Deleted Documents logs: {}", deletedDocumentMessages);
             responseData.put("uploadedDocuments", filteredDocuments);
             return responseData;
         } catch (NoResultException noResultException) {

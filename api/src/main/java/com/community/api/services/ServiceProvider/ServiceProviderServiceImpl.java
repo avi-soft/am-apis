@@ -39,6 +39,7 @@ import com.twilio.exception.ApiException;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.lang.Nullable;
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -76,6 +77,7 @@ import javax.validation.constraints.Pattern;
 
 import static com.community.api.component.Constant.request;
 
+@Slf4j
 @Service
 public class ServiceProviderServiceImpl implements ServiceProviderService {
 
@@ -1974,13 +1976,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             List<String> deletedDocumentMessages = new ArrayList<>();
 
             // Handle file uploads and deletions
-
             for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
                 Integer fileNameId = entry.getKey();
                 List<MultipartFile> fileList = entry.getValue();
 
-                DocumentType documentTypeObj = entityManager.createQuery(
-                                "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                DocumentType documentTypeObj = entityManager.createQuery(Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
                         .setParameter("documentTypeId", fileNameId)
                         .getResultStream()
                         .findFirst()
@@ -1990,42 +1990,40 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     throw new IllegalArgumentException("Unknown document type for file: " + fileNameId);
                 }
 
-                if(documentTypeObj.getDocument_type_id().equals(13))
+                if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID))
                 {
                     if(otherDocument==null)
                     {
-                        throw new IllegalArgumentException("otherDocument name cannot be null for uploading other Documents");
+                        throw new IllegalArgumentException("other Document name cannot be null for uploading other Documents");
                     }
                     if(otherDocument.trim().isEmpty())
                     {
-                        throw new IllegalArgumentException("otherDocument name cannot be empty");
+                        throw new IllegalArgumentException("other Document name cannot be empty");
                     }
                 }
 
-                if (documentTypeObj.getIs_qualification_document().equals(true)) {
-                    if (qualificationDetailId == null) {
-                        throw new IllegalArgumentException("QualificationDetail id cannot be null for uploading Qualfication Documents");
+                if (documentTypeObj.getIs_qualification_document().equals(true) && qualificationDetailId == null) {
+                        throw new IllegalArgumentException("Qualification Detail id cannot be null for uploading Qualification Documents");
                     }
-                }
+
                 if (documentTypeObj.getIs_issue_date_required().equals(true)) {
                     if (dateOfIssue == null) {
                         throw new IllegalArgumentException("Date of issue cannot be null");
                     }
-                    if (documentTypeObj.getIs_expiration_date_required().equals(true)) {
-                        if (validUpto == null) {
-                            throw new IllegalArgumentException("Valid upto (expiration date of document) cannot be null");
-                        }
+                    if (documentTypeObj.getIs_expiration_date_required().equals(true) && validUpto == null) {
+                        throw new IllegalArgumentException("Valid up to (expiration date of document) cannot be null");
                     }
                 }
+
                 for (MultipartFile file : fileList) {
-                    if (documentTypeObj.getDocument_type_id().equals(3)) {  // If it's a Live Photo
+                    if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {  // If it's a Live Photo
                         processedFile = documentStorageService.convertToJpg(file);
                     }
                     else {
                         documentStorageService.validateDocument(file, documentTypeObj);
                     }
                     ServiceProviderDocument existingDocument = entityManager.createQuery(
-                                    "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL", ServiceProviderDocument.class)
+                                    Constant.GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class)
                             .setParameter("serviceProviderEntity", serviceProviderEntity)
                             .setParameter("documentType", documentTypeObj)
 
@@ -2033,7 +2031,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             .findFirst()
                             .orElse(null);
 
-                    if(documentTypeObj.getDocument_type_id().equals(3))
+                    // If live photograph first processed to jpg then upload.
+                    if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID))
                     {
                         fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                     }
@@ -2042,35 +2041,27 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
 
                     if (removeFileTypes != null && removeFileTypes) {
-                        if (existingDocument != null && fileNameId != 13) {
-                            if (existingDocument != null) {
+                        if (existingDocument != null && !Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID)) {
 
-                                String filePath = existingDocument.getFilePath();
-                                if (filePath != null) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
-                                }
-                                existingDocument.setDocumentType(null);
-                                existingDocument.setName(null);
-                                existingDocument.setFilePath(null);
-                                existingDocument.setServiceProviderEntity(null);
-                                entityManager.persist(existingDocument);
-                                serviceProviderDocumentToSave.add(existingDocument);
-                                deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
+                            String filePath = existingDocument.getFilePath();
+                            if (filePath != null) {
+                                fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
                             }
+                            existingDocument.setDocumentType(null);
+                            existingDocument.setName(null);
+                            existingDocument.setFilePath(null);
+                            existingDocument.setServiceProviderEntity(null);
+                            entityManager.persist(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
+                            deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
                             continue;
                         }
                     }
 
-                    if (fileNameId == 13 && (!file.isEmpty() || file != null)) {
+                    if (Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID) && (!file.isEmpty() || file != null)) {
                         String newFileName = file.getOriginalFilename();
                         // Check for existing document with the same name
-                        ServiceProviderDocument existingDocument13 = entityManager.createQuery(
-                                        "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity " +
-                                                "AND d.documentType = :documentType " +
-                                                "AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) " +  // Handle null safely
-                                                "AND d.name = :documentName " +  // Include document name check
-                                                "AND d.name IS NOT NULL",
-                                        ServiceProviderDocument.class
+                        ServiceProviderDocument existingDocument13 = entityManager.createQuery(Constant.GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class
                                 )
                                 .setParameter("serviceProviderEntity", serviceProviderEntity)
                                 .setParameter("documentType", documentTypeObj)
@@ -2104,6 +2095,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             serviceProviderDocumentToSave.add(existingDocument13);
                         }
                     }
+
                     // If the file is not empty and a document already exists, update the document
                     else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
                         String filePath = existingDocument.getFilePath();
@@ -2189,7 +2181,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             // Continue with updating the document
                             existingDocument.setIsArchived(false);
 
-                            try {
+                            /*try {
                                 // Always proceed with the document update regardless of delete success
                                 if (isLivePhoto) {
                                     documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
@@ -2201,10 +2193,21 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 entityManager.merge(existingDocument);
                                 serviceProviderDocumentToSave.add(existingDocument);
 
-                            } catch (Exception e) {
+                            } catch (Exception exception) {
                                 System.err.println("Error updating document: " + e.getMessage());
                                 throw e; // Rethrow this exception as it's a critical failure
+                            }*/
+
+                            // Always proceed with the document update regardless of delete success
+                            if (isLivePhoto) {
+                                documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
                             }
+                            else {
+                                documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
+                            }
+
+                            entityManager.merge(existingDocument);
+                            serviceProviderDocumentToSave.add(existingDocument);
                         }
                         entityManager.merge(existingDocument);
                         serviceProviderDocumentToSave.add(existingDocument);
@@ -2273,11 +2276,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             documentDetails.put("documentValidity", validityDetails);
                         }
                         String filePath;
-                        try {
+                        /*try {
                             filePath = documentStorageService.encrypt(document.getFilePath());
                         } catch (Exception e) {
                             throw new RuntimeException(e);
-                        }
+                        }*/
+                        filePath = documentStorageService.encrypt(document.getFilePath());
+
                         String fileUrl = fileService.getFileUrl(filePath, request);
                         // Generate a file URL for the documen
                         documentDetails.put("fileUrl", fileUrl);
@@ -2305,6 +2310,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     }
                 }
             }
+
+            log.info("Deleted Documents logs: {}", deletedDocumentMessages);
             responseData.put("uploadedDocuments", filteredDocuments);
             return responseData;
         } catch (NoResultException noResultException) {

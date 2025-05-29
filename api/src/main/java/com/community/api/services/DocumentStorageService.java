@@ -1,4 +1,5 @@
 package com.community.api.services;
+
 import com.community.api.component.Constant;
 import com.community.api.component.FFmpegManager;
 import com.community.api.configuration.ImageSizeConfig;
@@ -68,45 +69,36 @@ import java.util.concurrent.*;
 @Service
 public class DocumentStorageService {
 
-    @Autowired
-    private  ResponseService responseService;
-
-    @Autowired
-    private EntityManager em;
-
-    @Autowired
-    private ExceptionHandlingService exceptionHandlingService;
-
-    @Autowired
-    private DocumentStorageService documentStorageService;
-
-    @Autowired
-    private EntityManager entityManager;
-
-    @Value("${file.server.url}")
-    private String fileServerUrl;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    private final String ffmpegPath;
-    private final ExecutorService executorService;
-    @Value("${secret.key}")
-    private  String key;
-
     private static final String ALGORITHM = "AES";
-    // 16-byte secret key for AES-128
-
     private static final long MIN_SIZE_BYTES = 100 * 1024; // 100KB
     private static final long MAX_SIZE_BYTES = 200 * 1024; // 200KB
     private static final int MAX_ATTEMPTS = 5;
-
     private static final Set<String> SUPPORTED_IMAGE_FORMATS = new HashSet<>(Arrays.asList(
             "heic", "heif", "jpg", "jpeg", "png", "webp", "tiff", "tif", "bmp",
             "cr2", "cr3", "nef", "arw", "orf", "dng", "raf", "pef", "srw", "rw2",
             "3fr", "psd", "xcf", "avif", "jp2", "jpx", "ico", "pcx", "tga", "sgi",
             "dib", "jxr", "dpx", "cin", "gif"
     ));
+    private static final int BYTES_TO_MB = 1024 * 1024;
+    private final String ffmpegPath;
+    private final ExecutorService executorService;
+    @Autowired
+    private ResponseService responseService;
+    @Autowired
+    private EntityManager em;
+    @Autowired
+    private ExceptionHandlingService exceptionHandlingService;
+    // 16-byte secret key for AES-128
+    @Autowired
+    private DocumentStorageService documentStorageService;
+    @Autowired
+    private EntityManager entityManager;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+    @Autowired
+    private RestTemplate restTemplate;
+    @Value("${secret.key}")
+    private String key;
 
     /**
      * Constructor with FFmpegManager - preferred approach
@@ -125,6 +117,19 @@ public class DocumentStorageService {
         this.ffmpegPath = ffmpegPath;
     }
 
+    public static boolean isValidFileType(MultipartFile file) {
+        String[] allowedFileTypes = {"application/pdf", "image/jpeg", "image/png", "image/jpg"};
+        String contentType = file.getContentType();
+
+        boolean isContentTypeValid = Arrays.asList(allowedFileTypes).contains(contentType);
+
+        String fileName = file.getOriginalFilename();
+
+        boolean isExtensionValid = fileName != null && (fileName.endsWith(".pdf") || fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".png"));
+
+        return isContentTypeValid && isExtensionValid;
+    }
+
     /**
      * Get the FFmpeg executable path
      * This method is now simpler since FFmpegManager handles all the complexity
@@ -132,6 +137,7 @@ public class DocumentStorageService {
     private String getFfmpegExecutablePath() {
         return this.ffmpegPath;
     }
+
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
 
@@ -154,7 +160,7 @@ public class DocumentStorageService {
             String fileName = file.getOriginalFilename();
             try (InputStream fileInputStream = file.getInputStream()) {
                 this.saveDocumentOndirctory(customerId.toString(), documentTypeStr, fileName, fileInputStream, role);
-            }catch(Exception e){
+            } catch (Exception e) {
                 exceptionHandlingService.handleException(e);
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", ApiConstants.STATUS_ERROR,
@@ -166,7 +172,7 @@ public class DocumentStorageService {
             Map<String, Object> responseBody = Map.of(
                     "message", "Document uploaded successfully",
                     "status", "OK",
-                    "data",documentTypeStr +" uploaded successfully",
+                    "data", documentTypeStr + " uploaded successfully",
                     "status_code", HttpStatus.OK.value()
             );
 
@@ -181,19 +187,18 @@ public class DocumentStorageService {
         }
     }
 
-
     /**
      * Saves a file to a dynamic directory structure.
      *
-     * @param customerId The ID of the customer.
-     * @param documentType The type of document (e.g., "aadhar", "pan", "signature").
-     * @param fileName The name of the file to be saved.
+     * @param customerId      The ID of the customer.
+     * @param documentType    The type of document (e.g., "aadhar", "pan", "signature").
+     * @param fileName        The name of the file to be saved.
      * @param fileInputStream InputStream of the file data.
      * @throws IOException If an I/O error occurs.
      */
     public void saveDocumentOndirctory(String customerId, String documentType, String fileName, InputStream fileInputStream, String role) throws IOException {
 
-        try{
+        try {
             String currentDir = System.getProperty("user.dir");
 
             String testDirPath = currentDir + "/../test/";
@@ -226,30 +231,16 @@ public class DocumentStorageService {
                     fos.write(buffer, 0, bytesRead);
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new IOException("Error saving document: " + e.getMessage());
         }
     }
 
-
-    public static boolean isValidFileType(MultipartFile file) {
-        String[] allowedFileTypes = {"application/pdf", "image/jpeg", "image/png", "image/jpg"};
-        String contentType = file.getContentType();
-
-        boolean isContentTypeValid = Arrays.asList(allowedFileTypes).contains(contentType);
-
-        String fileName = file.getOriginalFilename();
-
-        boolean isExtensionValid = fileName != null && (fileName.endsWith(".pdf") || fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".png"));
-
-        return isContentTypeValid && isExtensionValid;
-    }
-
-
     public List<DocumentType> getAllDocumentTypes() {
         return em.createQuery("SELECT dt FROM DocumentType dt", DocumentType.class).getResultList();
     }
+
     public String getDocumentTypeFromMultipartFile(MultipartFile file, List<DocumentType> allDocumentTypes) {
         String fileName = file.getOriginalFilename();
 
@@ -262,8 +253,6 @@ public class DocumentStorageService {
         }
         return "Unknown Document Type";
     }
-
-    private static final int BYTES_TO_MB = 1024 * 1024;
 
     public void validateDocument(MultipartFile file, DocumentType documentType) {
 //        ValidationResult result = new ValidationResult();
@@ -291,7 +280,7 @@ public class DocumentStorageService {
 
         // Validate file size
 //        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
-        if (file.getSize()> ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
+        if (file.getSize() > ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
             throw new IllegalArgumentException("File size exceeds maximum limit of " + documentType.getMax_document_size());
         }
         if (file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size())) {
@@ -395,8 +384,6 @@ public class DocumentStorageService {
     }
 
 
-
-
     public String encrypt(String data) throws Exception {
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -426,6 +413,7 @@ public class DocumentStorageService {
         em.persist(newDocument);
         return newDocument;
     }
+
     @Transactional
     public void updateOrCreateServiceProvider(ServiceProviderDocument existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
@@ -438,6 +426,7 @@ public class DocumentStorageService {
         existingDocument.setName(file.getOriginalFilename());
         em.merge(existingDocument);
     }
+
     public String findRoleName(DocumentType documentTypeId) {
         return entityManager.createQuery("SELECT dt.document_type_name FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", String.class)
                 .setParameter("documentTypeId", documentTypeId.getDocument_type_id())
@@ -1132,6 +1121,7 @@ public class DocumentStorageService {
             String queryStringArchive = null;
             String queryStringArchiveId = null;
 
+            // Queries to archive the fetched documents(for customer and service provider).
             if (role.equals(Constant.roleUser)) {
                 queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
                 queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "document", "custom_customer_id");
@@ -1139,9 +1129,10 @@ public class DocumentStorageService {
                 queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "service_provider_documents", "service_provider_id");
                 queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "service_provider_documents", "service_provider_id");
             }
+
+            // Iterating over each fileTypes.
             for (Integer fileType : fileTypes) {
-                DocumentType documentTypeObj = em.createQuery(
-                                "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", DocumentType.class)
+                DocumentType documentTypeObj = em.createQuery(Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
                         .setParameter("documentTypeId", fileType)
                         .getResultStream()
                         .findFirst()
@@ -1150,36 +1141,31 @@ public class DocumentStorageService {
                 if (documentTypeObj == null) {
                     throw new IllegalArgumentException("Unknown document type for file: ");
                 }
-                if(documentTypeObj.getDocument_type_id().equals(12))
-                {
-                    if(qualificationDetailId==null)
-                    {
+                if (documentTypeObj.getDocument_type_id().equals(12)) {
+                    if (qualificationDetailId == null) {
                         throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
                     }
                 }
-                if(documentTypeObj.getDocument_type_id().equals(13))
-                {
-                    if(otherDocument==null)
-                    {
-                        throw new IllegalArgumentException("other document is required to delete a other document");
-                    }
+                if (documentTypeObj.getDocument_type_id().equals(13) && otherDocument == null) {
+                    throw new IllegalArgumentException("other document is required to delete a other document");
                 }
-                boolean isQualificationDocumentToDelete=false;
-                boolean isOtherDocumentToDelete=false;
+
+                boolean isQualificationDocumentToDelete = false;
+                boolean isOtherDocumentToDelete = false;
 
                 String archiveIdQuery = queryStringArchiveId;
                 String archiveQuery = queryStringArchive;
 
                 // Append qualification_detail_id condition if provided
-                if(documentTypeObj.getDocument_type_id().equals(12) && qualificationDetailId != null)
-                {
-                    isQualificationDocumentToDelete=true;
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID) && qualificationDetailId != null) {
+                    isQualificationDocumentToDelete = true;
                     archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
                     archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
                 }
-                if(documentTypeObj.getDocument_type_id().equals(13) && otherDocument != null)
-                {
-                    isOtherDocumentToDelete=true;
+
+                // Append other document field if the document type is of other.
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID) && otherDocument != null) {
+                    isOtherDocumentToDelete = true;
                     archiveIdQuery += " AND otherdocument = :otherDocument";
                     archiveQuery += " AND otherdocument = :otherDocument";
                 }
@@ -1190,8 +1176,7 @@ public class DocumentStorageService {
                 if (isQualificationDocumentToDelete) {
                     query.setParameter("qualificationDetailId", qualificationDetailId);
                 }
-                if(isOtherDocumentToDelete)
-                {
+                if (isOtherDocumentToDelete) {
                     query.setParameter("otherDocument", otherDocument);
                 }
 
@@ -1203,13 +1188,13 @@ public class DocumentStorageService {
                 if (isQualificationDocumentToDelete) {
                     query.setParameter("qualificationDetailId", qualificationDetailId);
                 }
-                if(isOtherDocumentToDelete)
-                {
+                if (isOtherDocumentToDelete) {
                     query.setParameter("otherDocument", otherDocument);
                 }
 
                 int result = query.executeUpdate();
 
+                // Remove the document from customer or service provider.
                 if (result == 1) {
                     switch (role) {
                         case Constant.roleUser:
