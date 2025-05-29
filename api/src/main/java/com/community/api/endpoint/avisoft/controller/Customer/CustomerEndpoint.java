@@ -2889,7 +2889,7 @@ public class CustomerEndpoint {
                     AND c.reserve_category_id = :reserveCategoryId
                     AND rf.reserve_category_id = :reserveCategoryId
                     AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date <= CURRENT_DATE
+                    AND sku.active_end_date >= CURRENT_DATE
                     AND p.soft_delete='N'
                     ORDER BY p.product_id, p.views DESC
                     LIMIT :limit OFFSET :offset
@@ -2912,7 +2912,7 @@ public class CustomerEndpoint {
                     AND c.reserve_category_id = :reserveCategoryId
                     AND rf.reserve_category_id = :reserveCategoryId
                     AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date <= CURRENT_DATE
+                    AND sku.active_end_date >= CURRENT_DATE
                     AND p.soft_delete='N'
                 """;
 
