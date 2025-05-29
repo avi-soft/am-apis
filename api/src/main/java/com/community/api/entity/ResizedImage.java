@@ -31,6 +31,9 @@ public class ResizedImage {
     @Column(name="file_path")
     private String file_path;
 
+    @Column(name = "image_size")
+    private String image_size;
+
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id")

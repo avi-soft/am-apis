@@ -27,21 +27,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
@@ -61,7 +47,13 @@ import java.util.List;
 public class ServiceProviderEntity  {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "service_provider_seq")
+    @SequenceGenerator(
+            name = "service_provider_seq",
+            sequenceName = "service_provider_sequence",
+            initialValue = 100,
+            allocationSize = 1
+    )
     private Long service_provider_id;
 
     @Column
@@ -306,6 +298,8 @@ public class ServiceProviderEntity  {
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ActionLog> actionLogs;
 
+    @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean autoScoring=true;
 }
 
 

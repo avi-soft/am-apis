@@ -30,6 +30,14 @@ public class ServiceProviderTest {
     private Image downloaded_image;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "downloaded_pdf_image_id", nullable = true)
+    private Image downloaded_pdf_image;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "downloaded_signature_image_id", nullable = true)
+    private Image downloaded_signature_image;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="pdf_id",nullable = true)
     private UploadedPdf uploadedPdf;
 

@@ -113,6 +113,7 @@ public class AddProductDto {
     @JsonProperty("posts")
     private List<PostDto> posts;
     private String additionalComments;
+    @JsonProperty("fee_additional_comments")
     private String feeAdditionalComments;
     @JsonProperty("is_exam_date_from_na")
     protected Boolean isExamDateFromNa;
