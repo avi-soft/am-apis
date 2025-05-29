@@ -269,6 +269,8 @@ public class InstitutionService
             image.setImage_data(fileBytes);
             image.setFile_path(dbPath);
             image.setRandomImageType(randomImage);
+            Long uploadedImageSize=(long) file.getSize();
+            image.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedImageSize));
 
             // Persist the image entity to the database
             entityManager.persist(image);

@@ -31,6 +31,9 @@ public class Image {
     @Column(name="file_path")
     private String file_path;
 
+    @Column(name = "image_size")
+    private String image_size;
+
 
     @ManyToOne
     @JoinColumn(name = "random_image_type_id", referencedColumnName = "random_image_type_id")
