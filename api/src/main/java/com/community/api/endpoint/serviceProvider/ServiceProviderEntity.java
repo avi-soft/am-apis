@@ -173,6 +173,7 @@ public class ServiceProviderEntity  {
     private List<Skill> skills;
 
     private Boolean has_technical_knowledge;
+    private String work_experience_in;
 
     @Min(0)
     private Integer work_experience_in_months;
