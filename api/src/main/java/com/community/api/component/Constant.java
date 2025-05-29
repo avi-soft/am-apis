@@ -1,10 +1,7 @@
 package com.community.api.component;
 
-import com.community.api.annotation.Authorize;
 import com.community.api.entity.CustomOrderState;
-import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -14,11 +11,17 @@ public class Constant {
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
     public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 2 * 1024 * 1024;
+    public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long RANDOM_PDF_MIN_FILE_SIZE = 500 * 1024;
+    public static final long RANDOM_SIGN_MAX_FILE_SIZE = 350 * 1024;
+    public static final long RANDOM_SIGN_MIN_FILE_SIZE = 300 * 1024;
     public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
-    public static final long MAX_SIGNATURE_IMAGE_SIZE= 1 * 1024 * 1024;
-    public static final long MIN_SIGNATURE_IMAGE_SIZE= 300 * 1024;
-    public static final long MAX_PDF_SIZE =  1 * 1024 * 1024;
-    public static final long MIN_PDF_SIZE = 500 * 1024;
+    public static final long MAX_SIGNATURE_IMAGE_SIZE= 50 * 1024;
+    public static final long MIN_SIGNATURE_IMAGE_SIZE= 30 * 1024;
+    public static final long MAX_PDF_SIZE =  300 * 1024;
+    public static final long MIN_PDF_SIZE = 100 * 1024;
     public static String COUNTRY_CODE = "+91";
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
