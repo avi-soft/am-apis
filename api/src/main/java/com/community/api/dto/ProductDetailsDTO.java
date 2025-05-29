@@ -13,6 +13,7 @@ import java.util.Date;
 @Getter
 @Setter
 public class ProductDetailsDTO {
+    @JsonProperty("meta_title")
     String metaTitle;
     @JsonProperty("product_id")
     Long id;
