@@ -22,6 +22,10 @@ import io.micrometer.core.lang.Nullable;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
+import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderAttribute;
+import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.*;
 import org.broadleafcommerce.profile.core.service.AddressService;
 import org.broadleafcommerce.profile.core.service.CountryService;
@@ -129,6 +133,8 @@ public class CustomerEndpoint {
     private JwtUtil jwtTokenUtil;
     @Autowired
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
+    @Autowired
+    private OrderService orderService;
 
     @Autowired
     private CountryService countryService;
@@ -2903,53 +2909,67 @@ public class CustomerEndpoint {
     }
 
     @GetMapping(value = "/forms/show-applied-forms")
+    @Transactional
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) {
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,
+                                                    @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            // Validate pagination parameters
-            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
-            if (limit <= 0) throw new IllegalArgumentException("Limit for pagination cannot be zero or negative");
+            // Check access
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id))
+                    || role.getRole_name().equals(roleServiceProvider)) {
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            }
 
-            // Find customer
+            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be negative");
+            if (limit <= 0) throw new IllegalArgumentException("Limit must be positive");
+
+            // Validate customer existence
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
-                return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
 
-            // Prepare list of saved products
-            List<CustomProductWrapper> listOfSavedProducts = customer.getSavedForms().stream()
-                    .map(product -> entityManager.find(CustomProduct.class, product.getId()))
-                    .filter(customProduct -> customProduct != null && ((Status) customProduct).getArchived() != 'Y')
-                    .map(customProduct -> {
-                        CustomProductWrapper wrapper = new CustomProductWrapper();
-                        wrapper.wrapDetails(customProduct, null, null, reserveCategoryFeePostRefService);
-                        return wrapper;
-                    })
-                    .collect(Collectors.toList());
+            // Fetch valid orders (excluding failed payment status 999)
 
-            // Pagination details
-            int totalItems = listOfSavedProducts.size();
+
+            Query query = entityManager.createNativeQuery(APPLIED_FORM_QUERY);
+            query.setParameter("customerId", customer_id);
+
+            List<BigInteger> orderIds = query.getResultList();
+            List<CustomProductWrapper> appliedForms = new ArrayList<>();
+
+            for (BigInteger id : orderIds) {
+                Order order = orderService.findOrderById(id.longValue());
+                if (order == null || order.getOrderItems().isEmpty()) continue;
+
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+                CustomProduct product = entityManager.find(CustomProduct.class, productId);
+
+                if (product != null && ((Status) product).getArchived() != 'Y') {
+                    CustomProductWrapper wrapper = new CustomProductWrapper();
+                    wrapper.wrapDetails(product, request,reserveCategoryService,reserveCategoryAgeService,genderService,customer,sharedUtilityService);
+                    appliedForms.add(wrapper);
+                }
+            }
+
+            // Pagination
+            int totalItems = appliedForms.size();
             int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / limit);
-
             if (offset >= totalPages && offset != 0)
                 return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.BAD_REQUEST);
 
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
+            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList() : appliedForms.subList(fromIndex, toIndex);
 
-            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList()
-                    : listOfSavedProducts.subList(fromIndex, toIndex);
-
-            // Prepare response
+            // Response
             Map<String, Object> response = Map.of(
                     "forms", paginatedList,
                     "totalItems", totalItems,
@@ -2957,7 +2977,7 @@ public class CustomerEndpoint {
                     "currentPage", offset
             );
 
-            return ResponseService.generateSuccessResponse("Forms filled", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Ordered forms retrieved successfully", response, HttpStatus.OK);
 
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -2966,9 +2986,11 @@ public class CustomerEndpoint {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Exception: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
