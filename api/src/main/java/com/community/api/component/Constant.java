@@ -35,6 +35,7 @@ public class Constant {
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
+    public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
     public static String PHONE_QUERY_ADMIN="SELECT c FROM CustomAdmin c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String USERNAME_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.user_name = :username";
     public static String USERNAME_QUERY_CUSTOM_ADMIN = "SELECT c FROM CustomAdmin c WHERE c.user_name = :username";

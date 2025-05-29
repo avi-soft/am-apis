@@ -75,6 +75,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import javax.validation.constraints.Pattern;
 
+import static com.community.api.component.Constant.PHONE_QUERY_SERVICE_PROVIDER_FILTER;
 import static com.community.api.component.Constant.request;
 
 @Slf4j
@@ -1769,7 +1770,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (mobileNumber != null) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
+                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(PHONE_QUERY_SERVICE_PROVIDER_FILTER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
                         .setParameter("country_code", "+91")
                         .getResultStream()
