@@ -108,7 +108,6 @@ public class TicketStateService {
             if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
                 ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
                 if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-                    log.info("HERHEHREHRHEHR");
                     exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
                 } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
@@ -264,6 +263,11 @@ public class TicketStateService {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
 
+                /*// Increment pending ticket and decrement assigned ticket
+                if(ticket.getTicketId().equals(Constant.TICKET_STATE_TO_DO) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
+                    ServiceProviderEntity assignee =
+                }*/
+
                 if (ticketState == null)
                     throw new NotFoundException("Ticket state not found");
 
@@ -317,12 +321,12 @@ public class TicketStateService {
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
                     parentTicket.setComment(createTicketDTO.getComment().trim());
                     if(createTicketDTO.getIsComplete()) {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
                     } else {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(2L));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
@@ -362,7 +366,8 @@ public class TicketStateService {
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
 
-            } else if(createTicketDTO.getTicketStatus() != null) {
+            }
+            else if(createTicketDTO.getTicketStatus() != null) {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
@@ -384,7 +389,8 @@ public class TicketStateService {
 
                 ticket.setTicketStatus(ticketStatus);
 
-            } else if(createTicketDTO.getTicketState() != null) {
+            }
+            else if(createTicketDTO.getTicketState() != null) {
                 throw new IllegalArgumentException("Ticket State cannot be changed without status.");
             }
 
