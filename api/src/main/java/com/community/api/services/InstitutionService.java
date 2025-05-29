@@ -233,12 +233,6 @@ public class InstitutionService
             if (!isValidFileType(file)) {
                 throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
             }
-<<<<<<< HEAD
-            long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
-            if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() < maxSizeInBytes) {
-                String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
-                throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
-=======
             if(randomImageTypeId.equals(1))
             {
                 if (file.getSize() < Constant.RANDOM_RESIZED_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_RESIZED_MAX_FILE_SIZE) {
@@ -246,7 +240,6 @@ public class InstitutionService
                     String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MAX_FILE_SIZE);
                     throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
                 }
->>>>>>> 6bd42e16cf362bffbc0709ab5c51e08235529472
             }
             else if(randomImageTypeId.equals(2)){
                 if (file.getSize()< Constant.RANDOM_PDF_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_PDF_MAX_FILE_SIZE) {
@@ -319,16 +312,11 @@ public class InstitutionService
 
                 // Validate the file size
                 long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
-<<<<<<< HEAD
-              /*  if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
-                    String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
-=======
+
                 if (file.getSize() < Constant.RANDOM_MIN_FILE_SIZE || file.getSize() > maxSizeInBytes) {
                     String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_MIN_FILE_SIZE);
->>>>>>> 6bd42e16cf362bffbc0709ab5c51e08235529472
                     throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
                 }
-*/
                 byte[] fileBytes = file.getBytes();
 
                 fileUploadService.uploadFileOnFileServer(file, "Random_Images", "Random", "SERVICE_PROVIDER");

@@ -59,20 +59,7 @@ public class QualificationDetailsController
                 jwtToken = authHeader.substring(7);
                 roleId = 5;
             }
-<<<<<<< HEAD
-            System.out.println("Role id is "+roleId);
-//            else
-//            {
-//                roleId=5;
-//            }
-//            System.out.println("1245"+qualificationOthers);
-//            System.out.println("dfhasdkfjhalskdjf"+userId);
-//            System.out.println("dfhasdkfjhalskdjf"+roleId);
             role = roleService.getRoleByRoleId(roleId).getRole_name();
-            System.out.println("role name"+role);
-=======
-            role = roleService.getRoleByRoleId(roleId).getRole_name();
->>>>>>> 6bd42e16cf362bffbc0709ab5c51e08235529472
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for "+role,newQualificationDetails,HttpStatus.CREATED);
         }
