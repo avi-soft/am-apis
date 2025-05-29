@@ -5,9 +5,9 @@ import com.community.api.component.JwtUtil;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.entity.Image;
 import com.community.api.entity.Institution;
+import com.community.api.entity.RandomImageType;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -193,20 +193,25 @@ public class InstitutionService
         @Autowired
         private DocumentStorageService fileUploadService;
 
-        @Value("${spring.servlet.multipart.max-file-size}")
-        private String maxImageSize;
-
         public ImageService(EntityManager entityManager) {
             this.entityManager = entityManager;
         }
 
 
         @Transactional
-        public Image saveImage(MultipartFile file) throws Exception {
+        public Image saveImage(MultipartFile file,Integer randomImageTypeId) throws Exception {
             if (file == null || file.isEmpty()) {
                 throw new IllegalStateException("File is missing or empty");
             }
-
+            if(randomImageTypeId==null)
+            {
+                throw new IllegalArgumentException("Random image type cannot be null");
+            }
+            RandomImageType randomImage= entityManager.find(RandomImageType.class,randomImageTypeId);
+            if(randomImage==null)
+            {
+                throw new IllegalArgumentException("No Any randomImage type exists with id " + randomImageTypeId);
+            }
             byte[] uploadImageData = file.getBytes();
             List<Image> images = getAllRandomImages();
             for(Image image : images) {
@@ -228,11 +233,36 @@ public class InstitutionService
             if (!isValidFileType(file)) {
                 throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
             }
+<<<<<<< HEAD
             long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
             if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() < maxSizeInBytes) {
                 String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
                 throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
+=======
+            if(randomImageTypeId.equals(1))
+            {
+                if (file.getSize() < Constant.RANDOM_RESIZED_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_RESIZED_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
+                }
+>>>>>>> 6bd42e16cf362bffbc0709ab5c51e08235529472
             }
+            else if(randomImageTypeId.equals(2)){
+                if (file.getSize()< Constant.RANDOM_PDF_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_PDF_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be below " +   minImageSize + " and " + maxImageSize);
+                }
+            }
+            else if(randomImageTypeId.equals(3)){
+                if (file.getSize()< Constant.RANDOM_SIGN_MIN_FILE_SIZE ||file.getSize()> Constant.RANDOM_SIGN_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be below " +  minImageSize + " and " + maxImageSize);
+                }
+            }
+
 
             byte[] fileBytes = file.getBytes();
 
@@ -245,13 +275,16 @@ public class InstitutionService
             image.setFile_type(file.getContentType());
             image.setImage_data(fileBytes);
             image.setFile_path(dbPath);
+            image.setRandomImageType(randomImage);
+            Long uploadedImageSize=(long) file.getSize();
+            image.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedImageSize));
 
             // Persist the image entity to the database
             entityManager.persist(image);
             return image;
         }
 
-        @Transactional
+        /*@Transactional
         public List<Image> saveImages(List<MultipartFile> files) throws Exception {
 
             List<Image> savedImages = new ArrayList<>();
@@ -286,8 +319,13 @@ public class InstitutionService
 
                 // Validate the file size
                 long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
+<<<<<<< HEAD
               /*  if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
                     String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
+=======
+                if (file.getSize() < Constant.RANDOM_MIN_FILE_SIZE || file.getSize() > maxSizeInBytes) {
+                    String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_MIN_FILE_SIZE);
+>>>>>>> 6bd42e16cf362bffbc0709ab5c51e08235529472
                     throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
                 }
 */
@@ -309,7 +347,7 @@ public class InstitutionService
 
             return savedImages;
         }
-
+*/
         @Transactional
         public List<Image> deleteAllImages()
         {

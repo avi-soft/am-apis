@@ -111,6 +111,7 @@
         <class>com.community.api.entity.TicketStateLinkage</class>
         <class>com.community.api.entity.CustomWorkQuality</class>
         <class>com.community.api.entity.RazorpayDetails</class>
+        <class>com.community.api.entity.RandomImageType</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

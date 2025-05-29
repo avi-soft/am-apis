@@ -175,6 +175,7 @@ public class QualificationDetailsService {
                     qualificationDetails.setOther_qualification(qualificationOthers);
                 }
                 QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+                giveQualificationScore(userId);
                 return addedQualificationDetails;
             }
             giveQualificationScore(userId);
@@ -291,7 +292,6 @@ public class QualificationDetailsService {
         qualificationDetails.setCustom_customer(customCustomer);
         customCustomer.getQualificationDetailsList().add(qualificationDetails);
         Boolean isOngoing = qualificationDetails.getQualificationIsOngoing();
-        System.out.println(isOngoing+"djshfjsdhafljka");
         qualificationDetails.setQualificationIsOngoing(isOngoing != null ? isOngoing : false);
         if (!qualificationDetails.getQualificationIsOngoing()) {
             if (qualificationDetails.getTotal_marks_type() == null || qualificationDetails.getTotal_marks_type().isEmpty()) {
@@ -899,6 +899,9 @@ public class QualificationDetailsService {
         if (Objects.nonNull(qualification.getExamination_role_number())) {
             qualificationDetailsToUpdate.setExamination_role_number(qualification.getExamination_role_number());
         }
+        if (Objects.nonNull(qualification.getInstitution_address())) {
+            qualificationDetailsToUpdate.setInstitution_address(qualification.getInstitution_address());
+        }
         if (Objects.nonNull(qualification.getExamination_registration_number())) {
             qualificationDetailsToUpdate.setExamination_registration_number(qualification.getExamination_registration_number());
         }
@@ -1145,9 +1148,6 @@ public class QualificationDetailsService {
         if (qualification == null)
 
 
-            System.out.println(qualification.getIs_subjects_required() + "sdkfjdaskljflkasdjfklj");
-        System.out.println(qualification.getIs_stream_required());
-        System.out.println(qualification.getIs_subjects_required() + "sdkfjdaskljflkasdjfklj");
         if (qualification.getIs_stream_required() && qualificationDetails.getStream_id() == null) {
             throw new IllegalArgumentException("Stream id cannot be null");
         }
@@ -1393,14 +1393,15 @@ public class QualificationDetailsService {
         ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
         TypedQuery<ScoringCriteria> typedQuery=  entityManager.createQuery(Constant.GET_ALL_SCORING_CRITERIA, ScoringCriteria.class);
         List<ScoringCriteria> scoringCriteriaList = typedQuery.getResultList();
-        Integer totalScore=0;
+        int totalScore=0;
         ScoringCriteria scoringCriteriaToMap =null;
+
         if(!serviceProviderEntity.getQualificationDetailsList().isEmpty())
         {
             QualificationDetails qualificationDetail= serviceProviderEntity.getQualificationDetailsList().get(serviceProviderEntity.getQualificationDetailsList().size()-1);
             Qualification qualification1 = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
             if (qualification1 != null) {
-                if (!qualification1.getQualification_id().equals(1)&& !qualification1.getQualification_id().equals(2)) {
+                if (qualification1.getQualification_id().equals(3) || qualification1.getQualification_id().equals(4)) {
                     scoringCriteriaToMap=serviceProviderService.traverseListOfScoringCriteria(6L,scoringCriteriaList,serviceProviderEntity);
                     if(scoringCriteriaToMap==null)
                     {
@@ -1420,15 +1421,27 @@ public class QualificationDetailsService {
                         serviceProviderEntity.setQualificationScore(scoringCriteriaToMap.getScore());
                     }
                 }
-                else if(qualification1.getQualification_id().equals(1)) {
-                    serviceProviderEntity.setQualificationScore(0);
+                else  {
+                    if (qualification1.getOverlap().equals(3L) || qualification1.getOverlap().equals(4L)) {
+                        scoringCriteriaToMap=serviceProviderService.traverseListOfScoringCriteria(6L,scoringCriteriaList,serviceProviderEntity);
+                        if(scoringCriteriaToMap==null)
+                        {
+                            throw new IllegalArgumentException("Scoring Criteria is not found for scoring Qualification Score");
+                        }
+                        else {
+                            serviceProviderEntity.setQualificationScore(scoringCriteriaToMap.getScore());
+                        }
+                    }
+                    else {
+                        serviceProviderEntity.setQualificationScore(0);
+                    }
                 }
             }
             else {
                 throw new IllegalArgumentException("Unknown Qualification is found");
             }
         }
-        else if(serviceProviderEntity.getQualificationDetailsList().isEmpty()) {
+        else  {
             serviceProviderEntity.setQualificationScore(0);
         }
 
