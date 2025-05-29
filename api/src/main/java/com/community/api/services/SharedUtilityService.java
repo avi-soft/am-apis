@@ -966,6 +966,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1122,6 +1123,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
