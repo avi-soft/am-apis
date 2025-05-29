@@ -6,6 +6,7 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.dto.ProductDetailsDTO;
 import com.community.api.endpoint.avisoft.controller.otpmodule.OtpEndpoint;
 import com.community.api.endpoint.customer.AddressDTO;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -77,6 +78,7 @@ import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
@@ -2900,7 +2902,7 @@ public class CustomerEndpoint {
         }
     }
 
-    @GetMapping(value = "/forms/show-filled-forms")
+    @GetMapping(value = "/forms/show-applied-forms")
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
@@ -2994,53 +2996,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
 
-            List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
-
-            for (Product product : customer.getSavedForms()) {
-                CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                if (customProduct != null && ((Status) customProduct).getArchived() == 'Y') {
-                    continue;
-                }
-
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                List<Post> postList = customProduct.getPosts();
-                customProductWrapper.wrapDetails(customProduct, postList, null, reserveCategoryFeePostRefService);
-                listOfSavedProducts.add(customProductWrapper);
-            }
-
-            // Calculate pagination details
-            int totalItems = listOfSavedProducts.size();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int currentPage = offset;
-
-            if (totalItems == 0 && offset==0) {
-                // Return 200 with an empty list if there are no forms
-                Map<String, Object> response = new HashMap<>();
-                response.put("forms", Collections.emptyList());
-                response.put("totalItems", 0);
-                response.put("totalPages", 0);
-                response.put("currentPage", currentPage);
-                return ResponseService.generateSuccessResponse("No recommended forms available", response, HttpStatus.OK);
-            }
-
-            int fromIndex = offset * limit;
-            int toIndex = Math.min(fromIndex + limit, totalItems);
-
-            if (offset >= totalPages&& offset != 0) {
-                return ResponseService.generateErrorResponse("No more recommended forms available", HttpStatus.BAD_REQUEST);
-            }
-
-            List<CustomProductWrapper> paginatedList = listOfSavedProducts.subList(fromIndex, toIndex);
-
-            // Create response with pagination info
-            Map<String, Object> response = new HashMap<>();
-            response.put("forms", paginatedList);
-            response.put("totalItems", totalItems);
-            response.put("totalPages", totalPages);
-            response.put("currentPage", currentPage);
-
-            return ResponseService.generateSuccessResponse("Recommended Forms", response, HttpStatus.OK);
-
+            return getRecos(customer_id,offset,limit);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException exception) {
@@ -3711,5 +3667,143 @@ public class CustomerEndpoint {
             response.put("Skipped Ids:", skippedIds);
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
+    }
+    @Autowired
+    GenderService genderService;
+    public ResponseEntity<?>getRecos(Long customerId,Integer offset,Integer limit) {
+        Customer customer = customerService.readCustomerById(customerId);
+        if (customer == null)
+            return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+        CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+        List<QualificationDetails>qualificationDetails=customCustomer.getQualificationDetailsList();
+        List<Integer>qualificationIds=new ArrayList<>();
+        for(QualificationDetails qualificationDetail:qualificationDetails)
+        {
+            qualificationIds.add(qualificationDetail.getQualification_id());
+        }
+        int age=sharedUtilityService.calculateAge(customCustomer.getDob());
+        Long reservedCategory=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+        Long genderId=genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+        Double fee;
+        String ageLimit;
+        String sql = """
+        SELECT DISTINCT ON (p.product_id) p.product_id
+        FROM custom_product p
+        JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+        JOIN post_details post ON post.product_id = p.product_id
+        JOIN blc_product bp ON bp.product_id = c.product_id
+        JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+        JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+        JOIN qualification_eligibility qf ON qf.post_id = post.postid
+        JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+        WHERE qd.qualification_id IN (:qualificationId)
+        AND c.gender_id = :genderId
+        AND rf.gender_id = :genderId
+        AND c.reserve_category_id = :reserveCategoryId
+        AND rf.reserve_category_id = :reserveCategoryId
+        AND :age BETWEEN rf.minimum_age AND rf.maximum_age
+        AND sku.active_end_date <= CURRENT_DATE
+        ORDER BY p.product_id, p.views DESC
+        LIMIT :limit OFFSET :offset
+    """;
+
+
+        String count = """
+        SELECT COUNT(DISTINCT p.product_id)
+        FROM custom_product p
+        JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+        JOIN post_details post ON post.product_id = p.product_id
+        JOIN blc_product bp ON bp.product_id = c.product_id
+        JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+        JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+        JOIN qualification_eligibility qf ON qf.post_id = post.postid
+        JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+        WHERE qd.qualification_id IN (:qualificationId)
+        AND c.gender_id = :genderId
+        AND rf.gender_id = :genderId
+        AND c.reserve_category_id = :reserveCategoryId
+        AND rf.reserve_category_id = :reserveCategoryId
+        AND :age BETWEEN rf.minimum_age AND rf.maximum_age
+        AND sku.active_end_date <= CURRENT_DATE
+    """;
+
+        List<BigInteger>res= entityManager.createNativeQuery(sql)
+                .setParameter("qualificationId", qualificationIds)
+                .setParameter("genderId", genderId)
+                .setParameter("reserveCategoryId", reservedCategory)
+                .setParameter("age", age)
+                .setParameter("limit",limit)
+                .setParameter("offset",offset)
+                .getResultList();
+
+        BigInteger resultCount= (BigInteger) entityManager.createNativeQuery(count)
+                .setParameter("qualificationId", qualificationIds)
+                .setParameter("genderId", genderId)
+                .setParameter("reserveCategoryId", reservedCategory)
+                .setParameter("age", age)
+                .getSingleResult();
+
+        List<ProductDetailsDTO>wrappers=new ArrayList<>();
+        for(BigInteger id:res)
+        {
+            CustomProduct customProduct=entityManager.find(CustomProduct.class,id.longValue());
+            Product product=catalogService.findProductById(id.longValue());
+            genderId=0L;
+            var categoryId=0L;
+            try {
+                categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+            }catch (Exception exception)
+            {
+                if(genderId==0L)
+                    genderId=1L;
+                if(categoryId==0L)
+                    categoryId=1L;
+            }
+
+            Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
+                    .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+
+// Set fee as "N/A" if no fee is found
+            fee = (feeValue != null) ? feeValue : 0.0;
+
+            var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, genderId);
+
+// If age limit is null, fetch with default values (1L, 1L)
+            if (ageLimitResult == null) {
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, 1L, 1L);
+            }
+
+// Extract age limits
+            int[] ageLimits = null;
+            if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
+                ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
+            }
+
+// Set ageLimit value
+            ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
+                    && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                    ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                    : (ageLimits != null && ageLimits.length >= 2)
+                    ? ageLimits[0] + "-" + ageLimits[1]
+                    : "N/A";
+
+            ProductDetailsDTO dto=new ProductDetailsDTO();
+            dto.setFee(fee);
+            dto.setAgeLimit(ageLimit);
+            dto.setId(id.longValue());
+dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
+            dto.setMetaTitle(customProduct.getMetaTitle());
+            dto.setDisplayTemplate(customProduct.getDisplayTemplate());
+            dto.setActiveEndDate(customProduct.getActiveEndDate());
+            dto.setActiveStartDate(customProduct.getActiveStartDate());
+            wrappers.add(dto);
+        }
+        Map<String,Object>response=new HashMap<>();
+        response.put("forms", wrappers);
+        response.put("totalItems",resultCount);
+        response.put("totalPages", resultCount.longValue()/limit);
+        response.put("currentPage", offset+1);
+        return ResponseService.generateSuccessResponse("Found products",response,HttpStatus.OK);
     }
 }
