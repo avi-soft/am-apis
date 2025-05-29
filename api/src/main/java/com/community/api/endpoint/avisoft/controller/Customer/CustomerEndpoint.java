@@ -1,4 +1,3 @@
-
 package com.community.api.endpoint.avisoft.controller.Customer;
 
 import com.community.api.annotation.Authorize;
@@ -13,11 +12,10 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.entity.Role;
 import com.community.api.services.*;
+import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
-import com.community.api.utils.DocumentType;
-import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
@@ -61,7 +59,6 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
-import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
@@ -97,6 +94,10 @@ import static com.community.api.services.ServiceProvider.ServiceProviderServiceI
 )
 
 public class CustomerEndpoint {
+    @Autowired
+    QualificationService qualificationService;
+    @Autowired
+    GenderService genderService;
     private PasswordEncoder passwordEncoder;
     private CustomerService customerService;  //@TODO- do this task asap
     private ExceptionHandlingImplement exceptionHandling;
@@ -105,11 +106,8 @@ public class CustomerEndpoint {
     private AddressService addressService;
     private CustomerAddressService customerAddressService;
     private JwtUtil jwtUtil;
-
     @Autowired
     private ResponseService responseService;
-    @Autowired
-    QualificationService qualificationService;
     @Autowired
     private DocumentStorageService fileUploadService;
     @Autowired
@@ -118,8 +116,6 @@ public class CustomerEndpoint {
     private EmailService emailService;
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
-    @Autowired
-    private ExceptionHandlingService exceptionHandlingService;
     @Autowired
     private ReserveCategoryDtoService reserveCategoryDtoService;
     @Autowired
@@ -130,7 +126,8 @@ public class CustomerEndpoint {
     private JwtUtil jwtTokenUtil;
     @Autowired
     private ProductReserveCategoryFeePostRefService reserveCategoryFeePostRefService;
-
+    @Autowired
+    private ExceptionHandlingService exceptionHandlingService;
     @Autowired
     private CountryService countryService;
     @Autowired
@@ -157,6 +154,8 @@ public class CustomerEndpoint {
     private PostExecutionService postExecutionService;
     @Autowired
     private SharedUtilityService sharedUtilityService;
+    @Autowired
+    private ServiceProviderServiceImpl serviceProviderService;
 
     public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -243,7 +242,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @RequestMapping(value = "update", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomer(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "extAuthToken", required = false) String authToken, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             Boolean externalUpdate = false;
             Boolean isValidDate = null;
@@ -251,7 +250,7 @@ public class CustomerEndpoint {
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            String roleName= roleService.findRoleName(roleId);
+            String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             List<String> errorMessages = new ArrayList<>();
 
@@ -274,7 +273,7 @@ public class CustomerEndpoint {
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
 
-            if ((roleId == 3||roleId==4)||(roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
+            if ((roleId == 3 || roleId == 4) || (roleId == 5 && !tokenUserId.equals(customerId))/*(roleId == 4 && customCustomer.getCreatedByRole() == 4 && customCustomer.getCreatedById() != tokenUserId) || (roleId == 4 && customCustomer.getRegisteredBySp().equals(false)) || (roleId == 5 && !tokenUserId.equals(customerId))||roleId==1||roleId==2||roleId==3*/) {
                 if (authToken != null && !authToken.isEmpty()) {
                     Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
                     Long userId = jwtTokenUtil.extractId(authToken);
@@ -317,7 +316,7 @@ public class CustomerEndpoint {
                     }
                 }
             }
-            if(customCustomer.getFamilyIncome() == null) {
+            if (customCustomer.getFamilyIncome() == null) {
                 List<Document> customerDocuments = customCustomer.getDocuments();
                 for (Document document : customerDocuments) {
                     if (document.getIsArchived().equals(false)) {
@@ -335,7 +334,7 @@ public class CustomerEndpoint {
             details.remove("familyIncome");
 
             // physical attributes locale variables.
-            double minHeight = 50.0, maxHeight = 250.0,minWeight = 10.0, maxWeight = 300.0,minShoeSize = 4.0, maxShoeSize = 15.0,minWaistSize = 20.0, maxWaistSize = 150.0,minChestSize = 20.0, maxChestSize = 125.0;
+            double minHeight = 50.0, maxHeight = 250.0, minWeight = 10.0, maxWeight = 300.0, minShoeSize = 4.0, maxShoeSize = 15.0, minWaistSize = 20.0, maxWaistSize = 150.0, minChestSize = 20.0, maxChestSize = 125.0;
 
             if ((customCustomer.getInterestedInDefence() != null && details.containsKey("interestedInDefence"))) {
                 if (customCustomer.getInterestedInDefence()) {
@@ -421,7 +420,7 @@ public class CustomerEndpoint {
 
                     if (height != null && !height.isEmpty()) {
                         try {
-                           Double heightValue = Double.parseDouble(height);
+                            Double heightValue = Double.parseDouble(height);
                             if (heightValue < minHeight || heightValue > maxHeight) {
                                 errorMessages.add("Height should be between " + minHeight + " and " + maxHeight + " cms.");
                             } else {
@@ -470,7 +469,8 @@ public class CustomerEndpoint {
                             errorMessages.add("Waist size must be valid.");
                         }
                     }
-                }}
+                }
+            }
 
 
             if (details.containsKey("workExperienceScopeId")) {
@@ -488,14 +488,11 @@ public class CustomerEndpoint {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong((String) details.get("sportCertificateId")));
                 customCustomer.setSportCertificateId(customApplicationScope);
             }
-            if(details.containsKey("exService"))
-            {
+            if (details.containsKey("exService")) {
                 Boolean exService = (Boolean) details.get("exService");
-                if(exService)
-                {
+                if (exService) {
                     customCustomer.setExService(true);
-                }
-                else {
+                } else {
                     List<Document> customerDocuments = customCustomer.getDocuments();
                     for (Document document : customerDocuments) {
                         if (document.getIsArchived().equals(false)) {
@@ -804,28 +801,25 @@ public class CustomerEndpoint {
                 //if (!dob.before(new Date())) {
                 //errorMessages.add("DOB must be of past.");
                 //}
-                int age= sharedUtilityServiceApi.calculateAge(dob);
-                if(age==-1)
+                int age = sharedUtilityServiceApi.calculateAge(dob);
+                if (age == -1)
                     errorMessages.add("Invalid date of birth");
-                else if(age<8)
+                else if (age < 8)
                     errorMessages.add("Your age should be greater than equal to 8");
                 else
-                customCustomer.setDob(dob);
+                    customCustomer.setDob(dob);
             }
             if (details.containsKey("isLivePhotoNa")) {
-               Boolean isLivePhotoNa= (Boolean) details.get("isLivePhotoNa");
-               if(isLivePhotoNa.equals(true))
-               {
-                   assert customCustomer.getDocuments() != null;
-                   for(Document document: customCustomer.getDocuments())
-                   {
-                       if(document.getDocumentType().getDocument_type_id().equals(3) && document.getIsArchived().equals(false))
-                       {
-                           throw new IllegalArgumentException("You cannot select NA as true if live photo is already uploaded");
-                       }
+                Boolean isLivePhotoNa = (Boolean) details.get("isLivePhotoNa");
+                if (isLivePhotoNa.equals(true)) {
+                    assert customCustomer.getDocuments() != null;
+                    for (Document document : customCustomer.getDocuments()) {
+                        if (document.getDocumentType().getDocument_type_id().equals(3) && document.getIsArchived().equals(false)) {
+                            throw new IllegalArgumentException("You cannot select NA as true if live photo is already uploaded");
+                        }
 
-                   }
-               }
+                    }
+                }
                 customCustomer.setIsLivePhotoNa(isLivePhotoNa);
             }
             if (details.containsKey("isNccCertificate")) {
@@ -1161,7 +1155,7 @@ public class CustomerEndpoint {
                     isOtherReligion = true;
                 }
 
-                Boolean userExists= false;
+                Boolean userExists = false;
                 if (isOtherReligion.equals(false)) {
                     customCustomer.setOtherReligion(null);
                     List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
@@ -1169,12 +1163,11 @@ public class CustomerEndpoint {
                         Iterator<OtherItem> iterator = currentOtherItems.iterator();
                         while (iterator.hasNext()) {
                             OtherItem otherItem = iterator.next();
-                            if(customCustomer.getId().equals(otherItem.getUser_id()))
-                            {
-                                userExists=true;
+                            if (customCustomer.getId().equals(otherItem.getUser_id())) {
+                                userExists = true;
                             }
                             if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
-                                    otherItem.getField_name().equalsIgnoreCase("religion") && userExists ) {
+                                    otherItem.getField_name().equalsIgnoreCase("religion") && userExists) {
                                 iterator.remove();
                             }
                         }
@@ -1191,8 +1184,7 @@ public class CustomerEndpoint {
                             OtherItem otherItem = iterator.next();
                             if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
                                     otherItem.getField_name().equalsIgnoreCase("religion")) {
-                                if(!details.containsKey("otherReligion"))
-                                {
+                                if (!details.containsKey("otherReligion")) {
                                     throw new IllegalArgumentException("You have to enter text for other religion");
                                 }
                                 otherItem.setTyped_text(details.get("otherReligion").toString());
@@ -1203,8 +1195,8 @@ public class CustomerEndpoint {
                         }
 
                         if (!itemUpdated) {
-                            religionOtherItemToAdd =sharedUtilityService. handleOtherCaseForReligion(
-                                    details.get("religion").toString(), (String)details.get("otherReligion"), roleId, customerId, "customer profile update page");
+                            religionOtherItemToAdd = sharedUtilityService.handleOtherCaseForReligion(
+                                    details.get("religion").toString(), (String) details.get("otherReligion"), roleId, customerId, "customer profile update page");
                             existingItems.add(religionOtherItemToAdd);
                         }
                     } else {
@@ -1212,18 +1204,17 @@ public class CustomerEndpoint {
                             existingItems = new ArrayList<>();
                         }
                         religionOtherItemToAdd = sharedUtilityService.handleOtherCaseForReligion(
-                                details.get("religion").toString(), (String)details.get("otherReligion"), roleId, customerId, "customer profile update page");
+                                details.get("religion").toString(), (String) details.get("otherReligion"), roleId, customerId, "customer profile update page");
                         existingItems.add(religionOtherItemToAdd);
                     }
 
                     customCustomer.setOtherItems(existingItems);
-                    customCustomer.setOtherReligion((String)details.get("otherReligion"));
+                    customCustomer.setOtherReligion((String) details.get("otherReligion"));
                     entityManager.merge(customCustomer);
                 }
 //
             }
-            if(details.containsKey("otherReligion"))
-            {
+            if (details.containsKey("otherReligion")) {
                 details.remove("otherReligion");
             }
 
@@ -1232,95 +1223,89 @@ public class CustomerEndpoint {
                     customCustomer.setCategoryIssueDate(null);
                     customCustomer.setCategoryValidUpto(null);
                 }
-                    Boolean isOtherCategory = false;
-                    List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
-                    Long reserveCategoryToAddId=null;
-                    for(CustomReserveCategory customReserveCategory : reserveCategories)
-                        {
-                            if(customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category")))
-                            {
-                                reserveCategoryToAddId= customReserveCategory.getReserveCategoryId();
+                Boolean isOtherCategory = false;
+                List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
+                Long reserveCategoryToAddId = null;
+                for (CustomReserveCategory customReserveCategory : reserveCategories) {
+                    if (customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category"))) {
+                        reserveCategoryToAddId = customReserveCategory.getReserveCategoryId();
+                    }
+                }
+                if (reserveCategoryToAddId == null) {
+                    throw new IllegalArgumentException("Reserve category with name " + details.get("category").toString() + " does not exist");
+                }
+                OtherItem categoryOtherItemToAdd = null;
+                customCustomer.setCategory(details.get("category").toString());
+
+                if (details.get("category").toString().equalsIgnoreCase("Others")) {
+                    isOtherCategory = true;
+                }
+
+                Boolean userExists = false;
+                if (isOtherCategory.equals(false)) {
+                    customCustomer.setOtherCategory(null);
+                    List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
+                    if (!currentOtherItems.isEmpty()) {
+                        Iterator<OtherItem> iterator = currentOtherItems.iterator();
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if (customCustomer.getId().equals(otherItem.getUser_id())) {
+                                userExists = true;
+                            }
+                            if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                    otherItem.getField_name().equalsIgnoreCase("reserve_category") && userExists) {
+                                iterator.remove();
                             }
                         }
-                    if(reserveCategoryToAddId==null)
-                    {
-                        throw new IllegalArgumentException("Reserve category with name "+ details.get("category").toString()+ " does not exist");
-                    }
-                    OtherItem categoryOtherItemToAdd = null;
-                    customCustomer.setCategory(details.get("category").toString());
-
-                    if (details.get("category").toString().equalsIgnoreCase("Others")) {
-                        isOtherCategory = true;
-                    }
-
-                    Boolean userExists= false;
-                    if (isOtherCategory.equals(false)) {
                         customCustomer.setOtherCategory(null);
-                        List<OtherItem> currentOtherItems = customCustomer.getOtherItems();
-                        if (!currentOtherItems.isEmpty()) {
-                            Iterator<OtherItem> iterator = currentOtherItems.iterator();
-                            while (iterator.hasNext()) {
-                                OtherItem otherItem = iterator.next();
-                                if(customCustomer.getId().equals(otherItem.getUser_id()))
-                                {
-                                    userExists=true;
+                        customCustomer.setOtherItems(currentOtherItems);
+                    }
+                } else if (isOtherCategory.equals(true)) {
+                    existingItems = customCustomer.getOtherItems();
+                    if (existingItems != null && !existingItems.isEmpty()) {
+                        boolean itemUpdated = false;
+                        Iterator<OtherItem> iterator = existingItems.iterator();
+
+                        while (iterator.hasNext()) {
+                            OtherItem otherItem = iterator.next();
+                            if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
+                                    otherItem.getField_name().equalsIgnoreCase("reserve_category")) {
+                                if (!details.containsKey("otherCategory")) {
+                                    throw new IllegalArgumentException("You have to enter text for other reserved category");
                                 }
-                                if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
-                                        otherItem.getField_name().equalsIgnoreCase("reserve_category") && userExists ) {
-                                    iterator.remove();
-                                }
+                                otherItem.setTyped_text(details.get("otherCategory").toString());
+                                otherItem.setSource_name("customer profile update page");
+                                entityManager.merge(otherItem);
+                                itemUpdated = true;
                             }
-                            customCustomer.setOtherCategory(null);
-                            customCustomer.setOtherItems(currentOtherItems);
                         }
-                    } else if (isOtherCategory.equals(true)) {
-                        existingItems = customCustomer.getOtherItems();
-                        if (existingItems != null && !existingItems.isEmpty()) {
-                            boolean itemUpdated = false;
-                            Iterator<OtherItem> iterator = existingItems.iterator();
 
-                            while (iterator.hasNext()) {
-                                OtherItem otherItem = iterator.next();
-                                if ((otherItem.getSource_name().equalsIgnoreCase("customer profile update page")) &&
-                                        otherItem.getField_name().equalsIgnoreCase("reserve_category")) {
-                                    if(!details.containsKey("otherCategory"))
-                                    {
-                                        throw new IllegalArgumentException("You have to enter text for other reserved category");
-                                    }
-                                    otherItem.setTyped_text(details.get("otherCategory").toString());
-                                    otherItem.setSource_name("customer profile update page");
-                                    entityManager.merge(otherItem);
-                                    itemUpdated = true;
-                                }
-                            }
-
-                            if (!itemUpdated) {
-                                categoryOtherItemToAdd =sharedUtilityService. handleOtherCaseForReserveCategory(
-                                        details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
-                                existingItems.add(categoryOtherItemToAdd);
-                            }
-                        } else {
-                            if (existingItems == null) {
-                                existingItems = new ArrayList<>();
-                            }
+                        if (!itemUpdated) {
                             categoryOtherItemToAdd = sharedUtilityService.handleOtherCaseForReserveCategory(
-                                    details.get("category").toString(), (String)details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                                    details.get("category").toString(), (String) details.get("otherCategory"), roleId, customerId, "customer profile update page");
                             existingItems.add(categoryOtherItemToAdd);
                         }
-
-                        customCustomer.setOtherItems(existingItems);
-                        customCustomer.setOtherCategory((String)details.get("otherCategory"));
-                        entityManager.merge(customCustomer);
+                    } else {
+                        if (existingItems == null) {
+                            existingItems = new ArrayList<>();
+                        }
+                        categoryOtherItemToAdd = sharedUtilityService.handleOtherCaseForReserveCategory(
+                                details.get("category").toString(), (String) details.get("otherCategory"), roleId, customerId, "customer profile update page");
+                        existingItems.add(categoryOtherItemToAdd);
                     }
+
+                    customCustomer.setOtherItems(existingItems);
+                    customCustomer.setOtherCategory((String) details.get("otherCategory"));
+                    entityManager.merge(customCustomer);
+                }
 //
-                }else if(!details.containsKey("category")) {
+            } else if (!details.containsKey("category")) {
                 if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                     customCustomer.setCategoryIssueDate(null);
                     customCustomer.setCategoryValidUpto(null);
                 }
             }
-            if(details.containsKey("otherCategory"))
-            {
+            if (details.containsKey("otherCategory")) {
                 details.remove("otherCategory");
             }
             // Update address if needed
@@ -1328,23 +1313,18 @@ public class CustomerEndpoint {
 
                 if (sharedUtilityService.validateCategoryIssueAndValidUptoDates((String) details.get("categoryIssueDate"), (String) details.get("categoryValidUpto"), errorMessages)) {
                     if (details.containsKey("category")) {
-                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
-                        {
+                        if (!((String) details.get("category")).equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                             customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
-                    }
-                    else if(!details.containsKey("category")) {
-                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
-                        {
+                    } else if (!details.containsKey("category")) {
+                        if (!customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
                             customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
@@ -1355,21 +1335,16 @@ public class CustomerEndpoint {
 
                 if (sharedUtilityService.validateCategoryIssueDate((String) details.get("categoryIssueDate"), customCustomer, errorMessages)) {
                     if (details.containsKey("category")) {
-                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
-                        {
+                        if (!((String) details.get("category")).equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
-                    }
-                    else if(!details.containsKey("category")) {
-                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
-                        {
+                    } else if (!details.containsKey("category")) {
+                        if (!customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryIssueDate((String) details.get("categoryIssueDate"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
@@ -1380,21 +1355,16 @@ public class CustomerEndpoint {
 
                 if (sharedUtilityService.validateCategoryUptoDate((String) details.get("categoryValidUpto"), customCustomer, errorMessages)) {
                     if (details.containsKey("category")) {
-                        if(!((String)details.get("category")).equalsIgnoreCase("GEN"))
-                        {
+                        if (!((String) details.get("category")).equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
-                    }
-                    else if(!details.containsKey("category")) {
-                        if(!customCustomer.getCategory().equalsIgnoreCase("GEN"))
-                        {
+                    } else if (!details.containsKey("category")) {
+                        if (!customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                             customCustomer.setCategoryValidUpto((String) details.get("categoryValidUpto"));
-                        }
-                        else {
+                        } else {
                             customCustomer.setCategoryIssueDate(null);
                             customCustomer.setCategoryValidUpto(null);
                         }
@@ -1432,7 +1402,7 @@ public class CustomerEndpoint {
                     for (Document document : customerDocuments) {
                         if (document.getIsArchived().equals(false)) {
                             if (document.getCustom_customer().getId().equals(customerId)) {
-                                if (document.getDocumentType().getDocument_type_id().equals(11) ) {
+                                if (document.getDocumentType().getDocument_type_id().equals(11)) {
                                     document.setIsArchived(true);
                                     entityManager.merge(document);
                                 }
@@ -1468,26 +1438,24 @@ public class CustomerEndpoint {
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
 
-            if(!customCustomer.getEmailActive()&&customCustomer.getEmailAddress()!=null)
-            {
+            if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null) {
                 customCustomer.setEmailActive(true);
-            em.merge(customCustomer);
-            List<String>email=new ArrayList<>();
-            email.add(customCustomer.getEmailAddress());
-                Customer customer=customerService.readCustomerById(customCustomer.getId());
-                String welcomeMessage = String.format(WELCOME_BODY_TEMPLATE,customer.getFirstName()+" "+customer.getLastName());
+                em.merge(customCustomer);
+                List<String> email = new ArrayList<>();
+                email.add(customCustomer.getEmailAddress());
+                Customer customer = customerService.readCustomerById(customCustomer.getId());
+                String welcomeMessage = String.format(WELCOME_BODY_TEMPLATE, customer.getFirstName() + " " + customer.getLastName());
                 CompletableFuture.runAsync(() -> {
                     try {
                         emailService.sendEmailWithAttachments(email, Constant.WELCOME_SUBJECT, welcomeMessage, null);
                     } catch (MessagingException e) {
-                         throw new RuntimeException(e);
+                        throw new RuntimeException(e);
                     }
                 });
-            }
-            else {
+            } else {
                 em.merge(customCustomer);
             }
-            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader,httpServletRequest), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
         } catch (ClassCastException classCastException) {
             exceptionHandling.handleException(classCastException);
@@ -1545,29 +1513,28 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser, Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
-            if(customCustomer.getArchived()!=null)
-            {
+            if (customCustomer.getArchived() != null) {
                 if (customCustomer.getArchived().equals(true)) {
                     return ResponseService.generateErrorResponse("Your account is suspended. Please contact support.", HttpStatus.FORBIDDEN);
                 }
             }
             CustomerImpl customer = em.find(CustomerImpl.class, customerId);  // Assuming you retrieve the base Customer entity
-            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest);
+            Map<String, Object> customerDetails = sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest);
 
             return responseService.generateSuccessResponse("User details retrieved successfully", customerDetails, HttpStatus.OK);
 
@@ -1577,13 +1544,12 @@ public class CustomerEndpoint {
         }
     }
 
-    @Transactional
     @Authorize(value = {Constant.roleUser, Constant.roleServiceProvider, Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleAdminServiceProvider})
     @PostMapping("/upload-documents")
     public ResponseEntity<?> uploadDocuments(
             @RequestParam Long customerId,
-            @RequestParam(value = "exUpdate",defaultValue = "false",required = false) Boolean extUpdate,
-            @RequestHeader(value = "extAuth",required = false) String extAuth,
+            @RequestParam(value = "exUpdate", defaultValue = "false", required = false) Boolean extUpdate,
+            @RequestHeader(value = "extAuth", required = false) String extAuth,
             @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @RequestParam("fileTypes") List<Integer> fileTypes,
             @RequestParam(value = "qualificationDetailId", required = false) Long qualificationDetailId,
@@ -1591,46 +1557,41 @@ public class CustomerEndpoint {
             @RequestParam(value = "validUpto", required = false) String validUpto,
             @RequestParam(value = "otherDocument", required = false) String otherDocument,
             @RequestParam(value = "removeFileTypes", required = false) Boolean removeFileTypes,
-            @RequestHeader(value = "Authorization") String authHeader)
-    {
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            log.info("INSIDE UPLOAD TICKET");
 
-            String dateFormat = "yyyy-MM-dd";
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
+
             String jwtToken = authHeader.substring(7);
-            List<String> deleteLogs = new ArrayList<>();
             Integer roleId;
             Long tokenUserId;
-            if(extAuth==null||extAuth.isEmpty()) {
+
+            if (extAuth == null || extAuth.isEmpty()) {
                 roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            }
-            else
-            {
+            } else {
                 roleId = jwtTokenUtil.extractRoleId(extAuth);
                 tokenUserId = jwtTokenUtil.extractId(extAuth);
             }
-            if(extUpdate&&(roleId!=1&&roleId!=2&&roleId!=5)&&(extAuth==null||extAuth.isEmpty()))
-                return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.UNAUTHORIZED);
-            String role=null;
-            if(extUpdate)
-                role= roleUser;
-            else
+            if (extUpdate && (roleId != 1 && roleId != 2 && roleId != 5) && (extAuth == null || extAuth.isEmpty())) {
+                return ResponseService.generateErrorResponse("Forbidden Access", HttpStatus.UNAUTHORIZED);
+            }
+
+            String role = null;
+            if (extUpdate) {
+                role = roleUser;
+            } else {
                 role = roleService.getRoleByRoleId(roleId).getRole_name();
-            if(!role.equals(roleUser)) {
+            }
+            if (!role.equals(roleUser)) {
                 role = roleServiceProvider;
             }
 
-
-            String queryStringArchive = null;
-            String queryStringArchiveId = null;
-
             //**********DELETE DOCUMENT :START*********
             if (removeFileTypes != null && removeFileTypes.equals(true)) {
-                    deleteLogs = documentStorageService.deleteDocument(role, fileTypes, customerId, otherDocument, qualificationDetailId);
+                List<String> deleteLogs = documentStorageService.deleteDocument(role, fileTypes, customerId, otherDocument, qualificationDetailId);
                 return ResponseService.generateSuccessResponse("Document deleted successfully", deleteLogs, HttpStatus.OK);
                 /*if (role.equals(Constant.roleUser)) {
                     queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
@@ -1758,7 +1719,6 @@ public class CustomerEndpoint {
             }
             //*******DELETE DOCUMENT :END**********
 
-
             if (customerId == null || files == null || fileTypes == null) {
                 return ResponseService.generateErrorResponse("Invalid request parameters.", HttpStatus.BAD_REQUEST);
             }
@@ -1767,21 +1727,21 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Role not found for this user.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            if (!customerId.equals(tokenUserId)&&(roleId!=1&&roleId!=2)) {
+            if (!customerId.equals(tokenUserId) && (roleId != 1 && roleId != 2)) {
                 return ResponseService.generateErrorResponse("Unauthorized request.", HttpStatus.UNAUTHORIZED);
             }
 
+            // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
             for (int i = 0; i < files.size(); i++) {
                 Integer fileTypeId = fileTypes.get(i); // here fileType id meaning documentTypeId
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
-            MultipartFile processedFile=null;
 
             // Will run for customer OR admin and super admin with extUpdate set to true only
-            if (roleService.findRoleName(roleId).equals(roleUser)||((roleService.findRoleName(roleId).equals(roleSuperAdmin)||roleService.findRoleName(roleId).equals(roleAdmin))&&extUpdate)) {
-                HashSet<Document> documentsToSave = new HashSet<>();
+            if (roleService.findRoleName(roleId).equals(roleUser) || ((roleService.findRoleName(roleId).equals(roleSuperAdmin) || roleService.findRoleName(roleId).equals(roleAdmin)) && extUpdate)) {
+                /*HashSet<Document> documentsToSave = new HashSet<>();
                 CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
                 if (customCustomer == null) {
                     return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
@@ -2076,7 +2036,7 @@ public class CustomerEndpoint {
                                 throw new RuntimeException(e);
                             }
                             String fileUrl = fileService.getFileUrl(filePath, request);
-                           /* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*/
+                           *//* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*//*
                             Map<String, Object> documentTypeResponse = new HashMap<>();
                             documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
                             if (otherDocument != null && !otherDocument.trim().isEmpty()) {
@@ -2099,10 +2059,11 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                responseData.put("uploadedDocuments", filteredDocuments);
+                responseData.put("uploadedDocuments", filteredDocuments);*/
+                Map<String, Object> responseData = customCustomerService.updateCustomerDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
-                Set<ServiceProviderDocument> serviceProviderDocumentToSave = new HashSet<>();
+                /*Set<ServiceProviderDocument> serviceProviderDocumentToSave = new HashSet<>();
                 // Service Provider logic
                 ServiceProviderEntity serviceProviderEntity = em.find(ServiceProviderEntity.class, customerId);
                 if (serviceProviderEntity == null) {
@@ -2445,14 +2406,14 @@ public class CustomerEndpoint {
                         }
                     }
                 }
-                responseData.put("uploadedDocuments", filteredDocuments);
+                responseData.put("uploadedDocuments", filteredDocuments);*/
+                Map<String, Object> responseData = serviceProviderService.updateServiceProviderDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
 
         } catch (DataIntegrityViolationException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Document with the same name and file path already exists." + e.getMessage(), HttpStatus.BAD_REQUEST);
-
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -2466,17 +2427,17 @@ public class CustomerEndpoint {
     @Transactional
     /*@Authorize(value = {Constant.roleUser})*/
     @RequestMapping(value = "update-username", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomerUsername(@RequestBody Map<String, Object> updates, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
 
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             updates = sanitizerService.sanitizeInputMap(updates);
 
             if (customerService == null) {
@@ -2506,7 +2467,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Old and new username cannot be same", HttpStatus.BAD_REQUEST);
                 customer.setUsername(username);
                 em.merge(customer);
-                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
+                return ResponseService.generateSuccessResponse("User name  updated successfully : ", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
 
             }
         } catch (Exception exception) {
@@ -2519,16 +2480,16 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser, roleAdmin, roleSuperAdmin})
     @RequestMapping(value = "create-or-update-password", method = RequestMethod.POST)
-    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId,@RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> updateCustomerPassword(@RequestBody Map<String, Object> details, @RequestParam Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             if (customerService == null) {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
 
@@ -2545,17 +2506,17 @@ public class CustomerEndpoint {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
 
-                    CustomCustomer customCustomer =  customCustomerService.findCustomCustomerById( customer.getId());
+                    CustomCustomer customCustomer = customCustomerService.findCustomCustomerById(customer.getId());
                     customCustomer.setIsPasswordCreated(true);
                     em.merge(customCustomer);
-                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Created", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
                 }
                 if (!passwordEncoder.matches(password, customer.getPassword())) {
                     customer.setPassword(passwordEncoder.encode(password));
                     em.merge(customer);
 
 
-                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK);
+                    return ResponseService.generateSuccessResponse("Password Updated", sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK);
                 } else {
                     return ResponseService.generateErrorResponse("Old Password and new Password cannot be same", HttpStatus.BAD_REQUEST);
                 }
@@ -2735,8 +2696,8 @@ public class CustomerEndpoint {
         return addressDTO;
     }
 
-    public ResponseEntity<?> createAuthResponse(String token, Customer customer, String authHeader,HttpServletRequest httpServletRequest) throws Exception {
-        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader,httpServletRequest), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
+    public ResponseEntity<?> createAuthResponse(String token, Customer customer, String authHeader, HttpServletRequest httpServletRequest) throws Exception {
+        OtpEndpoint.ApiResponse authResponse = new OtpEndpoint.ApiResponse(token, sharedUtilityService.breakReferenceForCustomer(customer, authHeader, httpServletRequest), HttpStatus.OK.value(), HttpStatus.OK.name(), "User has been logged in");
         return ResponseService.generateSuccessResponse("Token details : ", authResponse, HttpStatus.OK);
     }
 
@@ -2832,16 +2793,16 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
@@ -2861,7 +2822,7 @@ public class CustomerEndpoint {
                 if (customProduct != null
                         && ((Status) customProduct).getArchived() == 'Y'
                         || customProduct.getActiveEndDate().before(new Date())) {
-                        continue;
+                    continue;
                 }
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
@@ -2913,16 +2874,16 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) {
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             // Validate pagination parameters
             if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             if (limit <= 0) throw new IllegalArgumentException("Limit for pagination cannot be zero or negative");
@@ -2976,20 +2937,21 @@ public class CustomerEndpoint {
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "10") int limit,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -3003,7 +2965,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
 
-            return getRecos(customer_id,offset,limit);
+            return getRecos(customer_id, offset, limit);
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException exception) {
@@ -3015,51 +2977,47 @@ public class CustomerEndpoint {
         }
     }
 
-
     @PostMapping("/submit-customer-details/{customerId}")
-    public ResponseEntity<?> submitCustomerDetails( @PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest)
-    {
+    public ResponseEntity<?> submitCustomerDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customerId))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            CustomCustomer customCustomer= entityManager.find(CustomCustomer.class,customerId);
-            if(customCustomer==null)
-            {
-                throw new IllegalArgumentException("Customer with id "+ customerId+ " not found");
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            if (customCustomer == null) {
+                throw new IllegalArgumentException("Customer with id " + customerId + " not found");
             }
-            if(!sharedUtilityService.validateCustomerPersonalDetails(customCustomer));
-            {
-                customCustomer.setProfileComplete(false);
-            }
-            if(!sharedUtilityService.validateCustomerContactDetails(customCustomer));
+            if (!sharedUtilityService.validateCustomerPersonalDetails(customCustomer)) ;
             {
                 customCustomer.setProfileComplete(false);
             }
-            if(!sharedUtilityService.validatePhysicalDetails(customCustomer));
+            if (!sharedUtilityService.validateCustomerContactDetails(customCustomer)) ;
             {
                 customCustomer.setProfileComplete(false);
             }
-            if(!sharedUtilityService.validateMiscellaniousDetails(customCustomer));
+            if (!sharedUtilityService.validatePhysicalDetails(customCustomer)) ;
             {
                 customCustomer.setProfileComplete(false);
             }
-            if(!sharedUtilityService.validateDocumentsDetails(customCustomer));
+            if (!sharedUtilityService.validateMiscellaniousDetails(customCustomer)) ;
+            {
+                customCustomer.setProfileComplete(false);
+            }
+            if (!sharedUtilityService.validateDocumentsDetails(customCustomer)) ;
             {
                 customCustomer.setProfileComplete(false);
             }
             customCustomer.setProfileComplete(true);
             return ResponseService.generateSuccessResponse("User details submitted successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
-        }catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -3073,14 +3031,12 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestHeader(value = "Authorization") String authHeader,HttpServletRequest httpServletRequest) {
+            @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             String jwtToken = authHeader.substring(7);
@@ -3115,7 +3071,7 @@ public class CustomerEndpoint {
 
             // **Calculate total pages correctly**
             int totalPages = (int) Math.ceil((double) totalItems / limit);
-            if (offset >= totalPages&& offset != 0) {
+            if (offset >= totalPages && offset != 0) {
                 throw new IllegalArgumentException("No more customers available");
             }
 
@@ -3141,19 +3097,18 @@ public class CustomerEndpoint {
         }
     }
 
-
     @Transactional
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
-    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id,@RequestHeader(value = "Authorization")String authHeader) {
+    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
+            Role role = roleService.getRoleByRoleId(roleId);
 
             //checking for super admin and admin
-            if((role.getRole_name().equals(roleUser)&& !Objects.equals(tokenUserId, customer_id))||role.getRole_name().equals(roleServiceProvider))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
 
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer_id);
             if (customCustomer == null)
@@ -3284,15 +3239,15 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed,@RequestParam(required = false,defaultValue = "false")Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
         /* try {*/
         if (!sort.equals("DESC") && !sort.equals("ASC"))
             return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
-        List<Long> refereeId=null;
-        if(ref!=null)
-            refereeId= ref;
+        List<Long> refereeId = null;
+        if (ref != null)
+            refereeId = ref;
         else
-            refereeId=new ArrayList<>();
+            refereeId = new ArrayList<>();
         String jwtToken = authHeader.substring(7);
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
@@ -3306,20 +3261,19 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Invalid name",HttpStatus.BAD_REQUEST);*/
         String stateName = null, districtName = null, qualificationName = null, firstName = null, lastName = null;
         String[] names = null;
-        List<String>stateNames=new ArrayList<>();
-        List<String>districtNames=new ArrayList<>();
-        List<Long>qualificationNames=new ArrayList<>();
-        List<String >qualificationStrings=new ArrayList<>();
+        List<String> stateNames = new ArrayList<>();
+        List<String> districtNames = new ArrayList<>();
+        List<Long> qualificationNames = new ArrayList<>();
+        List<String> qualificationStrings = new ArrayList<>();
         if (stateId != null) {
-            for(Integer stateCode:stateId) {
+            for (Integer stateCode : stateId) {
                 stateName = districtService.findStateById(stateCode);
                 if (stateName == null)
                     return ResponseService.generateErrorResponse("Invalid state Id", HttpStatus.BAD_REQUEST);
                 stateNames.add(stateName);
             }
-        }
-        else
-            stateNames=null;
+        } else
+            stateNames = null;
         if (districtId != null) {
             for (Integer district : districtId) {
                 districtName = districtService.findDistrictById(district);
@@ -3327,9 +3281,8 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Invalid district Id", HttpStatus.BAD_REQUEST);
                 districtNames.add(districtName);
             }
-        }
-        else
-            districtNames=null;
+        } else
+            districtNames = null;
         if (qualificationType != null) {
             for (Integer id : qualificationType) {
                 if (qualificationService.getQualificationByQualificationId(Math.toIntExact(id)) == null)
@@ -3337,9 +3290,8 @@ public class CustomerEndpoint {
                 qualificationStrings.add(qualificationService.getQualificationByQualificationId(Math.toIntExact(id)).getQualification_name());
                 qualificationNames.add(qualificationService.getQualificationByQualificationId(Math.toIntExact(id)).getOverlap());
             }
-        }
-        else
-            qualificationNames=null;
+        } else
+            qualificationNames = null;
 
         List<String> firstNames = new ArrayList<>();
         List<String> lastNames = new ArrayList<>();
@@ -3355,15 +3307,15 @@ public class CustomerEndpoint {
         }
 
 
-        List<Long> refids=new ArrayList<>();
-        if(refereeId!=null&&!refereeId.isEmpty()) {
+        List<Long> refids = new ArrayList<>();
+        if (refereeId != null && !refereeId.isEmpty()) {
             // Convert the list of Long to a list of String using Java Streams
-            refids =refereeId.stream()
+            refids = refereeId.stream()
                     .map(Long::valueOf)
                     .collect(Collectors.toList());
         }
-        if(refids.isEmpty())
-            refids=null;
+        if (refids.isEmpty())
+            refids = null;
 
         List<BigInteger> resultSet1 = customCustomerService.filterCustomer(refids, firstNames, lastNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
         List<BigInteger> resultSet2 = customCustomerService.filterCustomer(refids, lastNames, firstNames, stateNames, districtNames, qualificationType, username, completed, authHeader, offset, limit, sort);
@@ -3373,7 +3325,7 @@ public class CustomerEndpoint {
         uniqueResults.addAll(resultSet1);
         uniqueResults.addAll(resultSet2);
         List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
-        System.out.println("count:"+uniqueResultList.size());
+        System.out.println("count:" + uniqueResultList.size());
 // Convert the Set back to a List
         List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
         Map<Integer, Integer> Qualificationorder = new HashMap<>();
@@ -3386,12 +3338,12 @@ public class CustomerEndpoint {
         Qualificationorder.put(5, 7);
         Qualificationorder.put(8, 8);
         for (BigInteger id : uniqueResultList) {
-            System.out.println("fetchedId: by the querry "+id);
+            System.out.println("fetchedId: by the querry " + id);
             Customer customer = null;
             try {
                 customer = customerService.readCustomerById(id.longValue());
             } catch (Exception e) {
-                System.out.println("ID skipped"+id+"due to"+e);
+                System.out.println("ID skipped" + id + "due to" + e);
                 continue;
             }
             if (customer != null) {
@@ -3401,7 +3353,7 @@ public class CustomerEndpoint {
                 String primaryRefName = "N/A";
                 Long primaryRefId = null;
                 if (customCustomer != null) {
-                    if(!customCustomer.getArchived().equals(suspended))
+                    if (!customCustomer.getArchived().equals(suspended))
                         continue;
 
                     if (stateNames != null) {
@@ -3448,15 +3400,14 @@ public class CustomerEndpoint {
                             customerBasicDetailsDto.setState(matchingState);
 
                         }
-                    }
-                    else {
+                    } else {
 
-                            for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
-                                if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS") ||customerAddress.getAddressName().equals("CURRENT_ADDRESS"))
-                                    state = customerAddress.getAddress().getStateProvinceRegion();
-                            }
-                            customerBasicDetailsDto.setState(state);
+                        for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
+                            if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS") || customerAddress.getAddressName().equals("CURRENT_ADDRESS"))
+                                state = customerAddress.getAddress().getStateProvinceRegion();
                         }
+                        customerBasicDetailsDto.setState(state);
+                    }
                     customerBasicDetailsDto.setCustomerId(id.longValue());
                     customerBasicDetailsDto.setEmail(customer.getEmailAddress());
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
@@ -3476,14 +3427,13 @@ public class CustomerEndpoint {
                                 continue;
                         }*/
                     if (customCustomer.getPrimaryRef() != 0) {
-                        System.out.println("true"+customCustomer.getId());
+                        System.out.println("true" + customCustomer.getId());
                         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customCustomer.getPrimaryRef());
                         if (serviceProvider != null) {
                             primaryRefName = serviceProvider.getFirst_name() + " " + serviceProvider.getLast_name();
                             primaryRefId = serviceProvider.getService_provider_id();
                         }
                     }
-
 
 
                     Integer age = sharedUtilityServiceApi.calculateAge(customCustomer.getDob());
@@ -3523,38 +3473,38 @@ public class CustomerEndpoint {
 //                    }
 
 
-                        if (qualificationType != null) {
-                            for (QualificationDetails qualificationDetails : qualifications) {
-                                int qualificationId = qualificationDetails.getQualification_id();
+                    if (qualificationType != null) {
+                        for (QualificationDetails qualificationDetails : qualifications) {
+                            int qualificationId = qualificationDetails.getQualification_id();
 
-                                if (qualificationType.contains(qualificationId)) {
-                                    String qualificationNameToSet = qualificationService
-                                            .getQualificationByQualificationId(qualificationId)
-                                            .getQualification_name();
-                                    customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
-                                    break; // Stop checking more qualifications for this customer
-                                }
+                            if (qualificationType.contains(qualificationId)) {
+                                String qualificationNameToSet = qualificationService
+                                        .getQualificationByQualificationId(qualificationId)
+                                        .getQualification_name();
+                                customerBasicDetailsDto.setHighestQualification(qualificationNameToSet);
+                                break; // Stop checking more qualifications for this customer
                             }
-                        } else {
-                            int max = 0;
-                            for (QualificationDetails qualificationDetails : qualifications) {
-                                int qualificationId = qualificationDetails.getQualification_id();
-                                Qualification qualificationFound = entityManager.find(Qualification.class, qualificationId);
+                        }
+                    } else {
+                        int max = 0;
+                        for (QualificationDetails qualificationDetails : qualifications) {
+                            int qualificationId = qualificationDetails.getQualification_id();
+                            Qualification qualificationFound = entityManager.find(Qualification.class, qualificationId);
 
-                                if (qualificationFound != null) {
-                                    Integer order = Qualificationorder.get(qualificationFound.getOverlap().intValue());
-                                    if (order != null && order > max) {
-                                        customerBasicDetailsDto.setHighestQualification(qualificationFound.getQualification_name());
-                                        max = order;
-                                    }
+                            if (qualificationFound != null) {
+                                Integer order = Qualificationorder.get(qualificationFound.getOverlap().intValue());
+                                if (order != null && order > max) {
+                                    customerBasicDetailsDto.setHighestQualification(qualificationFound.getQualification_name());
+                                    max = order;
                                 }
                             }
                         }
+                    }
 
                     customerBasicDetailsDto.setPrimaryRef(primaryRefName);
                     customerBasicDetailsDto.setPrimaryRefId(primaryRefId);
-                    if(roleId==1 || roleId ==2 )
-                    customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
+                    if (roleId == 1 || roleId == 2)
+                        customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
                     else if (!customCustomer.getHidePhoneNumber())
                         customerBasicDetailsDto.setPhone(customCustomer.getMobileNumber());
                     else
@@ -3565,7 +3515,7 @@ public class CustomerEndpoint {
                 }
             }
         }
-        if(sort.equals("ASC"))
+        if (sort.equals("ASC"))
             customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId));
         else
             customerList.sort(Comparator.comparingLong(CustomerBasicDetailsDto::getCustomerId).reversed());
@@ -3574,7 +3524,7 @@ public class CustomerEndpoint {
 
         List<CustomerBasicDetailsDto> paginatedList = sharedUtilityService.getPaginatedList(customerList, offset, limit);
 
-        System.out.println("dkfjalksdjflkasdjflkajds"+offset);
+        System.out.println("dkfjalksdjflkasdjflkajds" + offset);
         System.out.println(offset);
 
         Map<String, Object> response = new HashMap<>();
@@ -3587,7 +3537,6 @@ public class CustomerEndpoint {
     }/* catch (MethodArgumentTypeMismatchException | NumberFormatException exception) {
             return ResponseService.generateErrorResponse("Invalid value provided in search filter", HttpStatus.BAD_REQUEST);
         }*/
-
 
     @Transactional
     @PutMapping("manage-user")
@@ -3649,12 +3598,10 @@ public class CustomerEndpoint {
             }
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
-            if(action.equals(Constant.ACTION_SUSPEND)) {
-                sharedUtilityService.blackListToken(customCustomer.getToken(),5,customCustomer.getId());
+            if (action.equals(Constant.ACTION_SUSPEND)) {
+                sharedUtilityService.blackListToken(customCustomer.getToken(), 5, customCustomer.getId());
                 logout(customCustomer.getToken());
-            }
-            else
-            {
+            } else {
                 sharedUtilityService.removeToken(customCustomer.getToken());
             }
             actionedIds.add(customerId);
@@ -3675,97 +3622,93 @@ public class CustomerEndpoint {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.BAD_REQUEST);
         }
     }
-    @Autowired
-    GenderService genderService;
-    public ResponseEntity<?>getRecos(Long customerId,Integer offset,Integer limit) {
+
+    public ResponseEntity<?> getRecos(Long customerId, Integer offset, Integer limit) {
         Customer customer = customerService.readCustomerById(customerId);
         if (customer == null)
             return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
         CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
-        List<QualificationDetails>qualificationDetails=customCustomer.getQualificationDetailsList();
-        List<Integer>qualificationIds=new ArrayList<>();
-        for(QualificationDetails qualificationDetail:qualificationDetails)
-        {
+        List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+        List<Integer> qualificationIds = new ArrayList<>();
+        for (QualificationDetails qualificationDetail : qualificationDetails) {
             qualificationIds.add(qualificationDetail.getQualification_id());
         }
-        int age=sharedUtilityService.calculateAge(customCustomer.getDob());
-        Long reservedCategory=reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-        Long genderId=genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+        int age = sharedUtilityService.calculateAge(customCustomer.getDob());
+        Long reservedCategory = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+        Long genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
         Double fee;
         String ageLimit;
         String sql = """
-        SELECT DISTINCT ON (p.product_id) p.product_id
-        FROM custom_product p
-        JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
-        JOIN post_details post ON post.product_id = p.product_id
-        JOIN blc_product bp ON bp.product_id = c.product_id
-        JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
-        JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
-        JOIN qualification_eligibility qf ON qf.post_id = post.postid
-        JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-        WHERE qd.qualification_id IN (:qualificationId)
-        AND c.gender_id = :genderId
-        AND rf.gender_id = :genderId
-        AND c.reserve_category_id = :reserveCategoryId
-        AND rf.reserve_category_id = :reserveCategoryId
-        AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-        AND sku.active_end_date <= CURRENT_DATE
-        ORDER BY p.product_id, p.views DESC
-        LIMIT :limit OFFSET :offset
-    """;
+                    SELECT DISTINCT ON (p.product_id) p.product_id
+                    FROM custom_product p
+                    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+                    JOIN post_details post ON post.product_id = p.product_id
+                    JOIN blc_product bp ON bp.product_id = c.product_id
+                    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+                    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+                    JOIN qualification_eligibility qf ON qf.post_id = post.postid
+                    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+                    WHERE qd.qualification_id IN (:qualificationId)
+                    AND c.gender_id = :genderId
+                    AND rf.gender_id = :genderId
+                    AND c.reserve_category_id = :reserveCategoryId
+                    AND rf.reserve_category_id = :reserveCategoryId
+                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
+                    AND sku.active_end_date <= CURRENT_DATE
+                    ORDER BY p.product_id, p.views DESC
+                    LIMIT :limit OFFSET :offset
+                """;
 
 
         String count = """
-        SELECT COUNT(DISTINCT p.product_id)
-        FROM custom_product p
-        JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
-        JOIN post_details post ON post.product_id = p.product_id
-        JOIN blc_product bp ON bp.product_id = c.product_id
-        JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
-        JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
-        JOIN qualification_eligibility qf ON qf.post_id = post.postid
-        JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-        WHERE qd.qualification_id IN (:qualificationId)
-        AND c.gender_id = :genderId
-        AND rf.gender_id = :genderId
-        AND c.reserve_category_id = :reserveCategoryId
-        AND rf.reserve_category_id = :reserveCategoryId
-        AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-        AND sku.active_end_date <= CURRENT_DATE
-    """;
+                    SELECT COUNT(DISTINCT p.product_id)
+                    FROM custom_product p
+                    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+                    JOIN post_details post ON post.product_id = p.product_id
+                    JOIN blc_product bp ON bp.product_id = c.product_id
+                    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+                    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+                    JOIN qualification_eligibility qf ON qf.post_id = post.postid
+                    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+                    WHERE qd.qualification_id IN (:qualificationId)
+                    AND c.gender_id = :genderId
+                    AND rf.gender_id = :genderId
+                    AND c.reserve_category_id = :reserveCategoryId
+                    AND rf.reserve_category_id = :reserveCategoryId
+                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
+                    AND sku.active_end_date <= CURRENT_DATE
+                """;
 
-        List<BigInteger>res= entityManager.createNativeQuery(sql)
+        List<BigInteger> res = entityManager.createNativeQuery(sql)
                 .setParameter("qualificationId", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
-                .setParameter("limit",limit)
-                .setParameter("offset",offset)
+                .setParameter("limit", limit)
+                .setParameter("offset", offset)
                 .getResultList();
 
-        BigInteger resultCount= (BigInteger) entityManager.createNativeQuery(count)
+        BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(count)
                 .setParameter("qualificationId", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
                 .getSingleResult();
 
-        List<ProductDetailsDTO>wrappers=new ArrayList<>();
-        for(BigInteger id:res)
-        {
-            CustomProduct customProduct=entityManager.find(CustomProduct.class,id.longValue());
-            Product product=catalogService.findProductById(id.longValue());
-            genderId=0L;
-            var categoryId=0L;
+        List<ProductDetailsDTO> wrappers = new ArrayList<>();
+        for (BigInteger id : res) {
+            CustomProduct customProduct = entityManager.find(CustomProduct.class, id.longValue());
+            Product product = catalogService.findProductById(id.longValue());
+            genderId = 0L;
+            var categoryId = 0L;
             try {
                 categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
                 genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-            }catch (Exception exception)
-            {
-                if(genderId==0L)
-                    genderId=1L;
-                if(categoryId==0L)
-                    categoryId=1L;
+            } catch (Exception exception) {
+                if (genderId == 0L)
+                    genderId = 1L;
+                if (categoryId == 0L)
+                    categoryId = 1L;
             }
 
             Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
@@ -3784,7 +3727,7 @@ public class CustomerEndpoint {
 // Extract age limits
             int[] ageLimits = null;
             if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
-                ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
+                ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(), null);
             }
 
 // Set ageLimit value
@@ -3795,22 +3738,22 @@ public class CustomerEndpoint {
                     ? ageLimits[0] + "-" + ageLimits[1]
                     : "N/A";
 
-            ProductDetailsDTO dto=new ProductDetailsDTO();
+            ProductDetailsDTO dto = new ProductDetailsDTO();
             dto.setFee(fee);
             dto.setAgeLimit(ageLimit);
             dto.setId(id.longValue());
-dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
+            dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
             dto.setMetaTitle(customProduct.getMetaTitle());
             dto.setDisplayTemplate(customProduct.getDisplayTemplate());
             dto.setActiveEndDate(customProduct.getActiveEndDate());
             dto.setActiveStartDate(customProduct.getActiveStartDate());
             wrappers.add(dto);
         }
-        Map<String,Object>response=new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         response.put("forms", wrappers);
-        response.put("totalItems",resultCount);
-        response.put("totalPages", resultCount.longValue()/limit);
-        response.put("currentPage", offset+1);
-        return ResponseService.generateSuccessResponse("Found products",response,HttpStatus.OK);
+        response.put("totalItems", resultCount);
+        response.put("totalPages", resultCount.longValue() / limit);
+        response.put("currentPage", offset + 1);
+        return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
 }

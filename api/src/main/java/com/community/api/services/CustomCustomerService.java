@@ -1,39 +1,69 @@
 package com.community.api.services;
+
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.ServiceProviderTestStatus;
-import org.apache.commons.collections4.CollectionUtils;
-import org.broadleafcommerce.profile.core.domain.Customer;
+import com.community.api.entity.DocumentValidity;
+import com.community.api.entity.QualificationDetails;
+import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.Document;
+import com.community.api.utils.DocumentType;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import javax.persistence.EntityManager;
-import javax.persistence.PersistenceException;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
-import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
+import java.io.File;
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
-import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.isAlphabetOnly;
+import static com.community.api.component.Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID;
+import static com.community.api.component.Constant.request;
 
 @Service
 public class CustomCustomerService {
-    private EntityManager em;
     @Autowired
     SharedUtilityService sharedUtilityService;
     @Autowired
     JwtUtil jwtTokenUtil;
-    public CustomCustomerService(EntityManager em)
-    {
-        this.em= em;
+    private EntityManager em;
+    @Autowired
+    private DocumentStorageService fileUploadService;
+    @Autowired
+    private ExceptionHandlingService exceptionHandlingService;
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private FileService fileService;
+    @Autowired
+    private DocumentStorageService documentStorageService;
+
+    public CustomCustomerService(EntityManager em) {
+        this.em = em;
+    }
+
+    public static Date convertStringToDate(String dateStr, String s) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        dateFormat.setLenient(false);
+        return dateFormat.parse(dateStr);
     }
 
     public Boolean validateInput(CustomCustomer customer) {
@@ -61,7 +91,7 @@ public class CustomCustomerService {
         return Pattern.compile(mobileNumberPattern).matcher(mobileNumber).matches();
     }
 
-    public CustomCustomer findCustomCustomerByPhone(String mobileNumber,String countryCode) {
+    public CustomCustomer findCustomCustomerByPhone(String mobileNumber, String countryCode) {
 
         if (countryCode == null) {
             countryCode = Constant.COUNTRY_CODE;
@@ -88,9 +118,7 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
-
-
-    public CustomCustomer findCustomCustomerByPhoneWithOtp(String mobileNumber,String countryCode) {
+    public CustomCustomer findCustomCustomerByPhoneWithOtp(String mobileNumber, String countryCode) {
 
         if (countryCode == null) {
             countryCode = Constant.COUNTRY_CODE;
@@ -105,7 +133,7 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
-    public  List<String> validateAddress(String addressLine, String city, String pincode) {
+    public List<String> validateAddress(String addressLine, String city, String pincode) {
         List<String> errorMessages = new ArrayList<>();
 
         // Validate Address Line: It should not be empty or null
@@ -126,7 +154,6 @@ public class CustomCustomerService {
         // Return the list of error messages (if any)
         return errorMessages;
     }
-
 
     public List<BigInteger> filterCustomer(List<Long> service_provider_id, List<String> first_names, List<String> last_names, List<String> sub_state_prov_reg, List<String> county, List<Integer> qualification_name, String username, Boolean completed, String authHeader, int page, int limit, String sort) {
         List<Map<String, Object>> response = new ArrayList<>();
@@ -240,8 +267,407 @@ public class CustomCustomerService {
         return resultList;
     }
 
+    @Transactional
+    public Map<String, Object> updateCustomerDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes) throws Exception {
+        try {
 
+            String dateFormat = "yyyy-MM-dd";
+            MultipartFile processedFile = null;
 
+            HashSet<Document> documentsToSave = new HashSet<>();
 
+            CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            if (customCustomer == null) {
+                throw new NotFoundException("No data found for this customerId");
+            }
+
+            // Response data to be shown.
+            Map<String, Object> responseData = new HashMap<>();
+
+            // deleted document messages to be shown.
+            List<String> deletedDocumentMessages = new ArrayList<>();
+
+            // One by one fetching the provider documentType with corresponding files uploaded to be saved.
+            for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
+                Integer fileNameId = entry.getKey();
+
+                // Files in that document type respectively.
+                List<MultipartFile> fileList = entry.getValue();
+
+                DocumentType documentTypeObj = em.createQuery(
+                                Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
+                        .setParameter("documentTypeId", fileNameId)
+                        .getResultStream()
+                        .findFirst()
+                        .orElse(null);
+
+                if (documentTypeObj == null) {
+                    throw new NotFoundException("Unknown document type for file: " + fileNameId);
+                }
+
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                    if (otherDocument == null) {
+                        throw new IllegalArgumentException("Other Document name cannot be null for uploading other Documents");
+                    }
+                    if (otherDocument.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Other Document name cannot be empty");
+                    }
+                }
+
+                // If document type is qualification document then qualification details Id cannot be null.
+                if (documentTypeObj.getIs_qualification_document().equals(true) && qualificationDetailId == null) {
+                    throw new IllegalArgumentException("Qualification Detail Id cannot be null for uploading Qualification Documents");
+                }
+
+                // If issue date is required for that particular document type it cannot be passed as null.
+                if (documentTypeObj.getIs_issue_date_required().equals(true)) {
+                    if (dateOfIssue == null) {
+                        throw new IllegalArgumentException("Date of issue cannot be null");
+                    }
+                    if (documentTypeObj.getIs_expiration_date_required().equals(true) && validUpto == null) {
+                        throw new IllegalArgumentException("Valid up to (expiration date of document) cannot be null");
+                    }
+                }
+
+                // Now we iterate one by one for document uploaded in that particular document type.
+                for (MultipartFile file : fileList) {
+
+                    // Validate document
+                    if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {  // If it's a Live Photo
+                        processedFile = documentStorageService.convertToJpg(file);
+                        customCustomer.setIsLivePhotoNa(false);
+                    } else {
+                        documentStorageService.validateDocument(file, documentTypeObj);
+                    }
+
+                    Document existingDocument = null;
+
+                    if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
+                        existingDocument = em.createQuery(
+                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                "AND d.documentType = :documentType " +
+                                                "AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) " +
+                                                "AND d.name IS NOT NULL", Document.class)
+                                .setParameter("customCustomer", customCustomer)
+                                .setParameter("documentType", documentTypeObj)
+                                .setParameter("qualificationDetailId", qualificationDetailId)
+                                .getResultStream()
+                                .findFirst()
+                                .orElse(null);
+                    } else {
+                        existingDocument = em.createQuery(
+                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                "AND d.documentType = :documentType AND d.name IS NOT NULL ", Document.class)
+                                .setParameter("customCustomer", customCustomer)
+                                .setParameter("documentType", documentTypeObj)
+                                .getResultStream()
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    if (documentTypeObj.getDocument_type_id().equals(DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
+                        fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                    } else {
+                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                    }
+
+                    // If boolean removeFileTypes not null then we remove document other than other document types.
+                    if (removeFileTypes != null && removeFileTypes && existingDocument != null && fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                        String filePath = existingDocument.getFilePath();
+
+                        if (filePath != null) {
+                            fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                        }
+
+                        existingDocument.setDocumentType(null);
+                        existingDocument.setFilePath(null);
+                        existingDocument.setName(null);
+                        em.persist(existingDocument);
+                        documentsToSave.add(existingDocument);
+
+                        deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + "' has been deleted.");
+
+                        continue;
+                    }
+
+                    if (fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID) && (!file.isEmpty() || file != null)) {
+                        String newFileName = file.getOriginalFilename();
+
+                        // Check for existing document with the same name
+                        Document existingDocumentWithOtherDocumentType = em.createQuery(
+                                        "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer " +
+                                                "AND d.documentType = :documentType " +
+                                                "AND LOWER(d.otherDocument) = LOWER(:otherDocument) " +  // Case-insensitive check
+                                                "AND d.name IS NOT NULL", Document.class)
+                                .setParameter("customCustomer", customCustomer)
+                                .setParameter("documentType", documentTypeObj)
+                                .setParameter("otherDocument", otherDocument.toLowerCase())  // Ensure consistency
+                                .getResultStream()
+                                .findFirst()
+                                .orElse(null);
+
+                        if (existingDocumentWithOtherDocumentType == null) {
+                            Document createdDocument = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                            if (documentTypeObj.getDocument_type_id().equals(13)) {
+                                createdDocument.setOtherDocument(otherDocument);
+                                entityManager.merge(createdDocument);
+                            }
+                            documentsToSave.add(createdDocument);
+                        } else {
+
+                            String filePath = existingDocumentWithOtherDocumentType.getFilePath();
+                            if (filePath != null) {
+                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                                File oldFile = new File(absolutePath);
+                                String oldFileName = oldFile.getName();
+                                existingDocumentWithOtherDocumentType.setIsArchived(false);
+                                if (!newFileName.equals(oldFileName)) {
+                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocumentWithOtherDocumentType.getName(), role);
+                                    documentStorageService.updateOrCreateDocument(existingDocumentWithOtherDocumentType, file, documentTypeObj, customerId, role);
+                                }
+                            }
+                            entityManager.merge(existingDocumentWithOtherDocumentType);
+                            documentsToSave.add(existingDocumentWithOtherDocumentType);
+                        }
+                    }
+
+                    // If the file is not empty and a document already exists, update the document
+                    else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                        String filePath = existingDocument.getFilePath();
+                        if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
+//                                processedFile = documentStorageService.convertToJpg(file);
+                            customCustomer.setIsLivePhotoNa(false);
+                        }
+                        if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
+                            QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
+                            existingDocument.setIs_qualification_document(true);
+                            existingDocument.setQualificationDetails(qualificationDetails);
+                        }
+
+                        if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
+                            DocumentValidity documentValidity = null;
+                            if (existingDocument.getDocumentValidity() == null) {
+                                documentValidity = new DocumentValidity();
+                                validateDate(dateOfIssue, validUpto, dateFormat);
+                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                                if (validUpto == null) {
+                                    documentValidity.setIs_valid_upto_na(true);
+                                    documentValidity.setValid_upto(null);
+                                } else {
+                                    documentValidity.setIs_valid_upto_na(false);
+                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
+                                }
+                                documentValidity.setDocument(existingDocument);
+                                existingDocument.setDocumentValidity(documentValidity);
+                                entityManager.persist(documentValidity);
+
+                            } else if (existingDocument.getDocumentValidity() != null) {
+                                documentValidity = existingDocument.getDocumentValidity();
+                                validateDate(dateOfIssue, validUpto, dateFormat);
+                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                                if (validUpto == null) {
+                                    documentValidity.setIs_valid_upto_na(true);
+                                    documentValidity.setValid_upto(null);
+
+                                } else {
+                                    documentValidity.setIs_valid_upto_na(false);
+                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
+                                }
+                                documentValidity.setDocument(existingDocument);
+                                existingDocument.setDocumentValidity(documentValidity);
+                                entityManager.merge(documentValidity);
+                            }
+
+                        }
+                        if (filePath != null) {
+                            String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                            File oldFile = new File(absolutePath);
+                            String oldFileName = oldFile.getName();
+
+                            // Get the expected filename after any conversion
+                            boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
+                            String newFileName = documentStorageService.getConvertedFilename(file, isLivePhoto);
+
+                            existingDocument.setIsArchived(false);
+
+                            if (!newFileName.equals(oldFileName)) {
+                                fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                                if (isLivePhoto) {
+                                    documentStorageService.updateOrCreateDocument(existingDocument, processedFile, documentTypeObj, customerId, role);
+                                } else {
+                                    documentStorageService.updateOrCreateDocument(existingDocument, file, documentTypeObj, customerId, role);
+                                }
+                            }
+                        }
+                        entityManager.merge(existingDocument);
+                        documentsToSave.add(existingDocument);
+                    } else {
+                        // If the file is not empty create the document
+                        if (!file.isEmpty() || file != null && (fileNameId != 13)) {
+                            Document document = null;
+                            if (documentTypeObj.getDocument_type_id().equals(3)) {
+                                customCustomer.setIsLivePhotoNa(false);
+                                document = documentStorageService.createDocument(processedFile, documentTypeObj, customCustomer, customerId, role);
+                            } else {
+                                document = documentStorageService.createDocument(file, documentTypeObj, customCustomer, customerId, role);
+                            }
+                            documentsToSave.add(document);
+                            if (documentTypeObj.getDocument_type_id().equals(3)) {
+                                customCustomer.setIsLivePhotoNa(false);
+                            }
+                            if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
+                                QualificationDetails qualificationDetails = findQualificationDetailForCustomer(qualificationDetailId, customCustomer);
+                                document.setIs_qualification_document(true);
+                                document.setQualificationDetails(qualificationDetails);
+                                entityManager.merge(document);
+                                documentsToSave.add(document);
+                            }
+                            if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
+                                DocumentValidity documentValidity = new DocumentValidity();
+                                validateDate(dateOfIssue, validUpto, dateFormat);
+                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                                if (validUpto == null) {
+                                    documentValidity.setIs_valid_upto_na(true);
+                                    documentValidity.setValid_upto(null);
+                                } else {
+                                    documentValidity.setIs_valid_upto_na(false);
+                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
+                                }
+                                documentValidity.setDocument(document);
+                                entityManager.persist(documentValidity);
+                                document.setDocumentValidity(documentValidity);
+                                entityManager.merge(document);
+                                documentsToSave.add(document);
+                            }
+                        }
+                    }
+                }
+            }
+
+            entityManager.merge(customCustomer);
+            List<Map<String, Object>> filteredDocuments = new ArrayList<>();
+            for (Document document : documentsToSave) {
+                if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                    if (document.getFilePath() != null && document.getDocumentType() != null) {
+                        Map<String, Object> documentDetails = new HashMap<>();
+                        documentDetails.put("documentId", document.getDocumentId());
+                        documentDetails.put("name", document.getName());
+                        documentDetails.put("filePath", document.getFilePath());
+
+                        // Add qualification details if applicable
+                        if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                            documentDetails.put("qualification_detail_id", qualificationDetailId);
+                        }
+
+                        // Add document validity details if applicable
+                        if (document.getDocumentValidity() != null) {
+
+                            Map<String, String> validityDetails = new HashMap<>();
+                            validityDetails.put("dateOfIssue", dateOfIssue);
+                            validityDetails.put("validUpto", validUpto);
+
+                            documentDetails.put("documentValidity", validityDetails); // Include as nested map
+                        }
+                        String filePath;
+                        // Generate a file URL for the document
+                        try {
+                            filePath = documentStorageService.encrypt(document.getFilePath());
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                        String fileUrl = fileService.getFileUrl(filePath, request);
+                        /* String fileUrl = fileService.getFileUrl(document.getFilePath(), request);*/
+                        Map<String, Object> documentTypeResponse = new HashMap<>();
+                        documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                        if (otherDocument != null && !otherDocument.trim().isEmpty()) {
+                            documentTypeResponse.put("document_type_name", otherDocument);
+                        } else {
+                            documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
+                        }
+                        documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                        documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                        documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                        documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                        documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                        documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                        documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                        documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+
+                        documentDetails.put("documentType", documentTypeResponse);
+                        documentDetails.put("fileUrl", fileUrl);
+                        filteredDocuments.add(documentDetails);
+                    }
+                }
+            }
+            responseData.put("uploadedDocuments", filteredDocuments);
+            return responseData;
+        } catch (NoResultException noResultException) {
+            exceptionHandlingService.handleException(noResultException);
+            throw new NoResultException("No record found: " + noResultException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
+        dateFormat.setLenient(false);
+
+        try {
+            // Validate format
+            if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
+                throw new IllegalArgumentException("Date of Issue must be in " + dateFormatInString + " format");
+            }
+
+            Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
+            Date validUpto = null;
+            if (validUptoStr != null) {
+
+                if (!isValidDateFormat(validUptoStr, dateFormat)) {
+                    throw new IllegalArgumentException("Valid Upto Date must be in " + dateFormatInString + " format");
+                }
+                validUpto = dateFormat.parse(validUptoStr);
+
+                // Check if validUpto is before dateOfIssue
+                if (validUpto.before(dateOfIssue)) {
+                    throw new IllegalArgumentException("Valid Upto Date cannot be before Date of Issue");
+                }
+            }
+            return true;
+        } catch (IllegalArgumentException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw ex; // Rethrow with meaningful context
+        } catch (ParseException ex) {
+            exceptionHandlingService.handleException(ex);
+            throw new IllegalArgumentException("Invalid date format", ex);
+        }
+    }
+
+    private boolean isValidDateFormat(String dateStr, SimpleDateFormat dateFormat) {
+        try {
+            dateFormat.parse(dateStr);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+
+    public QualificationDetails findQualificationDetailForCustomer(Long qualificationDetailId, CustomCustomer customCustomer) {
+        List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+        QualificationDetails qualificationToFind = null;
+        for (QualificationDetails qualificationDetails1 : qualificationDetails) {
+            if (qualificationDetails1.getQualification_detail_id().equals(qualificationDetailId)) {
+                qualificationToFind = qualificationDetails1;
+                break;
+            }
+        }
+        if (qualificationToFind == null) {
+            throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
+        }
+        return qualificationToFind;
+    }
 
 }

@@ -274,5 +274,6 @@ public class Constant {
 
     public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
     public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
+    public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
 
 }

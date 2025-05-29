@@ -420,6 +420,7 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
                         } else {
                             ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
+                            ticket.setTicketState(ticketState);
                         }
                     }
 

@@ -1123,6 +1123,7 @@ public class DocumentStorageService {
         }
     }
 
+    @Transactional
     public List<String> deleteDocument(String role, List<Integer> fileTypes, Long customerId, String otherDocument, Long qualificationDetailId) throws Exception {
         try {
             log.info("inside delete document logic");
