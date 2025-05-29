@@ -563,6 +563,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 }
             }
+            if (updates.containsKey("work_experience_in")) {
+                Object workExp = updates.get("work_experience_in");
+                if (workExp != null && !workExp.toString().trim().isEmpty()) {
+
+                    Object workExpMonths = updates.get("work_experience_in_months");
+
+                    if (workExpMonths == null || workExpMonths.toString().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Work Experience duration cannot be empty", HttpStatus.BAD_REQUEST);
+                    }
+                }
+            }
 
 
             if (updates.containsKey("user_name")) {

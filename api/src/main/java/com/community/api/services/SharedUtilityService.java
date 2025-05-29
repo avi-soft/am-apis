@@ -852,6 +852,7 @@ public class SharedUtilityService {
         }
         serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
         serviceProviderDetails.put("permanent_address_is_same_as_current_address",serviceProvider.getIsSameAsCurrentAddress());
+        serviceProviderDetails.put("work_experience_in",serviceProvider.getWork_experience_in());
 
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
