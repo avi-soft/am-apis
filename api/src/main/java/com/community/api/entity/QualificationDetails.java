@@ -137,6 +137,9 @@ public class QualificationDetails {
     @Column(name = "subject_name")
     private List<String> highest_qualification_subject_names;
 
+    @Column(name = "institution_address")
+    private String institution_address;
+
     @JsonBackReference("qualificationDetailsList-customer")
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
