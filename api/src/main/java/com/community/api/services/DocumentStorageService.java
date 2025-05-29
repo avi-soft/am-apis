@@ -1,4 +1,5 @@
 package com.community.api.services;
+
 import com.community.api.component.Constant;
 import com.community.api.component.FFmpegManager;
 import com.community.api.configuration.ImageSizeConfig;
@@ -10,10 +11,10 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -34,8 +35,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.reflect.Method;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,8 +52,8 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
-import javax.annotation.PreDestroy;
-import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.Query;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -65,48 +65,40 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.*;
 
+@Slf4j
 @Service
 public class DocumentStorageService {
 
-    @Autowired
-    private  ResponseService responseService;
-
-    @Autowired
-    private EntityManager em;
-
-    @Autowired
-    private ExceptionHandlingService exceptionHandlingService;
-
-    @Autowired
-    private DocumentStorageService documentStorageService;
-
-    @Autowired
-    private EntityManager entityManager;
-
-    @Value("${file.server.url}")
-    private String fileServerUrl;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    private final String ffmpegPath;
-    private final ExecutorService executorService;
-    @Value("${secret.key}")
-    private  String key;
-
     private static final String ALGORITHM = "AES";
-    // 16-byte secret key for AES-128
-
     private static final long MIN_SIZE_BYTES = 100 * 1024; // 100KB
     private static final long MAX_SIZE_BYTES = 200 * 1024; // 200KB
     private static final int MAX_ATTEMPTS = 5;
-
     private static final Set<String> SUPPORTED_IMAGE_FORMATS = new HashSet<>(Arrays.asList(
             "heic", "heif", "jpg", "jpeg", "png", "webp", "tiff", "tif", "bmp",
             "cr2", "cr3", "nef", "arw", "orf", "dng", "raf", "pef", "srw", "rw2",
             "3fr", "psd", "xcf", "avif", "jp2", "jpx", "ico", "pcx", "tga", "sgi",
             "dib", "jxr", "dpx", "cin", "gif"
     ));
+    private static final int BYTES_TO_MB = 1024 * 1024;
+    private final String ffmpegPath;
+    private final ExecutorService executorService;
+    @Autowired
+    private ResponseService responseService;
+    @Autowired
+    private EntityManager em;
+    @Autowired
+    private ExceptionHandlingService exceptionHandlingService;
+    // 16-byte secret key for AES-128
+    @Autowired
+    private DocumentStorageService documentStorageService;
+    @Autowired
+    private EntityManager entityManager;
+    @Value("${file.server.url}")
+    private String fileServerUrl;
+    @Autowired
+    private RestTemplate restTemplate;
+    @Value("${secret.key}")
+    private String key;
 
     /**
      * Constructor with FFmpegManager - preferred approach
@@ -125,6 +117,19 @@ public class DocumentStorageService {
         this.ffmpegPath = ffmpegPath;
     }
 
+    public static boolean isValidFileType(MultipartFile file) {
+        String[] allowedFileTypes = {"application/pdf", "image/jpeg", "image/png", "image/jpg"};
+        String contentType = file.getContentType();
+
+        boolean isContentTypeValid = Arrays.asList(allowedFileTypes).contains(contentType);
+
+        String fileName = file.getOriginalFilename();
+
+        boolean isExtensionValid = fileName != null && (fileName.endsWith(".pdf") || fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".png"));
+
+        return isContentTypeValid && isExtensionValid;
+    }
+
     /**
      * Get the FFmpeg executable path
      * This method is now simpler since FFmpegManager handles all the complexity
@@ -132,6 +137,7 @@ public class DocumentStorageService {
     private String getFfmpegExecutablePath() {
         return this.ffmpegPath;
     }
+
     public ResponseEntity<Map<String, Object>> saveDocuments(MultipartFile file, String documentTypeStr, Long customerId, String role) {
         try {
 
@@ -154,7 +160,7 @@ public class DocumentStorageService {
             String fileName = file.getOriginalFilename();
             try (InputStream fileInputStream = file.getInputStream()) {
                 this.saveDocumentOndirctory(customerId.toString(), documentTypeStr, fileName, fileInputStream, role);
-            }catch(Exception e){
+            } catch (Exception e) {
                 exceptionHandlingService.handleException(e);
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", ApiConstants.STATUS_ERROR,
@@ -166,7 +172,7 @@ public class DocumentStorageService {
             Map<String, Object> responseBody = Map.of(
                     "message", "Document uploaded successfully",
                     "status", "OK",
-                    "data",documentTypeStr +" uploaded successfully",
+                    "data", documentTypeStr + " uploaded successfully",
                     "status_code", HttpStatus.OK.value()
             );
 
@@ -181,19 +187,18 @@ public class DocumentStorageService {
         }
     }
 
-
     /**
      * Saves a file to a dynamic directory structure.
      *
-     * @param customerId The ID of the customer.
-     * @param documentType The type of document (e.g., "aadhar", "pan", "signature").
-     * @param fileName The name of the file to be saved.
+     * @param customerId      The ID of the customer.
+     * @param documentType    The type of document (e.g., "aadhar", "pan", "signature").
+     * @param fileName        The name of the file to be saved.
      * @param fileInputStream InputStream of the file data.
      * @throws IOException If an I/O error occurs.
      */
     public void saveDocumentOndirctory(String customerId, String documentType, String fileName, InputStream fileInputStream, String role) throws IOException {
 
-        try{
+        try {
             String currentDir = System.getProperty("user.dir");
 
             String testDirPath = currentDir + "/../test/";
@@ -226,30 +231,16 @@ public class DocumentStorageService {
                     fos.write(buffer, 0, bytesRead);
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new IOException("Error saving document: " + e.getMessage());
         }
     }
 
-
-    public static boolean isValidFileType(MultipartFile file) {
-        String[] allowedFileTypes = {"application/pdf", "image/jpeg", "image/png", "image/jpg"};
-        String contentType = file.getContentType();
-
-        boolean isContentTypeValid = Arrays.asList(allowedFileTypes).contains(contentType);
-
-        String fileName = file.getOriginalFilename();
-
-        boolean isExtensionValid = fileName != null && (fileName.endsWith(".pdf") || fileName.endsWith(".jpeg") || fileName.endsWith(".jpg") || fileName.endsWith(".png"));
-
-        return isContentTypeValid && isExtensionValid;
-    }
-
-
     public List<DocumentType> getAllDocumentTypes() {
         return em.createQuery("SELECT dt FROM DocumentType dt", DocumentType.class).getResultList();
     }
+
     public String getDocumentTypeFromMultipartFile(MultipartFile file, List<DocumentType> allDocumentTypes) {
         String fileName = file.getOriginalFilename();
 
@@ -262,8 +253,6 @@ public class DocumentStorageService {
         }
         return "Unknown Document Type";
     }
-
-    private static final int BYTES_TO_MB = 1024 * 1024;
 
     public void validateDocument(MultipartFile file, DocumentType documentType) {
 //        ValidationResult result = new ValidationResult();
@@ -291,7 +280,7 @@ public class DocumentStorageService {
 
         // Validate file size
 //        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
-        if (file.getSize()> ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
+        if (file.getSize() > ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
             throw new IllegalArgumentException("File size exceeds maximum limit of " + documentType.getMax_document_size());
         }
         if (file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size())) {
@@ -395,8 +384,6 @@ public class DocumentStorageService {
     }
 
 
-
-
     public String encrypt(String data) throws Exception {
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
         Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -426,6 +413,7 @@ public class DocumentStorageService {
         em.persist(newDocument);
         return newDocument;
     }
+
     @Transactional
     public void updateOrCreateServiceProvider(ServiceProviderDocument existingDocument, MultipartFile file, DocumentType documentTypeObj, Long customerId, String role) {
         String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
@@ -438,6 +426,7 @@ public class DocumentStorageService {
         existingDocument.setName(file.getOriginalFilename());
         em.merge(existingDocument);
     }
+
     public String findRoleName(DocumentType documentTypeId) {
         return entityManager.createQuery("SELECT dt.document_type_name FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId", String.class)
                 .setParameter("documentTypeId", documentTypeId.getDocument_type_id())
@@ -1120,6 +1109,141 @@ public class DocumentStorageService {
             } catch (IOException e) {
                 System.err.println("Failed to cleanup temporary file: " + e.getMessage());
             }
+        }
+    }
+
+    @Transactional
+    public List<String> deleteDocument(String role, List<Integer> fileTypes, Long customerId, String otherDocument, Long qualificationDetailId) throws Exception {
+        try {
+            log.info("inside delete document logic");
+            List<String> deleteLogs = new ArrayList<>();
+
+            String queryStringArchive = null;
+            String queryStringArchiveId = null;
+
+            // Queries to archive the fetched documents(for customer and service provider).
+            if (role.equals(Constant.roleUser)) {
+                queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "document", "custom_customer_id");
+                queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "document", "custom_customer_id");
+            } else if (role.equals(Constant.roleServiceProvider)) {
+                queryStringArchive = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE, "service_provider_documents", "service_provider_id");
+                queryStringArchiveId = String.format(Constant.FETCH_DOCUMENT_TO_ARCHIVE_ID, "service_provider_documents", "service_provider_id");
+            }
+
+            // Iterating over each fileTypes.
+            for (Integer fileType : fileTypes) {
+                DocumentType documentTypeObj = em.createQuery(Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
+                        .setParameter("documentTypeId", fileType)
+                        .getResultStream()
+                        .findFirst()
+                        .orElse(null);
+
+                if (documentTypeObj == null) {
+                    throw new IllegalArgumentException("Unknown document type for file: ");
+                }
+                if (documentTypeObj.getDocument_type_id().equals(12)) {
+                    if (qualificationDetailId == null) {
+                        throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
+                    }
+                }
+                if (documentTypeObj.getDocument_type_id().equals(13) && otherDocument == null) {
+                    throw new IllegalArgumentException("other document is required to delete a other document");
+                }
+
+                boolean isQualificationDocumentToDelete = false;
+                boolean isOtherDocumentToDelete = false;
+
+                String archiveIdQuery = queryStringArchiveId;
+                String archiveQuery = queryStringArchive;
+
+                // Append qualification_detail_id condition if provided
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID) && qualificationDetailId != null) {
+                    isQualificationDocumentToDelete = true;
+                    archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
+                    archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
+                }
+
+                // Append other document field if the document type is of other.
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID) && otherDocument != null) {
+                    isOtherDocumentToDelete = true;
+                    archiveIdQuery += " AND otherdocument = :otherDocument";
+                    archiveQuery += " AND otherdocument = :otherDocument";
+                }
+
+                Query query = entityManager.createNativeQuery(archiveIdQuery);
+                query.setParameter("userId", customerId);
+                query.setParameter("documentTypeId", fileType);
+                if (isQualificationDocumentToDelete) {
+                    query.setParameter("qualificationDetailId", qualificationDetailId);
+                }
+                if (isOtherDocumentToDelete) {
+                    query.setParameter("otherDocument", otherDocument);
+                }
+
+                BigInteger id = (BigInteger) query.getSingleResult();
+
+                query = entityManager.createNativeQuery(archiveQuery);
+                query.setParameter("userId", customerId);
+                query.setParameter("documentTypeId", fileType);
+                if (isQualificationDocumentToDelete) {
+                    query.setParameter("qualificationDetailId", qualificationDetailId);
+                }
+                if (isOtherDocumentToDelete) {
+                    query.setParameter("otherDocument", otherDocument);
+                }
+
+                int result = query.executeUpdate();
+
+                // Remove the document from customer or service provider.
+                if (result == 1) {
+                    switch (role) {
+                        case Constant.roleUser:
+                            Document document = entityManager.find(Document.class, id.longValue());
+                            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+                            if (customCustomer.getDocuments() != null) {
+                                Iterator<Document> iterator = customCustomer.getDocuments().iterator();
+                                while (iterator.hasNext()) {
+                                    Document documentToDeleteC = iterator.next();
+                                    if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                        iterator.remove();  // safely remove the document
+                                        entityManager.merge(customCustomer);  // merge after modification
+                                        break;
+                                    }
+                                }
+                                deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                            }
+                            break;
+                        case Constant.roleServiceProvider:
+                            ServiceProviderDocument serviceProviderDocument = entityManager.find(ServiceProviderDocument.class, id.longValue());
+                            ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, customerId);
+                            if (serviceProvider.getDocuments() != null) {
+                                Iterator<ServiceProviderDocument> iterator = serviceProvider.getDocuments().iterator();
+                                while (iterator.hasNext()) {
+                                    ServiceProviderDocument documentToDelete = iterator.next();
+                                    if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                        iterator.remove();  // safely remove the document
+                                        entityManager.merge(serviceProvider);  // merge after modification
+                                        break;
+                                    }
+                                }
+                                deleteLogs.add(documentTypeObj.getDocument_type_name() + " Deleted");
+                            }
+                            break;
+                    }
+                } else {
+                    throw new NoResultException("No documents found");
+                }
+            }
+            return deleteLogs;
+        } catch (NoResultException noResultException) {
+            exceptionHandlingService.handleException(noResultException);
+            throw new NoResultException("No record found: " + noResultException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
         }
     }
 }

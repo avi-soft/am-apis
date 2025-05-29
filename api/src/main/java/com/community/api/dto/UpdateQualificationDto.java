@@ -48,9 +48,9 @@ public class UpdateQualificationDto
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
     private String subject_name;
 
-    private Long examination_role_number;
+    private String examination_role_number;
 
-    private Long examination_registration_number;
+    private String examination_registration_number;
 
     private String other_stream;
 
