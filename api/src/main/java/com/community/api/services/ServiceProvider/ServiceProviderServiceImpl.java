@@ -255,7 +255,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
                     existingServiceProvider.setRanking(serviceProviderRank);
-                    existingServiceProvider.setAutoScoring(false);
+//                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
             }
