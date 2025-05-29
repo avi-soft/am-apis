@@ -112,6 +112,7 @@ public class AddProductDto {
     Long advertisement;
     @JsonProperty("posts")
     private List<PostDto> posts;
+    @JsonProperty("additional_comments")
     private String additionalComments;
     @JsonProperty("fee_additional_comments")
     private String feeAdditionalComments;

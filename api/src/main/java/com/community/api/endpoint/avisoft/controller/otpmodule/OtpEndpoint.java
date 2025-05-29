@@ -137,7 +137,7 @@ public class OtpEndpoint {
                 ResponseEntity<Map<String, Object>> otpResponse = twilioService.sendOtpToMobile(mobileNumber, countryCode, authHeader);
 
                 if (otpResponse.getBody().get("otp") != null) {
-                    return ResponseService.generateErrorResponse("OTP has been sent on registered mobile number", HttpStatus.OK);
+                    return ResponseService.generateErrorResponse("OTP has been sent on registered mobile number , otp is "+otpResponse.getBody().get("otp"), HttpStatus.OK);
                 }
                 else {
                     return ResponseService.generateErrorResponse(otpResponse.getBody().get("message").toString(), HttpStatus.INTERNAL_SERVER_ERROR);

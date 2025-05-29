@@ -107,7 +107,7 @@ public class TwilioService {
 
             MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
 
-            String message = "Your otp for login is " + otp;
+            String message = "Your YuvaNiti otp for login is " + otp+",check out https://am-public-ui.vercel.app/";
             String jsonBody = "{"
                     + "\"route\":\"q\","
                     + "\"message\":\"" + message + "\","
