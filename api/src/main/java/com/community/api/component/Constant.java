@@ -35,6 +35,7 @@ public class Constant {
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
+    public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
     public static String PHONE_QUERY_ADMIN="SELECT c FROM CustomAdmin c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String USERNAME_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.user_name = :username";
     public static String USERNAME_QUERY_CUSTOM_ADMIN = "SELECT c FROM CustomAdmin c WHERE c.user_name = :username";
@@ -48,6 +49,7 @@ public class Constant {
     public static final Long APPROVED_TEST = 3L;
 
     public static String STATE_CODE_QUERY = "SELECT s FROM StateCode s WHERE s.state_name = :state_name";
+    public static final String APPLIED_FORM_QUERY = "SELECT DISTINCT o.order_id FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.customer_id = :customerId AND o.tax_override IS NULL AND os.order_state_id NOT IN (5, 999)";
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
@@ -275,6 +277,15 @@ public class Constant {
     public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
     public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
 
+    public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
+    public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
+    public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
+    public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
 
+    public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name IS NOT NULL ";
+
+    public static final String GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) AND d.name = :documentName AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL";
 
 }

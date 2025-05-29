@@ -715,7 +715,6 @@ public class ProductService {
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-            System.out.println(jpql.toString());
             query.setFirstResult(offset*limit);     // e.g., offset = 20
             query.setMaxResults(limit);// e.g., limit = 10
             // Set parameters
@@ -770,7 +769,6 @@ public class ProductService {
             int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
              response.put("products",query.getResultList());
-            System.out.println("hello i have returned");
             // Execute and return the result
             return response;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -3270,6 +3268,7 @@ public class ProductService {
                     if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
                     }
+
                 }
 
             } /*else {
@@ -4273,27 +4272,55 @@ public class ProductService {
             long sum = 0;
             long f=0;
             long m=0;
-            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()&&stateDistribution.getIsGenderWise()) {
+            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
-                    if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Male vacancy is not given");
-                    if(categoryDistributionDto.getFemaleVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Female vacancy is not given");
-                    if(categoryDistributionDto.getTotalVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Total vacancy is not given");
-                    sum+=categoryDistributionDto.getTotalVacancy();
-                    f+=categoryDistributionDto.getFemaleVacancy();
-                    m+=categoryDistributionDto.getMaleVacancy();
-                    if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
-                        throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
+                    if(categoryDistributionDto.getIsStateLevelCategory()==null)
+                    {
+                        throw new IllegalArgumentException("isStateLevelCategory cannot be null");
                     }
+                    if(categoryDistributionDto.getIsStateLevelCategory().equals(false))
+                    {
+                        if (categoryDistributionDto.getCategoryId() == null || categoryDistributionDto.getCategoryVacancies() == null) {
+                            throw new IllegalArgumentException("Category ID and vacancies must be provided for each category if isStateLevelCategory is false.");
+                        }
+                    }
+
+                    if(categoryDistributionDto.getIsStateLevelCategory().equals(true))
+                    {
+                        if(categoryDistributionDto.getStateLevelCategory()==null || categoryDistributionDto.getStateLevelCategory().trim().isEmpty())
+                        {
+                            throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
+                        }
+                        if (!categoryDistributionDto.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
+                            throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
+                        }
+                    }
+                    if(stateDistribution.getIsGenderWise())
+                    {
+                        if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Male vacancy is not given");
+                        if(categoryDistributionDto.getFemaleVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Female vacancy is not given");
+                        if(categoryDistributionDto.getTotalVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Total vacancy is not given");
+                        sum+=categoryDistributionDto.getTotalVacancy();
+                        f+=categoryDistributionDto.getFemaleVacancy();
+                        m+=categoryDistributionDto.getMaleVacancy();
+                        if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
+                            throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
+                        }
+                    }
+
                 }
-                if(f!=stateDistribution.getFemaleVacancy())
-                    throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
-                if(m!=stateDistribution.getMaleVacancy())
-                    throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
-                if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
-                    throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
+                if(stateDistribution.getIsGenderWise())
+                {
+                    if(f!=stateDistribution.getFemaleVacancy())
+                        throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
+                    if(m!=stateDistribution.getMaleVacancy())
+                        throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
+                    if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
+                        throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
+                }
             }
         }
     }
