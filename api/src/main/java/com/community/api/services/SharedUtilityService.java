@@ -215,8 +215,8 @@ public class SharedUtilityService {
                 customerDetailsForMobile.put("cartId", cart.getId());
             else
                 customerDetailsForMobile.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
@@ -495,8 +495,9 @@ public class SharedUtilityService {
                 customerDetailsForDesktop.put("cartId", cart.getId());
             else
                 customerDetailsForDesktop.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForDesktop.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
