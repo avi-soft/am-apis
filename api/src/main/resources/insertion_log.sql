@@ -2136,6 +2136,7 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
 --            (29, 1), (29, 2), (29, 4),
 --            (30, 1), (30, 2), (30, 4),
 --            (31, 1), (31, 2), (31, 4);
+--            (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, ), (32, );
 --    END IF;
 --
    IF (SELECT COUNT(*) FROM board_university) = 0 THEN
