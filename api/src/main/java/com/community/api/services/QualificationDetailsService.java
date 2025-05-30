@@ -551,9 +551,6 @@ public class QualificationDetailsService {
                 }
             }
 
-            if (roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
-                giveQualificationScore(userId);
-            }
             qualificationIdToUpdate = qualification.getQualification_id();
 
             if (qualificationToFind.getQualification_name().equalsIgnoreCase("Others")) {
@@ -1140,6 +1137,9 @@ public class QualificationDetailsService {
                 }
             }
         }
+        if (roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER)) {
+            giveQualificationScore(userId);
+        }
         return entityManager.merge(qualificationDetailsToUpdate);
     }
 
@@ -1401,7 +1401,8 @@ public class QualificationDetailsService {
             QualificationDetails qualificationDetail= serviceProviderEntity.getQualificationDetailsList().get(serviceProviderEntity.getQualificationDetailsList().size()-1);
             Qualification qualification1 = entityManager.find(Qualification.class, qualificationDetail.getQualification_id());
             if (qualification1 != null) {
-                if (qualification1.getQualification_id().equals(3) || qualification1.getQualification_id().equals(4)) {
+                //above +2
+                if (qualification1.getQualification_id()>2 && qualification1.getQualification_id()!=60) {
                     scoringCriteriaToMap=serviceProviderService.traverseListOfScoringCriteria(6L,scoringCriteriaList,serviceProviderEntity);
                     if(scoringCriteriaToMap==null)
                     {
@@ -1411,7 +1412,7 @@ public class QualificationDetailsService {
                         serviceProviderEntity.setQualificationScore(scoringCriteriaToMap.getScore());
                     }
                 }
-                else if(qualification1.getQualification_id().equals(2)) {
+                else if(qualification1.getQualification_id().equals(2) || qualification1.getQualification_id().equals(1) ) {
                     scoringCriteriaToMap=serviceProviderService.traverseListOfScoringCriteria(7L,scoringCriteriaList,serviceProviderEntity);
                     if(scoringCriteriaToMap==null)
                     {
