@@ -305,7 +305,45 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+            if(details.containsKey("has_state_category")) {
+                if(customCustomer.getCategory()!=null&&!customCustomer.getCategory().equals("STATE-LEVEL"))
+                {
+                    return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
+                }
+                else if(customCustomer.getCategory()==null&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
+                {
+                    return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
+                }
+                Boolean value = (Boolean) details.get("has_state_category");
+                if (value) {
+                    customCustomer.setHasStateCategory(true);
+                    if (!details.containsKey("state_category") || (((String) details.get("state_category") == null) || ((String) details.get("state_category")).trim().isEmpty())) {
+                        return ResponseService.generateErrorResponse("State category name is required when selecting State Category", HttpStatus.BAD_REQUEST);
+                    }
+                    customCustomer.setStateCategory((String)details.get("state_category"));
+                }
+                else
+                {
+                    customCustomer.setHasStateCategory(false);
+                    if ((((String) details.get("state_category") != null))) {
+                        return ResponseService.generateErrorResponse("Cannot give state category name", HttpStatus.BAD_REQUEST);
+                    }
+                }
+            }
+                else
+                {
+                    if(customCustomer.getCategory()==null&&details.containsKey("category")&&((String)details.get("category")).equals("STATE-LEVEL"))
+                {
+                    return ResponseService.generateErrorResponse("Need to add state category when selecting State level category",HttpStatus.BAD_REQUEST);
+                }
+                    customCustomer.setHasStateCategory(false);
+                    if (details.containsKey("state_category") || (((String) details.get("state_category") != null) || !((String) details.get("state_category")).trim().isEmpty())) {
+                        return ResponseService.generateErrorResponse("Cannot give state category name", HttpStatus.BAD_REQUEST);
+                    }
+                }
 
+             details.remove("has_state_category");
+            details.remove("state_category");
             if (details.containsKey("familyIncome")) {
                 Object incomeObj = details.get("familyIncome");
                 if (incomeObj == null || incomeObj.toString().trim().isEmpty()) {

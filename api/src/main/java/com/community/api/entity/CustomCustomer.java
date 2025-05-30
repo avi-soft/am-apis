@@ -391,4 +391,9 @@ public class CustomCustomer extends CustomerImpl {
     private Long primaryRef=0L;
     @Column(name = "email_active",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean emailActive=false;
+
+    @Column(name = "has_state_category",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean hasStateCategory=false;
+    @Column(name = "state_category")
+    private String stateCategory;
 }
