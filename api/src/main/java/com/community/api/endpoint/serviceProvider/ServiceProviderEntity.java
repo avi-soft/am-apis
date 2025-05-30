@@ -87,11 +87,11 @@ public class ServiceProviderEntity  {
     private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
+
     private String date_of_birth;
 
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be a 12-digit numeric value")
     @Size(min = 12, max = 12, message = "Aadhaar number must be exactly 12 digits long")
-    @Size(min = 12, max = 12)
     private String aadhaar_number;
 
     @Nullable
