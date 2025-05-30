@@ -281,18 +281,23 @@ public class ServiceProviderEntity  {
     private Boolean isActive;
 
     @Column(name="maximum_ticket_size")
+    @Min(0)
     private Integer maximumTicketSize;
 
     @Column(name="maximum_binding_size")
+    @Min(0)
     private Integer maximumBindingSize;
 
     @Column(name="ticket_completed")    // will keep track of number of ticket completed by the serviceProvider.
+    @Min(0)
     private Long ticketCompleted=0L;
 
     @Column(name="ticket_pending")      // will keep track of number of ticket pending for the corresponding SP.
+    @Min(0)
     private Integer ticketPending=0;
 
     @Column(name="ticket_assigned")
+    @Min(0)
     private Integer ticketAssigned=0;
 
     @JsonIgnore

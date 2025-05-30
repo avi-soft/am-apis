@@ -24,8 +24,6 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -154,7 +152,7 @@ public class TicketStateService {
             }
 
             // Approve and close ticket flow.
-            if(nextState != null) {
+            /*if(nextState != null) {
                 if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
                     serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()-1);
@@ -185,7 +183,7 @@ public class TicketStateService {
                         entityManager.merge(assignee);
                     }
                 }
-            }
+            }*/
 
         } catch(IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
