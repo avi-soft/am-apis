@@ -306,16 +306,17 @@ public class CustomerEndpoint {
                 customCustomer.setInterestedInDefence(value);
             }
             if(details.containsKey("has_state_category")) {
-                if(customCustomer.getCategory()!=null&&!customCustomer.getCategory().equals("STATE-LEVEL"))
-                {
-                    return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
-                }
-                else if(customCustomer.getCategory()==null&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
-                {
-                    return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
-                }
+
                 Boolean value = (Boolean) details.get("has_state_category");
                 if (value) {
+                    if(customCustomer.getCategory()!=null&&!customCustomer.getCategory().equals("STATE-LEVEL")&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
+                    {
+                        return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
+                    }
+                    else if(customCustomer.getCategory()==null&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
+                    {
+                        return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
+                    }
                     customCustomer.setHasStateCategory(true);
                     if (!details.containsKey("state_category") || (((String) details.get("state_category") == null) || ((String) details.get("state_category")).trim().isEmpty())) {
                         return ResponseService.generateErrorResponse("State category name is required when selecting State Category", HttpStatus.BAD_REQUEST);
