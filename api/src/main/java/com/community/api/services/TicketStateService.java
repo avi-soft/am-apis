@@ -252,11 +252,12 @@ public class TicketStateService {
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
-                if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
+                // Commented to allow super admin and admin to do what ever they want within the flow.
+                /*if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
                     if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
                         throw new IllegalArgumentException("Forbidden Access");
                     }
-                }
+                }*/
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
