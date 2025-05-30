@@ -2875,29 +2875,55 @@ public class CustomerEndpoint {
         Double fee;
         String ageLimit;
         String sql = """
-                    SELECT DISTINCT ON (p.product_id) p.product_id
-                    FROM custom_product p
-                    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
-                    JOIN post_details post ON post.product_id = p.product_id
-                    JOIN blc_product bp ON bp.product_id = c.product_id
-                    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
-                    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
-                    JOIN qualification_eligibility qf ON qf.post_id = post.postid
-                    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-                    WHERE qd.qualification_id IN (:qualificationId)
-                    AND c.gender_id = :genderId
-                    AND rf.gender_id = :genderId
-                    AND c.reserve_category_id = :reserveCategoryId
-                    AND rf.reserve_category_id = :reserveCategoryId
-                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date >= CURRENT_DATE
-                    AND p.soft_delete='N'
-                    ORDER BY p.product_id, p.views DESC
-                    LIMIT :limit OFFSET :offset
-                """;
+    WITH overlappings AS (
+        SELECT qualification_id
+        FROM qualification
+        WHERE qualification_id IN (:qualificationIds)
+    )
+    SELECT DISTINCT ON (p.product_id) p.product_id
+    FROM custom_product p
+    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
+    JOIN post_details post ON post.product_id = p.product_id
+    JOIN blc_product bp ON bp.product_id = c.product_id
+    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
+    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
+    JOIN qualification_eligibility qf ON qf.post_id = post.postid
+    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
+    WHERE (sku.active_end_date >= CURRENT_DATE)
+                    AND
+            ((qd.qualification_id IN (:qualificationIds))
+            OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings))
+            OR (qd.qualification_id IS NULL))
+       
+        AND 
+            (c.gender_id = :genderId) OR (c.gender_id IS NULL)
+       
+        AND 
+            (rf.gender_id = :genderId) OR (rf.gender_id IS NULL)
+        
+        AND 
+            (c.reserve_category_id = :reserveCategoryId) OR (c.reserve_category_id IS NULL)
+        
+        AND 
+            (rf.reserve_category_id = :reserveCategoryId) OR (rf.reserve_category_id IS NULL)
+        
+        AND (
+            (:age BETWEEN rf.minimum_age AND rf.maximum_age)
+            OR (rf.minimum_age IS NULL)
+            OR (rf.maximum_age IS NULL)
+        )
+        AND p.soft_delete = 'N'
+    ORDER BY p.product_id, p.views DESC
+    LIMIT :limit OFFSET :offset
+""";
 
 
         String count = """
+                    WITH overlappings AS (
+        SELECT qualification_id
+        FROM qualification
+        WHERE qualification_id IN (:qualificationIds)
+    )
                     SELECT COUNT(DISTINCT p.product_id)
                     FROM custom_product p
                     JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
@@ -2907,18 +2933,35 @@ public class CustomerEndpoint {
                     JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
                     JOIN qualification_eligibility qf ON qf.post_id = post.postid
                     JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-                    WHERE qd.qualification_id IN (:qualificationId)
-                    AND c.gender_id = :genderId
-                    AND rf.gender_id = :genderId
-                    AND c.reserve_category_id = :reserveCategoryId
-                    AND rf.reserve_category_id = :reserveCategoryId
-                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date >= CURRENT_DATE
-                    AND p.soft_delete='N'
+                    WHERE (sku.active_end_date >= CURRENT_DATE)
+                    AND
+            ((qd.qualification_id IN (:qualificationIds))
+            OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings))
+            OR (qd.qualification_id IS NULL))
+       
+        AND 
+            (c.gender_id = :genderId) OR (c.gender_id IS NULL)
+       
+        AND 
+            (rf.gender_id = :genderId) OR (rf.gender_id IS NULL)
+        
+        AND 
+            (c.reserve_category_id = :reserveCategoryId) OR (c.reserve_category_id IS NULL)
+        
+        AND 
+            (rf.reserve_category_id = :reserveCategoryId) OR (rf.reserve_category_id IS NULL)
+        
+        AND (
+            (:age BETWEEN rf.minimum_age AND rf.maximum_age)
+            OR (rf.minimum_age IS NULL)
+            OR (rf.maximum_age IS NULL)
+        )
+        
+        AND p.soft_delete = 'N'
                 """;
 
         List<BigInteger> res = entityManager.createNativeQuery(sql)
-                .setParameter("qualificationId", qualificationIds)
+                .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
@@ -2927,7 +2970,7 @@ public class CustomerEndpoint {
                 .getResultList();
 
         BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(count)
-                .setParameter("qualificationId", qualificationIds)
+                .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
