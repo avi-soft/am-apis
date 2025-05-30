@@ -2069,18 +2069,37 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
 --            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
 --            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
 --            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7),
---            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8);
+--            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8),
+--            (32, 'Ticket_Document', 'Ticket Document', '5KB', '5MB', FALSE, FALSE, FALSE, 30);
 --    END IF;
 --
---    -- Check and insert into file_type_name table
---    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
---        INSERT INTO filetype (file_type_id,file_type_name)
---        VALUES
---            (1, 'PNG'),
---            (2, 'JPG'),
---            (3, 'PDF'),
---            (4, 'JPEG');
---    END IF;
+    -- Check and insert into file_type_name table
+    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
+        INSERT INTO filetype (file_type_id,file_type_name)
+        VALUES
+            (1, 'PNG'),
+            (2, 'JPG'),
+            (3, 'PDF'),
+            (4, 'JPEG'),
+            (5, 'PLAIN'),
+            (6, 'X-MSDOS-PROGRAM'),
+            (7, 'JSON'),
+            (8, 'DOC'),
+            (9, 'DOCX'),
+            (10, 'TXT'),
+            (11, 'RTF'),
+            (12, 'HTML'),
+            (13, 'CSV'),
+            (14, 'XLS'),
+            (15, 'XLSX'),
+            (16, 'GIF'),
+            (17, 'SVG'),
+            (18, 'MP3'),
+            (19, 'MP4'),
+            (20, 'AVI'),
+            (21, 'ZIP'),
+            (22, 'TIFF');
+    END IF;
 --
 --	  IF NOT EXISTS (SELECT 1 FROM document_file_types LIMIT 1) THEN
 --        -- Insert records into document_file_types
