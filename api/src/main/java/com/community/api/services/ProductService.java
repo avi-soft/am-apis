@@ -3268,6 +3268,7 @@ public class ProductService {
                     if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
                     }
+
                 }
 
             } /*else {
