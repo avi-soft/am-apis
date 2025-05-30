@@ -1,17 +1,29 @@
 package com.community.api.utils;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
-import javax.persistence.*;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import java.util.Date;
 
 @Entity
 @AllArgsConstructor
@@ -36,7 +48,6 @@ public class ServiceProviderDocument {
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProviderEntity;
 
-
     @ManyToOne
     @JoinColumn(name = "document_type_Id")
     private DocumentType documentType;
@@ -58,4 +69,13 @@ public class ServiceProviderDocument {
 
     @JsonIgnore
     private String otherDocument;
+
+    @Column(name = "uploaded_at")
+    @JsonProperty("uploaded_at")
+    protected Date uploadedDate;
+
+    @ManyToOne
+    @JoinColumn(name = "ticket_id")
+    private CustomServiceProviderTicket serviceProviderTicket;
+
 }
