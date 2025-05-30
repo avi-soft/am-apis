@@ -1645,7 +1645,7 @@ END IF;
 --        (2, 'Resizing & Uploading Image/Document'),
 --        (3, 'Executing Online Payment/Transactions'),
 --        (4, 'Apply To Various Government Schemes'),
---        (5, 'Others');
+--        (6, 'Any Other Expertise');
 --END IF;
 ---- Insert into service_provider_status if empty
 --IF NOT EXISTS (SELECT 1 FROM serviceproviderstatus) THEN
