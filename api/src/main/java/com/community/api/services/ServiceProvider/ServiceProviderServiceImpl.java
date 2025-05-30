@@ -75,6 +75,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import javax.validation.constraints.Pattern;
 
+import static com.community.api.component.Constant.PHONE_QUERY_SERVICE_PROVIDER_FILTER;
 import static com.community.api.component.Constant.request;
 
 @Slf4j
@@ -255,7 +256,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
                     existingServiceProvider.setRanking(serviceProviderRank);
-                    existingServiceProvider.setAutoScoring(false);
+//                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
             }
@@ -634,7 +635,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         for (int skill_id : skillList) {
                             Skill skill = entityManager.find(Skill.class, skill_id);
 
-                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Others"))
+                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Any Other Expertise"))
                             {
                                 if(!updates.containsKey("other_skill"))
                                 {
@@ -1769,7 +1770,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (mobileNumber != null) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(Constant.PHONE_QUERY_SERVICE_PROVIDER, ServiceProviderEntity.class)
+                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(PHONE_QUERY_SERVICE_PROVIDER_FILTER, ServiceProviderEntity.class)
                         .setParameter("mobileNumber", mobileNumber)
                         .setParameter("country_code", "+91")
                         .getResultStream()
