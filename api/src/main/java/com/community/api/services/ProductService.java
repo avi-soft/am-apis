@@ -23,8 +23,6 @@ import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.catalog.domain.ProductImpl;
-import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -3942,7 +3940,7 @@ public class ProductService {
 
         if (!state.getCategoryDistributions().isEmpty()) {
             long categorySum = state.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
 
             if (categorySum != totalGenderVacancies) {
@@ -3958,7 +3956,7 @@ public class ProductService {
     private long validateNonGenderWiseState(StateDistributionDto state) {
         if (!state.getCategoryDistributions().isEmpty()) {
             return state.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
         } else {
             if (state.getTotalVacanciesInState() == null) {
@@ -4167,7 +4165,7 @@ public class ProductService {
 
         if (!zone.getCategoryDistributions().isEmpty()) {
             int categorySum = zone.getCategoryDistributions().stream()
-                    .mapToInt(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToInt(CategoryDistributionDto::getVacancyCount)
                     .sum();
 
             if (categorySum != totalGenderVacancies) {
@@ -4182,7 +4180,7 @@ public class ProductService {
     private long validateNonGenderWiseZone(ZoneDistributionDto zone) {
         if (!zone.getCategoryDistributions().isEmpty()) {
             return zone.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
         } else {
             if (zone.getTotalVacanciesInZone() == null) {
@@ -4196,8 +4194,8 @@ public class ProductService {
 
     private void validateCategoryDistributions(List<CategoryDistributionDto> categoryDistributions, Long totalVacancy) {
         Long categoryVacancySum = categoryDistributions.stream()
-                .filter(category -> category.getCategoryVacancies() != null)  // Ensure no null categoryVacancies
-                .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                .filter(category -> category.getVacancyCount() != null)  // Ensure no null categoryVacancies
+                .mapToLong(CategoryDistributionDto::getVacancyCount)
                 .sum();
 
         if (!categoryVacancySum.equals(totalVacancy)) {
@@ -4212,7 +4210,7 @@ public class ProductService {
             }
             if(categoryDistribution.getIsStateLevelCategory().equals(false))
             {
-                if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
+                if (categoryDistribution.getCategoryId() == null || categoryDistribution.getVacancyCount() == null) {
                     throw new IllegalArgumentException("Category ID and vacancies must be provided for each category if isStateLevelCategory is false.");
                 }
             }
@@ -4225,6 +4223,13 @@ public class ProductService {
                 }
                 if (!categoryDistribution.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
                     throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
+                }
+                if(categoryDistribution.getStateId()==null)
+                {
+                    throw new IllegalArgumentException("Provide the state for which you are adding state level category");
+                }
+                if (categoryDistribution.getStateId() <= 0) {
+                    throw new IllegalArgumentException("state id cannot be negative or equal to 0");
                 }
             }
             if(categoryDistribution.getIsGenderWise()==null)
@@ -4246,7 +4251,7 @@ public class ProductService {
                 else if(categoryDistribution.getFemaleVacancy()<0)
                     throw new IllegalArgumentException("Female vacancies cannot be <0");
 
-                if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+                if(categoryDistribution.getVacancyCount()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
                 {
                     throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
                 }
@@ -4274,27 +4279,7 @@ public class ProductService {
             long m=0;
             if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
-                    if(categoryDistributionDto.getIsStateLevelCategory()==null)
-                    {
-                        throw new IllegalArgumentException("isStateLevelCategory cannot be null");
-                    }
-                    if(categoryDistributionDto.getIsStateLevelCategory().equals(false))
-                    {
-                        if (categoryDistributionDto.getCategoryId() == null || categoryDistributionDto.getCategoryVacancies() == null) {
-                            throw new IllegalArgumentException("Category ID and vacancies must be provided for each category if isStateLevelCategory is false.");
-                        }
-                    }
 
-                    if(categoryDistributionDto.getIsStateLevelCategory().equals(true))
-                    {
-                        if(categoryDistributionDto.getStateLevelCategory()==null || categoryDistributionDto.getStateLevelCategory().trim().isEmpty())
-                        {
-                            throw new IllegalArgumentException("State level category cannot be empty or null if isStateLevelCategory is true");
-                        }
-                        if (!categoryDistributionDto.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
-                            throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
-                        }
-                    }
                     if(stateDistribution.getIsGenderWise())
                     {
                         if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
