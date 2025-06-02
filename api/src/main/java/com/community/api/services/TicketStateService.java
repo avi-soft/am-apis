@@ -24,8 +24,6 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -108,7 +106,6 @@ public class TicketStateService {
             if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
                 ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
                 if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-                    log.info("HERHEHREHRHEHR");
                     exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
                 } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
@@ -155,7 +152,7 @@ public class TicketStateService {
             }
 
             // Approve and close ticket flow.
-            if(nextState != null) {
+            /*if(nextState != null) {
                 if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
                     serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()-1);
@@ -186,7 +183,7 @@ public class TicketStateService {
                         entityManager.merge(assignee);
                     }
                 }
-            }
+            }*/
 
         } catch(IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -255,14 +252,20 @@ public class TicketStateService {
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
-                if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
+                // Commented to allow super admin and admin to do what ever they want within the flow.
+                /*if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
                     if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
                         throw new IllegalArgumentException("Forbidden Access");
                     }
-                }
+                }*/
                 if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
+
+                /*// Increment pending ticket and decrement assigned ticket
+                if(ticket.getTicketId().equals(Constant.TICKET_STATE_TO_DO) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
+                    ServiceProviderEntity assignee =
+                }*/
 
                 if (ticketState == null)
                     throw new NotFoundException("Ticket state not found");
@@ -317,12 +320,12 @@ public class TicketStateService {
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
                     parentTicket.setComment(createTicketDTO.getComment().trim());
                     if(createTicketDTO.getIsComplete()) {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
                     } else {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(2L));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
@@ -362,7 +365,8 @@ public class TicketStateService {
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
 
-            } else if(createTicketDTO.getTicketStatus() != null) {
+            }
+            else if(createTicketDTO.getTicketStatus() != null) {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
@@ -384,7 +388,8 @@ public class TicketStateService {
 
                 ticket.setTicketStatus(ticketStatus);
 
-            } else if(createTicketDTO.getTicketState() != null) {
+            }
+            else if(createTicketDTO.getTicketState() != null) {
                 throw new IllegalArgumentException("Ticket State cannot be changed without status.");
             }
 
