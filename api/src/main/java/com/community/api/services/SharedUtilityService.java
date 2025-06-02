@@ -302,6 +302,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
             customerDetailsForMobile.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
             customerDetailsForMobile.put("religion", customCustomer.getReligion());
+            customerDetailsForMobile.put("category_state_name", customCustomer.getCategoryStateName());
             customerDetailsForMobile.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForMobile.put("belongsToMinority", customCustomer.getBelongsToMinority());
             customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
@@ -544,6 +545,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("category", customCustomer.getCategory());
             customerDetailsForDesktop.put("has_state_category", customCustomer.getHasStateCategory());
             customerDetailsForDesktop.put("state_category", customCustomer.getStateCategory());
+            customerDetailsForDesktop.put("category_state_name", customCustomer.getCategoryStateName());
             customerDetailsForDesktop.put("subcategory", customCustomer.getSubcategory());
             customerDetailsForDesktop.put("domicile", customCustomer.getDomicile());
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
