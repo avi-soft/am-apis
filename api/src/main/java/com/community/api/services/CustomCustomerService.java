@@ -270,14 +270,11 @@ public class CustomCustomerService {
     }
 
     @Transactional
-    public Map<String, Object> updateCustomerDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes) throws Exception {
+    public Map<String, Object> updateCustomerDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes, HashSet<Document> documentsToSave) throws Exception {
         try {
 
             String dateFormat = "yyyy-MM-dd";
             MultipartFile processedFile = null;
-
-            // Keep track of documents to be saved
-            HashSet<Document> documentsToSave = new HashSet<>();
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             if (customCustomer == null) {

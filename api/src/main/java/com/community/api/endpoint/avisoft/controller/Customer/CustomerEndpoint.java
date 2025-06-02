@@ -16,6 +16,7 @@ import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
+import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
@@ -1664,10 +1665,14 @@ public class CustomerEndpoint {
 
             // Will run for customer OR admin and super admin with extUpdate set to true only
             if (roleService.findRoleName(roleId).equals(roleUser) || ((roleService.findRoleName(roleId).equals(roleSuperAdmin) || roleService.findRoleName(roleId).equals(roleAdmin)) && extUpdate)) {
-                Map<String, Object> responseData = customCustomerService.updateCustomerDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes);
+                // Keep track of documents to be saved
+                HashSet<Document> documentsToSave = new HashSet<>();
+                Map<String, Object> responseData = customCustomerService.updateCustomerDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes, documentsToSave);
                 return ResponseService.generateSuccessResponse("Documents updated successfully", responseData, HttpStatus.OK);
             } else {
-                Map<String, Object> responseData = serviceProviderService.updateServiceProviderDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes);
+                // Keep track of documents to be saved
+                Set<ServiceProviderDocument> serviceProviderDocumentToSave = new HashSet<>();
+                Map<String, Object> responseData = serviceProviderService.updateServiceProviderDocument(groupedFiles, customerId, otherDocument, qualificationDetailId, dateOfIssue, validUpto, role, removeFileTypes, serviceProviderDocumentToSave);
                 return ResponseService.generateSuccessResponse("Documents uploaded successfully", responseData, HttpStatus.OK);
             }
             //*******UPLOAD DOCUMENT END
