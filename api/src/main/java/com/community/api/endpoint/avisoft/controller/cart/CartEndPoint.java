@@ -317,10 +317,7 @@ public class CartEndPoint extends BaseEndpoint {
             List<Long> postPreference = getLongList(map, "postPreference");
             if (postPreference.isEmpty() && customProduct.getPosts().size() > 1)
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty", HttpStatus.BAD_REQUEST);
-            if (!cartService.isCustomerEligibleForProduct(customCustomer, customProduct))
-            {
-                throw new IllegalArgumentException("Customer is not Eligible for this product");
-            }
+
             Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
              Long  genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
             if (reserveCategoryId == null)
