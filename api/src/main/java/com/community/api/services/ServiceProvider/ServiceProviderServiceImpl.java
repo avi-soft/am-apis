@@ -2429,7 +2429,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 }
 
                                 entityManager.merge(existingDocument);
-//                                serviceProviderDocumentToSave.add(existingDocument);
                             }
                         }
                     }

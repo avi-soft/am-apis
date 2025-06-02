@@ -376,6 +376,10 @@ public class TicketStateService {
                     ticket.setAssigneeRole(null);
                 }
 
+                if(!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && !files.isEmpty()) {
+                    throw new IllegalArgumentException("Files can only be uploaded when state changes to Review, Close and Support");
+                }
+
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
 
