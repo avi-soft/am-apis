@@ -5,18 +5,20 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
 public  class EligibilityResult {
     private CartService.EligibilityStatus status;
-    private List<String> reasons;
-    private List<String> warnings;
+    private Set<String> reasons;
+    private Set<String> warnings;
 
     public EligibilityResult() {
-        this.reasons = new ArrayList<>();
-        this.warnings = new ArrayList<>();
+        this.reasons = new HashSet<>();
+        this.warnings = new HashSet<>();
     }
 
     public void addReason(String reason) {

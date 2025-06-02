@@ -198,7 +198,6 @@ public class CartService {
 
     private EligibilityResult checkSingleQualificationEligibility(List<QualificationDetails> customerQualifications, QualificationEligibility eligibility, CustomCustomer customer) {
         EligibilityResult result = new EligibilityResult();
-        boolean hasWarnings = false;
 
         for (QualificationDetails qualification : customerQualifications) {
             EligibilityResult qualResult = checkQualificationMatch(qualification, eligibility, customer);
@@ -221,8 +220,66 @@ public class CartService {
 
     private EligibilityResult checkQualificationMatch(QualificationDetails qualification, QualificationEligibility eligibility, CustomCustomer customer) {
         EligibilityResult result = new EligibilityResult();
-        boolean hasWarnings = false;
 
+        // Standard qualification matching first
+        boolean qualificationMatches = false;
+        for (Qualification requiredQualification : eligibility.getQualifications()) {
+            if (qualification.getQualification_id().equals(requiredQualification.getQualification_id())) {
+                qualificationMatches = true;
+                break;
+            } else if (qualification.getQualification_id().equals(3) || qualification.getQualification_id().equals(4)) {
+                Qualification qualificationToFind = entityManager.find(Qualification.class, qualification.getQualification_id());
+                Qualification requiredQualificationToFind = entityManager.find(Qualification.class, requiredQualification.getQualification_id());
+                if (qualificationToFind != null && requiredQualificationToFind != null &&
+                        qualificationToFind.getOverlap() != null &&
+                        qualificationToFind.getOverlap().equals(requiredQualificationToFind.getOverlap())) {
+                    qualificationMatches = true;
+                    break;
+                }
+            }
+        }
+
+        System.out.println("matches or not");
+        System.out.println(qualificationMatches);
+        // If qualification matches, proceed with other checks without "Others" warnings
+        if (qualificationMatches) {
+            // Check stream eligibility
+            EligibilityResult streamResult = checkStreamEligibilityForMatching(qualification, eligibility);
+            if (streamResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.getReasons().addAll(streamResult.getReasons());
+                return result;
+            }
+
+            // Check subject eligibility
+            EligibilityResult subjectResult = checkSubjectEligibilityForMatching(qualification, eligibility);
+            if (subjectResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.getReasons().addAll(subjectResult.getReasons());
+                return result;
+            }
+
+            // Check category eligibility
+            EligibilityResult categoryResult = checkCategoryEligibility(customer, eligibility);
+            if (categoryResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.getReasons().addAll(categoryResult.getReasons());
+                return result;
+            }
+
+            // Check marks/CGPA eligibility
+            EligibilityResult marksResult = checkMarksEligibility(qualification, eligibility);
+            if (marksResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.getReasons().addAll(marksResult.getReasons());
+                return result;
+            }
+
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+            return result;
+        }
+
+        // If qualification doesn't match, check for "Others" scenarios for warnings
         // Check if any required qualification has "Others" ID
         boolean hasOthersInProduct = eligibility.getQualifications().stream()
                 .anyMatch(q -> OTHERS_QUALIFICATION_ID.equals(q.getQualification_id()));
@@ -243,7 +300,7 @@ public class CartService {
                     break;
                 }
             }
-            System.out.println("246");
+
             if (hasSpecificMatch) {
                 result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
                 result.addWarning("You have 'Others' qualification. Please verify manually if it matches the specific qualifications required for this product");
@@ -251,81 +308,79 @@ public class CartService {
             }
         }
 
-        System.out.println("254");
-        // Standard qualification matching
-        boolean qualificationMatches = false;
-        for (Qualification requiredQualification : eligibility.getQualifications()) {
-            if (qualification.getQualification_id().equals(requiredQualification.getQualification_id())) {
-                qualificationMatches = true;
-                break;
-            } else if (qualification.getQualification_id().equals(3) || qualification.getQualification_id().equals(4)) {
-                Qualification qualificationToFind = entityManager.find(Qualification.class, qualification.getQualification_id());
-                Qualification requiredQualificationToFind = entityManager.find(Qualification.class, requiredQualification.getQualification_id());
-                if (qualificationToFind != null && requiredQualificationToFind != null &&
-                        qualificationToFind.getOverlap() != null &&
-                        qualificationToFind.getOverlap().equals(requiredQualificationToFind.getOverlap())) {
-                    qualificationMatches = true;
-                    break;
-                }
-            }
-        }
-        System.out.println("271");
-
-        if (!qualificationMatches) {
-            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.addReason("Your qualification does not match the required qualifications for this product");
-            return result;
-        }
-
-        System.out.println("280");
-        // Check stream eligibility with Others handling
-        EligibilityResult streamResult = checkStreamEligibility(qualification, eligibility);
-        if (streamResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.getReasons().addAll(streamResult.getReasons());
-            return result;
-        } else if (streamResult.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS) {
-            hasWarnings = true;
-            result.getWarnings().addAll(streamResult.getWarnings());
-        }
-
-        // Check subject eligibility with Others handling
-        EligibilityResult subjectResult = checkSubjectEligibility(qualification, eligibility);
-        if (subjectResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.getReasons().addAll(subjectResult.getReasons());
-            return result;
-        } else if (subjectResult.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS) {
-            hasWarnings = true;
-            result.getWarnings().addAll(subjectResult.getWarnings());
-        }
-
-        // Check category eligibility with Others handling
-        EligibilityResult categoryResult = checkCategoryEligibility(customer, eligibility);
-        if (categoryResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.getReasons().addAll(categoryResult.getReasons());
-            return result;
-        } else if (categoryResult.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS) {
-            hasWarnings = true;
-            result.getWarnings().addAll(categoryResult.getWarnings());
-        }
-
-        // Check marks/CGPA eligibility
-        EligibilityResult marksResult = checkMarksEligibility(qualification, eligibility);
-        if (marksResult.getStatus() == EligibilityStatus.NOT_ELIGIBLE) {
-            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.getReasons().addAll(marksResult.getReasons());
-            return result;
-        } else if (marksResult.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS) {
-            hasWarnings = true;
-            result.getWarnings().addAll(marksResult.getWarnings());
-        }
-
-        result.setStatus(hasWarnings ? EligibilityStatus.ELIGIBLE_WITH_WARNINGS : EligibilityStatus.ELIGIBLE);
+        // No match and no "Others" scenario
+        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+        result.addReason("Your qualification does not match the required qualifications for this product");
         return result;
     }
 
+    // New method for stream checking when qualification already matches (no "Others" warnings)
+    private EligibilityResult checkStreamEligibilityForMatching(QualificationDetails qualification, QualificationEligibility eligibility) {
+        EligibilityResult result = new EligibilityResult();
+
+        if (eligibility.getCustomStreams() == null || eligibility.getCustomStreams().isEmpty()) {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+            return result;
+        }
+        System.out.println("323");
+
+        // Standard stream matching only (no "Others" warnings since qualification already matched)
+        boolean streamMatches = false;
+        for (CustomStream requiredStream : eligibility.getCustomStreams()) {
+            System.out.println("required "+requiredStream.getStreamId());
+            System.out.println("customer's "+qualification.getStream_id());
+            if (qualification.getStream_id() != null &&
+                    qualification.getStream_id().equals(requiredStream.getStreamId())) {
+                streamMatches = true;
+                break;
+            }
+        }
+        System.out.println(streamMatches);
+        if (!streamMatches) {
+            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+            result.addReason("Your stream does not match the required streams for this product");
+        } else {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+        }
+
+        return result;
+    }
+
+    // New method for subject checking when qualification already matches (no "Others" warnings)
+    private EligibilityResult checkSubjectEligibilityForMatching(QualificationDetails qualification, QualificationEligibility eligibility) {
+        EligibilityResult result = new EligibilityResult();
+
+        if (eligibility.getCustomSubjects() == null || eligibility.getCustomSubjects().isEmpty()) {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+            return result;
+        }
+
+        if (qualification.getSubject_ids() == null || qualification.getSubject_ids().isEmpty()) {
+            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+            result.addReason("Subject information is required but not provided by customer");
+            return result;
+        }
+
+        // Standard subject matching only (no "Others" warnings since qualification already matched)
+        boolean subjectMatches = false;
+        for (CustomSubject requiredSubject : eligibility.getCustomSubjects()) {
+            if (qualification.getSubject_ids().contains(requiredSubject.getSubjectId())) {
+                subjectMatches = true;
+                break;
+            }
+        }
+
+        if (!subjectMatches) {
+            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+            result.addReason("Your subjects do not match the required subjects for this product");
+        } else {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+        }
+
+        return result;
+    }
+
+    // Keep the original methods for when qualification doesn't match (for "Others" warnings)
     private EligibilityResult checkStreamEligibility(QualificationDetails qualification, QualificationEligibility eligibility) {
         EligibilityResult result = new EligibilityResult();
 
@@ -359,6 +414,7 @@ public class CartService {
         for (CustomStream requiredStream : eligibility.getCustomStreams()) {
             if (qualification.getStream_id() != null &&
                     qualification.getStream_id().equals(requiredStream.getStreamId())) {
+                System.out.println();
                 streamMatches = true;
                 break;
             }
@@ -469,6 +525,7 @@ public class CartService {
 
         try {
             // Handle appearing qualification logic
+            Boolean isAppearing = false;
             if (eligibility.getIsAppearing() != null && eligibility.getIsAppearing().equals(false)) {
                 if (qualification.getQualificationIsOngoing() != null && qualification.getQualificationIsOngoing().equals(true)) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -477,9 +534,10 @@ public class CartService {
                 }
 
                 if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentageOrCGPA(qualification, eligibility);
+                    return checkPercentageOrCGPA(qualification, eligibility,isAppearing);
                 }
             } else if (eligibility.getIsAppearing() != null && eligibility.getIsAppearing().equals(true)) {
+                isAppearing=true;
                 if (qualification.getQualificationIsOngoing() != null && qualification.getQualificationIsOngoing().equals(false)) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("This product requires appearing/ongoing qualification, but your qualification is completed");
@@ -487,7 +545,7 @@ public class CartService {
                 }
 
                 if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentageOrCGPA(qualification, eligibility);
+                    return checkPercentageOrCGPA(qualification, eligibility,isAppearing);
                 }
             }
 
@@ -501,55 +559,68 @@ public class CartService {
         }
     }
 
-    private EligibilityResult checkPercentageOrCGPA(QualificationDetails qualification, QualificationEligibility eligibility) {
+    private EligibilityResult checkPercentageOrCGPA(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
         EligibilityResult result = new EligibilityResult();
 
         if (eligibility.getPercentage() != null) {
-            if (qualification.getCumulative_percentage_value() == null) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.addReason("Percentage marks are required but not provided by customer");
-                return result;
+            if(isAppearing.equals(false)|| (isAppearing.equals(true) && qualification.getCumulative_percentage_value()!=null))
+            {
+                if (qualification.getCumulative_percentage_value() == null) {
+                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                    result.addReason("Percentage marks are required but not provided by customer");
+                    return result;
+                }
+
+                if (eligibility.getPercentage() > qualification.getCumulative_percentage_value()) {
+                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                    result.addReason("Your percentage (" + qualification.getCumulative_percentage_value() +
+                            "%) is below the required minimum (" + eligibility.getPercentage() + "%)");
+                    return result;
+                }
             }
 
-            if (eligibility.getPercentage() > qualification.getCumulative_percentage_value()) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.addReason("Your percentage (" + qualification.getCumulative_percentage_value() +
-                        "%) is below the required minimum (" + eligibility.getPercentage() + "%)");
-                return result;
-            }
         }
 
         if (eligibility.getCgpa() != null) {
-            if (qualification.getTotal_marks_type() == null) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.addReason("Marks type information is required but not provided");
-                return result;
+            if(isAppearing.equals(false))
+            {
+                if (qualification.getTotal_marks_type() == null) {
+                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                    result.addReason("Marks type information is required but not provided");
+                    return result;
+                }
             }
 
-            if (qualification.getTotal_marks_type().equalsIgnoreCase("cgpa")) {
-                if (qualification.getMarks_obtained() == null) {
-                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("CGPA details are required but not provided by customer");
-                    return result;
-                }
+            if(isAppearing.equals(false) ||(isAppearing.equals(true) && qualification.getTotal_marks_type()!=null))
+            {
+                if (qualification.getTotal_marks_type().equalsIgnoreCase("cgpa")) {
+                    if (isAppearing.equals(false) || (isAppearing.equals(true) && qualification.getMarks_obtained() != null)) {
+                        if (qualification.getMarks_obtained() == null) {
+                            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                            result.addReason("CGPA details are required but not provided by customer");
+                            return result;
+                        }
 
-                try {
-                    double customerCGPA = Double.parseDouble(qualification.getMarks_obtained());
-                    if (eligibility.getCgpa() > customerCGPA) {
-                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                        result.addReason("Your CGPA (" + customerCGPA +
-                                ") is below the required minimum (" + eligibility.getCgpa() + ")");
-                        return result;
+                        try {
+                            double customerCGPA = Double.parseDouble(qualification.getMarks_obtained());
+                            if (eligibility.getCgpa() > customerCGPA) {
+                                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                                result.addReason("Your CGPA (" + customerCGPA +
+                                        ") is below the required minimum (" + eligibility.getCgpa() + ")");
+                                return result;
+                            }
+                        } catch (NumberFormatException e) {
+                            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                            result.addReason("Invalid CGPA format provided");
+                            return result;
+                        }
                     }
-                } catch (NumberFormatException e) {
+                }
+                else if (qualification.getTotal_marks_type().equalsIgnoreCase("percentage")) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("Invalid CGPA format provided");
+                    result.addReason("Product requires CGPA but you have provided marks in percentage format");
                     return result;
                 }
-            } else if (qualification.getTotal_marks_type().equalsIgnoreCase("percentage")) {
-                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                result.addReason("Product requires CGPA but you have provided marks in percentage format");
-                return result;
             }
         }
 
@@ -755,8 +826,8 @@ public class CartService {
             if (ageRequirement.getBornAfter() != null) {
                 if (!customerDob.after(ageRequirement.getBornAfter())) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("You were born too early. You must be born after " +
-                            new SimpleDateFormat("dd-MM-yyyy").format(ageRequirement.getBornAfter()));
+                    result.addReason("According to age eligibility criteria, your date of birth must be after " +
+                            new SimpleDateFormat("dd-MM-yyyy").format(ageRequirement.getBornAfter())+ " but , your date of birth is too early i.e before the required born before  ");
                     return result;
                 }
             }
@@ -764,8 +835,8 @@ public class CartService {
             if (ageRequirement.getBornBefore() != null) {
                 if (!customerDob.before(ageRequirement.getBornBefore())) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("You were born too late. You must be born before " +
-                            new SimpleDateFormat("dd-MM-yyyy").format(ageRequirement.getBornBefore()));
+                    result.addReason("According to age eligibility criteria,your date of birth must be before" +
+                            new SimpleDateFormat("dd-MM-yyyy").format(ageRequirement.getBornBefore())+ " but your dob is late i.e after the required born after date");
                     return result;
                 }
             }
@@ -886,19 +957,6 @@ public class CartService {
             return result;
         }
 
-        // Handle "Others" gender case
-        if (OTHERS_GENDER_ID.equals(requirement.getCustomGender().getGenderId())) {
-            result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
-            result.addWarning("Product has 'Others' gender requirement for physical eligibility. Please verify manually if your gender matches");
-            return result;
-        }
-
-        if ("others".equalsIgnoreCase(customerGender.trim())) {
-            result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
-            result.addWarning("You have 'Others' gender. Please verify manually if it matches the physical requirements for this product");
-            return result;
-        }
-
         if (customerGender.equalsIgnoreCase(requirement.getCustomGender().getGenderName())) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
@@ -911,7 +969,7 @@ public class CartService {
 
     private EligibilityResult checkPhysicalMeasurements(CustomCustomer customer, CustomProductGenderPhysicalRequirementRef requirement) {
         EligibilityResult result = new EligibilityResult();
-        List<String> failedMeasurements = new ArrayList<>();
+        Set<String> failedMeasurements = new HashSet<>();
 
         if (requirement.getHeight() != null) {
             if (customer.getHeightCms() == null) {
@@ -1037,9 +1095,9 @@ public class CartService {
             return result;
         }
 
-        if (customerFamilyIncome <= incomeThreshold) {
+        if (customerFamilyIncome > incomeThreshold) {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-            result.addReason("Your family income (₹" + customerFamilyIncome + ") does not meet the minimum requirement (₹" + incomeThreshold + ")");
+            result.addReason("Your family income (₹" + customerFamilyIncome + ") does not meet the maximum requirement (₹" + incomeThreshold + ")");
         } else {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         }
