@@ -1,13 +1,12 @@
 package com.community.api.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -51,8 +50,12 @@ public class CategoryDistribution {
     @Column(name = "stateLevelCategory" )
     private String stateLevelCategory;
 
-    @Column(name = "vacancies", nullable = false)
-    private Integer categoryVacancies;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private StateCode state;
+
+    @Column(name = "vacancy_count")
+    private Integer vacancyCount;
 
     @JsonIgnore
     @ManyToOne

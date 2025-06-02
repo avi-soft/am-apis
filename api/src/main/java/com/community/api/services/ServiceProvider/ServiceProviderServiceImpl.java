@@ -635,7 +635,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         for (int skill_id : skillList) {
                             Skill skill = entityManager.find(Skill.class, skill_id);
 
-                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Others"))
+                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Any Other Expertise"))
                             {
                                 if(!updates.containsKey("other_skill"))
                                 {
