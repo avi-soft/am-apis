@@ -34,6 +34,12 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("assignee_name")
     protected String assigneeName;
 
+    @JsonProperty("mobile_number")
+    protected String mobileNumber;
+
+    @JsonProperty("primary_email")
+    protected String primaryEmail;
+
     @JsonProperty("modified_date")
     protected Date modifiedDate;
 
@@ -129,6 +135,8 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             } else {
                 this.assigneeName = "-";
             }
+            this.primaryEmail = serviceProvider.getPrimary_email();
+            this.mobileNumber = serviceProvider.getMobileNumber();
         }
         catch (Exception e)
         {

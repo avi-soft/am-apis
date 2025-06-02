@@ -70,12 +70,17 @@ public class ServiceProviderDocument {
     @JsonIgnore
     private String otherDocument;
 
-    @Column(name = "uploaded_at")
-    @JsonProperty("uploaded_at")
+    @Column(name = "uploaded_date")
+    @JsonProperty("uploaded_date")
     protected Date uploadedDate;
+
+    @Column(name = "modified_date")
+    @JsonProperty("modified_date")
+    protected Date modifiedDate;
 
     @ManyToOne
     @JoinColumn(name = "ticket_id")
+    @JsonBackReference
     private CustomServiceProviderTicket serviceProviderTicket;
 
 }

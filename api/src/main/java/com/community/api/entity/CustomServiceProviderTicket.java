@@ -59,7 +59,7 @@ public class CustomServiceProviderTicket {
     private Long userId;
 
     @Column(name = "created_date")
-    @JsonProperty("creator_date")
+    @JsonProperty("created_date")
     private Date createdDate;
 
     @ManyToOne

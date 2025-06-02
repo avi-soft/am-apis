@@ -389,14 +389,14 @@ public class TicketController {
 
     @PutMapping("/ticket/update/{ticketId}")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
-    public ResponseEntity<?> updateTicketStateAndStatus(@ModelAttribute CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "authorization") String authHeader) {
+    public ResponseEntity<?> updateTicket(@ModelAttribute CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "authorization") String authHeader) {
         try {
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
 
-            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, files, ticketId, authHeader);
             if (ticket == null) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }

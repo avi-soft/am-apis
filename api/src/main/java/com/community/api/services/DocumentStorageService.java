@@ -57,6 +57,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Base64;
 import java.util.Iterator;
@@ -403,6 +404,7 @@ public class DocumentStorageService {
         newDocument.setServiceProviderEntity(serviceProviderEntity);
         newDocument.setDocumentType(documentTypeObj);
         newDocument.setIsArchived(false);
+        newDocument.setUploadedDate(new Date());
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
@@ -423,6 +425,7 @@ public class DocumentStorageService {
         newDocument.setServiceProviderEntity(serviceProviderEntity);
         newDocument.setDocumentType(documentTypeObj);
         newDocument.setIsArchived(false);
+        newDocument.setUploadedDate(new Date());
         if(ticket != null) {
             newDocument.setServiceProviderTicket(ticket);
         }
