@@ -619,7 +619,10 @@ public class CartEndPoint extends BaseEndpoint {
                     Product product = findProductFromItemAttribute(orderItem);
                     if (product != null)
                         customProduct = entityManager.find(CustomProduct.class, product.getId());
-                    totalAmt+=customProduct.getPlatformFee();
+                    Double individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    if (individualFee == null)
+                        individualFee = 0.0;
+                    totalAmt+=customProduct.getPlatformFee()+individualFee;
                 }
             }
             options.put("amount", (totalAmt* 100)); // amount in paise
@@ -652,7 +655,10 @@ public class CartEndPoint extends BaseEndpoint {
                     Double platformFee = 0.0;
                     if (customProduct.getPlatformFee() != null)
                         platformFee = customProduct.getPlatformFee();
-                    Money subTotal = new Money(platformFee);
+                    Double individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    if (individualFee == null)
+                        individualFee = 0.0;
+                    Money subTotal = new Money(platformFee+individualFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-" + customer.getId() + "-B-" + batchNumber);
                     //Checking for cost according to the category and gender of the customer
