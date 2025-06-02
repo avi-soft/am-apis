@@ -396,4 +396,6 @@ public class CustomCustomer extends CustomerImpl {
     private Boolean hasStateCategory=false;
     @Column(name = "state_category")
     private String stateCategory;
+    @Column(name = "category_state_name")
+    private String categoryStateName;
 }
