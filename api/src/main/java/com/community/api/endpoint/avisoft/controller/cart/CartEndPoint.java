@@ -323,10 +323,11 @@ public class CartEndPoint extends BaseEndpoint {
             if (reserveCategoryId == null)
                 return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
             double noReserveCategoryFee = 0.0;
-//            if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
-//                return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category and gender", HttpStatus.UNPROCESSABLE_ENTITY);
-//               // noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L,1L);//1 for general
-//            }
+
+            /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
+                return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category and gender", HttpStatus.UNPROCESSABLE_ENTITY);
+               // noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L,1L);//1 for general
+            }*/
 
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {
@@ -619,7 +620,10 @@ public class CartEndPoint extends BaseEndpoint {
                     Product product = findProductFromItemAttribute(orderItem);
                     if (product != null)
                         customProduct = entityManager.find(CustomProduct.class, product.getId());
-                    totalAmt+=customProduct.getPlatformFee();
+                    Double individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    if (individualFee == null)
+                        individualFee = 0.0;
+                    totalAmt+=customProduct.getPlatformFee()+individualFee;
                 }
             }
             options.put("amount", (totalAmt* 100)); // amount in paise
@@ -652,7 +656,10 @@ public class CartEndPoint extends BaseEndpoint {
                     Double platformFee = 0.0;
                     if (customProduct.getPlatformFee() != null)
                         platformFee = customProduct.getPlatformFee();
-                    Money subTotal = new Money(platformFee);
+                    Double individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    if (individualFee == null)
+                        individualFee = 0.0;
+                    Money subTotal = new Money(platformFee+individualFee);
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-" + customer.getId() + "-B-" + batchNumber);
                     //Checking for cost according to the category and gender of the customer
