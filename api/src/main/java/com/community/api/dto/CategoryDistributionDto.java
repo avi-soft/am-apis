@@ -11,6 +11,7 @@ public class CategoryDistributionDto {
     private Long id;
     private Long categoryId;
     private String categoryRunningField;
+    @JsonProperty("categoryVacancies")
     private Integer vacancyCount;
     private Boolean isStateLevelCategory;
     private String stateLevelCategory;
