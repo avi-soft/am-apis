@@ -306,45 +306,32 @@ public class CustomerEndpoint {
                 customCustomer.setInterestedInDefence(value);
             }
             if(details.containsKey("has_state_category")) {
-
-                Boolean value = (Boolean) details.get("has_state_category");
-                if (value) {
-                    if(customCustomer.getCategory()!=null&&!customCustomer.getCategory().equals("STATE-LEVEL")&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
-                    {
-                        return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
-                    }
-                    else if(customCustomer.getCategory()==null&&details.containsKey("category")&&!((String)details.get("category")).equals("STATE-LEVEL"))
-                    {
-                        return ResponseService.generateErrorResponse("Cannot add state category for "+customCustomer.getCategory(),HttpStatus.BAD_REQUEST);
-                    }
-                    customCustomer.setHasStateCategory(true);
-                    if (!details.containsKey("state_category") || (((String) details.get("state_category") == null) || ((String) details.get("state_category")).trim().isEmpty())) {
-                        return ResponseService.generateErrorResponse("State category name is required when selecting State Category", HttpStatus.BAD_REQUEST);
-                    }
-                    customCustomer.setStateCategory((String)details.get("state_category"));
-                }
-                else
-                {
-                    customCustomer.setHasStateCategory(false);
-                    if ((((String) details.get("state_category") != null))) {
-                        return ResponseService.generateErrorResponse("Cannot give state category name", HttpStatus.BAD_REQUEST);
-                    }
-                }
+                  String categoryStateName=(String)details.get("category_state_name");
+                  Boolean hasStateCategory = (Boolean)details.get("has_state_category");
+                  String  stateCategoryName=(String)details.get("state_category");
+                  if(hasStateCategory)
+                  {
+                      if(!details.containsKey("category_state_name")||categoryStateName==null||categoryStateName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("Need to provide state for state level category",HttpStatus.BAD_REQUEST);
+                      if(!details.containsKey("state_category")||stateCategoryName==null||stateCategoryName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("State level category name required",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(true);
+                      customCustomer.setStateCategory(stateCategoryName);
+                      customCustomer.setCategoryStateName(categoryStateName);
+                      customCustomer.setCategory(null);
+                  }
+                  else
+                  {
+                      if(stateCategoryName!=null||!stateCategoryName.trim().isEmpty()||categoryStateName!=null||categoryStateName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("State level category cannot be provided",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(false);
+                  }
             }
-                else
-                {
-                    if(customCustomer.getCategory()==null&&details.containsKey("category")&&((String)details.get("category")).equals("STATE-LEVEL"))
-                {
-                    return ResponseService.generateErrorResponse("Need to add state category when selecting State level category",HttpStatus.BAD_REQUEST);
-                }
-                    customCustomer.setHasStateCategory(false);
-                    if (details.containsKey("state_category") || (((String) details.get("state_category") != null) || !((String) details.get("state_category")).trim().isEmpty())) {
-                        return ResponseService.generateErrorResponse("Cannot give state category name", HttpStatus.BAD_REQUEST);
-                    }
-                }
+            else
+            {
+                return ResponseService.generateErrorResponse("Need to provide whether state level category or not",HttpStatus.BAD_REQUEST);
+            }
 
-             details.remove("has_state_category");
-            details.remove("state_category");
             if (details.containsKey("familyIncome")) {
                 Object incomeObj = details.get("familyIncome");
                 if (incomeObj == null || incomeObj.toString().trim().isEmpty()) {
@@ -1121,6 +1108,9 @@ public class CustomerEndpoint {
                 }
             }
 
+            details.remove("has_state_category");
+            details.remove("state_category");
+            details.remove("category_state_name");
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -1471,6 +1461,7 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
+
             if (isValidDate != null && isValidDate.equals(true)) {
                 errorMessages.remove(errorMessages.size() - 1);
             }
@@ -1825,6 +1816,9 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
+            addressDetails.remove("has_state_category");
+            addressDetails.remove("state_category");
+            addressDetails.remove("category_state_name");
             Customer customer = customerService.readCustomerById(id);
             if (customer != null) {
                 CustomerAddress newAddress = customerAddressService.create();
