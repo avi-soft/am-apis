@@ -8,8 +8,6 @@ CREATE OR REPLACE PROCEDURE public.rejection_and_review_ticket_logic(
 LANGUAGE 'plpgsql'
 AS $BODY$
 
-
-
 DECLARE
     ticket_state_to_do CONSTANT BIGINT := 1;
     ticket_state_returned CONSTANT BIGINT := 6;
@@ -21,13 +19,26 @@ BEGIN
 
 	RAISE NOTICE '11. Rejection and Review Ticket Logic';
 
-    -- Step 1: Fetch unassigned tickets in specific states and types
-    SELECT ARRAY_AGG(c.ticket_id)
-    INTO tickets_to_process
-    FROM custom_service_provider_ticket c
-    WHERE c.assignee_user_id IS NULL
-      AND c.ticket_state_id IN (ticket_state_to_do, ticket_state_returned)
-      AND c.ticket_type_id IN (ticket_type_review, ticket_type_primary);
+     -- Step 1: Fetch unassigned tickets in specific states and types
+	SELECT ARRAY_AGG(c.ticket_id)
+	INTO tickets_to_process
+	FROM custom_service_provider_ticket c
+	WHERE c.assignee_user_id IS NULL
+	  AND c.ticket_state_id IN (ticket_state_to_do, ticket_state_returned)
+	  AND c.ticket_type_id IN (ticket_type_review, ticket_type_primary)
+	  AND (
+	        c.ticket_type_id <> 2
+	        OR (
+	            c.ticket_type_id = 2
+	            AND EXISTS (
+	                SELECT 1
+	                FROM custom_service_provider_ticket pt
+	                WHERE pt.ticket_id = c.parent_ticket_id
+	                  AND pt.ticket_type_id = 1
+	            )
+	        )
+	    );
+
 
     RAISE NOTICE 'Tickets received for auto-assignment: %', array_length(tickets_to_process, 1);
 
