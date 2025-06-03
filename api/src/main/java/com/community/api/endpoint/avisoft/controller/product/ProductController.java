@@ -562,7 +562,7 @@ public class ProductController extends CatalogEndpoint {
             Long userId=null;
             if(authHeader!=null) {
                 String jwtToken = authHeader.substring(7);
-                 roleId= jwtTokenUtil.extractRoleId(jwtToken);
+                roleId= jwtTokenUtil.extractRoleId(jwtToken);
                 userId = jwtTokenUtil.extractId(jwtToken);
             }
             String recOrigin = request.getHeader("Origin");
