@@ -153,7 +153,7 @@ public class DistrictService {
             entityManager.persist(stateCode);
             return stateCode;
         } catch (Exception e) {
-            throw new Exception("Some Exception Occurred: " + e.getMessage());
+            throw new Exception(e.getMessage());
         }
     }
     @Transactional
@@ -162,16 +162,16 @@ public class DistrictService {
             StateCode state=entityManager.find(StateCode.class,stateId);
 
             if(stateCode.getState_id()!=null)
-                throw new IllegalArgumentException("Cannot give state id when adding");
+                throw new IllegalArgumentException("Cannot give state id when editing");
             Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
             query.setParameter("state", stateCode.getState_name());
             List<StateCode> stateCodes = query.getResultList();
-            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=stateCode.getState_id())
+            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=state.getState_id())
                 throw new IllegalArgumentException("State with this name already exists");
             query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_CODE, StateCode.class);
             query.setParameter("code", stateCode.getState_code());
             stateCodes = query.getResultList();
-            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=stateCode.getState_id())
+            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=state.getState_id())
                 throw new IllegalArgumentException("State with this state code already exists");
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
                 throw new IllegalArgumentException("State name should contain only alphabets");
@@ -181,25 +181,40 @@ public class DistrictService {
             {
                 throw new IllegalArgumentException("Cannot provide archive status when updating a state");
             }
-            state=stateCode;
+            state.setState_code(stateCode.getState_code());
+            state.setState_name(stateCode.getState_name());
+            state.setArchived(stateCode.getArchived());
+            state.setArchived(false);
             entityManager.merge(state);
-            return stateCode;
+            return state;
         } catch (Exception e) {
-            throw new Exception("Some Exception Occurred: " + e.getMessage());
+            throw new Exception(e.getMessage());
         }
     }
-    public StateCode deleteState(Integer stateId) throws IllegalArgumentException, Exception {
+    @Transactional
+    public StateCode manageState(Integer stateId,Boolean archive) throws IllegalArgumentException, Exception {
         try {
-            StateCode state=entityManager.find(StateCode.class,stateId);
-            if(state.getArchived())
-                throw new IllegalArgumentException("State already archived");
-            else {
-                state.setArchived(true);
-                entityManager.merge(state);
+            StateCode state = entityManager.find(StateCode.class, stateId);
+            if(archive) {
+                if (state.getArchived())
+                    throw new IllegalArgumentException("State already archived");
+                else {
+                    state.setArchived(true);
+                    entityManager.merge(state);
+                }
+            }
+            else
+            {
+                if (!state.getArchived())
+                    throw new IllegalArgumentException("State already unarchived");
+                else {
+                    state.setArchived(false);
+                    entityManager.merge(state);
+                }
             }
             return state;
         } catch (Exception e) {
-            throw new Exception("Some Exception Occurred: " + e.getMessage());
+            throw new Exception(e.getMessage());
         }
     }
 
