@@ -317,15 +317,13 @@ public class CartEndPoint extends BaseEndpoint {
             List<Long> postPreference = getLongList(map, "postPreference");
             if (postPreference.isEmpty() && customProduct.getPosts().size() > 1)
                 return ResponseService.generateErrorResponse("Post Preference cannot be empty", HttpStatus.BAD_REQUEST);
-            if (!cartService.isCustomerEligibleForProduct(customCustomer, customProduct))
-            {
-                throw new IllegalArgumentException("Customer is not Eligible for this product");
-            }
+
             Long reserveCategoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
              Long  genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
             if (reserveCategoryId == null)
                 return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
             double noReserveCategoryFee = 0.0;
+
             /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
                 return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category and gender", HttpStatus.UNPROCESSABLE_ENTITY);
                // noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L,1L);//1 for general
