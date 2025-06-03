@@ -153,12 +153,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         List<Pattern> bypassPatterns = Arrays.asList(
                 Pattern.compile("^/api/v1/category-custom/get-products-by-category-id/\\d+$"),
-                Pattern.compile("^/api/v1/category-custom/get-all-categories$"),
+                Pattern.compile("^/api/v1/category-custom/get-all-categories"),
+                Pattern.compile("^/api/v1/get-all-reserve-category$"),
                 Pattern.compile("^/api/v1/category-custom/get-all-categories-info$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
                 Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
                 Pattern.compile("^/api/v1/advertisement/get-advertisement-by-id/\\d+$"),
-                Pattern.compile("^/api/v1/product-custom/get-product-by-id$")
+                Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
+                Pattern.compile("^/api/v1/cart/order-events$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -183,13 +185,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.startsWith("/api/v1/swagger-resources")
                 || requestURI.startsWith("/api/v1/v2/api-docs")
                 || requestURI.startsWith("/api/v1/images")
+                || requestURI.startsWith("/api/v1/get-all-reserve-category")
                 || requestURI.startsWith("/api/v1/webjars")
                 || requestURI.matches("^/api/v1/product-custom/get-product-by-id/\\d+$")
                 || requestURI.matches("^/api/v1/advertisement/get-advertisement-by-id/\\d+$")
                 || requestURI.startsWith("/api/v1/category-custom/get-sub-categories")
                 || requestURI.matches("^/api/v1/category-custom/get-sub-categories(/.*)?$")
-               || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
-                || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id");
+                || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
+                || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id")
+                || requestURI.startsWith("/api/v1/cart/order-events");
     }
 
     @Transactional

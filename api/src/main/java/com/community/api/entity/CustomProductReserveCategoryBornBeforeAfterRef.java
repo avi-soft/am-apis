@@ -41,6 +41,11 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     @JoinColumn(name = "product_id")
     protected CustomProduct customProduct;
 
+    @Column(name = "category_running_field")
+    String categoryRunningField;
+    @Column(name = "gender_running_field")
+    String genderRunningField;
+
     @ManyToOne
     @JoinColumn(name = "reserve_category_id")
     protected CustomReserveCategory customReserveCategory;

@@ -118,6 +118,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Long formComplexity;
     @JsonProperty("sector")
     CustomSector customSector;
+    @JsonProperty("sector_running_filed")
+    protected String sectorRunningField;
     @JsonProperty("selection_criteria")
     String selectionCriteria;
     @JsonProperty("created_date")
@@ -150,12 +152,42 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     Date tentativeVerificationTo;
     @JsonProperty("exam_center_available_date")
     Date examCenterAvailableDate;
+    @JsonProperty("fee_additional_comments")
+    String feeComments;
     @JsonIgnore
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     @JsonProperty("fee")
     Double fee;
     @JsonProperty("age_limit")
     String ageLimit;
+    @JsonProperty("is_approved")
+    Boolean isApproved;
+    @JsonProperty("is_exam_date_from_na")
+    protected Boolean isExamDateFromNa;
+    @JsonProperty("is_answer_key_available_date_na")
+    protected Boolean isAnswerKeyAvailableDateNa;
+    @JsonProperty( "is_result_declaration_date_na")
+    protected Boolean isResultDeclarationDateNa;
+    @JsonProperty( "is_counselling_date_na")
+    protected Boolean isCounsellingDateNa;
+    @JsonProperty("is_tentative_document_verification_from_na")
+    protected Boolean isTentativeVerificationFromNa;
+    @JsonProperty("is_tentative_document_verification_to_na")
+    protected Boolean isTentativeVerificationToNa;
+    @JsonProperty( "is_exam_date_to_na")
+    protected Boolean isExamDateToNa;
+    @JsonProperty("is_exam_center_available_date_na")
+    protected Boolean isExamCenterAvailableDateNa;
+    @JsonProperty("is_last_date_to_pay_fee_na")
+    protected Boolean isLateDateToPayFeeNa;
+    @JsonProperty( "is_admit_card_date_from_na")
+    protected Boolean isAdmitCardDateFromNa;
+    @JsonProperty( "is_admit_card_date_to_na")
+    protected Boolean isAdmitCardDateToNa;
+    @JsonProperty("is_modification_date_from_na")
+    protected Boolean isModificationDateFromNa;
+    @JsonProperty("is_modification_date_to_na")
+    protected Boolean isModificationDateToNa;
 
 
 
@@ -181,9 +213,24 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
+        this.sectorRunningField=addProductDto.getSectorRunningField();
         this.isReviewRequired=addProductDto.getIsReviewRequired();
         this.otherInfo=addProductDto.getOtherInfo();
         this.additionalComments=addProductDto.getAdditionalComments();
+        this.feeComments=addProductDto.getFeeAdditionalComments();
+        this.isExamDateFromNa=addProductDto.getIsExamDateFromNa();
+        this.isAnswerKeyAvailableDateNa=addProductDto.getIsAnswerKeyAvailableDateNa();
+        this.isResultDeclarationDateNa=addProductDto.getIsResultDeclarationDateNa();
+        this.isCounsellingDateNa=addProductDto.getIsCounsellingDateNa();
+        this.isTentativeVerificationFromNa=addProductDto.getIsTentativeVerificationFromNa();
+        this.isTentativeVerificationToNa=addProductDto.getIsTentativeVerificationToNa();
+        this.isExamDateToNa=addProductDto.getIsExamDateToNa();
+        this.isExamCenterAvailableDateNa=addProductDto.getIsExamCenterAvailableDateNa();
+        this.isLateDateToPayFeeNa=addProductDto.getIsLateDateToPayFeeNa();
+        this.isAdmitCardDateFromNa=addProductDto.getIsAdmitCardDateFromNa();
+        this.isAdmitCardDateToNa=addProductDto.getIsAdmitCardDateToNa();
+        this.isModificationDateFromNa=addProductDto.getIsModificationDateFromNa();
+        this.isModificationDateToNa=addProductDto.getIsModificationDateToNa();
 
         if(addProductDto.getReservedCategory()!=null)
         {
@@ -208,6 +255,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
 
                 reserveCategoryDto.setFee(addProductDto.getReservedCategory().get(i).getFee());
                 reserveCategoryDto.setPost(addProductDto.getReservedCategory().get(i).getPost());
+                reserveCategoryDto.setRunningField(addProductDto.getReservedCategory().get(i).getRunningField());
+                reserveCategoryDto.setGenderRunningField(addProductDto.getReservedCategory().get(i).getGenderRunningField());
                 reserveCategoryDto.setAdditionalComments(addProductDto.getReservedCategory().get(i).getAdditionalComment());
                 /*reserveCategoryDto.setBornBefore(addProductDto.getReservedCategory().get(i).getBornBefore());
                 reserveCategoryDto.setBornAfter(addProductDto.getReservedCategory().get(i).getBornAfter());*/
@@ -241,6 +290,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setZoneDistributionAdditionalComments(post.getZoneDistributionAdditionalComments());
                 postProjectionDTO.setGenderDistributionAdditionalComments(post.getGenderDistributionAdditionalComments());
                 postProjectionDTO.setQualificationAdditionalComments(post.getQualificationAdditionalComments());
+                postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+                postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+                postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
                 postProjectionDTO.setPhysicalAdditionalComments(post.getPhysicalAdditionalComments());
                 postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
                 postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
@@ -268,6 +320,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                         reserveCategoryAgeDto.setMinAge(refDetails.getMinAge());
                         reserveCategoryAgeDto.setMaxAge(refDetails.getMaxAge());
                     }
+                    reserveCategoryAgeDto.setCategoryRunningField(refDetails.getCategoryRunningField());
+                    reserveCategoryAgeDto.setGenderRunningField(refDetails.getGenderRunningField());
                     reserveCategoryAgeDto.setReserveCategoryId(refDetails.getReserveCategory());
                     reserveCategoryAgeDto.setBornBeforeAfter(refDetails.getBornBeofreAfter());
                     reserveCategoryAgeDto.setAdditionalComments(refDetails.getAdditionalComments());
@@ -352,10 +406,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.platformFee = customProduct.getPlatformFee();
         this.state = customProduct.getState();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.counsellingDate=customProduct.getCounsellingDate();
         this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.customProductState = customProduct.getProductState();
         this.reserveCategoryDtoList = reserveCategoryDtoList;
         this.modifiedDate = customProduct.getModifiedDate();
@@ -365,7 +421,19 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.creatorRoleId = customProduct.getCreatoRole();
         this.modifierUserId = customProduct.getModifierUserId();
         this.modifierRoleId = customProduct.getModifierRole();
-
+        this.isExamDateFromNa=customProduct.getIsExamDateFromNa();
+        this.isAnswerKeyAvailableDateNa=customProduct.getIsAnswerKeyAvailableDateNa();
+        this.isResultDeclarationDateNa=customProduct.getIsResultDeclarationDateNa();
+        this.isCounsellingDateNa=customProduct.getIsCounsellingDateNa();
+        this.isTentativeVerificationFromNa=customProduct.getIsTentativeVerificationFromNa();
+        this.isTentativeVerificationToNa=customProduct.getIsTentativeVerificationToNa();
+        this.isExamDateToNa=customProduct.getIsExamDateToNa();
+        this.isExamCenterAvailableDateNa=customProduct.getIsExamCenterAvailableDateNa();
+        this.isLateDateToPayFeeNa=customProduct.getIsLateDateToPayFeeNa();
+        this.isAdmitCardDateFromNa=customProduct.getIsAdmitCardDateFromNa();
+        this.isAdmitCardDateToNa=customProduct.getIsAdmitCardDateToNa();
+        this.isModificationDateFromNa=customProduct.getIsModificationDateFromNa();
+        this.isModificationDateToNa=customProduct.getIsModificationDateToNa();
         this.domicileRequired = customProduct.getDomicileRequired();
         this.examDateFrom = customProduct.getExamDateFrom();
         this.examDateTo = customProduct.getExamDateTo();
@@ -401,9 +469,24 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationFrom=customProduct.getTentativeVerificationFrom();
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
+        this.sectorRunningField=customProduct.getSectorRunningField();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
         this.numberOfPosts= customProduct.getPosts().size();
+        this.isExamDateFromNa=customProduct.getIsExamDateFromNa();
+        this.isAnswerKeyAvailableDateNa=customProduct.getIsAnswerKeyAvailableDateNa();
+        this.isResultDeclarationDateNa=customProduct.getIsResultDeclarationDateNa();
+        this.isCounsellingDateNa=customProduct.getIsCounsellingDateNa();
+        this.isTentativeVerificationFromNa=customProduct.getIsTentativeVerificationFromNa();
+        this.isTentativeVerificationToNa=customProduct.getIsTentativeVerificationToNa();
+        this.isExamDateToNa=customProduct.getIsExamDateToNa();
+        this.isExamCenterAvailableDateNa=customProduct.getIsExamCenterAvailableDateNa();
+        this.isLateDateToPayFeeNa=customProduct.getIsLateDateToPayFeeNa();
+        this.isAdmitCardDateFromNa=customProduct.getIsAdmitCardDateFromNa();
+        this.isAdmitCardDateToNa=customProduct.getIsAdmitCardDateToNa();
+        this.isModificationDateFromNa=customProduct.getIsModificationDateFromNa();
+        this.isModificationDateToNa=customProduct.getIsModificationDateToNa();
         this.state = customProduct.getState();
         this.customApplicationScope = customProduct.getCustomApplicationScope();
         this.customProductState = customProduct.getProductState();
@@ -419,6 +502,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 reserveCategoryDto.setReserveCategory(fee.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryDto.setFee(fee.getFee());
                 reserveCategoryDto.setPost(fee.getPost());
+                reserveCategoryDto.setGenderRunningField(fee.getGenderRunningField());
+                reserveCategoryDto.setRunningField(fee.getRunningField());
                 reserveCategoryDto.setAdditionalComments(fee.getAdditionalComments());
                 reserveCategoryDto.setIsOtherOrStateCategory(fee.getIsOtherOrStateCategory());
                 reserveCategoryDto.setOtherOrStateCategory(fee.getOtherOrStateCategory());
@@ -491,7 +576,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
+        this.sectorRunningField=customProduct.getSectorRunningField();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -524,6 +611,19 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.lateDateToPayFee = customProduct.getLateDateToPayFee();
         this.domicileRequired = customProduct.getDomicileRequired();
         this.modifiedDate = customProduct.getModifiedDate();
+        this.isExamDateFromNa=customProduct.getIsExamDateFromNa();
+        this.isAnswerKeyAvailableDateNa=customProduct.getIsAnswerKeyAvailableDateNa();
+        this.isResultDeclarationDateNa=customProduct.getIsResultDeclarationDateNa();
+        this.isCounsellingDateNa=customProduct.getIsCounsellingDateNa();
+        this.isTentativeVerificationFromNa=customProduct.getIsTentativeVerificationFromNa();
+        this.isTentativeVerificationToNa=customProduct.getIsTentativeVerificationToNa();
+        this.isExamDateToNa=customProduct.getIsExamDateToNa();
+        this.isExamCenterAvailableDateNa=customProduct.getIsExamCenterAvailableDateNa();
+        this.isLateDateToPayFeeNa=customProduct.getIsLateDateToPayFeeNa();
+        this.isAdmitCardDateFromNa=customProduct.getIsAdmitCardDateFromNa();
+        this.isAdmitCardDateToNa=customProduct.getIsAdmitCardDateToNa();
+        this.isModificationDateFromNa=customProduct.getIsModificationDateFromNa();
+        this.isModificationDateToNa=customProduct.getIsModificationDateToNa();
         this.customSector = customProduct.getSector();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.totalVacanciesInProduct=customProduct.getTotalVacanciesInProduct();
@@ -587,7 +687,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaDescription = product.getMetaDescription();
         this.displayTemplate = product.getDisplayTemplate();
         this.isReviewRequired=product.getIsReviewRequired();
-
+        this.feeComments=product.getFeeAdditionalComments();
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
         this.creatorRoleId = product.getCreatoRole();
@@ -595,7 +695,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.modifierRoleId = null;
 
         this.domicileRequired = product.getDomicileRequired();
-        this.examDateFrom = product.getExamDateFrom();
+        this.examDateFrom = product.getExamDateFrom();this.sectorRunningField=product.getSectorRunningField();
         this.examDateTo = product.getExamDateTo();
 
         this.lateDateToPayFee = product.getLateDateToPayFee();

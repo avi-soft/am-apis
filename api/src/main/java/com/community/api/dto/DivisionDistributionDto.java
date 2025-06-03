@@ -9,6 +9,7 @@ import java.util.List;
 @Setter
 public class DivisionDistributionDto {
     private Integer divisionId;
+    private String divisionRunningField;
     private Boolean isGenderWise;
     private Integer maleVacancy;
     private Integer femaleVacancy;

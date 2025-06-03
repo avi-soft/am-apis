@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
 import javax.validation.constraints.Size;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Min;
@@ -30,6 +31,10 @@ public class UpdateQualificationDto
 
     private Long stream_id;
 
+    private boolean qualification_is_ongoing;
+
+    private String institution_address;
+
     @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
     @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
     private Double cumulative_percentage_value;
@@ -43,9 +48,9 @@ public class UpdateQualificationDto
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
     private String subject_name;
 
-    private Long examination_role_number;
+    private String examination_role_number;
 
-    private Long examination_registration_number;
+    private String examination_registration_number;
 
     private String other_stream;
 

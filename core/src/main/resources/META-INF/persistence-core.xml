@@ -108,7 +108,10 @@
         <class>com.community.api.entity.BlackListedTokens</class>
         <class>com.community.api.entity.Earnings</class>
         <class>com.community.api.entity.Transaction</class>
-
+        <class>com.community.api.entity.TicketStateLinkage</class>
+        <class>com.community.api.entity.CustomWorkQuality</class>
+        <class>com.community.api.entity.RazorpayDetails</class>
+        <class>com.community.api.entity.RandomImageType</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

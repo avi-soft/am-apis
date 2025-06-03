@@ -1,0 +1,42 @@
+-- PROCEDURE: public.auto_assigner_procedure()
+
+-- DROP PROCEDURE IF EXISTS public.auto_assigner_procedure();
+
+CREATE OR REPLACE PROCEDURE public.auto_assigner_procedure(
+	OUT total_assigned_tickets bigint[])
+LANGUAGE 'plpgsql'
+AS $BODY$
+
+DECLARE
+    available_service_providers BIGINT[];         -- IDs of available SPs
+    primary_assigned_tickets BIGINT[];            -- Tickets from primary flow (RBTA + VDTA)
+    rejection_review_tickets BIGINT[];            -- Tickets from rejection/review logic
+BEGIN
+
+	RAISE NOTICE '1. Auto-Assigner';
+
+    -- Step 1: Fetch all active and approved Service Providers using stored procedure
+    CALL public.get_active_and_approved_service_providers(available_service_providers);
+
+    IF available_service_providers IS NULL OR array_length(available_service_providers, 1) = 0 THEN
+        RAISE EXCEPTION 'No active and approved Service Providers found.';
+    END IF;
+
+    RAISE NOTICE 'Available Service Providers: %', available_service_providers;
+
+--     Step 2: Call Primary Ticket Flow (RBTA + VDTA)
+    CALL public.primary_ticket_normal_flow(available_service_providers, primary_assigned_tickets);
+
+    RAISE NOTICE 'Primary Ticket Assigned: %', primary_assigned_tickets;
+
+    -- Step 3: Call Rejection and Review Logic
+    CALL public.rejection_and_review_ticket_logic(available_service_providers, rejection_review_tickets);
+
+    -- Step 4: Merge both ticket assignments
+    total_assigned_tickets := primary_assigned_tickets || rejection_review_tickets;
+
+    RAISE NOTICE 'Total Tickets Assigned: %', total_assigned_tickets;
+END;
+$BODY$;
+ALTER PROCEDURE public.auto_assigner_procedure()
+    OWNER TO postgres;

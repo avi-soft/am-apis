@@ -16,7 +16,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.ArrayList;
@@ -100,11 +99,15 @@ public class CustomServiceProviderTicket {
     @JsonProperty("order")
     private OrderImpl order;
 
-    @Column(name = "comment")
+    @Column(name = "comment", columnDefinition = "TEXT")
     @JsonProperty("comment")
     private String comment;
 
-    @Column(name = "task_desc")
+    @Column(name = "title", columnDefinition = "TEXT")
+    @JsonProperty("title")
+    private String title;
+
+    @Column(name = "task_desc", columnDefinition = "TEXT")
     @JsonProperty("task_desc")
     private String desc;
 
@@ -113,4 +116,24 @@ public class CustomServiceProviderTicket {
             joinColumns = @JoinColumn(name = "ticket_id"))
     @Column(name = "rejected_by_id")
     private List<Long>rejectedBy = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "parent_ticket_id")
+    @JsonBackReference
+    @JsonProperty("parent_ticket_id")
+    private CustomServiceProviderTicket parentTicket;
+
+    @Column(name = "is_complete")
+    @JsonProperty("is_complete")
+    private Boolean isComplete;
+
+    @ManyToOne
+    @JoinColumn(name = "work_quality_id")
+    @JsonProperty("work_quality")
+    private CustomWorkQuality workQuality;
+
+    @Column(name = "is_review_required")
+    @JsonProperty("is_review_required")
+    private Boolean isReviewRequired;
+
 }

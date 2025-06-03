@@ -31,6 +31,12 @@ public class CustomProductReserveCategoryFeePostRef {
     @JoinColumn(name = "reserve_category_id")
     protected CustomReserveCategory customReserveCategory;
 
+    @Column(name = "running_field", length = 256)
+    protected String runningField;
+
+    @Column(name = "gender_running_field", length = 256)
+    protected String genderRunningField;
+
     @Column(name = "fee")
     Double fee;
 
@@ -41,12 +47,13 @@ public class CustomProductReserveCategoryFeePostRef {
     @Column(name = "post")
     Integer post;
 
+    @JsonIgnore
     @Column(name = "fee_additional_comments")
     String additionalComments;
 
     @Column(name = "is_other_or_state_category")
     private Boolean isOtherOrStateCategory;
 
-    @Column(name = "other_or_state_category", columnDefinition = "text")
+    @Column(name = "other_or_state_category")
     private String otherOrStateCategory;
 }

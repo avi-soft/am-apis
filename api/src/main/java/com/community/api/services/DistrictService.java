@@ -19,12 +19,16 @@ public class DistrictService {
     @Autowired
     private EntityManager entityManager;
     @Autowired
+    private SharedUtilityService sharedUtilityService;
+    @Autowired
     private ExceptionHandlingImplement exceptionHandling;
+
     public List<Districts> findDistrictsByStateCode(String state_code) {
-            TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_QUERY, Districts.class);
-        query.setParameter("state_code",state_code);
+        TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_QUERY, Districts.class);
+        query.setParameter("state_code", state_code);
         return query.getResultList();
     }
+
     public String findDistrictById(int district_id) {
         return entityManager.createQuery(Constant.FIND_DISTRICT, String.class)
                 .setParameter("district_id", district_id)
@@ -32,7 +36,8 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
-        public String findStateById(int state_id) {
+
+    public String findStateById(int state_id) {
 
         return entityManager.createQuery(Constant.FIND_STATE, String.class)
                 .setParameter("state_id", state_id)
@@ -40,17 +45,19 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
+
     public List<StateCode> findStateList() {
         TypedQuery<StateCode> query = entityManager.createQuery(Constant.GET_STATES_LIST, StateCode.class);
         return query.getResultList();
     }
+
     public StateCode getStateByStateId(int stateId) throws Exception {
-        try{
+        try {
             Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_ID, StateCode.class);
             query.setParameter("stateId", stateId);
 
             List<StateCode> stateCode = query.getResultList();
-            if(stateCode.size() ==0 || stateCode == null){
+            if (stateCode.size() == 0 || stateCode == null) {
                 throw new IllegalArgumentException("STATE NOT FOUND");
             }
             return stateCode.get(0);
@@ -67,12 +74,12 @@ public class DistrictService {
     }
 
     public StateCode getStateByStateName(String state) throws Exception {
-        try{
+        try {
             Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
             query.setParameter("state", state);
 
             List<StateCode> stateCode = query.getResultList();
-            if(stateCode.size() ==0 || stateCode == null){
+            if (stateCode.size() == 0 || stateCode == null) {
                 throw new IllegalArgumentException("STATE NOT FOUND");
             }
             return stateCode.get(0);
@@ -89,13 +96,13 @@ public class DistrictService {
     }
 
     public Districts findDistrictByName(String district) throws Exception {
-        try{
+        try {
             Query query = entityManager.createQuery(Constant.FIND_DISTRICT_BY_NAME, Districts.class);
             query.setParameter("district", district);
-            System.out.println("District:"+district);
+            System.out.println("District:" + district);
 
             List<Districts> districts = query.getResultList();
-            if(districts.size() ==0 || districts == null){
+            if (districts.size() == 0 || districts == null) {
                 System.out.println(district);
                 throw new IllegalArgumentException("DISTRICTS NOT FOUND");
             }
@@ -109,6 +116,23 @@ public class DistrictService {
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
             throw new Exception("Some Exception Occurred: " + exception.getMessage());
+        }
+    }
+
+    public StateCode addState(StateCode stateCode) throws IllegalArgumentException, Exception {
+        try {
+            if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
+                throw new IllegalArgumentException("State name should contain only alphabets");
+            if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
+                throw new IllegalArgumentException("State code should contain only alphabets");
+            if(stateCode.getArchived()!=null)
+            {
+                throw new IllegalArgumentException("Cannot provide archive status when adding a state");
+            }
+            entityManager.persist(stateCode);
+            return stateCode;
+        } catch (Exception e) {
+            throw new Exception("Some Exception Occurred: " + e.getMessage());
         }
     }
 }

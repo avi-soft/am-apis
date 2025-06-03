@@ -27,21 +27,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Inheritance;
-import javax.persistence.InheritanceType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
@@ -61,7 +47,13 @@ import java.util.List;
 public class ServiceProviderEntity  {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "service_provider_seq")
+    @SequenceGenerator(
+            name = "service_provider_seq",
+            sequenceName = "service_provider_sequence",
+            initialValue = 100,
+            allocationSize = 1
+    )
     private Long service_provider_id;
 
     @Column
@@ -96,11 +88,11 @@ public class ServiceProviderEntity  {
     private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
+
     private String date_of_birth;
 
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be a 12-digit numeric value")
     @Size(min = 12, max = 12, message = "Aadhaar number must be exactly 12 digits long")
-    @Size(min = 12, max = 12)
     private String aadhaar_number;
 
     @Nullable
@@ -128,6 +120,8 @@ public class ServiceProviderEntity  {
     public String whatsapp_number;
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
+    @Email(message = "invalid email format")
+    /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
     public String primary_email;
 
     @Nullable
@@ -138,6 +132,9 @@ public class ServiceProviderEntity  {
     private String password;
     @Nullable
     private Boolean is_running_business_unit=false;
+
+    @Column(name = "is_password_created")
+    private Boolean isPasswordCreated = false;
 
     @Nullable
     private String business_name;
@@ -166,6 +163,9 @@ public class ServiceProviderEntity  {
     private Integer imageUploadScore;
     private Integer partTimeOrFullTimeScore=0;
     private Integer infraScore=0;
+
+    @Column(name = "other_skill",columnDefinition = "text")
+    private String otherSkill;
     @ManyToMany
     @JoinTable(
             name = "service_provider_skill", // The name of the join table
@@ -174,6 +174,7 @@ public class ServiceProviderEntity  {
     private List<Skill> skills;
 
     private Boolean has_technical_knowledge;
+    private String work_experience_in;
 
     @Min(0)
     private Integer work_experience_in_months;
@@ -193,6 +194,10 @@ public class ServiceProviderEntity  {
     private int rank;
     private int signedUp=0;
     private String business_geo_location;
+
+    @Column(name = "permanent_address_is_same_as_current_address")
+    private Boolean isSameAsCurrentAddress = false;
+
 
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -278,24 +283,31 @@ public class ServiceProviderEntity  {
     private Boolean isActive;
 
     @Column(name="maximum_ticket_size")
+    @Min(0)
     private Integer maximumTicketSize;
 
     @Column(name="maximum_binding_size")
+    @Min(0)
     private Integer maximumBindingSize;
 
     @Column(name="ticket_completed")    // will keep track of number of ticket completed by the serviceProvider.
+    @Min(0)
     private Long ticketCompleted=0L;
 
     @Column(name="ticket_pending")      // will keep track of number of ticket pending for the corresponding SP.
+    @Min(0)
     private Integer ticketPending=0;
 
     @Column(name="ticket_assigned")
+    @Min(0)
     private Integer ticketAssigned=0;
 
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ActionLog> actionLogs;
 
+    @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean autoScoring=true;
 }
 
 

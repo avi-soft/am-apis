@@ -127,14 +127,19 @@ public class ServiceProviderController {
 
     @Transactional
     @PutMapping("save-service-provider")
-    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails) throws Exception {
+    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
-            if (serviceProvider.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
-            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId,userId ))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if (serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
+            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails,authHeader);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -169,7 +174,7 @@ public class ServiceProviderController {
                 "mobileNumber",               // @Size(min=9, max=13)
                 "whatsapp_number",           // @NotEmpty + @Size + @Pattern
                 "primary_email",             // @NotEmpty + @Email
-                "password",                  // @NotEmpty + @JsonIgnore
+//                "password",                  // @NotEmpty + @JsonIgnore
                 "is_running_business_unit"// @NotEmpty (despite @Nullable)
         );
         //validating all required fields
@@ -297,6 +302,7 @@ public class ServiceProviderController {
                 return responseService.generateErrorResponse("No records found", HttpStatus.NOT_FOUND);
             if (serviceProvider.getPassword() == null) {
                 serviceProvider.setPassword(passwordEncoder.encode(password));
+                serviceProvider.setIsPasswordCreated(true);
                 entityManager.merge(serviceProvider);
                 return responseService.generateSuccessResponse("Password created", serviceProvider, HttpStatus.OK);
             } else {
@@ -584,8 +590,10 @@ public ResponseEntity<?> getAllServiceProviders(
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if(role!=null&&(role<=roleId||role==5))
+
+            if(role!=null&&(role<=roleId&&roleId!=5))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            System.out.println("bypassed");
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -611,6 +619,10 @@ public ResponseEntity<?> getAllServiceProviders(
                 return ResponseService.generateErrorResponse("Username can only contain letters and numbers", HttpStatus.BAD_REQUEST);
             }
 
+            if (mobileNumber != null && !mobileNumber.matches("^[0-9]+$")) {
+                return ResponseService.generateErrorResponse("Mobile number must contain digits only", HttpStatus.BAD_REQUEST);
+            }
+
 
             String first_name = null;
             String last_name = null;
@@ -624,11 +636,54 @@ public ResponseEntity<?> getAllServiceProviders(
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)  serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                List<Map<String, Object>> resultList = new ArrayList<>();
+                if (response.getBody() != null && response.getBody().getData() != null) {
+                    resultList = (List<Map<String, Object>>) response.getBody().getData();
+                }
+
+
+                int totalItems = resultList.size();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int currentPage = offset;
+
+                int fromIndex = Math.min(offset * limit, totalItems);
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+                List<Map<String, Object>> paginatedList = resultList.subList(fromIndex, toIndex);
+
+                Map<String, Object> finalResponse = new HashMap<>();
+                finalResponse.put("response", paginatedList);
+                finalResponse.put("totalItems", totalItems);
+                finalResponse.put("totalPages", totalPages);
+                finalResponse.put("currentPage", currentPage);
+                String message = resultList.isEmpty() ? "No Details Found" : "Details found";
+                return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
             }
 
+
             if (user_name != null && !user_name.isEmpty()) {
-                return serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)   serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                List<Map<String, Object>> resultList = new ArrayList<>();
+                if (response.getBody() != null && response.getBody().getData() != null) {
+                    resultList = (List<Map<String, Object>>) response.getBody().getData();
+                }
+
+                int totalItems = resultList.size();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int currentPage = offset;
+
+                int fromIndex = Math.min(offset * limit, totalItems);
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+                List<Map<String, Object>> paginatedList = resultList.subList(fromIndex, toIndex);
+
+                Map<String, Object> finalResponse = new HashMap<>();
+                finalResponse.put("response", paginatedList);
+                finalResponse.put("totalItems", totalItems);
+                finalResponse.put("totalPages", totalPages);
+                finalResponse.put("currentPage", currentPage);
+                String message = resultList.isEmpty() ? "No Details Found" : "Details found";
+                return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
+
             }
 
             // Handle search by full name (split into first and last names)

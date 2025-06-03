@@ -26,6 +26,8 @@ public class DivisionDistribution {
     @JoinColumn(name = "division_id", nullable = false)
     private ZoneDivisions divisions;
 
+    private String divisionRunningField;
+
     @Column(name = "is_gender_wise")
     private Boolean isGenderWise;
 

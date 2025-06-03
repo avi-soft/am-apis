@@ -48,7 +48,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
         this.reserveCategoryService = reserveCategoryService;
         this.genderService=genderService;
     }
-    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     protected SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd");
     public List<CustomProductReserveCategoryBornBeforeAfterRef> getProductReserveCategoryBornBeforeAfterByProductId(Long productId) {
         try {
@@ -111,6 +111,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     int[]maxMin=sharedUtilityService.calculateAgeRange(addReserveCategoryDto.getBornBefore(),addReserveCategoryDto.getBornAfter(),dateFormat2.parse(addReserveCategoryDto.getAsOfDate()));
                     ref.setBornBefore(bornBefore);
                     ref.setBornAfter(bornAfter);
+
                     ref.setMaximumAge(maxMin[1]);
                     ref.setMinimumAge(maxMin[0]);
                     System.out.println("aod"+addReserveCategoryDto.getAsOfDate());
@@ -125,7 +126,8 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     ref.setMinimumAge(addReserveCategoryDto.getMinAge());
                     ref.setAsOfDate(convertStringToSQLDate(addReserveCategoryDto.getAsOfDate(), "yyyy-MM-dd"));
                 }
-
+                ref.setGenderRunningField(addReserveCategoryDto.getGenderRunningField());
+                ref.setCategoryRunningField(addReserveCategoryDto.getCategoryRunningField());
                 ref.setCustomReserveCategory(reserveCategory);
                 ref.setCustomProduct(product);
                 ref.setGender(gender);

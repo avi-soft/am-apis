@@ -39,9 +39,10 @@ public class QualificationDetailsController
     }
 
     @PostMapping("/add/{id}")
-    public ResponseEntity<?> addQualificationDetail(@PathVariable Long id , @Valid @RequestBody QualificationDetails qualificationDetails,   @RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers, @RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers, @RequestParam(value = "institutionOthers", required = false) String institutionOthers, @RequestHeader(value = "Authorization") String authHeader) throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
+    public ResponseEntity<?> addQualificationDetail(@PathVariable Long id , @Valid @RequestBody QualificationDetails qualificationDetails,   @RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers, @RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers, @RequestParam(value = "institutionOthers", required = false) String institutionOthers, @RequestHeader(value = "Authorization") String authHeader,@RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
         try{
+
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId=jwtTokenUtil.extractId(jwtToken);
@@ -49,14 +50,16 @@ public class QualificationDetailsController
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             }
-//            else
-//            {
-//                roleId=5;
-//            }
-//            System.out.println("1245"+qualificationOthers);
-//            System.out.println("dfhasdkfjhalskdjf"+userId);
-//            System.out.println("dfhasdkfjhalskdjf"+roleId);
-             role = roleService.getRoleByRoleId(roleId).getRole_name();
+            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
+            {
+               return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
+            }
+            else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
+            {
+                jwtToken = authHeader.substring(7);
+                roleId = 5;
+            }
+            role = roleService.getRoleByRoleId(roleId).getRole_name();
             QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for "+role,newQualificationDetails,HttpStatus.CREATED);
         }

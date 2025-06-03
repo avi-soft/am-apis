@@ -32,6 +32,9 @@ public class Institution
     @Column(name = "created_date", updatable = false)
     private String created_date;
 
+    @Column(name = "sort_order", nullable = false)
+    private Long sortOrder;
+
     @Column(name = "modified_date")
     private String modified_date;
 

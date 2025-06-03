@@ -47,6 +47,10 @@ public class CustomSubject {
     @Pattern(regexp = "^[a-zA-Z -]*$", message = "Subject name must contains only Alphabets and hyphen.")
     protected String subjectName;
 
+    @Column(name = "sort_order", nullable = false)
+    private Long sortOrder;
+
+
     @NotBlank
     @Column(name = "subject_description")
     @JsonProperty("subject_description")

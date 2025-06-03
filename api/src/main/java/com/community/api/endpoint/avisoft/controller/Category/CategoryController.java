@@ -2,6 +2,7 @@ package com.community.api.endpoint.avisoft.controller.Category;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddCategoryDto;
 import com.community.api.dto.CategoryDto;
 import com.community.api.dto.CustomCategoryWrapper;
@@ -9,6 +10,7 @@ import com.community.api.entity.CustomProduct;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.services.CategoryService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -16,6 +18,7 @@ import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,6 +58,12 @@ public class CategoryController extends CatalogEndpoint {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    JwtUtil jwtTokenUtil;
+
+    @Autowired
+    RoleService roleService;
 
     @Autowired
     public CategoryController(ExceptionHandlingService exceptionHandlingService, CategoryService categoryService) {
@@ -276,8 +285,18 @@ public class CategoryController extends CatalogEndpoint {
             HttpServletRequest request,
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestHeader(value = "Authorization",required = false) String authHeader) {
         try {
+            Integer roleId=5;
+            String role=Constant.roleUser;
+            if(authHeader!=null) {
+                String jwtToken = authHeader.substring(7);
+                Long userId = jwtTokenUtil.extractId(jwtToken);
+
+               roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role= roleService.findRoleName(roleId);
+            }
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -300,13 +319,29 @@ public class CategoryController extends CatalogEndpoint {
             for (BigInteger productId : productIdList) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, productId.longValue());
 
-                if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
-                        customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
-                        customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+                if(role.equalsIgnoreCase(Constant.roleUser))
+                {
+                    if (customProduct != null &&
+                            ((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date()) &&
+                            !customProduct.getGoLiveDate().after(new Date()) &&
+                            !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
+                            customProduct.getIsApproved()) {
 
-                    CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(customProduct);
-                    products.add(wrapper);
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct);
+                        products.add(wrapper);
+                    }
+                }
+                else {
+                    if (customProduct != null && (((Status) customProduct).getArchived() != 'Y' &&
+                            customProduct.getDefaultSku().getActiveEndDate().after(new Date())) &&
+                            customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_NEW)) {
+
+                        CustomProductWrapper wrapper = new CustomProductWrapper();
+                        wrapper.wrapDetails(customProduct);
+                        products.add(wrapper);
+                    }
                 }
             }
 

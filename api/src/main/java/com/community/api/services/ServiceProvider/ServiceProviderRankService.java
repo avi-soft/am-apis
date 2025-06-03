@@ -68,7 +68,7 @@ public class ServiceProviderRankService {
         }
         else {
             scoreCard.put("InfraScore",serviceProviderEntity.getInfraScore());
-            scoreCard.put("partTimeOrFullTimeScore",serviceProviderEntity.getStaffScore());
+            scoreCard.put("partTimeOrFullTimeScore",serviceProviderEntity.getPartTimeOrFullTimeScore());
         }
         scoreCard.put("totalScore",serviceProviderEntity.getTotalScore());
         return scoreCard;

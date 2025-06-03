@@ -1,6 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.product;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
@@ -46,6 +47,7 @@ import org.broadleafcommerce.core.catalog.domain.Sku;
 
 import org.broadleafcommerce.core.catalog.service.type.ProductType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -53,6 +55,8 @@ import org.springframework.http.ResponseEntity;
 
 import com.community.api.services.exception.ExceptionHandlingService;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -118,6 +122,9 @@ public class ProductController extends CatalogEndpoint {
     @Autowired
     DistrictService districtService;
 
+    @Value("${origin.url}")
+    private String origin;
+
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
 
@@ -177,12 +184,16 @@ public class ProductController extends CatalogEndpoint {
 
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
-            }
-            else
-            {
+            } else {
                 productService.addProductDtoWithoutValidation(addProductDto);
             }
-
+            if (addProductDto.getSector() != null) {
+                if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
+                    return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
+                } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
+                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                }
+            }
             Product product = catalogService.createProduct(ProductType.PRODUCT);
             product.setMetaTitle(addProductDto.getMetaTitle());
             product.setDisplayTemplate(addProductDto.getDisplayTemplate());
@@ -204,111 +215,98 @@ public class ProductController extends CatalogEndpoint {
             sku.setActiveEndDate(addProductDto.getActiveEndDate());
             sku.setDefaultProduct(product);
 
-            CustomProductState customProductState=null;
-                if(!saveDraft)
+            CustomProductState customProductState = null;
+            if (!saveDraft) {
+                customProductState = productStateService.getProductStateByName(PRODUCT_STATE_NEW);
+                if (customProductState == null) {
+                    return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
+                }
+            } else if (saveDraft) {
+                customProductState = productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
                 {
-                    customProductState= productStateService.getProductStateByName(PRODUCT_STATE_NEW);
                     if (customProductState == null) {
                         return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
                     }
                 }
-                else if(saveDraft)
-                {
-                     customProductState= productStateService.getProductStateByName(PRODUCT_STATE_DRAFT);
-                    {
-                        if (customProductState == null) {
-                            return ResponseService.generateErrorResponse("Custom product state not found.", HttpStatus.NOT_FOUND);
-                        }
-                    }
-                }
+            }
 
-                product.setDefaultSku(sku);
+            product.setDefaultSku(sku);
 
-                if(!saveDraft)
-                {
-                    List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
-                    if (reservedCategories != null && !reservedCategories.isEmpty()) {
-                        for (AddReserveCategoryDto dto : reservedCategories) {
-                            Boolean isOther = dto.getIsOtherOrStateCategory();
-                            String otherText = dto.getOtherOrStateCategory();
+            if (!saveDraft) {
+                List<AddReserveCategoryDto> reservedCategories = addProductDto.getReservedCategory();
+                if (reservedCategories != null && !reservedCategories.isEmpty()) {
+                    for (AddReserveCategoryDto dto : reservedCategories) {
+                        Boolean isOther = dto.getIsOtherOrStateCategory();
+                        String otherText = dto.getOtherOrStateCategory();
 
-                            if (Boolean.TRUE.equals(isOther)) {
-                                // If true, field must be filled
-                                if (otherText == null || otherText.trim().isEmpty()) {
-                                    return ResponseService.generateErrorResponse(
-                                            "Other_or_state_category must be provided when is_other_or_state_category is true.",
-                                            HttpStatus.BAD_REQUEST
-                                    );
-                                }
-                            } else {
-                                // If false/null, field must NOT be filled
-                                if (otherText != null && !otherText.trim().isEmpty()) {
-                                    return ResponseService.generateErrorResponse(
-                                            "other_or_state_category should not be provided when is_other_or_state_category is false.",
-                                            HttpStatus.BAD_REQUEST
-                                    );
-                                }
+                        if (Boolean.TRUE.equals(isOther)) {
+                            // If true, field must be filled
+                            if (otherText == null || otherText.trim().isEmpty()) {
+                                return ResponseService.generateErrorResponse(
+                                        "Other_or_state_category must be provided when is_other_or_state_category is true.",
+                                        HttpStatus.BAD_REQUEST
+                                );
+                            }
+                            if (!otherText.matches("^[a-zA-Z0-9 ]*$")) {
+                                throw new IllegalArgumentException("Only alphanumeric characters are allowed in otherOrStateCategory");
+                            }
+
+                        } else {
+                            // If false/null, field must NOT be filled
+                            if (otherText != null && !otherText.trim().isEmpty()) {
+                                return ResponseService.generateErrorResponse(
+                                        "other_or_state_category should not be provided when is_other_or_state_category is false.",
+                                        HttpStatus.BAD_REQUEST
+                                );
                             }
                         }
                     }
+                }
+                productService.validateReserveCategory(addProductDto);
+            } else if (saveDraft) {
+                if (addProductDto.getReservedCategory() != null) {
                     productService.validateReserveCategory(addProductDto);
                 }
-                else if(saveDraft)
-                {
-                    if(addProductDto.getReservedCategory()!=null)
-                    {
-                        productService.validateReserveCategory(addProductDto);
-                    }
-                }
-                CustomSector customSector = productService.validateSector(addProductDto);
+            }
+            CustomSector customSector = productService.validateSector(addProductDto);
 
-                productService.validateSelectionCriteria(addProductDto);
+            productService.validateSelectionCriteria(addProductDto);
 
-                productService.validateAdmitCardDates(addProductDto);
-                productService.validateModificationDates(addProductDto);
-                productService.validateLastDateToPayFee(addProductDto);
+            productService.validateAdmitCardDates(addProductDto);
+            productService.validateModificationDates(addProductDto);
+            productService.validateLastDateToPayFee(addProductDto);
 
-                if(!saveDraft)
-                {
-                    productService.validateLinks(addProductDto);
+            if (!saveDraft) {
+                productService.validateLinks(addProductDto);
+            } else if (saveDraft) {
+                if (addProductDto.getDownloadNotificationLink() != null) {
+                    addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                 }
-                else if(saveDraft)
-                {
-                    if(addProductDto.getDownloadNotificationLink()!=null)
-                    {
-                        addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
-                    }
-                    if(addProductDto.getDownloadSyllabusLink()!=null)
-                    {
-                        addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
-                    }
+                if (addProductDto.getDownloadSyllabusLink() != null) {
+                    addProductDto.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink().trim());
                 }
+            }
 
             productService.validateFormComplexity(addProductDto);
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
-            List<Post> postList= new ArrayList<>();
+            List<Post> postList = new ArrayList<>();
             if (!saveDraft) {
                 if (addProductDto.getPosts() != null && !addProductDto.getPosts().isEmpty()) {
-                    productService.validatePostRequirement(addProductDto, roleId,userId);
-                    postList= postService.savePosts(addProductDto.getPosts(), product);
+                    productService.validatePostRequirement(addProductDto, roleId, userId);
+                    postList = postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
-                productService.validatePostRequirement(addProductDto, roleId,userId);
-                postList=postService.savePosts(addProductDto.getPosts(), product);
+                productService.validatePostRequirement(addProductDto, roleId, userId);
+                postList = postService.savePosts(addProductDto.getPosts(), product);
             }
             productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
 
-            if(!saveDraft)
-            {
+            if (!saveDraft) {
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
-            }
-            else if(saveDraft)
-
-            {
-                if(addProductDto.getReservedCategory()!=null)
-                {
+            } else if (saveDraft) {
+                if (addProductDto.getReservedCategory() != null) {
                     productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
                 }
             }
@@ -319,36 +317,32 @@ public class ProductController extends CatalogEndpoint {
                 stateCode = districtService.getStateByStateId(addProductDto.getState());
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
-            Long totalVacanciesInProduct=0L;
-             if(saveDraft)
-            {
+            Long totalVacanciesInProduct = 0L;
+            if (saveDraft) {
                 if (postList != null && !postList.isEmpty()) {
-                    for(Post post: postList)
-                    {
-                        totalVacanciesInProduct+=post.getPostTotalVacancies();
+                    for (Post post : postList) {
+                        totalVacanciesInProduct += post.getPostTotalVacancies();
                     }
-                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product, postList);
+                    postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(), product, postList);
                 }
-                if(reserveCategoryService!=null)
-                {
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
-                }else{
-                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode,  customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
+                if (reserveCategoryService != null) {
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement, genderService, entityManager, postList, addProductDto.getPosts(), totalVacanciesInProduct, (long) addProductDto.getPosts().size());
+                } else {
+                    wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, null, stateCode, customSector, currentDate, advertisement, genderService, entityManager, postList, addProductDto.getPosts(), totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 }
-                ResponseEntity<?> response=ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
-                 return response;
+                ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED AS DRAFT SUCCESSFULLY", wrapper, HttpStatus.OK);
+                return response;
             }
             if (postList != null && !postList.isEmpty()) {
-                for(Post post: postList)
-                {
-                    if(post.getPostTotalVacancies()!=null)
-                        totalVacanciesInProduct+=post.getPostTotalVacancies();
+                for (Post post : postList) {
+                    if (post.getPostTotalVacancies() != null)
+                        totalVacanciesInProduct += post.getPostTotalVacancies();
                 }
-                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(),product,postList);
+                postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(), product, postList);
             }
-            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement,genderService,entityManager,postList,addProductDto.getPosts(),totalVacanciesInProduct, (long) addProductDto.getPosts().size());
-             ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
-             return response;
+            wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement, genderService, entityManager, postList, addProductDto.getPosts(), totalVacanciesInProduct, (long) addProductDto.getPosts().size());
+            ResponseEntity<?> response = ResponseService.generateSuccessResponse("PRODUCT ADDED SUCCESSFULLY", wrapper, HttpStatus.OK);
+            return response;
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -364,7 +358,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader,  @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -398,7 +392,7 @@ public class ProductController extends CatalogEndpoint {
             // Validate dates fields.
             productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
             productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetGoLiveDate(addProductDto,  customProduct, currentDate);
+            productService.validateAndSetGoLiveDate(addProductDto, customProduct, currentDate);
             productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
 
             productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
@@ -415,48 +409,35 @@ public class ProductController extends CatalogEndpoint {
             if (addProductDto.getReservedCategory() != null) {
                 productService.validateReserveCategory(addProductDto);
             }
-            if(addProductDto.getIsReviewRequired()!=null)
-            {
+            if (addProductDto.getIsReviewRequired() != null) {
                 customProduct.setIsReviewRequired(addProductDto.getIsReviewRequired());
             }
-            if(addProductDto.getOtherInfo()!=null)
-            {
+            if (addProductDto.getOtherInfo() != null) {
                 customProduct.setOtherInfo(addProductDto.getOtherInfo());
             }
 
-            if(addProductDto.getIsMultiplePostSameFee()!=null)
-            {
-                if(addProductDto.getIsMultiplePostSameFee().equals(true))
-                {
+            if (addProductDto.getIsMultiplePostSameFee() != null) {
+                if (addProductDto.getIsMultiplePostSameFee().equals(true)) {
                    /* if(addProductDto.getPosts()!=null) {
                         if (addProductDto.getPosts().isEmpty()) {
                             throw new IllegalArgumentException("You have to fill at least one post");
                         }
                     }*/
                     customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
-                }
-                else if (addProductDto.getIsMultiplePostSameFee().equals(false))
-                {
-                    if(addProductDto.getPosts()!=null)
-                    {
+                } else if (addProductDto.getIsMultiplePostSameFee().equals(false)) {
+                    if (addProductDto.getPosts() != null) {
                         /*if(addProductDto.getPosts().isEmpty())
                         {
                             throw new IllegalArgumentException("You have to fill at least one post");
                         }*/
-                        if(!addProductDto.getPosts().isEmpty())
-                        {
-                            if(addProductDto.getPosts().size()>1)
-                            {
+                        if (!addProductDto.getPosts().isEmpty()) {
+                            if (addProductDto.getPosts().size() > 1) {
                                 throw new IllegalArgumentException("Only one post is allowed to save if multiple posts does not have same fees");
                             }
                         }
 
-                    }
-
-                    else if(addProductDto.getPosts()==null || addProductDto.getPosts().isEmpty())
-                    {
-                        if (customProduct.getPosts().size()>1)
-                        {
+                    } else if (addProductDto.getPosts() == null || addProductDto.getPosts().isEmpty()) {
+                        if (customProduct.getPosts().size() > 1) {
                             throw new IllegalArgumentException("Only one post is allowed to save if multiple posts does not have same fees.Either set it to true or you have to delete the multiple posts and save only one");
                         }
                     }
@@ -464,9 +445,9 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
             }
 
-            List<Post> postList= new ArrayList<>();
-            if(addProductDto.getPosts() != null) {
-                if(!addProductDto.getPosts().isEmpty()) {
+            List<Post> postList = new ArrayList<>();
+            if (addProductDto.getPosts() != null) {
+                if (!addProductDto.getPosts().isEmpty()) {
                     productService.validatePostRequirement(addProductDto, roleId, userId);
                     postList = postService.savePosts(addProductDto.getPosts(), product);
                     List<Post> postsToDelete = new ArrayList<>(customProduct.getPosts());
@@ -487,8 +468,7 @@ public class ProductController extends CatalogEndpoint {
                             post.getAgeRequirement().clear();
                             entityManager.merge(post);
                         }
-                        if(post.getReligion()!=null)
-                        {
+                        if (post.getReligion() != null) {
                             post.getReligion().clear();
                             entityManager.merge(post);
                         }
@@ -519,7 +499,7 @@ public class ProductController extends CatalogEndpoint {
                 productService.deleteOldReserveCategoryMapping(customProduct);
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
             }
-            if(addProductDto.getPosts() != null) {
+            if (addProductDto.getPosts() != null) {
                 if (!addProductDto.getPosts().isEmpty()) {
                     postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
                     postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
@@ -529,13 +509,10 @@ public class ProductController extends CatalogEndpoint {
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
-            if(addProductDto.getIsResubmitProduct()!=null)
-            {
-                if(addProductDto.getIsResubmitProduct().equals(true))
-                {
-                    CustomProductState customProductState = entityManager.find(CustomProductState.class,9L);
-                    if(customProductState==null)
-                    {
+            if (addProductDto.getIsResubmitProduct() != null) {
+                if (addProductDto.getIsResubmitProduct().equals(true)) {
+                    CustomProductState customProductState = entityManager.find(CustomProductState.class, 9L);
+                    if (customProductState == null) {
                         throw new IllegalArgumentException("Custom Product with this state does not exit");
                     }
                     customProduct.setProductState(customProductState);
@@ -544,29 +521,23 @@ public class ProductController extends CatalogEndpoint {
 
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
-            if(saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
-            {
+            if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
                 entityManager.merge(customProduct);
-                wrapper.wrapDetails(customProduct,null,null,productReserveCategoryFeePostRefService);
-                return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully",wrapper,HttpStatus.OK);
-            }
-            else if(saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT"))
-            {
+                wrapper.wrapDetails(customProduct, null, null, productReserveCategoryFeePostRefService);
+                return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully", wrapper, HttpStatus.OK);
+            } else if (saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
                 entityManager.merge(customProduct);
-                wrapper.wrapDetails(customProduct,null,null,productReserveCategoryFeePostRefService);
-                return ResponseService.generateSuccessResponse("Product is updated successfully",wrapper,HttpStatus.OK);
-            }
-            else if(!saveAsDraft)
-            {
-                if(customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT))
-                {
+                wrapper.wrapDetails(customProduct, null, null, productReserveCategoryFeePostRefService);
+                return ResponseService.generateSuccessResponse("Product is updated successfully", wrapper, HttpStatus.OK);
+            } else if (!saveAsDraft) {
+                if (customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT)) {
                     entityManager.merge(customProduct);
-                   return productService.changeStateProductFromDraftToNew(customProduct,wrapper);
+                    return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
             entityManager.merge(customProduct);
-            List<PostProjectionDTO> postProjectionDTOS= getPosts(postList);
-            wrapper.wrapDetails(customProduct,null,postProjectionDTOS,productReserveCategoryFeePostRefService);
+            List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
+            wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
 
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -582,10 +553,16 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
+    @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long userId = jwtTokenUtil.extractId(jwtToken);
+
+            String recOrigin = request.getHeader("Origin");
 
             Long productId = Long.parseLong(productIdPath);
             if (productId <= 0) {
@@ -601,14 +578,29 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
 
-            if ((((Status) customProduct).getArchived() != 'Y' && customProduct.getDefaultSku().getActiveEndDate().after(new Date()))) {
+            boolean allowExpiredAccess =
+                    roleId == 1 || roleId == 2 ||
+                            (customProduct.getCreatoRole() != null &&
+                                    roleId.equals(customProduct.getCreatoRole().getRole_id()) &&
+                                    userId != null && userId.equals(customProduct.getUserId()));
 
+            //set views
+            if (recOrigin != null) {
+                if (origin.trim().equals(recOrigin.trim())) {
+                    customProduct.setViews(customProduct.getViews() + 1);
+                    entityManager.merge(customProduct);
+                }
+            }
+
+            boolean isArchived = ((Status) customProduct).getArchived() == 'Y';
+            boolean isExpired = customProduct.getDefaultSku().getActiveEndDate().before(new Date());
+
+            if ((!isArchived && !isExpired) || allowExpiredAccess) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
-                List<Post> postList= customProduct.getPosts();
-                List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
-                wrapper.wrapDetails(customProduct, postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
+                List<Post> postList = customProduct.getPosts();
+                List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
+                wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
-
             } else {
                 return ResponseService.generateErrorResponse("PRODUCT IS EITHER ARCHIVED OR EXPIRED", HttpStatus.NOT_FOUND);
             }
@@ -632,12 +624,10 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
         try {
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             if (catalogService == null) {
@@ -684,7 +674,7 @@ public class ProductController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -697,7 +687,6 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
 
 
     @DeleteMapping("/delete/{productId}")
@@ -717,6 +706,9 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null || (((Status) customProduct).getArchived() == 'Y')) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
+            if (!productService.deleteProductAccessAuthorisation(authHeader)) {
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO DELETE PRODUCT", HttpStatus.FORBIDDEN);
+            }
 
             Role role = productService.getRoleByToken(authHeader);
             Long modifierUserId = productService.getUserIdByToken(authHeader);
@@ -732,7 +724,7 @@ public class ProductController extends CatalogEndpoint {
             entityManager.merge(customProduct);
 
             catalogService.removeProduct(customProduct.getDefaultSku().getDefaultProduct()); // Make it archive from the DB.
-                
+
             return ResponseService.generateSuccessResponse("PRODUCT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -803,12 +795,12 @@ public class ProductController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, response, HttpStatus.OK);
 
         } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -869,12 +861,12 @@ public class ProductController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", currentPage);
 
-            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY,response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(PRODUCTFOUNDSUCCESSFULLY, response, HttpStatus.OK);
 
-        }  catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException exception) {
             exceptionHandlingService.handleException(exception);
-            return new ResponseEntity<>( exception.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception exception) {
+            return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return new ResponseEntity<>("SOME EXCEPTION OCCURRED: " + exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -893,9 +885,9 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
-            @RequestParam(value = "all", required = false,defaultValue = "false")boolean all,
+            @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
-            @RequestParam(name ="myProducts",defaultValue = "false",required = false) Boolean myProducts,
+            @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit) {
 
@@ -903,32 +895,24 @@ public class ProductController extends CatalogEndpoint {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
-            Long createdById=null;
+            Role role = roleService.getRoleByRoleId(roleId);
+            Long createdById = null;
 
-            Role roleEntity=roleService.getRoleByRoleId(roleId);
-            if(roleServiceProviderAdmin.equals(roleEntity.getRole_name())|| roleServiceProvider.equals(roleEntity.getRole_name()))
-            {
-                myProducts=true;
+            Role roleEntity = roleService.getRoleByRoleId(roleId);
+            if (roleServiceProviderAdmin.equals(roleEntity.getRole_name()) || roleServiceProvider.equals(roleEntity.getRole_name())) {
+                myProducts = true;
             }
-            if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&!myProducts)
-            {
-                createdById=null;
+            if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && !myProducts) {
+                createdById = null;
+            } else if ((Constant.roleAdmin.equals(roleEntity.getRole_name()) || roleSuperAdmin.equals(roleEntity.getRole_name())) && myProducts) {
+                createdById = tokenUserId;
+            } else {
+                createdById = tokenUserId;
             }
-            else  if((Constant.roleAdmin.equals(roleEntity.getRole_name())|| roleSuperAdmin.equals(roleEntity.getRole_name()))&&myProducts)
-            {
-                createdById=tokenUserId;
-            }
-            else
-            {
-                createdById=tokenUserId;
-            }
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
 
@@ -946,42 +930,44 @@ public class ProductController extends CatalogEndpoint {
             if (dateTo != null) {
                 dateTo = dateFormat.parse(dateFormat.format(dateTo));
             }
-            List<CustomProduct> products=null;
-            Map<String,Object> opresponse=new HashMap<>();
+            List<CustomProduct> products = null;
+            Map<String, Object> opresponse = new HashMap<>();
            /* if(all&&!(roleAdmin.equals(role.getRole_name())||roleSuperAdmin.equals(role.getRole_name())))
             {
                 return ResponseService.generateErrorResponse("You are not authorized to view all products.",HttpStatus.FORBIDDEN);
             }*/
-            if(!all) {
+            if (!all) {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit,all,createdById,productIds
+                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
                 );
-            }
-            else
-            {
+            } else {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit,all,createdById,productIds
+                        title, fee, post, dateFrom, dateTo, null, offset, limit, all, createdById, productIds
                 );
             }
-            products=(List<CustomProduct>)opresponse.get("products");
+            products = (List<CustomProduct>) opresponse.get("products");
             if (products.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO PRODUCTS FOUND WITH THE GIVEN CRITERIA", new ArrayList<>(), HttpStatus.OK);
             }
 
             // Filtering out archived products
+            int skipped = 0;
             List<CustomProductWrapper> responses = new ArrayList<>();
             for (CustomProduct customProduct : products) {
-                /*if (customProduct != null && (((Status) customProduct).getArchived() != 'Y')) {*/
-                    CustomProductWrapper wrapper = new CustomProductWrapper();
-                    List<Post> postList= customProduct.getPosts();
-                    List<PostProjectionDTO> postProjectionDTOS= getPosts(customProduct.getPosts());
-                    wrapper.wrapDetails(customProduct,postList,postProjectionDTOS,productReserveCategoryFeePostRefService);
-                    responses.add(wrapper);
-                //}
-            }
+                /* if (customProduct != null && ((Status) customProduct).getArchived() != 'Y') {*/
+                CustomProductWrapper wrapper = new CustomProductWrapper();
+                List<Post> postList = customProduct.getPosts();
+                List<PostProjectionDTO> postProjectionDTOS = getPosts(customProduct.getPosts());
+                wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+                responses.add(wrapper);
+            } /*else
+                {
+                    skipped++;
+                }*/
+
 
            /* CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
             CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
@@ -994,7 +980,7 @@ public class ProductController extends CatalogEndpoint {
             TypedQuery<Long> query = entityManager.createQuery(countQuery);*/
 
             // Pagination logic
-            int totalItems = (Integer)opresponse.get("count");
+            int totalItems = (Integer) opresponse.get("count");
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int fromIndex = offset * limit;
             int toIndex = Math.min(fromIndex + limit, totalItems);
@@ -1003,10 +989,9 @@ public class ProductController extends CatalogEndpoint {
                 throw new IllegalArgumentException("No more products availabe");
             }
             // Validate offset request
-            if (fromIndex >= totalItems && offset!=0) {
+            if (fromIndex >= totalItems && offset != 0) {
                 return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
             }
-
 
 
             // Construct paginated response
@@ -1016,7 +1001,7 @@ public class ProductController extends CatalogEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset);
 
-            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("PRODUCTS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -1051,12 +1036,10 @@ public class ProductController extends CatalogEndpoint {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
                 return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
             }
-            if(offset<0)
-            {
+            if (offset < 0) {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
             }
-            if(limit<=0)
-            {
+            if (limit <= 0) {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
             String jwtToken = authHeader.substring(7);
@@ -1074,7 +1057,7 @@ public class ProductController extends CatalogEndpoint {
                     dateTo = dateFormat.parse(dateFormat.format(dateTo));
                 }
             }
-            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo,productIds);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo, productIds);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -1084,12 +1067,10 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    public static List<PostProjectionDTO> getPosts (List<Post> postList)
-    {
-        List<PostProjectionDTO> postProjectionDTOS= new ArrayList<>();
-        for(Post post:postList)
-        {
-            PostProjectionDTO postProjectionDTO= new PostProjectionDTO();
+    public static List<PostProjectionDTO> getPosts(List<Post> postList) {
+        List<PostProjectionDTO> postProjectionDTOS = new ArrayList<>();
+        for (Post post : postList) {
+            PostProjectionDTO postProjectionDTO = new PostProjectionDTO();
             postProjectionDTO.setPostId(post.getPostId());
             postProjectionDTO.setPostName(post.getPostName());
             postProjectionDTO.setPostCode(post.getPostCode());
@@ -1108,12 +1089,14 @@ public class ProductController extends CatalogEndpoint {
             postProjectionDTO.setOtherDistributionAdditionalComments(post.getOtherDistributionAdditionalComments());
             postProjectionDTO.setReserveCatAgeAdditionalComments(post.getReserveCatAgeAdditionalComments());
             postProjectionDTO.setTotalSeatsVisible(post.getTotalSeatsVisible());
+            postProjectionDTO.setAdditionalEligibility(post.getAdditionalEligibility());
+            postProjectionDTO.setReligionAdditionalComments(post.getReligionAdditionalComments());
+            postProjectionDTO.setIncomeAdditionalComments(post.getIncomeAdditionalComments());
             postProjectionDTO.setReligion(post.getReligion());
             postProjectionDTO.setIncome(post.getIncome());
-            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet= new ArrayList<>();
-            for(CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity: post.getAgeRequirement())
-            {
-                ReserveCategoryAgeDto reserveCategoryAgeDto= new ReserveCategoryAgeDto();
+            List<ReserveCategoryAgeDto> reserveCategoryAgeDtosToSet = new ArrayList<>();
+            for (CustomProductReserveCategoryBornBeforeAfterRef ageRequirementEntity : post.getAgeRequirement()) {
+                ReserveCategoryAgeDto reserveCategoryAgeDto = new ReserveCategoryAgeDto();
                 reserveCategoryAgeDto.setReserveCategoryId(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryId());
                 reserveCategoryAgeDto.setReserveCategory(ageRequirementEntity.getCustomReserveCategory().getReserveCategoryName());
                 reserveCategoryAgeDto.setPost(Math.toIntExact(post.getPostId()));
@@ -1124,6 +1107,8 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDto.setGenderName(ageRequirementEntity.getGender().getGenderName());
                 reserveCategoryAgeDto.setMinAge(ageRequirementEntity.getMinimumAge());
                 reserveCategoryAgeDto.setMaxAge(ageRequirementEntity.getMaximumAge());
+                reserveCategoryAgeDto.setCategoryRunningField(ageRequirementEntity.getCategoryRunningField());
+                reserveCategoryAgeDto.setGenderRunningField(ageRequirementEntity.getGenderRunningField());
                 reserveCategoryAgeDto.setAsOfDate(ageRequirementEntity.getAsOfDate());
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }
@@ -1135,4 +1120,19 @@ public class ProductController extends CatalogEndpoint {
         return postProjectionDTOS;
     }
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+
+    // Run every day at 12:00 AM
+    @Scheduled(cron = "0 0 0 * * *")
+    @PutMapping("/update-product-resources")
+    public void updateProductStates() {
+        try {
+            jdbcTemplate.execute("CALL update_all_product_states();");
+            System.out.println("Product states updated successfully at midnight.");
+        } catch (Exception e) {
+            System.err.println("Error updating product states: " + e.getMessage());
+        }
+    }
 }

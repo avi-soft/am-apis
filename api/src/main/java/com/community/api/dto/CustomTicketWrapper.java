@@ -6,20 +6,23 @@ import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
+import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
-import com.community.api.services.OrderDTOService;
+import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
-import org.broadleafcommerce.core.order.domain.OrderImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.persistence.Access;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
 public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomTicketWrapper.class);
+
     @JsonProperty("ticket_id")
     protected Long id;
 
@@ -62,18 +65,35 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("comment")
     protected String comment;
 
+    @JsonProperty("parent_ticket")
+    protected CustomServiceProviderTicket parentTicket;
+
     @JsonProperty("order")
     protected CombinedOrderDTO order;
+
+    @JsonProperty("title")
+    protected String title;
+
     @JsonProperty("task_description")
     protected String task_desc;
-    @Autowired
-    private EntityManager entityManager;
 
-    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {
+    @JsonProperty("is_review_required")
+    protected Boolean isReviewRequired;
+
+    @JsonProperty("work_quality")
+    protected CustomWorkQuality customWorkQuality;
+
+    @JsonProperty("is_completed")
+    protected Boolean isCompleted;
+
+    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
-        combinedOrderDTO.setTicket(null);
+
+        if(combinedOrderDTO != null) {
+            combinedOrderDTO.setTicket(null);
+        }
         this.order = combinedOrderDTO;
         this.createdDate = customServiceProviderTicket.getCreatedDate();
         this.modifiedDate = customServiceProviderTicket.getModifiedDate();
@@ -82,23 +102,36 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.modifierRole = customServiceProviderTicket.getModifierRole();
         this.customTicketState = customServiceProviderTicket.getTicketState();
         this.comment = customServiceProviderTicket.getComment();
-        if(customServiceProviderTicket.getTicketType().getTicketTypeId()==3)
-        {
-            this.task_desc=customServiceProviderTicket.getDesc();
-        }
+
         this.customTicketType = customServiceProviderTicket.getTicketType();
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
-        ServiceProviderEntity serviceProvider=null;
+        this.title = customServiceProviderTicket.getTitle();
+        this.task_desc = customServiceProviderTicket.getDesc();
+        this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
+        this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
+        this.isCompleted = customServiceProviderTicket.getIsComplete();
+
+        ServiceProviderEntity serviceProvider = null;
         try {
-            serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
-            this.assigneeName = serviceProvider.getFirst_name()+" "+serviceProvider.getLast_name();
+            if(customServiceProviderTicket.getAssignee() != null) {
+                serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
+                this.assigneeName = serviceProvider.getFirst_name();
+                if (serviceProvider.getLast_name() != null) {
+                    this.assigneeName += " " + serviceProvider.getLast_name();
+                }
+            } else {
+                this.assigneeName = "-";
+            }
         }
         catch (Exception e)
         {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
         }
 
+        this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
     public void customWrapDetailsGetAll(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO) {

@@ -10,6 +10,7 @@ import java.util.List;
 @Setter
 public class DistrictDistributionDto {
     private Integer districtId;
+    private String districtRunningField;
     private Boolean isGenderWise;
     private Integer maleVacancy;
     private Integer femaleVacancy;

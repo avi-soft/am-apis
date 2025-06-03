@@ -33,4 +33,5 @@ public class CustomGender {
     @Column(name="gender_name")
     @JsonProperty("gender_name")
     protected String genderName;
+
 }
