@@ -135,7 +135,7 @@ public class ServiceProviderController {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId, roleId))
+            if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId,userId ))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             if (serviceProvider.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
@@ -174,7 +174,7 @@ public class ServiceProviderController {
                 "mobileNumber",               // @Size(min=9, max=13)
                 "whatsapp_number",           // @NotEmpty + @Size + @Pattern
                 "primary_email",             // @NotEmpty + @Email
-                "password",                  // @NotEmpty + @JsonIgnore
+//                "password",                  // @NotEmpty + @JsonIgnore
                 "is_running_business_unit"// @NotEmpty (despite @Nullable)
         );
         //validating all required fields

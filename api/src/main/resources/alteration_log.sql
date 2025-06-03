@@ -288,8 +288,7 @@
 --END $$;
 
 -- RAMAN 13-05-2025
-DO $$
-BEGIN
+
 ----  ADDING A NEW STATE IN THE CUSTOM_TICKET_STATE TABLE IN THE DB
 --    IF NOT EXISTS (SELECT 1 FROM custom_ticket_state WHERE ticket_state_id = 7) THEN
 --        INSERT INTO custom_ticket_state (ticket_state_id, ticket_state, ticket_state_description)
@@ -336,12 +335,24 @@ BEGIN
 --    END IF;
 
 
---    ADDING THE NEW STATE LINKAGE FOR THE REVIEW TICKET.
-    IF NOT EXISTS (SELECT 1 FROM custom_ticket_status WHERE ticket_status_id = 15) THEN
-           INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
-           VALUES
-                   (15, 'CLOSE', 'Ticket is closed.');
-    END IF;
+----    ADDING THE NEW STATE LINKAGE FOR THE REVIEW TICKET.
+--    IF NOT EXISTS (SELECT 1 FROM custom_ticket_status WHERE ticket_status_id = 15) THEN
+--           INSERT INTO custom_ticket_status (ticket_status_id, ticket_status, ticket_status_description)
+--           VALUES
+--                   (15, 'CLOSE', 'Ticket is closed.');
+--    END IF;
+
+-- RAMAN 30-05-2025
+DO $$
+BEGIN
+    ALTER TABLE service_provider
+        ADD CONSTRAINT chk_ticket_assigned_non_negative CHECK (ticket_assigned IS NULL OR ticket_assigned >= 0);
+
+    ALTER TABLE service_provider
+        ADD CONSTRAINT chk_ticket_pending_non_negative CHECK (ticket_pending IS NULL OR ticket_pending >= 0);
+
+    ALTER TABLE service_provider
+        ADD CONSTRAINT chk_ticket_completed_non_negative CHECK (ticket_completed IS NULL OR ticket_completed >= 0);
 
 END $$;
 

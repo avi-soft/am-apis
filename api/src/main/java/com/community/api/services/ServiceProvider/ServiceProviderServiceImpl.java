@@ -635,7 +635,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         for (int skill_id : skillList) {
                             Skill skill = entityManager.find(Skill.class, skill_id);
 
-                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Others"))
+                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Any Other Expertise"))
                             {
                                 if(!updates.containsKey("other_skill"))
                                 {
@@ -1946,11 +1946,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 throw new IllegalArgumentException("No Test Status is found with this id");
             }
 
-            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role = :roleId", ServiceProviderEntity.class);
+            ArrayList<Integer> roleIds = new ArrayList<>();
+            roleIds.add(4);
+            roleIds.add(2);
+
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role IN :roleIds", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
             query.setParameter("isApproved", true);
-            query.setParameter("roleId", 4);
+            query.setParameter("roleIds", roleIds);
 
             return query.getResultList();
 
