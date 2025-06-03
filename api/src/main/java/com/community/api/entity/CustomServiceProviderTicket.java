@@ -1,6 +1,8 @@
 package com.community.api.entity;
 
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,11 +18,13 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "custom_service_provider_ticket")
@@ -55,7 +59,7 @@ public class CustomServiceProviderTicket {
     private Long userId;
 
     @Column(name = "created_date")
-    @JsonProperty("creator_date")
+    @JsonProperty("created_date")
     private Date createdDate;
 
     @ManyToOne
@@ -135,5 +139,9 @@ public class CustomServiceProviderTicket {
     @Column(name = "is_review_required")
     @JsonProperty("is_review_required")
     private Boolean isReviewRequired;
+
+    @OneToMany(mappedBy = "serviceProviderTicket")
+    @JsonManagedReference
+    private Set<ServiceProviderDocument> serviceProviderDocuments;
 
 }
