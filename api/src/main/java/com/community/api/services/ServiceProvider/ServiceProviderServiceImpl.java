@@ -811,8 +811,60 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (sharedUtilityService.isFutureDate(dob))
                     errorMessages.add("DOB cannot be in future");
             }
-            if (updates.containsKey("pan_number") && ((String) updates.get("pan_number")).isEmpty())
-                errorMessages.add("pan number cannot be empty");
+
+            if (updates.containsKey("aadhaar_number")) {
+                String newAadhaarNumber = (String) updates.get("aadhaar_number");
+
+                if (newAadhaarNumber == null || newAadhaarNumber.trim().isEmpty()) {
+                    errorMessages.add("Aadhaar number cannot be empty");
+                } else {
+                    String existingAadhaarNumber = (String) entityManager.createQuery(
+                                        "SELECT sp.aadhaar_number FROM ServiceProviderEntity sp WHERE sp.service_provider_id = :id", String.class)
+                                .setParameter("id", userId)
+                                .getSingleResult();
+
+                    if (!newAadhaarNumber.equals(existingAadhaarNumber)) {
+                            Long aadhaarCount = entityManager.createQuery(
+                                            "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.aadhaar_number = :aadhaar_number AND sp.service_provider_id != :id", Long.class)
+                                    .setParameter("aadhaar_number", newAadhaarNumber)
+                                    .setParameter("id", userId)
+                                    .getSingleResult();
+
+                            if (aadhaarCount > 0) {
+                                return ResponseService.generateErrorResponse("Aadhaar number already exists", HttpStatus.BAD_REQUEST);
+                            }
+                        }
+
+                }
+            }
+
+            if (updates.containsKey("pan_number")) {
+                String newPanNumber = (String) updates.get("pan_number");
+
+                if (newPanNumber == null || newPanNumber.trim().isEmpty()) {
+                    errorMessages.add("PAN number cannot be empty");
+                } else {
+                    // Fetch existing PAN number from DB for current record
+                    String existingPanNumber = (String) entityManager.createQuery(
+                                    "SELECT sp.pan_number FROM ServiceProviderEntity sp WHERE sp.service_provider_id = :id", String.class)
+                            .setParameter("id", userId)
+                            .getSingleResult();
+
+                    // UNIQUENESS CHECK
+                    if (!newPanNumber.equals(existingPanNumber)) {
+                        Long panCount = entityManager.createQuery(
+                                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.pan_number = :pan_number AND sp.service_provider_id != :id", Long.class)
+                                .setParameter("pan_number", newPanNumber)
+                                .setParameter("id", userId)
+                                .getSingleResult();
+
+                        if (panCount > 0) {
+                            return ResponseService.generateErrorResponse("PAN number already exists", HttpStatus.BAD_REQUEST);
+                        }
+                    }
+                }
+            }
+
             // Update only the fields that are present in the map using reflections
             for (Map.Entry<String, Object> entry : updates.entrySet()) {
                 String fieldName = entry.getKey();
