@@ -317,7 +317,7 @@ public class ServiceProviderTicketService {
 
             // Firstly we fetch all the tickets which are in return state.
             List<CustomServiceProviderTicket> tickets = query.getResultList();
-            log.info("ticket recieved for auto-assignment: {}", tickets.size());
+            log.info("ticket received for auto-assignment: {}", tickets.size());
 
             randomBindingTicketAllocationForTickets(tickets, assignedTickets);
 
@@ -498,8 +498,10 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() && serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) ) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    } else {
+                        log.info("Either the service provider is not active or not admin or service provider");
                     }
                     if (assigned) {
                         iterator.remove();
@@ -513,7 +515,11 @@ public class ServiceProviderTicketService {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                         log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
-                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                            assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        } else {
+                            log.info("Either the service provider is not active or not admin or service provider");
+                        }
                         if (assigned) {
                             iterator.remove();
                             break;
@@ -530,7 +536,11 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    } else {
+                        log.info("Either the service provider is not active or not admin or service provider");
+                    }
                     if (assigned) {
                         iterator.remove();
                         break;
