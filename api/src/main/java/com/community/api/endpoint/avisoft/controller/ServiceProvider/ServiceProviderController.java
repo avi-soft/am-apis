@@ -174,7 +174,7 @@ public class ServiceProviderController {
                 "mobileNumber",               // @Size(min=9, max=13)
                 "whatsapp_number",           // @NotEmpty + @Size + @Pattern
                 "primary_email",             // @NotEmpty + @Email
-                "password",                  // @NotEmpty + @JsonIgnore
+//                "password",                  // @NotEmpty + @JsonIgnore
                 "is_running_business_unit"// @NotEmpty (despite @Nullable)
         );
         //validating all required fields
