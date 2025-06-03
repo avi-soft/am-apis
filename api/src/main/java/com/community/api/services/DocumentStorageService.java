@@ -5,6 +5,7 @@ import com.community.api.component.FFmpegManager;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.FileType;
 import com.community.api.entity.TypingText;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -56,6 +57,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Base64;
 import java.util.Iterator;
@@ -402,6 +404,31 @@ public class DocumentStorageService {
         newDocument.setServiceProviderEntity(serviceProviderEntity);
         newDocument.setDocumentType(documentTypeObj);
         newDocument.setIsArchived(false);
+        newDocument.setUploadedDate(new Date());
+
+        String newFilePath = "avisoftdocument"
+                + File.separator + role + File.separator + customerId
+                + File.separator + snakeCaseDocumentType
+                + File.separator + file.getOriginalFilename();
+
+
+        newDocument.setFilePath(newFilePath);
+        em.persist(newDocument);
+        return newDocument;
+    }
+
+    @Transactional
+    public ServiceProviderDocument createTicketDocumentServiceProvider(MultipartFile file, DocumentType documentTypeObj, ServiceProviderEntity serviceProviderEntity, Long customerId, String role, CustomServiceProviderTicket ticket) {
+        String snakeCaseDocumentType = documentTypeObj.getDocument_type_name().trim().replaceAll(" +", "_");
+        ServiceProviderDocument newDocument = new ServiceProviderDocument();
+        newDocument.setName(file.getOriginalFilename());
+        newDocument.setServiceProviderEntity(serviceProviderEntity);
+        newDocument.setDocumentType(documentTypeObj);
+        newDocument.setIsArchived(false);
+        newDocument.setUploadedDate(new Date());
+        if(ticket != null) {
+            newDocument.setServiceProviderTicket(ticket);
+        }
 
         String newFilePath = "avisoftdocument"
                 + File.separator + role + File.separator + customerId
