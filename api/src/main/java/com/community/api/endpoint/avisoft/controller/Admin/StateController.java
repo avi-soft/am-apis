@@ -75,13 +75,13 @@ public class StateController {
         }
     }
     @Authorize(value ={Constant.roleSuperAdmin})
-    @RequestMapping(value = "{stateId}/delete", method = RequestMethod.PATCH)
-    public ResponseEntity<?> delete(@RequestParam Integer stateId) {
+    @RequestMapping(value = "{stateId}/manage", method = RequestMethod.DELETE)
+    public ResponseEntity<?> manage(@PathVariable Integer stateId,@RequestParam(defaultValue = "true") Boolean archive) {
         try {
             StateCode state =districtService.getStateByStateId(stateId);
             if(state==null)
                 return ResponseService.generateErrorResponse("State not found",HttpStatus.BAD_REQUEST);
-            return ResponseService.generateSuccessResponse("State archived successfully in master data",districtService.deleteState(stateId),HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("State archive status alterd successfully in master data",districtService.manageState(stateId,archive),HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse("Cannot archive state : "+e.getMessage(), HttpStatus.BAD_REQUEST);
         }catch (Exception e) {
