@@ -5,6 +5,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.Districts;
 import com.community.api.entity.StateCode;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 import java.util.List;
 
 @Service
@@ -118,9 +120,27 @@ public class DistrictService {
             throw new Exception("Some Exception Occurred: " + exception.getMessage());
         }
     }
-
+    public Integer getCount()
+    {
+        String query ="SELECT MAX(state_id) AS max_state_id FROM custom_state_codes";
+        Query nquery=entityManager.createNativeQuery(query);
+        return (Integer)nquery.getSingleResult();
+    }
+    @Transactional
     public StateCode addState(StateCode stateCode) throws IllegalArgumentException, Exception {
         try {
+            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
+            query.setParameter("state", stateCode.getState_name());
+            List<StateCode> stateCodes = query.getResultList();
+            if(stateCode.getState_id()!=null)
+                throw new IllegalArgumentException("Cannot give state id when adding");
+            stateCode.setState_id(getCount()+1);
+            if(!stateCodes.isEmpty())
+                throw new IllegalArgumentException("State already exists");
+            if(stateCode.getState_name()==null)
+                throw new IllegalArgumentException("State name is required");
+            if(stateCode.getState_code()==null)
+                throw new IllegalArgumentException("State code is required");
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
                 throw new IllegalArgumentException("State name should contain only alphabets");
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
@@ -129,10 +149,58 @@ public class DistrictService {
             {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a state");
             }
+            stateCode.setArchived(false);
             entityManager.persist(stateCode);
             return stateCode;
         } catch (Exception e) {
             throw new Exception("Some Exception Occurred: " + e.getMessage());
         }
     }
+    @Transactional
+    public StateCode editState(Integer stateId,StateCode stateCode) throws IllegalArgumentException, Exception {
+        try {
+            StateCode state=entityManager.find(StateCode.class,stateId);
+
+            if(stateCode.getState_id()!=null)
+                throw new IllegalArgumentException("Cannot give state id when adding");
+            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
+            query.setParameter("state", stateCode.getState_name());
+            List<StateCode> stateCodes = query.getResultList();
+            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=stateCode.getState_id())
+                throw new IllegalArgumentException("State with this name already exists");
+            query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_CODE, StateCode.class);
+            query.setParameter("code", stateCode.getState_code());
+            stateCodes = query.getResultList();
+            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=stateCode.getState_id())
+                throw new IllegalArgumentException("State with this state code already exists");
+            if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
+                throw new IllegalArgumentException("State name should contain only alphabets");
+            if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
+                throw new IllegalArgumentException("State code should contain only alphabets");
+            if(stateCode.getArchived()!=null)
+            {
+                throw new IllegalArgumentException("Cannot provide archive status when updating a state");
+            }
+            state=stateCode;
+            entityManager.merge(state);
+            return stateCode;
+        } catch (Exception e) {
+            throw new Exception("Some Exception Occurred: " + e.getMessage());
+        }
+    }
+    public StateCode deleteState(Integer stateId) throws IllegalArgumentException, Exception {
+        try {
+            StateCode state=entityManager.find(StateCode.class,stateId);
+            if(state.getArchived())
+                throw new IllegalArgumentException("State already archived");
+            else {
+                state.setArchived(true);
+                entityManager.merge(state);
+            }
+            return state;
+        } catch (Exception e) {
+            throw new Exception("Some Exception Occurred: " + e.getMessage());
+        }
+    }
+
 }
