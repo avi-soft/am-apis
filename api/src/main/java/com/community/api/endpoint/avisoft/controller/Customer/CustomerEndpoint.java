@@ -322,7 +322,7 @@ public class CustomerEndpoint {
                   }
                   else
                   {
-                      if(stateCategoryName!=null||!stateCategoryName.trim().isEmpty()||categoryStateName!=null||categoryStateName.trim().isEmpty())
+                      if((stateCategoryName!=null&&!stateCategoryName.trim().isEmpty())||(categoryStateName!=null&&categoryStateName.trim().isEmpty()))
                           return ResponseService.generateErrorResponse("State level category cannot be provided",HttpStatus.BAD_REQUEST);
                       customCustomer.setHasStateCategory(false);
                   }
