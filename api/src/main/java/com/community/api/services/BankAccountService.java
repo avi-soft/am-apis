@@ -191,9 +191,8 @@ public class BankAccountService {
                 throw new NotAuthorizedException("NA", "Forbidden");
             }
 
-            // Validate account number uniqueness (excluding current account)
-            if (doesAccountExist(bankAccountDTO.getAccountNumber(), accountId, tokenUserId)) {
-                throw new AlreadyExistsException("Account number already exists.");
+            if (hasDuplicateAccountOrUpi(existingAccount, bankAccountDTO, accountId)) {
+                throw new AlreadyExistsException("Another account with this Account Number or UPI ID already exists.");
             }
 
             // Update fields from DTO to entity
@@ -219,9 +218,11 @@ public class BankAccountService {
 
     public BankAccountDTO convertToDTO(BankDetails bankDetails) {
         BankAccountDTO dto = new BankAccountDTO();
+        dto.setAccountId(bankDetails.getId());
+        dto.setRole(bankDetails.getRole());
         dto.setUpiId(bankDetails.getUpiId());
         dto.setAccountHolder(bankDetails.getAccountHolder());
-        dto.setUserId(bankDetails.getId());
+        dto.setUserId(bankDetails.getUserId());
         dto.setAccountNumber(bankDetails.getAccountNumber());
         dto.setIfscCode(bankDetails.getIfscCode());
         dto.setBankName(bankDetails.getBankName());
@@ -296,4 +297,40 @@ public class BankAccountService {
             return Collections.emptyList();
         }
     }
+
+    //used in add account for uniqueness of account number and upi id
+    public boolean isAccountOrUpiDuplicate(String accountNumber, String upiId) {
+        try {
+            List<BankDetails> resultList = entityManager.createQuery(
+                            "SELECT b FROM BankDetails b WHERE b.accountNumber = :accountNumber OR b.upiId = :upiId", BankDetails.class)
+                    .setParameter("accountNumber", accountNumber)
+                    .setParameter("upiId", upiId)
+                    .getResultList();
+
+            return !resultList.isEmpty();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    //used in update bank details for the account number or upi id is updated or not
+    public boolean hasDuplicateAccountOrUpi(BankDetails existingAccount, BankAccountDTO bankAccountDTO, Long accountId) {
+        boolean accountNumberChanged = !Objects.equals(existingAccount.getAccountNumber(), bankAccountDTO.getAccountNumber());
+        boolean upiIdChanged = !Objects.equals(existingAccount.getUpiId(), bankAccountDTO.getUpiId());
+
+        if (accountNumberChanged || upiIdChanged) {
+            Long count = entityManager.createQuery(
+                            "SELECT COUNT(b) FROM BankDetails b WHERE (b.accountNumber = :accountNumber OR b.upiId = :upiId) AND b.id != :id", Long.class)
+                    .setParameter("accountNumber", bankAccountDTO.getAccountNumber())
+                    .setParameter("upiId", bankAccountDTO.getUpiId())
+                    .setParameter("id", accountId)
+                    .getSingleResult();
+
+            return count > 0;
+        }
+
+        return false;
+    }
+
 }
