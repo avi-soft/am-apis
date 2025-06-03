@@ -3759,9 +3759,9 @@ public class ProductService {
         }*/
        /* if(postDto.getDuration()<0)
             throw new IllegalArgumentException("Post duration cannot be < 0");*/
-        if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
+      /*  if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
-        }
+        }*/
         if(postDto.getIncome()!=null)
         {
             if (postDto.getIncome()<0)
