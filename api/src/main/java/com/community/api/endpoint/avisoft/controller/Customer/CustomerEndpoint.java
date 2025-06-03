@@ -305,6 +305,32 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+            if(details.containsKey("has_state_category")) {
+                  String categoryStateName=(String)details.get("category_state_name");
+                  Boolean hasStateCategory = (Boolean)details.get("has_state_category");
+                  String  stateCategoryName=(String)details.get("state_category");
+                  if(hasStateCategory)
+                  {
+                      if(!details.containsKey("category_state_name")||categoryStateName==null||categoryStateName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("Need to provide state for state level category",HttpStatus.BAD_REQUEST);
+                      if(!details.containsKey("state_category")||stateCategoryName==null||stateCategoryName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("State level category name required",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(true);
+                      customCustomer.setStateCategory(stateCategoryName);
+                      customCustomer.setCategoryStateName(categoryStateName);
+                      customCustomer.setCategory(null);
+                  }
+                  else
+                  {
+                      if((stateCategoryName!=null&&!stateCategoryName.trim().isEmpty())||(categoryStateName!=null&&categoryStateName.trim().isEmpty()))
+                          return ResponseService.generateErrorResponse("State level category cannot be provided",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(false);
+                  }
+            }
+            else
+            {
+                return ResponseService.generateErrorResponse("Need to provide whether state level category or not",HttpStatus.BAD_REQUEST);
+            }
 
             if (details.containsKey("familyIncome")) {
                 Object incomeObj = details.get("familyIncome");
@@ -1082,6 +1108,9 @@ public class CustomerEndpoint {
                 }
             }
 
+            details.remove("has_state_category");
+            details.remove("state_category");
+            details.remove("category_state_name");
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -1432,6 +1461,7 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
+
             if (isValidDate != null && isValidDate.equals(true)) {
                 errorMessages.remove(errorMessages.size() - 1);
             }
@@ -1786,6 +1816,9 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
+            addressDetails.remove("has_state_category");
+            addressDetails.remove("state_category");
+            addressDetails.remove("category_state_name");
             Customer customer = customerService.readCustomerById(id);
             if (customer != null) {
                 CustomerAddress newAddress = customerAddressService.create();
@@ -2874,51 +2907,11 @@ public class CustomerEndpoint {
         Long genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
         Double fee;
         String ageLimit;
-        String sql = """
-                    SELECT DISTINCT ON (p.product_id) p.product_id
-                    FROM custom_product p
-                    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
-                    JOIN post_details post ON post.product_id = p.product_id
-                    JOIN blc_product bp ON bp.product_id = c.product_id
-                    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
-                    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
-                    JOIN qualification_eligibility qf ON qf.post_id = post.postid
-                    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-                    WHERE qd.qualification_id IN (:qualificationId)
-                    AND c.gender_id = :genderId
-                    AND rf.gender_id = :genderId
-                    AND c.reserve_category_id = :reserveCategoryId
-                    AND rf.reserve_category_id = :reserveCategoryId
-                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date >= CURRENT_DATE
-                    AND p.soft_delete='N'
-                    ORDER BY p.product_id, p.views DESC
-                    LIMIT :limit OFFSET :offset
-                """;
 
 
-        String count = """
-                    SELECT COUNT(DISTINCT p.product_id)
-                    FROM custom_product p
-                    JOIN custom_product_reserve_category_fee_post_reference c ON p.product_id = c.product_id
-                    JOIN post_details post ON post.product_id = p.product_id
-                    JOIN blc_product bp ON bp.product_id = c.product_id
-                    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id
-                    JOIN custom_product_reserve_category_born_before_after_reference rf ON post.postid = rf.post_id
-                    JOIN qualification_eligibility qf ON qf.post_id = post.postid
-                    JOIN qualification_eligibility_qualifications qd ON qf.qualification_eligibility_id = qd.qualification_eligibility_id
-                    WHERE qd.qualification_id IN (:qualificationId)
-                    AND c.gender_id = :genderId
-                    AND rf.gender_id = :genderId
-                    AND c.reserve_category_id = :reserveCategoryId
-                    AND rf.reserve_category_id = :reserveCategoryId
-                    AND :age BETWEEN rf.minimum_age AND rf.maximum_age
-                    AND sku.active_end_date >= CURRENT_DATE
-                    AND p.soft_delete='N'
-                """;
-
-        List<BigInteger> res = entityManager.createNativeQuery(sql)
-                .setParameter("qualificationId", qualificationIds)
+        List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
+                .setParameter("customerId",customCustomer.getId())
+                .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
@@ -2926,8 +2919,9 @@ public class CustomerEndpoint {
                 .setParameter("offset", offset)
                 .getResultList();
 
-        BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(count)
-                .setParameter("qualificationId", qualificationIds)
+        BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(recosCount)
+                .setParameter("customerId",customCustomer.getId())
+                .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
                 .setParameter("age", age)
