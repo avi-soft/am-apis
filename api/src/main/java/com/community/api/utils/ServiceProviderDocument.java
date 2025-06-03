@@ -41,6 +41,7 @@ public class ServiceProviderDocument {
     private String filePath;
 
     @Lob
+    @JsonIgnore
     private byte[] data;
 
     @JsonBackReference
