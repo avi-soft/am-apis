@@ -326,10 +326,10 @@ public class CartEndPoint extends BaseEndpoint {
             if (reserveCategoryId == null)
                 return ResponseService.generateErrorResponse("Invalid Category", HttpStatus.INTERNAL_SERVER_ERROR);
             double noReserveCategoryFee = 0.0;
-            if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
+            /*if(reserveCategoryService.getReserveCategoryFee(productId,reserveCategoryId,genderId)==null) {
                 return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category and gender", HttpStatus.UNPROCESSABLE_ENTITY);
                // noReserveCategoryFee=reserveCategoryService.getReserveCategoryFee(productId,1L,1L);//1 for general
-            }
+            }*/
 
             /*if(productReserveCategoryFeePostRefService.getCustomProductReserveCategoryFeePostRefByProductIdAndReserveCategoryId(product.getId(),.getFee()==null)
             {

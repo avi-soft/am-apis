@@ -34,8 +34,10 @@ public class Constant {
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
-    public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code ";
-    public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role = 4 ";
+
+    public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
+    public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
+
     public static String PHONE_QUERY_ADMIN="SELECT c FROM CustomAdmin c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String USERNAME_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.user_name = :username";
     public static String USERNAME_QUERY_CUSTOM_ADMIN = "SELECT c FROM CustomAdmin c WHERE c.user_name = :username";
@@ -49,6 +51,7 @@ public class Constant {
     public static final Long APPROVED_TEST = 3L;
 
     public static String STATE_CODE_QUERY = "SELECT s FROM StateCode s WHERE s.state_name = :state_name";
+    public static final String APPLIED_FORM_QUERY = "SELECT DISTINCT o.order_id FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.customer_id = :customerId AND o.tax_override IS NULL AND os.order_state_id NOT IN (5, 999)";
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
@@ -276,6 +279,200 @@ public class Constant {
     public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
     public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
 
+    public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
+    public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
+    public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
+    public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
 
+    public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name IS NOT NULL ";
 
+    public static final String GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) AND d.name = :documentName AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL";
+
+    //add constants above this query//*******************************************************************************
+    public static  final String recosQuery =
+            "WITH overlappings AS (" +
+                    "    SELECT qualification_id " +
+                    "    FROM qualification " +
+                    "    WHERE qualification_id IN (:qualificationIds) " +
+                    "), " +
+                    "customer_qualifications AS (" +
+                    "    SELECT " +
+                    "        qd.qualification_id, " +
+                    "        qd.cumulative_percentage_value, " +
+                    "        qd.grade_value, " +
+                    "        qd.division_value, " +
+                    "        qd.is_division, " +
+                    "        qd.is_grade " +
+                    "    FROM qualification_details qd " +
+                    "    WHERE qd.custom_customer_id = :customerId " +
+                    "), " +
+                    "products_with_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN post_details post ON post.product_id = p.product_id " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    LEFT JOIN custom_product_reserve_category_born_before_after_reference rf " +
+                    "        ON post.postid = rf.post_id " +
+                    "    LEFT JOIN qualification_eligibility qf " +
+                    "        ON qf.post_id = post.postid " +
+                    "    LEFT JOIN qualification_eligibility_qualifications qd " +
+                    "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
+                    "    LEFT JOIN customer_qualifications cq " +
+                    "        ON qd.qualification_id = cq.qualification_id " +
+                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND (" +
+                    "        (qd.qualification_id IS NULL) " +
+                    "        OR (qd.qualification_id IN (:qualificationIds)) " +
+                    "        OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.gender_id IS NULL OR rf.gender_id IN (:genderId, 4)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.minimum_age IS NULL AND rf.maximum_age IS NULL) " +
+                    "        OR (:age BETWEEN rf.minimum_age AND rf.maximum_age) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (qf.is_appearing = true) " +
+                    "        OR (qf.percentage IS NULL AND qf.cgpa IS NULL) " +
+                    "        OR (" +
+                    "            qf.is_percentage = true AND " +
+                    "            qf.percentage IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.percentage) " +
+                    "        ) " +
+                    "        OR (" +
+                    "            qf.is_percentage = false AND " +
+                    "            qf.cgpa IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.cgpa) " +
+                    "        ) " +
+                    "    ) " +
+                    "), " +
+                    "products_without_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN custom_product_reserve_category_born_before_after_reference rf ON pd.postid = rf.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN qualification_eligibility qe ON pd.postid = qe.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    ") " +
+                    "SELECT DISTINCT product_id " +
+                    "FROM (" +
+                    "    SELECT product_id FROM products_with_requirements " +
+                    "    UNION ALL " +
+                    "    SELECT product_id FROM products_without_requirements " +
+                    ") combined_products " +
+                    "ORDER BY product_id DESC " +
+                    "LIMIT :limit OFFSET :offset";
+
+    public static final String recosCount=// Query to get count of distinct product IDs
+            "WITH overlappings AS (" +
+                    "    SELECT qualification_id " +
+                    "    FROM qualification " +
+                    "    WHERE qualification_id IN (:qualificationIds) " +
+                    "), " +
+                    "customer_qualifications AS (" +
+                    "    SELECT " +
+                    "        qd.qualification_id, " +
+                    "        qd.cumulative_percentage_value, " +
+                    "        qd.grade_value, " +
+                    "        qd.division_value, " +
+                    "        qd.is_division, " +
+                    "        qd.is_grade " +
+                    "    FROM qualification_details qd " +
+                    "    WHERE qd.custom_customer_id = :customerId " +
+                    "), " +
+                    "products_with_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN post_details post ON post.product_id = p.product_id " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    LEFT JOIN custom_product_reserve_category_born_before_after_reference rf " +
+                    "        ON post.postid = rf.post_id " +
+                    "    LEFT JOIN qualification_eligibility qf " +
+                    "        ON qf.post_id = post.postid " +
+                    "    LEFT JOIN qualification_eligibility_qualifications qd " +
+                    "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
+                    "    LEFT JOIN customer_qualifications cq " +
+                    "        ON qd.qualification_id = cq.qualification_id " +
+                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND (" +
+                    "        (qd.qualification_id IS NULL) " +
+                    "        OR (qd.qualification_id IN (:qualificationIds)) " +
+                    "        OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.gender_id IS NULL OR rf.gender_id IN (:genderId, 4)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.minimum_age IS NULL AND rf.maximum_age IS NULL) " +
+                    "        OR (:age BETWEEN rf.minimum_age AND rf.maximum_age) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (qf.is_appearing = true) " +
+                    "        OR (qf.percentage IS NULL AND qf.cgpa IS NULL) " +
+                    "        OR (" +
+                    "            qf.is_percentage = true AND " +
+                    "            qf.percentage IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.percentage) " +
+                    "        ) " +
+                    "        OR (" +
+                    "            qf.is_percentage = false AND " +
+                    "            qf.cgpa IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.cgpa) " +
+                    "        ) " +
+                    "    ) " +
+                    "), " +
+                    "products_without_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN custom_product_reserve_category_born_before_after_reference rf ON pd.postid = rf.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN qualification_eligibility qe ON pd.postid = qe.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    ") " +
+                    "SELECT COUNT(DISTINCT product_id) " +
+                    "FROM (" +
+                    "    SELECT product_id FROM products_with_requirements " +
+                    "    UNION ALL " +
+                    "    SELECT product_id FROM products_without_requirements " +
+                    ") combined_products";
+//add constants above this query//*******************************************************************************
 }

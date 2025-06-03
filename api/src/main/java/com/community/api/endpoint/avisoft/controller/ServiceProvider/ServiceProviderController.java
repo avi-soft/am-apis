@@ -130,10 +130,15 @@ public class ServiceProviderController {
     public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
-            if (serviceProvider.getIsArchived().equals(true))
-                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider with provided Id not found", HttpStatus.NOT_FOUND);
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId, roleId))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if (serviceProvider.getIsArchived().equals(true))
+                return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
             return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails,authHeader);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);

@@ -29,6 +29,9 @@ public class ReserveCategoryController {
     public ResponseEntity<?> getAllReserveCategory() {
         try {
             List<CustomReserveCategory> authorities = reserveCategoryService.getAllReserveCategory();
+            CustomReserveCategory reserveCategory=reserveCategoryService.getReserveCategoryById(8L);
+            if(reserveCategory!=null)
+                authorities.remove(reserveCategory);
             if (authorities.isEmpty()) {
                 return ResponseService.generateErrorResponse("No Reserve Category Found", HttpStatus.NOT_FOUND);
             }
