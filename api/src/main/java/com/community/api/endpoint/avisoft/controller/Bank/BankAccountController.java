@@ -63,44 +63,48 @@ public class BankAccountController {
 
     /**
      * Add bank account response entity.
-    the customer id
+     * the customer id
+     *
      * @param bankAccountDTO the bank account dto
      * @return the response entity
      */
     @PostMapping("/add")
     public ResponseEntity<?> addBankAccount(
             @RequestBody BankAccountDTO bankAccountDTO,
-    @RequestHeader(value = "Authorization")String authHeader) {
+            @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
-            Long customerId=bankAccountDTO.getUserId();
+            Long customerId = bankAccountDTO.getUserId();
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if(Objects.equals(roleId, bankAccountDTO.getRole()) &&!Objects.equals(tokenUserId, bankAccountDTO.getUserId()))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            String errorMessage= bankAccountService.getErrorMessage(bankAccountDTO);
-            if(!errorMessage.isEmpty())
-                return ResponseService.generateErrorResponse(errorMessage,HttpStatus.BAD_REQUEST);
+            if (Objects.equals(roleId, bankAccountDTO.getRole()) && !Objects.equals(tokenUserId, bankAccountDTO.getUserId()))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            String errorMessage = bankAccountService.getErrorMessage(bankAccountDTO);
+            if (!errorMessage.isEmpty())
+                return ResponseService.generateErrorResponse(errorMessage, HttpStatus.BAD_REQUEST);
             if (customerId == null) {
                 return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
             }
-            if(bankAccountDTO.getRole()==5) {
+            if (bankAccountDTO.getRole() == 5) {
                 Customer customer = customerService.readCustomerById(customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
                 }
-            }
-            else
-            {
-                ServiceProviderEntity customer=entityManager.find(ServiceProviderEntity.class,customerId);
+            } else {
+                ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class, customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
                 }
             }
-          /*  if(bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(),null,bankAccountDTO.getUserId()))
-                return ResponseService.generateErrorResponse("Bank account exists",HttpStatus.BAD_REQUEST);*/
-            String result = bankAccountService.addBankAccount(authHeader,bankAccountDTO);
+
+            if (bankAccountService.isAccountOrUpiDuplicate(bankAccountDTO.getAccountNumber(), bankAccountDTO.getUpiId())) {
+                return ResponseService.generateErrorResponse("Account number or UPI ID already exists.", HttpStatus.BAD_REQUEST);
+            }
+
+//            if(bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(),null,bankAccountDTO.getUserId()))
+//              return ResponseService.generateErrorResponse("Bank account exists",HttpStatus.BAD_REQUEST);
+            String result = bankAccountService.addBankAccount(authHeader, bankAccountDTO);
 
             if (result.contains("Account numbers do not match.")) {
                 return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
@@ -125,22 +129,16 @@ public class BankAccountController {
             );
 
 
-
             return ResponseService.generateSuccessResponse("Bank account added successfully!", responseDTO, HttpStatus.OK);
-        }catch (AlreadyExistsException e)
-        {
-            return ResponseService.generateErrorResponse("Bank Account Already exists",HttpStatus.BAD_REQUEST);
-        }
-        catch (ValidationException v)
-        {
-            return ResponseService.generateErrorResponse("Failed Validation"+v.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-        catch (Exception e) {
+        } catch (AlreadyExistsException e) {
+            return ResponseService.generateErrorResponse("Bank Account Already exists", HttpStatus.BAD_REQUEST);
+        } catch (ValidationException v) {
+            return ResponseService.generateErrorResponse("Failed Validation" + v.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
 
     /**
@@ -150,48 +148,48 @@ public class BankAccountController {
      * @return the bank accounts by customer id
      */
     @GetMapping("/get/{customerId}")
-    public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId,@RequestHeader(value = "Authorization")String authHeader,@RequestParam Integer role) {
-        try{
+    public ResponseEntity<?> getBankAccountsByCustomerId(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam Integer role) {
+        try {
             String jwtToken = authHeader.substring(7);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Integer roleId=jwtTokenUtil.extractRoleId(jwtToken);
-            Role roleToCheck=roleService.getRoleByRoleId(role);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Role roleToCheck = roleService.getRoleByRoleId(role);
 
-            if(role==null)
-                return ResponseService.generateErrorResponse("Invalid role",HttpStatus.NOT_FOUND);
-            if(roleToCheck.getRole_name().equals(Constant.roleUser)) {
-                Customer customer = entityManager.find(CustomCustomer.class,customerId);
+            if (role == null)
+                return ResponseService.generateErrorResponse("Invalid role", HttpStatus.NOT_FOUND);
+            if (roleToCheck.getRole_name().equals(Constant.roleUser)) {
+                Customer customer = entityManager.find(CustomCustomer.class, customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
-                if(roleId==4)
-                    return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
+                if (roleId == 4)
+                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
             }
-            if(roleToCheck.getRole_name().equals(Constant.roleServiceProvider)) {
-                ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class,customerId);
+            if (roleToCheck.getRole_name().equals(Constant.roleServiceProvider)) {
+                ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class, customerId);
                 if (customer == null) {
                     return ResponseService.generateErrorResponse("User not found for this Id", HttpStatus.NOT_FOUND);
                 }
-                if(roleId==5)
-                    return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
+                if (roleId == 5)
+                    return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
             }
-            if(roleId.equals(role)&&!tokenUserId.equals(customerId))
-                return ResponseService.generateErrorResponse("Unauthorized",HttpStatus.UNAUTHORIZED);
+            if (roleId.equals(role) && !tokenUserId.equals(customerId))
+                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
             if (customerId == null) {
                 return ResponseService.generateErrorResponse("User Id not specified", HttpStatus.BAD_REQUEST);
             }
-            List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId,role);
+            List<BankAccountDTO> bankAccounts = bankAccountService.getBankAccountsByCustomerId(customerId, role);
             if (bankAccounts.isEmpty()) {
                 return ResponseService.generateErrorResponse("No bank accounts found for this user", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("Bank accounts fetched successfully!", bankAccounts, HttpStatus.OK);
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 
-        }    }
+        }
+    }
 
     /**
      * Update bank account response entity.
@@ -210,9 +208,9 @@ public class BankAccountController {
             if (accountId == null) {
                 return ResponseService.generateErrorResponse("Account ID is required", HttpStatus.BAD_REQUEST);
             }
-            String errorMessage= bankAccountService.getErrorMessage(bankAccountDTO);
-            if(!errorMessage.isEmpty())
-                return ResponseService.generateErrorResponse(errorMessage,HttpStatus.BAD_REQUEST);
+            String errorMessage = bankAccountService.getErrorMessage(bankAccountDTO);
+            if (!errorMessage.isEmpty())
+                return ResponseService.generateErrorResponse(errorMessage, HttpStatus.BAD_REQUEST);
             // Validate DTO (handled by @Valid and DTO annotations)
 
             // Check if account exists
@@ -243,7 +241,6 @@ public class BankAccountController {
     }
 
 
-
     /**
      * Delete bank account response entity.
      *
@@ -251,7 +248,7 @@ public class BankAccountController {
      * @return the response entity
      */
     @DeleteMapping("/delete/{accountId}")
-    public ResponseEntity<?> deleteBankAccount(@PathVariable Long accountId,@RequestHeader(value = "Authorization")String authHeader) {
+    public ResponseEntity<?> deleteBankAccount(@PathVariable Long accountId, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             if (accountId == null) {
                 return ResponseService.generateErrorResponse("Account ID is required", HttpStatus.BAD_REQUEST);
@@ -263,15 +260,14 @@ public class BankAccountController {
                 return ResponseService.generateErrorResponse("Bank account not found for this Id", HttpStatus.NOT_FOUND);
             }
 
-            String result = bankAccountService.deleteBankAccount(authHeader,accountId);
+            String result = bankAccountService.deleteBankAccount(authHeader, accountId);
             if (result.equals("Account deletion failed")) {
                 return ResponseService.generateErrorResponse("Failed to delete bank account", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             return ResponseService.generateSuccessResponse("Bank account deleted successfully!", null, HttpStatus.OK);
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 
