@@ -304,10 +304,11 @@ public class ServiceProviderTicketService {
 
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
-                    .append("WHERE 1=1 ") // Use this to simplify appending conditions
+                    .append("WHERE 1=1 ")
                     .append("AND c.assignee IS NULL ")
                     .append("AND c.ticketState IN :states ")
-                    .append("AND c.ticketType IN :types ");
+                    .append("AND c.ticketType IN :types ")
+                    .append("AND (c.ticketType.id <> 2 OR (c.ticketType.id = 2 AND c.parentTicket.ticketType.id = 1))");
 
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
@@ -501,7 +502,7 @@ public class ServiceProviderTicketService {
                     if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() && serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     } else {
-                        log.info("Either the service provider is not active or not admin or service provider");
+                        log.info("Either the service provider is not primary referee or not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
                     }
                     if (assigned) {
                         iterator.remove();
@@ -518,7 +519,7 @@ public class ServiceProviderTicketService {
                         if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                             assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                         } else {
-                            log.info("Either the service provider is not active or not admin or service provider");
+                            log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
                         }
                         if (assigned) {
                             iterator.remove();
@@ -539,7 +540,7 @@ public class ServiceProviderTicketService {
                     if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     } else {
-                        log.info("Either the service provider is not active or not admin or service provider");
+                        log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
                     }
                     if (assigned) {
                         iterator.remove();
@@ -613,6 +614,8 @@ public class ServiceProviderTicketService {
                                 break;
                             }
                         }
+                    } else {
+                        log.info("Either the service provider is not primary referee or not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                     }
                 }
 
@@ -634,6 +637,8 @@ public class ServiceProviderTicketService {
                                     break;
                                 }
                             }
+                        } else {
+                            log.info("Either the service provider is not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                         }
                     }
                 }
@@ -657,6 +662,8 @@ public class ServiceProviderTicketService {
                                 break;
                             }
                         }
+                    } else {
+                        log.info("Either the service provider is not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                     }
                 }
 
