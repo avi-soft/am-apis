@@ -31,6 +31,11 @@ public class DistrictService {
         return query.getResultList();
     }
 
+    public List<Districts> findAllDistricts() {
+        TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_ALL_QUERY, Districts.class);
+        return query.getResultList();
+    }
+
     public String findDistrictById(int district_id) {
         return entityManager.createQuery(Constant.FIND_DISTRICT, String.class)
                 .setParameter("district_id", district_id)
@@ -126,6 +131,12 @@ public class DistrictService {
         Query nquery=entityManager.createNativeQuery(query);
         return (Integer)nquery.getSingleResult();
     }
+    public Integer getCountDistrict()
+    {
+        String query ="SELECT MAX(district_id) AS max_district_id FROM custom_districts";
+        Query nquery=entityManager.createNativeQuery(query);
+        return (Integer)nquery.getSingleResult();
+    }
     @Transactional
     public StateCode addState(StateCode stateCode) throws IllegalArgumentException, Exception {
         try {
@@ -152,6 +163,43 @@ public class DistrictService {
             stateCode.setArchived(false);
             entityManager.persist(stateCode);
             return stateCode;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+    @Transactional
+    public Districts addDistrict(Districts district,Integer stateId) throws IllegalArgumentException, Exception {
+        try {
+            if(district.getState_code()==null)
+                throw new IllegalArgumentException("State code is required");
+            StateCode stateCode=entityManager.find(StateCode.class,stateId);
+            if (stateCode==null)
+                throw new IllegalArgumentException("Invalid state id ,State not found");
+            Query query = entityManager.createQuery(Constant.GET_DISTRICT_BY_DISTRICT_NAME, Districts.class);
+            if(!stateCode.getState_code().equals(district.getState_code()))
+                throw new IllegalArgumentException("State code "+district.getState_code()+" does not belong to state "+stateCode.getState_name());
+            query.setParameter("state", stateCode.getState_code());
+            query.setParameter("district",district.getDistrict_name());
+            List<Districts> districts = query.getResultList();
+            if(district.getDistrict_id()!=null)
+                throw new IllegalArgumentException("Cannot give district id when adding");
+            district.setDistrict_id(getCountDistrict()+1);
+            if(!districts.isEmpty())
+                throw new IllegalArgumentException("District already exists in this state");
+            if(district.getDistrict_name()==null)
+                throw new IllegalArgumentException("District name is required");
+
+            if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                throw new IllegalArgumentException("District name should contain only alphabets");
+            if (!sharedUtilityService.isAlphabetic(district.getState_code()))
+                throw new IllegalArgumentException("District code should contain only alphabets");
+            if(district.getArchived()!=null)
+            {
+                throw new IllegalArgumentException("Cannot provide archive status when adding a district");
+            }
+            district.setArchived(false);
+            entityManager.persist(district);
+            return district;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
@@ -192,6 +240,36 @@ public class DistrictService {
         }
     }
     @Transactional
+    public Districts editDistrict(Integer districtId,Districts district) throws IllegalArgumentException, Exception {
+        try {
+            Districts districtToEdit=entityManager.find(Districts.class,districtId);
+
+            if(district.getDistrict_id()!=null)
+                throw new IllegalArgumentException("Cannot give district id when editing");
+            Query query = entityManager.createQuery(Constant.GET_DISTRICT_BY_DISTRICT_NAME, Districts.class);
+            query.setParameter("state", district.getState_code());
+            query.setParameter("district",district.getDistrict_name());
+            List<Districts> districts = query.getResultList();
+            if(!districts.isEmpty()&&districtToEdit.getDistrict_id()!=districts.get(0).getDistrict_id())
+                throw new IllegalArgumentException("District already exists in state "+districts.get(0).getDistrict_name());
+            if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                throw new IllegalArgumentException("District name should contain only alphabets");
+            if (!sharedUtilityService.isAlphabetic(district.getState_code()))
+                throw new IllegalArgumentException("State code should contain only alphabets");
+            if(district.getArchived()!=null)
+            {
+                throw new IllegalArgumentException("Cannot provide archive status when updating a state");
+            }
+            districtToEdit.setState_code(district.getState_code());
+            districtToEdit.setDistrict_name(district.getDistrict_name());
+            districtToEdit.setArchived(false);
+            entityManager.merge(districtToEdit);
+            return districtToEdit;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+    @Transactional
     public StateCode manageState(Integer stateId,Boolean archive) throws IllegalArgumentException, Exception {
         try {
             StateCode state = entityManager.find(StateCode.class, stateId);
@@ -213,6 +291,32 @@ public class DistrictService {
                 }
             }
             return state;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+    @Transactional
+    public Districts manageDistrict(Integer districtId,Boolean archive) throws IllegalArgumentException, Exception {
+        try {
+            Districts district = entityManager.find(Districts.class, districtId);
+            if(archive) {
+                if (district.getArchived())
+                    throw new IllegalArgumentException("District already archived");
+                else {
+                    district.setArchived(true);
+                    entityManager.merge(district);
+                }
+            }
+            else
+            {
+                if (!district.getArchived())
+                    throw new IllegalArgumentException("District already unarchived");
+                else {
+                    district.setArchived(false);
+                    entityManager.merge(district);
+                }
+            }
+            return district;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
