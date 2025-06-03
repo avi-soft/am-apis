@@ -59,14 +59,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.community.api.component.Constant.roleServiceProvider;
-import static com.community.api.component.Constant.roleUser;
 
 @Slf4j
 @RestController
@@ -434,7 +430,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/add")
-    public ResponseEntity<?> createTicket(@RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
 
@@ -627,6 +623,11 @@ public class TicketController {
             }
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
+            if(files != null) {
+                Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
+                customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
+                entityManager.merge(customServiceProviderTicket);
+            }
             return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
