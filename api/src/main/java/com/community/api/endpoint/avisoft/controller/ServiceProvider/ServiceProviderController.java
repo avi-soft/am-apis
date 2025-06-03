@@ -590,8 +590,10 @@ public ResponseEntity<?> getAllServiceProviders(
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
+
             if(role!=null&&(role<=roleId&&roleId!=5))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            System.out.println("bypassed");
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
