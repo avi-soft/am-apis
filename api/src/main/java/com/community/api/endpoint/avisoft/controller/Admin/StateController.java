@@ -34,7 +34,6 @@ public class StateController {
     private DistrictService districtService;
     @Autowired
     private ResponseService responseService;
-    @Authorize(value ={Constant.roleSuperAdmin})
     @RequestMapping(value = "get-states", method = RequestMethod.GET)
     public ResponseEntity<?> getStates() {
         try {
