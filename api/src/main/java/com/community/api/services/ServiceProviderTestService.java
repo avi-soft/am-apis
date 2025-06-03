@@ -343,9 +343,9 @@ public class ServiceProviderTestService {
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
         Map<String, Object> responseBody = savedResponse.getBody();
 
-        if (savedResponse.getStatusCode() != HttpStatus.OK) {
+        /*if (savedResponse.getStatusCode() != HttpStatus.OK) {
             throw new Exception("Error uploading pdf: " + responseBody.get("message"));
-        }
+        }*/
         String fileName = pdfFile.getOriginalFilename();
         UploadedPdf uploadedPdf = test.getUploadedPdf();
         if (uploadedPdf == null) {
