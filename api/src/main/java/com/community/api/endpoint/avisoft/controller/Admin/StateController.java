@@ -1,6 +1,8 @@
 package com.community.api.endpoint.avisoft.controller.Admin;
 
 
+import com.community.api.annotation.Authorize;
+import com.community.api.component.Constant;
 import com.community.api.entity.Districts;
 import com.community.api.entity.StateCode;
 import com.community.api.services.DistrictService;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,6 +33,7 @@ public class StateController {
     private DistrictService districtService;
     @Autowired
     private ResponseService responseService;
+    @Authorize(value ={Constant.roleSuperAdmin})
     @RequestMapping(value = "get-states", method = RequestMethod.GET)
     public ResponseEntity<?> getStates() {
         try {
@@ -42,5 +46,29 @@ public class StateController {
             return responseService.generateErrorResponse("Error retrieving list",HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @Authorize(value ={Constant.roleSuperAdmin})
+    @RequestMapping(value = "add", method = RequestMethod.POST)
+    public ResponseEntity<?> addStateToMasterList(@RequestBody StateCode stateCode) {
+        try {
+         return ResponseService.generateSuccessResponse("State added successfully to master data",districtService.addState(stateCode),HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse("Cannot add state : "+e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse("Cannot add state : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+/*    @Authorize(value ={Constant.roleSuperAdmin})
+    @RequestMapping(value = "{stateId}/edit", method = RequestMethod.PATCH)
+    public ResponseEntity<?> addState(@RequestParam Integer stateId,@RequestBody StateCode stateCode) {
+        try {
+            return ResponseService.generateSuccessResponse("State added successfully to master data",addState(stateCode),HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse("Cannot add state : "+e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse("Cannot add state : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }*/
 }
 
