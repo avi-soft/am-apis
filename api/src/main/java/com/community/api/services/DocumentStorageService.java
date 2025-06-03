@@ -151,7 +151,7 @@ public class DocumentStorageService {
                 ));
             }
 
-            if (file.getSize() > Constant.MAX_FILE_SIZE) {
+            if (file.getSize() > Constant.MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "status", ApiConstants.STATUS_ERROR,
                         "status_code", HttpStatus.BAD_REQUEST.value(),
