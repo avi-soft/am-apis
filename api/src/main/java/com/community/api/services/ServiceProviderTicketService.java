@@ -498,7 +498,7 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() && serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) ) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() && serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     } else {
                         log.info("Either the service provider is not active or not admin or service provider");
@@ -515,7 +515,7 @@ public class ServiceProviderTicketService {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                         log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
-                        if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                        if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                             assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                         } else {
                             log.info("Either the service provider is not active or not admin or service provider");
@@ -536,7 +536,7 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
+                    if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
                     } else {
                         log.info("Either the service provider is not active or not admin or service provider");
@@ -601,7 +601,7 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                         log.info("Primary Referrer !!");
                         if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
@@ -623,7 +623,7 @@ public class ServiceProviderTicketService {
                         log.info("Other Referrer !!");
 
                         // check that it should not assigned to any sp who already rejected the ticket.
-                        if (!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                             if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
                                 log.info("cannot assign ticket to assignee of parent ticket");
@@ -647,7 +647,7 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    if (!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                    if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && serviceProvider.getApproved() != null && serviceProvider.getApproved() && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
                         if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), serviceProvider.getService_provider_id())) {
                             log.info("cannot assign ticket to assignee of parent ticket");
                         } else {
