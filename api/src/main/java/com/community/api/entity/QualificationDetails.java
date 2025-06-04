@@ -140,7 +140,7 @@ public class QualificationDetails {
     @Column(name = "institution_address")
     private String institution_address;
 
-    @JsonBackReference("qualificationDetailsList-customer")
+    @JsonBackReference("qualificationDetailsList-customer") // This matches the managed reference
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
     private CustomCustomer custom_customer;
