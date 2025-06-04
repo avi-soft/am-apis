@@ -1260,7 +1260,7 @@ public class CustomerEndpoint {
                     customCustomer.setCategoryValidUpto(null);
                 }
                 Boolean isOtherCategory = false;
-                List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory();
+                List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory(null);
                 Long reserveCategoryToAddId = null;
                 for (CustomReserveCategory customReserveCategory : reserveCategories) {
                     if (customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category"))) {
