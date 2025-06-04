@@ -73,7 +73,7 @@ public class DistrictController {
             Districts district = entityManager.find(Districts.class, districtId);
             if (district == null)
                 return ResponseService.generateErrorResponse("District not found", HttpStatus.BAD_REQUEST);
-            Query query = entityManager.createNativeQuery("SELECT s FROM StateCode s WHERE s.state_code = :code", StateCode.class);
+            Query query = entityManager.createQuery("SELECT s FROM StateCode s WHERE s.state_code = :code", StateCode.class);
             query.setParameter("code", district.getState_code());
             return ResponseService.generateSuccessResponse("State found", query.getResultList().get(0), HttpStatus.OK);
         }
