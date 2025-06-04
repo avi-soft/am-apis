@@ -95,7 +95,6 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("is_completed")
     protected Boolean isCompleted;
 
-    @Lob
     @JsonProperty("ticket_documents")
     private Set<ServiceProviderDocument> serviceProviderDocuments;
 
