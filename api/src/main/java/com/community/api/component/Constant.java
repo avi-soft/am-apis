@@ -95,7 +95,7 @@ public class Constant {
     public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
-    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category ORDER BY sort_order ASC";
+    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category where archived =:archive ORDER BY sort_order ASC";
     public static String GET_COUNT_OF_JOB_ROLE = "SELECT COUNT(c) FROM CustomJobGroup c";
     public static String GET_ALL_JOB_GROUP = "SELECT s FROM CustomJobGroup s";
     public static String GET_APPLICATION_SCOPE_BY_ID = "SELECT c FROM CustomApplicationScope c WHERE c.applicationScopeId = :applicationScopeId";
@@ -157,7 +157,7 @@ public class Constant {
     public static final String GET_STATE_BY_STATE_NAME = "SELECT c FROM StateCode c WHERE c.state_name = :state";
     public static final String GET_DISTRICT_BY_DISTRICT_NAME = "SELECT c FROM Districts c WHERE c.district_name = :district AND c.state_code = :state";
     public static final String GET_STATE_BY_STATE_CODE = "SELECT c FROM StateCode c WHERE c.state_code = :code";
-    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
+    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c where archived =:archived";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
     public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";
     public static final Double MAX_HEIGHT = 300d;
