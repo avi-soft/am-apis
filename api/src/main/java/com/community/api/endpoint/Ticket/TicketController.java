@@ -628,7 +628,10 @@ public class TicketController {
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
                 entityManager.merge(customServiceProviderTicket);
             }
-            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket, HttpStatus.OK);
+
+            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+            wrapper.customWrapDetails(customServiceProviderTicket, null, entityManager);
+            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

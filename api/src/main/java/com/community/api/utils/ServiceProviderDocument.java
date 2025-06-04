@@ -1,6 +1,7 @@
 package com.community.api.utils;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.DocumentValidity;
 import com.community.api.entity.QualificationDetails;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -21,9 +22,12 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @AllArgsConstructor
@@ -83,5 +87,10 @@ public class ServiceProviderDocument {
     @JoinColumn(name = "ticket_id")
     @JsonBackReference
     private CustomServiceProviderTicket serviceProviderTicket;
+
+    @ManyToOne
+    @JoinColumn(name = "ticket_history_id")
+    @JsonBackReference
+    private CustomTicketHistory ticketHistory;
 
 }
