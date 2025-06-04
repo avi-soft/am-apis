@@ -33,7 +33,7 @@ public class Document {
     @Column(name = "is_qualification_document",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_qualification_document=false;
 
-    @JsonBackReference("documents-customer")
+    @JsonBackReference("documents-customer") // This matches the managed reference
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
     private CustomCustomer custom_customer;

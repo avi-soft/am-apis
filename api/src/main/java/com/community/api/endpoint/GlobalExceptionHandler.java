@@ -100,6 +100,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {HttpMediaTypeNotSupportedException.class})
     public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex, WebRequest request) {
         String message = "Unsupported media type: " + ex.getContentType();
+        System.out.println(ex.getMessage());
         return generateErrorResponse(message, HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage());
     }
 
