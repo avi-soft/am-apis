@@ -11,7 +11,6 @@ public class Constant {
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
     public static final long MAX_FILE_SIZE = 100* 1024;
-    public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 500 * 1024;
     public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -54,8 +53,7 @@ public class Constant {
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
-    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d ";
-    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = false";
+    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
@@ -84,7 +82,7 @@ public class Constant {
     public static String SOME_EXCEPTION_OCCURRED = "Some exception occurred";
     public static String NUMBER_FORMAT_EXCEPTION = "Number format exception";
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
-    public static String GET_STATES_LIST="Select s from StateCode s where archived=false";
+    public static String GET_STATES_LIST="Select s from StateCode s";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
@@ -156,8 +154,7 @@ public class Constant {
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
     public static final String GET_STATE_BY_STATE_ID = "SELECT c FROM StateCode c WHERE c.state_id = :stateId";
     public static final String GET_STATE_BY_STATE_NAME = "SELECT c FROM StateCode c WHERE c.state_name = :state";
-    public static final String GET_DISTRICT_BY_DISTRICT_NAME = "SELECT c FROM Districts c WHERE c.district_name = :district AND c.state_code = :state";
-    public static final String GET_STATE_BY_STATE_CODE = "SELECT c FROM StateCode c WHERE c.state_code = :code";
+
     public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
     public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";

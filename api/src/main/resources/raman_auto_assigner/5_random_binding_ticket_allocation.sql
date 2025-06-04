@@ -16,7 +16,6 @@ DECLARE
 	v_creator_user_id BIGINT;
 	unassigned_orders BIGINT[];
     assigned BOOLEAN;
-    v_sp_id BIGINT;
 BEGIN
 
     RAISE NOTICE '5. Random Binding Ticket Allocation (RBTA)';
@@ -43,7 +42,7 @@ BEGIN
 	            SELECT r.service_provider_id
 	            FROM customer_referrer r
 	            JOIN service_provider sp ON sp.service_provider_id = r.service_provider_id
-	            WHERE r.customer_id = v_customer_id AND r.primary_ref = true AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
+	            WHERE r.customer_id = v_customer_id AND r.primary_ref = true AND sp.is_active = true
 	        LOOP
 	            CALL public.allocate_ticket(v_order_id, ref.service_provider_id, assigned, assigned_tickets);
 	            IF assigned THEN
@@ -58,7 +57,7 @@ BEGIN
 	            SELECT r.service_provider_id
 	            FROM customer_referrer r
 	            JOIN service_provider sp ON sp.service_provider_id = r.service_provider_id
-	            WHERE r.customer_id = v_customer_id AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
+	            WHERE r.customer_id = v_customer_id AND sp.is_active = true
 	        LOOP
 	            CALL public.allocate_ticket(v_order_id, ref.service_provider_id, assigned, assigned_tickets);
 	            IF assigned THEN
@@ -79,19 +78,7 @@ BEGIN
 	        FROM custom_product
 	        WHERE product_id = v_product_id;
 
-	        SELECT service_provider_id
-			INTO v_sp_id
-			FROM service_provider
-			WHERE service_provider_id = v_creator_user_id
-			  AND role IN (2, 4)
-			  AND is_active = TRUE
-			  AND approved = TRUE;
-
-	        -- Call allocate_ticket only if a matching service provider was found
-			IF v_sp_id IS NOT NULL THEN
-			    CALL public.allocate_ticket(v_order_id, v_sp_id, assigned, assigned_tickets);
-			END IF;
-
+	        CALL public.allocate_ticket(v_order_id, v_creator_user_id, assigned, assigned_tickets);
 	        IF assigned THEN
 	            assigned := true;
 	        END IF;
@@ -111,3 +98,5 @@ BEGIN
 	END IF;
 END;
 $BODY$;
+ALTER PROCEDURE public.random_binding_ticket_allocation(bigint[], bigint[])
+    OWNER TO postgres;
