@@ -845,7 +845,6 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
         serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
-        serviceProviderDetails.put("other_skill",serviceProvider.getOtherSkill());
 
 
         if (serviceProvider.getType() != null) {
