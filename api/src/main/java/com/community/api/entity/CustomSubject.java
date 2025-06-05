@@ -31,7 +31,7 @@ import java.util.List;
 public class CustomSubject {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "subject_id")
     @JsonProperty("subject_id")
     protected Long subjectId;
@@ -71,7 +71,6 @@ public class CustomSubject {
     @JsonProperty("creator_role")
     protected Role creatorRole;
 
-    @JsonIgnore
     @ManyToMany(mappedBy = "subjects")
     private List<CustomStream> streams = new ArrayList<>();
 
