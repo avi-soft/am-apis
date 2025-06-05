@@ -55,7 +55,7 @@ public class ServiceProviderTestStatusController {
     }
 
     @Transactional
-    @PatchMapping("/update-test-status/{serviceProviderId}")
+    @PutMapping("/update-test-status/{serviceProviderId}")
     public ResponseEntity<?> updateTestStatus(@RequestBody UpdateTestStatus updateTestStatus, @PathVariable Long serviceProviderId) {
         try {
             return serviceProviderTestStatusService.updateTestStatus(updateTestStatus,serviceProviderId);
