@@ -96,7 +96,7 @@ public class QualificationController {
         }
         catch (Exception e)
         {
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong "+e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
     @PutMapping("/{qualificationId}/manage")
