@@ -35,9 +35,9 @@ public class StateController {
     @Autowired
     private ResponseService responseService;
     @RequestMapping(value = "get-states", method = RequestMethod.GET)
-    public ResponseEntity<?> getStates() {
+    public ResponseEntity<?> getStates(@RequestParam(defaultValue = "false",required = false) Boolean archived) {
         try {
-            List<StateCode> names= districtService.findStateList();
+            List<StateCode> names= districtService.findStateList(archived);
             return responseService.generateSuccessResponse("List Retrieved Successfully",names,HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
