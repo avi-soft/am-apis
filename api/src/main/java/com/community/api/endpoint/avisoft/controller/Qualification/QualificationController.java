@@ -6,6 +6,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.*;
 import com.community.api.utils.DocumentType;
+import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,8 +84,8 @@ public class QualificationController {
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
         }
     }
-    @PatchMapping("/{qualificationId}/edit")
-    public ResponseEntity<?> editQualification(@PathVariable Long qualificationId,@RequestBody Qualification qualification) throws Exception {
+    @PutMapping("/{qualificationId}/edit")
+    public ResponseEntity<?> editQualification(@PathVariable Integer qualificationId, @RequestBody Qualification qualification) throws Exception {
         try
         {
             Qualification addedQualification = qualificationService.edit(qualificationId,qualification);
@@ -98,8 +99,8 @@ public class QualificationController {
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
         }
     }
-    @PatchMapping("/{qualificationId}/manage")
-    public ResponseEntity<?> manage(@PathVariable Long qualificationId,@RequestParam(required = false,defaultValue = "BOOLEAN DEFAULT FALSE") Boolean archive) throws Exception {
+    @PutMapping("/{qualificationId}/manage")
+    public ResponseEntity<?> manage(@PathVariable Integer qualificationId,@RequestParam(required = false,defaultValue = "BOOLEAN DEFAULT FALSE") Boolean archive) throws Exception {
         try
         {
             Qualification addedQualification = entityManager.find(Qualification.class,qualificationId);

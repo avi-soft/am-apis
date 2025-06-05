@@ -153,7 +153,7 @@ public class SubjectController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PatchMapping("/{subjectId}/edit")
+    @PutMapping("/{subjectId}/edit")
     public ResponseEntity<?> editSubject(
             @PathVariable Long subjectId,
             @RequestBody CustomSubject subject) {
