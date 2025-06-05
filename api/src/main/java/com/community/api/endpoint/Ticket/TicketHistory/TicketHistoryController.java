@@ -12,6 +12,7 @@ import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderTicketService;
 import com.community.api.services.TicketHistoryService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.management.BadAttributeValueExpException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,13 +55,14 @@ public class TicketHistoryController {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
+            if(ticketId <= 0) {
+                throw new IllegalArgumentException("Ticket Id cannot be <= 0");
+            }
+
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByTicketId(ticketId);
 
-            if(ticketId <= 0) {
-                throw new BadAttributeValueExpException("Ticket Id cannot be <= 0");
-            }
             if(ticket == null) {
-                throw new IllegalArgumentException("No Ticket Found with provided ticket id.");
+                throw new NotFoundException("No Ticket Found with provided ticket id.");
             }
 
             if(roleId == 4 && roleId != ticket.getAssigneeRole().getRole_id()) {
@@ -82,12 +83,12 @@ public class TicketHistoryController {
             }
             return ResponseService.generateSuccessResponse("Tickets History Found", result, HttpStatus.OK);
 
-        } catch (BadAttributeValueExpException badAttributeValueExpException) {
-            exceptionHandlingService.handleException(badAttributeValueExpException);
-            return ResponseService.generateErrorResponse(badAttributeValueExpException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (NotFoundException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            return ResponseService.generateErrorResponse(notFoundException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
