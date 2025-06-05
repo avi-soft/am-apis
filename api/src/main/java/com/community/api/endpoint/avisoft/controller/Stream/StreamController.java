@@ -174,10 +174,11 @@ public class StreamController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @RequestMapping(value = "stream/{streamId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "stream/{streamId}/edit", method = RequestMethod.PUT)
     public ResponseEntity<?> editStream(
             @PathVariable Long streamId,
-            @RequestBody CustomStream stream) {
+            @RequestBody CustomStream stream,
+            @RequestParam List<Integer>qualificationIds) {
         try {
             CustomStream existingStream = entityManager.find(CustomStream.class, streamId);
             if (existingStream == null) {
@@ -186,7 +187,7 @@ public class StreamController {
 
             return ResponseService.generateSuccessResponse(
                     "Stream updated successfully",
-                    streamService.editStream(streamId, stream),
+                    streamService.editStream(streamId,qualificationIds,stream),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse("Cannot edit stream: " + e.getMessage(), HttpStatus.BAD_REQUEST);
