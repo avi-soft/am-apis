@@ -1,7 +1,6 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketHistory;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +34,7 @@ public class TicketHistoryService {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException("Illegal Argument Exception Caught: " + illegalArgumentException.getMessage());
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
         }

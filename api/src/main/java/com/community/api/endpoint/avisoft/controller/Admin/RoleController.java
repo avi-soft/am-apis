@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/roles",
+    @RequestMapping(value = "/roles",
         produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE }
 )
 public class RoleController {
@@ -107,7 +107,7 @@ public class RoleController {
         }
     }
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin})
+//    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/change-role/{id}/{roleToBeId}")
     public ResponseEntity<?> changeRole(@RequestHeader(value = "Authorization") String authHeader,@PathVariable Long id,@PathVariable Integer roleToBeId)
     {

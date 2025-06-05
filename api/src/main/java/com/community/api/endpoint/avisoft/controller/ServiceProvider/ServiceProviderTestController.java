@@ -143,10 +143,10 @@ public class ServiceProviderTestController {
     }
 
     @PostMapping("/upload-resized-signature/{serviceProviderId}/{testId}")
-    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request) throws Exception {
+    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
         try
         {
-            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request);
+            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request,authHeader);
             return responseService.generateResponse(HttpStatus.OK,"Signature image is uploaded",test);
         }
         catch (EntityDoesNotExistsException e)

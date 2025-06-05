@@ -555,13 +555,16 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestHeader(value = "Authorization",required = false) String authHeader) {
 
         try {
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId = jwtTokenUtil.extractId(jwtToken);
-
+            Integer roleId=5;
+            Long userId=null;
+            if(authHeader!=null) {
+                String jwtToken = authHeader.substring(7);
+                roleId= jwtTokenUtil.extractRoleId(jwtToken);
+                userId = jwtTokenUtil.extractId(jwtToken);
+            }
             String recOrigin = request.getHeader("Origin");
 
             Long productId = Long.parseLong(productIdPath);
@@ -577,13 +580,15 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
-
-            boolean allowExpiredAccess =
-                    roleId == 1 || roleId == 2 ||
-                            (customProduct.getCreatoRole() != null &&
-                                    roleId.equals(customProduct.getCreatoRole().getRole_id()) &&
-                                    userId != null && userId.equals(customProduct.getUserId()));
-
+            boolean allowExpiredAccess=false;
+            if(authHeader!=null)
+            {
+                allowExpiredAccess =
+                        roleId == 1 || roleId == 2 ||
+                                (customProduct.getCreatoRole() != null &&
+                                        roleId.equals(customProduct.getCreatoRole().getRole_id()) &&
+                                        userId != null && userId.equals(customProduct.getUserId()));
+            }
             //set views
             if (recOrigin != null) {
                 if (origin.trim().equals(recOrigin.trim())) {
@@ -1124,8 +1129,8 @@ public class ProductController extends CatalogEndpoint {
     private JdbcTemplate jdbcTemplate;
 
 
-    // Run every day at 12:00 AM
-    @Scheduled(cron = "0 0 0 * * *")
+    // Run every one hour
+    @Scheduled(cron = "0 0 * * * *")
     @PutMapping("/update-product-resources")
     public void updateProductStates() {
         try {

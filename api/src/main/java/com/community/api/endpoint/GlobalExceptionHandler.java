@@ -1,6 +1,8 @@
 package com.community.api.endpoint;
 
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.http.ContentTooLongException;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -26,6 +29,7 @@ import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -100,6 +104,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = {HttpMediaTypeNotSupportedException.class})
     public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex, WebRequest request) {
         String message = "Unsupported media type: " + ex.getContentType();
+        System.out.println(ex.getMessage());
         return generateErrorResponse(message, HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage());
     }
 
@@ -129,6 +134,22 @@ public class GlobalExceptionHandler {
         String message = "Missing required parameter: " + ex.getParameterName();
         return generateErrorResponse(message, HttpStatus.BAD_REQUEST, ex.getMessage());
     }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException) {
+            InvalidFormatException ife = (InvalidFormatException) cause;
+            String fieldName = "";
+            if (!ife.getPath().isEmpty()) {
+                fieldName = ife.getPath().get(0).getFieldName(); // Get the field name causing the issue
+            }
+            String message = "Invalid format for field: " + fieldName;
+            return generateErrorResponse(message, HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+        return generateErrorResponse("Malformed JSON request", HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+
 }
 
 @Getter

@@ -45,4 +45,8 @@
         @Column(name = "sort_order", nullable = false)
         private Long sortOrder;
 
+        @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+        private Boolean archived;
+
+
     }

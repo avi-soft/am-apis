@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -31,9 +32,7 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -88,7 +87,8 @@ public class OtpEndpoint {
     @Autowired
     private AdminService adminService;
 
-    @PostMapping("/send-otp")
+    @PostMapping(value = "/send-otp", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session,@RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
         try {
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
@@ -311,7 +311,7 @@ public class OtpEndpoint {
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
-                serviceProviderEntity.setTestStatus(serviceProviderTestStatus);
+                serviceProviderEntity.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProviderEntity.setRole(4);
                 em.persist(serviceProviderEntity);
             } else if (existingServiceProvider.getOtp() != null) {

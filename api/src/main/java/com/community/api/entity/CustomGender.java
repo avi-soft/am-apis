@@ -34,4 +34,8 @@ public class CustomGender {
     @JsonProperty("gender_name")
     protected String genderName;
 
+    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("archived")
+    protected Boolean archived;
+
 }

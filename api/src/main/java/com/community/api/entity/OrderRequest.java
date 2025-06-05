@@ -33,7 +33,6 @@ public class OrderRequest {
     @Column(name = "order_request_id")
     private long orderRequestId;
 
-    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY) // Use lazy loading to improve performance if needed
     @JoinColumn(name = "service_provider_id") // Explicitly specify the foreign key column
     @JsonIgnore
