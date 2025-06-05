@@ -43,4 +43,7 @@ public class Institution
 
     @Column(name = "modified_by")
     private String modified_by;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
 }

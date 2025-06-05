@@ -9,6 +9,8 @@ import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
@@ -16,8 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Lob;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
+import java.util.Set;
 
 public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
 
@@ -31,6 +35,12 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     @JsonProperty("assignee_name")
     protected String assigneeName;
+
+    @JsonProperty("mobile_number")
+    protected String mobileNumber;
+
+    @JsonProperty("primary_email")
+    protected String primaryEmail;
 
     @JsonProperty("modified_date")
     protected Date modifiedDate;
@@ -86,6 +96,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("is_completed")
     protected Boolean isCompleted;
 
+    @JsonIgnore
+    @JsonProperty("ticket_documents")
+    private Set<ServiceProviderDocument> serviceProviderDocuments;
+
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
@@ -111,6 +125,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
+        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
 
         ServiceProviderEntity serviceProvider = null;
         try {
@@ -122,6 +137,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
                 }
             } else {
                 this.assigneeName = "-";
+            }
+            if(serviceProvider != null) {
+                this.primaryEmail = serviceProvider.getPrimary_email();
+                this.mobileNumber = serviceProvider.getMobileNumber();
             }
         }
         catch (Exception e)

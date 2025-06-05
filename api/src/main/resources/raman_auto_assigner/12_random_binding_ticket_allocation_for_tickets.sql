@@ -20,6 +20,7 @@ DECLARE
     v_rejected_by BIGINT[];
     v_assigned BOOLEAN := FALSE;
     v_unassigned_ticket_ids BIGINT[];
+    v_sp_id BIGINT;
 BEGIN
 
     RAISE NOTICE '12. Starting Random Binding Ticket Allocation (RBTA) for Tickets';
@@ -58,7 +59,7 @@ BEGIN
             SELECT r.service_provider_id, r.id
             FROM customer_referrer r
             JOIN service_provider sp ON sp.service_provider_id = r.service_provider_id
-            WHERE r.customer_id = v_customer_id AND r.primary_ref = true AND sp.is_active = true
+            WHERE r.customer_id = v_customer_id AND r.primary_ref = true AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
         LOOP
             IF v_rejected_by IS NULL OR NOT ref.service_provider_id = ANY(v_rejected_by) THEN
                 IF v_ticket_type_id = 2 AND v_assignee = ref.id THEN
@@ -87,7 +88,7 @@ BEGIN
             SELECT r.service_provider_id, r.id
             FROM customer_referrer r
             JOIN service_provider sp ON sp.service_provider_id = r.service_provider_id
-            WHERE r.customer_id = v_customer_id AND sp.is_active = true
+            WHERE r.customer_id = v_customer_id AND sp.is_active = true AND sp.approved = true AND sp.role IN (2,4)
         LOOP
             IF v_rejected_by IS NULL OR NOT ref.service_provider_id = ANY(v_rejected_by) THEN
                 IF v_ticket_type_id = 2 AND v_assignee = ref.id THEN
@@ -122,6 +123,17 @@ BEGIN
         FROM custom_product
         WHERE product_id = v_product_id;
 
+        SELECT service_provider_id
+		INTO v_sp_id
+		FROM service_provider
+		WHERE service_provider_id = v_creator_user_id
+		  AND role IN (2, 4)
+		  AND is_active = TRUE
+		  AND approved = TRUE;
+
+	    IF v_sp_id IS NULL THEN
+		    CONTINUE;
+		END IF;
         IF v_rejected_by IS NULL OR NOT v_creator_user_id = ANY(v_rejected_by) THEN
             IF v_ticket_type_id = 2 AND v_assignee = v_creator_user_id THEN
                 CONTINUE;
@@ -152,5 +164,3 @@ BEGIN
         array_length(ticket_ids, 1);
 END;
 $BODY$;
-ALTER PROCEDURE public.random_binding_ticket_allocation_for_tickets(bigint[], bigint[])
-    OWNER TO postgres;

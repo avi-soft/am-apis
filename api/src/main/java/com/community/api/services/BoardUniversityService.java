@@ -110,10 +110,13 @@ public class BoardUniversityService
     }
 
     public List<BoardUniversity> getAllBoardUniversities() {
-        TypedQuery<BoardUniversity> query = entityManager.createQuery(Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
-        List<BoardUniversity> boardUniversityList = query.getResultList();
+        TypedQuery<BoardUniversity> query = entityManager.createQuery(
+                Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
+        query.setParameter("archived", false);
+        List<BoardUniversity> boardUniversityList = query.getResultList(); // then execute
         return boardUniversityList;
     }
+
 
     //need to be change here
     public long findCount() {
@@ -193,5 +196,31 @@ public class BoardUniversityService
         String now = LocalDateTime.now().format(formatter);
         boardUniversityToUpdate.setModified_date(now);
         return entityManager.merge(boardUniversityToUpdate);
+    }
+    @Transactional
+    public BoardUniversity manageUni(Long boardUnivId, Boolean active) throws Exception {
+        try {
+            BoardUniversity subject = entityManager.find(BoardUniversity.class, boardUnivId);
+            if (subject == null) {
+                throw new IllegalArgumentException("Subject not found");
+            }
+
+            if (active) {
+                if (subject.getArchived()) {
+                    throw new IllegalArgumentException("Subject already archived");
+                }
+                subject.setArchived(true);
+            } else {
+                if (!subject.getArchived()) {
+                    throw new IllegalArgumentException("Subject already unarchived");
+                }
+                subject.setArchived(false);
+            }
+
+            entityManager.merge(subject);
+            return subject;
+        } catch (Exception e) {
+            throw e;
+        }
     }
 }

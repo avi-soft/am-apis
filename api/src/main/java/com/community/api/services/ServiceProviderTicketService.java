@@ -9,6 +9,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
@@ -18,6 +19,7 @@ import com.community.api.entity.OrderStateRef;
 import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -34,6 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
@@ -51,10 +54,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -768,7 +773,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket) throws Exception {
+    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket, CreateTicketDto createTicketDto, List<MultipartFile> files, Long tokenUserId, Role tokenRole) throws Exception {
         try {
 
             CustomServiceProviderTicket reviewTicket = new CustomServiceProviderTicket();
@@ -791,6 +796,15 @@ public class ServiceProviderTicketService {
             reviewTicket.setTicketState(ticketState);
             reviewTicket.setTicketStatus(ticketStatus);
             reviewTicket.setTicketType(ticketType);
+            reviewTicket.setComment(createTicketDto.getComment());
+
+            // If there exists some files then upload them as well.
+            if (files != null) {
+
+                Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, reviewTicket, tokenUserId, tokenRole);
+                reviewTicket.setServiceProviderDocuments(serviceProviderDocument);
+
+            }
 
             reviewTicket = entityManager.merge(reviewTicket);
             return reviewTicket;

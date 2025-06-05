@@ -3,15 +3,19 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.GiveUploadedImageScoreDTO;
+import com.community.api.endpoint.avisoft.controller.ServiceProvider.ServiceProviderController;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.entity.Image;
+import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.social.ServiceProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +45,11 @@ public class ServiceProviderTestService {
     private FileService fileService;
     @Autowired
     private DocumentStorageService fileUploadService;
+    private StatusChangeEmailService statusChangeEmailService;
+    @Autowired
+    public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
+        this.statusChangeEmailService = statusChangeEmailService;
+    }
 
     @Autowired
     private ExceptionHandlingImplement exceptionHandlingImplement;
@@ -80,7 +89,7 @@ public class ServiceProviderTestService {
             {
                 throw new EntityDoesNotExistsException("Service Provider not found");
             }
-            if(serviceProvider.getTestStatus()!=null)
+            if(serviceProvider.getServiceProviderStatus()!=null)
             {
                 ServiceProviderTestStatus serviceProviderTestStatus= entityManager.find(ServiceProviderTestStatus.class, Constant.TEST_COMPLETED_STATUS);
                 if(serviceProviderTestStatus==null)
@@ -88,7 +97,7 @@ public class ServiceProviderTestService {
                     throw new IllegalArgumentException("Test Status id "+ Constant.TEST_COMPLETED_STATUS+" Not found so cannot start test of ServiceProvider");
                 }
                 Long testStatus= serviceProviderTestStatus.getTest_status_id();
-                if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getTestStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
+                if(!serviceProvider.getServiceProviderTests().isEmpty() && serviceProvider.getServiceProviderStatus().getTest_status_id().equals(Constant.INITIAL_TEST_STATUS))
                 {
                     ServiceProviderTest test= serviceProvider.getServiceProviderTests().get(0);
                     String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
@@ -114,17 +123,17 @@ public class ServiceProviderTestService {
                     response.put("uploadedPdf",test.getUploadedPdf());
                     return response;
                 }
-                if(serviceProvider.getTestStatus().getTest_status_id().equals(testStatus) )
+                if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(testStatus) )
                 {
                     throw new IllegalArgumentException("Skill Test has already been submitted.You cannot start a new test.");
                 }
 
-                ServiceProviderTestStatus serviceProviderTestStatusForApproved= entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_TEST);
+                ServiceProviderTestStatus serviceProviderTestStatusForApproved= entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_SP);
                 if(serviceProviderTestStatus==null)
                 {
-                    throw new IllegalArgumentException("Test Status id "+ Constant.APPROVED_TEST+" Not found so cannot start test of ServiceProvider");
+                    throw new IllegalArgumentException("Test Status id "+ Constant.APPROVED_SP +" Not found so cannot start test of ServiceProvider");
                 }
-                if(serviceProvider.getTestStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id()))
+                if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(serviceProviderTestStatusForApproved.getTest_status_id()))
                 {
                     throw new IllegalArgumentException("Skill Test has already been approved. No need to start test again.");
                 }
@@ -343,9 +352,9 @@ public class ServiceProviderTestService {
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
         Map<String, Object> responseBody = savedResponse.getBody();
 
-        if (savedResponse.getStatusCode() != HttpStatus.OK) {
+        /*if (savedResponse.getStatusCode() != HttpStatus.OK) {
             throw new Exception("Error uploading pdf: " + responseBody.get("message"));
-        }
+        }*/
         String fileName = pdfFile.getOriginalFilename();
         UploadedPdf uploadedPdf = test.getUploadedPdf();
         if (uploadedPdf == null) {
@@ -449,7 +458,7 @@ public class ServiceProviderTestService {
     }
 
     @Transactional
-    public Map<String,Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile,HttpServletRequest request) throws Exception {
+    public Map<String,Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile,HttpServletRequest request,String authHeader) throws Exception {
         if(signatureFile==null|| signatureFile.isEmpty())
         {
             throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
@@ -534,7 +543,12 @@ public class ServiceProviderTestService {
         {
             throw new IllegalArgumentException("Test status with id status 'completed test' does not exists");
         }
-        serviceProvider.setTestStatus(serviceProviderTestStatus);
+        List<ServiceProviderEntity> serviceProviders= Arrays.asList(serviceProvider);
+        if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(1L) ||serviceProvider.getServiceProviderStatus().getTest_status_id().equals(2L))
+        {
+            serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
+            statusChangeEmailService.sendStatusChangeEmails(serviceProviders, "testcomplete", authHeader);
+        }
         entityManager.merge(serviceProvider);
 
         Map<String, Object> response = new HashMap<>();

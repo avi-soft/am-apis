@@ -18,4 +18,6 @@ public class StateCode {
     private Integer state_id;
     private String state_name;
     private String state_code;
+    @Column(columnDefinition ="BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
 }

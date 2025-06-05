@@ -33,7 +33,6 @@ public class ServiceProviderAcceptedOrders {
     @Column(name = "sp_order_uid")
     private long serviceProviderOrderId;
 
-    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY) // Use lazy loading to improve performance if needed
     @JoinColumn(name = "service_provider_id") // Explicitly specify the foreign key column
     @JsonIgnore
