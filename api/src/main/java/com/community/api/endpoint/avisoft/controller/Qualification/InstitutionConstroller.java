@@ -70,7 +70,7 @@ public class InstitutionConstroller {
         }
     }
 
-    @PatchMapping("/update/{institutionId}")
+    @PutMapping("/update/{institutionId}")
     public ResponseEntity<?> updateInstitution(@PathVariable Long institutionId, @RequestBody Institution institution, @RequestHeader(value = "Authorization")String authHeader)
     {
         try
@@ -89,7 +89,7 @@ public class InstitutionConstroller {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PatchMapping("/{id}/manage")
+    @PutMapping("/{id}/manage")
     public ResponseEntity<?> manageInstitutionArchiveStatus(
             @PathVariable Long id,
             @RequestParam Boolean archive) {
