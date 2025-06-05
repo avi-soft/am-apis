@@ -88,11 +88,11 @@ public class ServiceProviderEntity  {
     private String mother_name;
 
 //    @Pattern(regexp = "^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-(\\d{4})$", message = "Date of birth must be in the format DD-MM-YYYY")
+
     private String date_of_birth;
 
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be a 12-digit numeric value")
     @Size(min = 12, max = 12, message = "Aadhaar number must be exactly 12 digits long")
-    @Size(min = 12, max = 12)
     private String aadhaar_number;
 
     @Nullable
@@ -118,6 +118,8 @@ public class ServiceProviderEntity  {
     @Size(min = 9, max = 13)
     @Pattern(regexp = "^\\d{9,13}$", message = "WhatsApp number should be between 9 and 13 digits in length")
     public String whatsapp_number;
+    @Email(message = "invalid email format")
+    /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
     @Email(message = "invalid email format")
     /*@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",message = "Please enter a valid email address.")*/
     public String primary_email;
@@ -281,18 +283,23 @@ public class ServiceProviderEntity  {
     private Boolean isActive;
 
     @Column(name="maximum_ticket_size")
+    @Min(0)
     private Integer maximumTicketSize;
 
     @Column(name="maximum_binding_size")
+    @Min(0)
     private Integer maximumBindingSize;
 
     @Column(name="ticket_completed")    // will keep track of number of ticket completed by the serviceProvider.
+    @Min(0)
     private Long ticketCompleted=0L;
 
     @Column(name="ticket_pending")      // will keep track of number of ticket pending for the corresponding SP.
+    @Min(0)
     private Integer ticketPending=0;
 
     @Column(name="ticket_assigned")
+    @Min(0)
     private Integer ticketAssigned=0;
 
     @JsonIgnore

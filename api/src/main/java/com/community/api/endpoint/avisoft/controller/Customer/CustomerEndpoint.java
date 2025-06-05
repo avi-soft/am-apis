@@ -305,6 +305,32 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
+            if(details.containsKey("has_state_category")) {
+                  String categoryStateName=(String)details.get("category_state_name");
+                  Boolean hasStateCategory = (Boolean)details.get("has_state_category");
+                  String  stateCategoryName=(String)details.get("state_category");
+                  if(hasStateCategory)
+                  {
+                      if(!details.containsKey("category_state_name")||categoryStateName==null||categoryStateName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("Need to provide state for state level category",HttpStatus.BAD_REQUEST);
+                      if(!details.containsKey("state_category")||stateCategoryName==null||stateCategoryName.trim().isEmpty())
+                          return ResponseService.generateErrorResponse("State level category name required",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(true);
+                      customCustomer.setStateCategory(stateCategoryName);
+                      customCustomer.setCategoryStateName(categoryStateName);
+                      customCustomer.setCategory(null);
+                  }
+                  else
+                  {
+                      if((stateCategoryName!=null&&!stateCategoryName.trim().isEmpty())||(categoryStateName!=null&&categoryStateName.trim().isEmpty()))
+                          return ResponseService.generateErrorResponse("State level category cannot be provided",HttpStatus.BAD_REQUEST);
+                      customCustomer.setHasStateCategory(false);
+                  }
+            }
+            else
+            {
+                return ResponseService.generateErrorResponse("Need to provide whether state level category or not",HttpStatus.BAD_REQUEST);
+            }
 
             if (details.containsKey("familyIncome")) {
                 Object incomeObj = details.get("familyIncome");
@@ -1082,6 +1108,9 @@ public class CustomerEndpoint {
                 }
             }
 
+            details.remove("has_state_category");
+            details.remove("state_category");
+            details.remove("category_state_name");
             for (Map.Entry<String, Object> entry : details.entrySet()) {
                 String fieldName = entry.getKey();
                 Object newValue = entry.getValue();
@@ -1433,6 +1462,7 @@ public class CustomerEndpoint {
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
             }
+
             if (isValidDate != null && isValidDate.equals(true)) {
                 errorMessages.remove(errorMessages.size() - 1);
             }
@@ -1787,6 +1817,9 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer service is not initialized.", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
+            addressDetails.remove("has_state_category");
+            addressDetails.remove("state_category");
+            addressDetails.remove("category_state_name");
             Customer customer = customerService.readCustomerById(id);
             if (customer != null) {
                 CustomerAddress newAddress = customerAddressService.create();
