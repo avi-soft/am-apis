@@ -59,7 +59,7 @@ public class ReserveCategoryController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PostMapping("/add")
+    @PostMapping("reserve-category/add")
     public ResponseEntity<?> addReserveCategory(@RequestBody CustomReserveCategory reserveCategory) {
         try {
             return ResponseService.generateSuccessResponse(
@@ -78,7 +78,7 @@ public class ReserveCategoryController {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PatchMapping("/{reserveCategoryId}/edit")
+    @PatchMapping("reserve-category/{reserveCategoryId}/edit")
     public ResponseEntity<?> editReserveCategory(
             @PathVariable Long reserveCategoryId,
             @RequestBody CustomReserveCategory reserveCategory) {
@@ -105,7 +105,7 @@ public class ReserveCategoryController {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin})
-    @DeleteMapping("/{reserveCategoryId}/manage")
+    @DeleteMapping("reserve-category/{reserveCategoryId}/manage")
     public ResponseEntity<?> manageReserveCategory(
             @PathVariable Long reserveCategoryId,
             @RequestParam(defaultValue = "true") Boolean archive) {
