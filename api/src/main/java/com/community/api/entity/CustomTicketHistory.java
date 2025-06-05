@@ -2,6 +2,7 @@ package com.community.api.entity;
 
 import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -36,7 +37,7 @@ public class CustomTicketHistory {
 
     @ManyToOne
     @JoinColumn(name = "ticket_id")
-    @JsonBackReference
+    @JsonIgnore
     @JsonProperty("ticket")
     protected CustomServiceProviderTicket ticket;
 
@@ -86,7 +87,7 @@ public class CustomTicketHistory {
     private Date ticketAssignDate;
 
     @ManyToOne
-    @JsonBackReference
+    @JsonIgnore
     @JoinColumn(name = "ORDER_ID")
     @JsonProperty("order")
     private OrderImpl order;
@@ -96,7 +97,6 @@ public class CustomTicketHistory {
     private String comment;
 
     @OneToMany(mappedBy = "ticketHistory")
-    @JsonManagedReference
     private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
 
 }

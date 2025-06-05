@@ -58,6 +58,7 @@ public class UpdateQualificationDto
 
     private String other_qualification;
     private Boolean is_grade;
+    private Double cumulative_cgpa_value;
 
     private String grade_value;
     private Long course_duration_in_months;

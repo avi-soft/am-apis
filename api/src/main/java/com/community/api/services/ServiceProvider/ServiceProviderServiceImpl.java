@@ -566,6 +566,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     updates.remove("latitude");
                     updates.remove("longitude");
+                    existingServiceProvider.setNumber_of_employees(Integer.parseInt((String) updates.get("number_of_employees")));
+                    updates.remove("number_of_employees");
 
                 }  else  {
                     existingServiceProvider.setIs_running_business_unit(false);
@@ -1031,11 +1033,25 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else {
                         throw new IllegalArgumentException("Unsupported type for number_of_employees: " + numEmpObj.getClass());
                     }
+                    if(Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit()))
+                    {
+                        existingServiceProvider.setNumber_of_employees(Integer.parseInt((String) numEmpObj));
+                    }
+                    else{
+                        numberOfEmployees=0;
+                    }
                 }
                 else {
-                    numberOfEmployees=existingServiceProvider.getNumber_of_employees();
+                    if(Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit()))
+                    {
+                        numberOfEmployees=existingServiceProvider.getNumber_of_employees();
+                    }
+                    else{
+                         numberOfEmployees=0;
+                     }
                 }
-                Boolean isRunning = Boolean.parseBoolean(String.valueOf(updates.get("is_running_business_unit")));
+                Boolean isRunning = existingServiceProvider.getIs_running_business_unit();
+                System.out.println(isRunning);
                     if (numberOfEmployees != null && numberOfEmployees < 2 || !isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
@@ -1062,6 +1078,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             scoringCriteriaToMap = null;
                         }
                     }
+            }
+            else {
+                totalScore=totalScore- existingServiceProvider.getStaffScore();
+                existingServiceProvider.setStaffScore(0);
+                existingServiceProvider.setBusinessUnitInfraScore(0);
             }
 
             if (existingServiceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {

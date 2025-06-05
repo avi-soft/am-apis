@@ -48,7 +48,7 @@ public class ServiceProviderDocument {
     @JsonIgnore
     private byte[] data;
 
-    @JsonBackReference
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProviderEntity;
@@ -85,12 +85,12 @@ public class ServiceProviderDocument {
 
     @ManyToOne
     @JoinColumn(name = "ticket_id")
-    @JsonBackReference
+    @JsonIgnore
     private CustomServiceProviderTicket serviceProviderTicket;
 
     @ManyToOne
     @JoinColumn(name = "ticket_history_id")
-    @JsonBackReference
+    @JsonIgnore
     private CustomTicketHistory ticketHistory;
 
 }
