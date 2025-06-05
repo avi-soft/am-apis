@@ -1130,8 +1130,8 @@ public class ProductController extends CatalogEndpoint {
     private JdbcTemplate jdbcTemplate;
 
 
-    // Run every day at 12:00 AM
-    @Scheduled(cron = "0 0 0 * * *")
+    // Run every one hour
+    @Scheduled(cron = "0 0 * * * *")
     @PutMapping("/update-product-resources")
     public void updateProductStates() {
         try {

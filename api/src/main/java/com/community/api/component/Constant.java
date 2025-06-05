@@ -11,6 +11,7 @@ public class Constant {
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
     public static final long MAX_FILE_SIZE = 100* 1024;
+    public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 500 * 1024;
     public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;
@@ -26,10 +27,11 @@ public class Constant {
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
     public static String ID_QUERY = "SELECT c FROM CustomCustomer c WHERE c.customer_id = :customer_id";
-    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt ORDER BY sort_order ASC";
+    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt where dt.archived =:archived ORDER BY dt.sort_order ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
-    public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q ORDER BY sortOrder ASC";
-    public static final String FIND_ALL_INSTITUTION_QUERY= "SELECT q FROM Institution q ORDER BY sortOrder ASC";
+    public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY = "SELECT q FROM BoardUniversity q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
+
+    public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
@@ -48,14 +50,17 @@ public class Constant {
     public static final int INITIAL_STATUS = 1;
     public static final Long INITIAL_TEST_STATUS = 1L;
     public static final Long TEST_COMPLETED_STATUS = 2L;
-    public static final Long APPROVED_TEST = 3L;
+    public static final Long APPROVED_SP = 3L;
+    public static final Long REJECTED_SP = 4L;
+    public static final Long SUSPENDED_SP = 5L;
 
     public static String STATE_CODE_QUERY = "SELECT s FROM StateCode s WHERE s.state_name = :state_name";
     public static final String APPLIED_FORM_QUERY = "SELECT DISTINCT o.order_id FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.customer_id = :customerId AND o.tax_override IS NULL AND os.order_state_id NOT IN (5, 999)";
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
-    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code";
+    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d ";
+    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
@@ -84,7 +89,7 @@ public class Constant {
     public static String SOME_EXCEPTION_OCCURRED = "Some exception occurred";
     public static String NUMBER_FORMAT_EXCEPTION = "Number format exception";
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
-    public static String GET_STATES_LIST="Select s from StateCode s";
+    public static String GET_STATES_LIST="Select s from StateCode s where archived= :archived";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
@@ -96,7 +101,7 @@ public class Constant {
     public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
-    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category ORDER BY sort_order ASC";
+    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category where archived =:archive ORDER BY sort_order ASC";
     public static String GET_COUNT_OF_JOB_ROLE = "SELECT COUNT(c) FROM CustomJobGroup c";
     public static String GET_ALL_JOB_GROUP = "SELECT s FROM CustomJobGroup s";
     public static String GET_APPLICATION_SCOPE_BY_ID = "SELECT c FROM CustomApplicationScope c WHERE c.applicationScopeId = :applicationScopeId";
@@ -156,8 +161,9 @@ public class Constant {
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
     public static final String GET_STATE_BY_STATE_ID = "SELECT c FROM StateCode c WHERE c.state_id = :stateId";
     public static final String GET_STATE_BY_STATE_NAME = "SELECT c FROM StateCode c WHERE c.state_name = :state";
-
-    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
+    public static final String GET_DISTRICT_BY_DISTRICT_NAME = "SELECT c FROM Districts c WHERE c.district_name = :district AND c.state_code = :state";
+    public static final String GET_STATE_BY_STATE_CODE = "SELECT c FROM StateCode c WHERE c.state_code = :code";
+    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c where archived =:archived";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
     public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";
     public static final Double MAX_HEIGHT = 300d;
@@ -249,7 +255,7 @@ public class Constant {
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
-    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId";
+    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY modified_date DESC";
     public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId Order by division_id ASC";
     public static final String GET_ALL_ZONES="SELECT z FROM Zone z";
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
@@ -282,6 +288,7 @@ public class Constant {
     public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
     public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
     public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
+    public static final Integer DOCUMENT_TYPE_TICKET_DOCUMENT_ID = 32;
     public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
 
     public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
@@ -290,6 +297,7 @@ public class Constant {
     public static final String GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) AND d.name = :documentName AND d.name IS NOT NULL";
     public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL";
 
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID_AND_TICKET = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.serviceProviderTicket = :serviceProviderTicket AND d.name IS NOT NULL";
 
     //add constants above this query//*******************************************************************************
     public static  final String recosQuery =

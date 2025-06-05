@@ -20,7 +20,7 @@ public class ServiceProviderTest {
     @Column(name = "test_id")
     private Long test_id;
 
-    @JsonBackReference
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id", nullable = false)
     private ServiceProviderEntity service_provider;

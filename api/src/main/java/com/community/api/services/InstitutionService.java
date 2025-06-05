@@ -112,9 +112,10 @@ public class InstitutionService
 
     public List<Institution> getAllInstitutions() {
         TypedQuery<Institution> query = entityManager.createQuery(Constant.FIND_ALL_INSTITUTION_QUERY, Institution.class);
-        List<Institution> institutionList = query.getResultList();
-        return institutionList;
+        query.setParameter("archived", false); // or true, depending on what you want
+        return query.getResultList();
     }
+
 
     //need to be change here
     public long findCount() {
@@ -368,5 +369,25 @@ public class InstitutionService
             return image;
         }
     }
+    @Transactional
+    public Institution manageInstitutionArchiveStatus(Long id, Boolean archive) {
+        Institution institution = entityManager.find(Institution.class, id);
+        if (institution == null) {
+            throw new IllegalArgumentException("Institution not found with id: " + id);
+        }
+
+        if (archive == null) {
+            throw new IllegalArgumentException("Archive status must be provided (true/false)");
+        }
+
+        if (institution.getArchived().equals(archive)) {
+            throw new IllegalArgumentException("Institution already " + (archive ? "archived" : "unarchived"));
+        }
+
+        institution.setArchived(archive);
+        entityManager.merge(institution);
+        return institution;
+    }
+
 }
 

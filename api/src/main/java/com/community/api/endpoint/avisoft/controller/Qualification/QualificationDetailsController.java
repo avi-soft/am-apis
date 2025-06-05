@@ -173,7 +173,7 @@ public class QualificationDetailsController
     }
 
     @PutMapping("/update/{id}/{qualificationDetailId}")
-    public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers,@RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers,@RequestParam(value = "institutionOthers", required = false) String institutionOthers,@RequestHeader(value = "Authorization") String authHeader) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
+    public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers,@RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers,@RequestParam(value = "institutionOthers", required = false) String institutionOthers,@RequestHeader(value = "Authorization") String authHeader, @RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
         try
         {
@@ -183,6 +183,15 @@ public class QualificationDetailsController
             if(roleId==5&&!userId.equals(id))
             {
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            }
+            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
+            {
+                return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
+            }
+            else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
+            {
+                jwtToken = authHeader.substring(7);
+                roleId = 5;
             }
 //            else
 //            {

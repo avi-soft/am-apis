@@ -6,6 +6,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.*;
 import com.community.api.utils.DocumentType;
+import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,8 +43,9 @@ public class QualificationController {
     }
 
     @GetMapping("/get-all-qualifications")
-    public ResponseEntity<?> getAllQualifications(@RequestParam(name = "major", required = false,defaultValue = "false")Boolean major) throws Exception {
+    public ResponseEntity<?> getAllQualifications(@RequestParam(name = "major", required = false,defaultValue = "false")Boolean major,@RequestParam(defaultValue = "false",required = false)Boolean archived) throws Exception {
         TypedQuery<Qualification> query = entityManager.createQuery(FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
+        query.setParameter("archived",archived);
         List<Qualification> qualifications = query.getResultList();
 
         // Filter out qualifications safely
@@ -73,6 +75,55 @@ public class QualificationController {
         {
             Qualification addedQualification = qualificationService.addQualification(qualification);
             return responseService.generateResponse(HttpStatus.CREATED,"Qualification added successfully", addedQualification);
+        }
+        catch (IllegalArgumentException e) {
+            return responseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e)
+        {
+            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PutMapping("/{qualificationId}/edit")
+    public ResponseEntity<?> editQualification(@PathVariable Integer qualificationId, @RequestBody Qualification qualification) throws Exception {
+        try
+        {
+            Qualification addedQualification = qualificationService.edit(qualificationId,qualification);
+            return responseService.generateResponse(HttpStatus.CREATED,"Qualification edited successfully", addedQualification);
+        }
+        catch (IllegalArgumentException e) {
+            return responseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e)
+        {
+            return ResponseService.generateErrorResponse("Something went wrong "+e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+    }
+    @PutMapping("/{qualificationId}/manage")
+    public ResponseEntity<?> manage(@PathVariable Integer qualificationId,@RequestParam(required = false,defaultValue = "BOOLEAN DEFAULT FALSE") Boolean archive) throws Exception {
+        try
+        {
+            Qualification addedQualification = entityManager.find(Qualification.class,qualificationId);
+            if(addedQualification==null)
+                return ResponseService.generateErrorResponse("Qualification not found",HttpStatus.NOT_FOUND);
+            if(archive) {
+                if (addedQualification.getArchived())
+                    throw new IllegalArgumentException("Qualification already archived");
+                else {
+                    addedQualification.setArchived(true);
+                    entityManager.merge(addedQualification);
+                }
+            }
+            else
+            {
+                if (!addedQualification.getArchived())
+                    throw new IllegalArgumentException("Qualification already unarchived");
+                else {
+                    addedQualification.setArchived(false);
+                    entityManager.merge(addedQualification);
+                }
+            }
+            return responseService.generateResponse(HttpStatus.CREATED,"Qualification status altered successfully", addedQualification);
         }
         catch (IllegalArgumentException e) {
             return responseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);

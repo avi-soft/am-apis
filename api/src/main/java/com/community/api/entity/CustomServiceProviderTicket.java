@@ -1,6 +1,9 @@
 package com.community.api.entity;
 
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,12 +18,16 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "custom_service_provider_ticket")
@@ -55,7 +62,7 @@ public class CustomServiceProviderTicket {
     private Long userId;
 
     @Column(name = "created_date")
-    @JsonProperty("creator_date")
+    @JsonProperty("created_date")
     private Date createdDate;
 
     @ManyToOne
@@ -94,7 +101,7 @@ public class CustomServiceProviderTicket {
     private Date ticketAssignDate;
 
     @OneToOne
-    @JsonBackReference
+    @JsonIgnore
     @JoinColumn(name = "ORDER_ID")
     @JsonProperty("order")
     private OrderImpl order;
@@ -111,6 +118,7 @@ public class CustomServiceProviderTicket {
     @JsonProperty("task_desc")
     private String desc;
 
+    @Lob
     @ElementCollection
     @CollectionTable(name = "ticket_rejected_by",
             joinColumns = @JoinColumn(name = "ticket_id"))
@@ -119,7 +127,7 @@ public class CustomServiceProviderTicket {
 
     @ManyToOne
     @JoinColumn(name = "parent_ticket_id")
-    @JsonBackReference
+    @JsonIgnore
     @JsonProperty("parent_ticket_id")
     private CustomServiceProviderTicket parentTicket;
 
@@ -135,5 +143,9 @@ public class CustomServiceProviderTicket {
     @Column(name = "is_review_required")
     @JsonProperty("is_review_required")
     private Boolean isReviewRequired;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "serviceProviderTicket")
+    private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
 
 }

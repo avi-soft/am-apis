@@ -27,6 +27,7 @@ import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -48,6 +50,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -58,6 +61,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -226,7 +230,7 @@ public class TicketController {
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
-            if(ticket.getTicketType().getTicketType().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                 Customer customer = customerService.readCustomerById(ticket.getOrder().getCustomer().getId());
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
@@ -381,10 +385,14 @@ public class TicketController {
 
     @PutMapping("/ticket/update/{ticketId}")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
-    public ResponseEntity<?> updateTicketStateAndStatus(@RequestBody CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
+    public ResponseEntity<?> updateTicket(@ModelAttribute CreateTicketDto createTicketDto, @PathVariable Long ticketId, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "authorization") String authHeader) {
         try {
 
-            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, ticketId, authHeader);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
+            }
+
+            CustomServiceProviderTicket ticket = ticketStateService.updateTicket(createTicketDto, files, ticketId, authHeader);
             if (ticket == null) {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }
@@ -422,7 +430,7 @@ public class TicketController {
 
     @Transactional
     @PostMapping("/add")
-    public ResponseEntity<?> createTicket(@RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
 
@@ -615,7 +623,15 @@ public class TicketController {
             }
 
             customServiceProviderTicket = entityManager.merge(customServiceProviderTicket);
-            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", customServiceProviderTicket, HttpStatus.OK);
+            if(files != null) {
+                Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
+                customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
+                entityManager.merge(customServiceProviderTicket);
+            }
+
+            CustomTicketWrapper wrapper = new CustomTicketWrapper();
+            wrapper.customWrapDetails(customServiceProviderTicket, null, entityManager);
+            return ResponseService.generateSuccessResponse("TICKET CREATED SUCCESSFULLY", wrapper, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);

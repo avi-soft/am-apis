@@ -11,6 +11,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.tomcat.util.bcel.Const;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -18,6 +19,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -35,6 +37,9 @@ public class StreamService {
 
     @Autowired
     JwtUtil jwtTokenUtil;
+
+    @Autowired
+    SharedUtilityService sharedUtilityService;
 
     @Autowired
     RoleService roleService;
@@ -157,14 +162,30 @@ public class StreamService {
         try{
             CustomStream stream = new CustomStream();
             stream.setStreamName(addStreamDto.getStreamName());
+            List<Qualification>list=new ArrayList<>();
+            for(Integer id:addStreamDto.getQualificationIds())
+            {
+                Qualification qualification=entityManager.find(Qualification.class,id);
+                if(qualification!=null)
+                {
+                    list.add(qualification);
+                }
+            }
+            stream.setQualifications(list);
+            TypedQuery<Long> query = entityManager.createQuery(
+                    "SELECT MAX(c.sortOrder) FROM CustomStream c WHERE c.sortOrder < 10000000", Long.class
+            );
+            Long maxSortOrder = query.getSingleResult();
+            stream.setSortOrder(maxSortOrder+1);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
             stream.setCreatorRole(creatorRole);
-            return entityManager.merge(stream);
+            entityManager.persist(stream);
+            return stream;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 
@@ -181,6 +202,95 @@ public class StreamService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
+        }
+    }
+    @Transactional
+    public CustomStream manageStream(Long streamId, Boolean archive) throws IllegalArgumentException, Exception {
+        try {
+            CustomStream stream = entityManager.find(CustomStream.class, streamId);
+            if (stream == null) {
+                throw new IllegalArgumentException("Stream not found");
+            }
+
+            if (archive) {
+                if (stream.getArchived() == 'Y') {
+                    throw new IllegalArgumentException("Stream already archived");
+                } else {
+                    stream.setArchived('Y');
+                    entityManager.merge(stream);
+                }
+            } else {
+                if (stream.getArchived() == 'N') {
+                    throw new IllegalArgumentException("Stream already unarchived");
+                } else {
+                    stream.setArchived('N');
+                    entityManager.merge(stream);
+                }
+            }
+            return stream;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+
+    public List<Qualification> getQualificationsForStream(Long streamId) {
+        CustomStream stream = entityManager.find(CustomStream.class, streamId);
+        if (stream == null) {
+            throw new IllegalArgumentException("Stream not found");
+        }
+        return entityManager.createQuery(
+                        "SELECT q FROM Qualification q JOIN q.streams s WHERE s.streamId = :streamId",
+                        Qualification.class)
+                .setParameter("streamId", streamId)
+                .getResultList();
+    }
+    @Transactional
+    public CustomStream editStream(Long streamId,List<Integer>qualificationIds,CustomStream stream) throws IllegalArgumentException, Exception {
+        try {
+            CustomStream streamToEdit = entityManager.find(CustomStream.class, streamId);
+            if (streamToEdit == null) {
+                throw new IllegalArgumentException("Stream not found");
+            }
+
+            if (stream.getStreamId() != null) {
+                throw new IllegalArgumentException("Cannot give stream id when editing");
+            }
+
+            Query query = entityManager.createQuery(
+                    "SELECT s FROM CustomStream s WHERE s.streamName = :streamName AND s.streamId != :streamId",
+                    CustomStream.class);
+            query.setParameter("streamName", stream.getStreamName());
+            query.setParameter("streamId", streamId);
+
+            List<CustomStream> existingStreams = query.getResultList();
+            if (!existingStreams.isEmpty()) {
+                throw new IllegalArgumentException("Stream with this name already exists");
+            }
+
+            if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
+                throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
+            }
+            List<Qualification>newQf=new ArrayList<>();
+            if(qualificationIds!=null&&!qualificationIds.isEmpty())
+            {
+                for(Integer id:qualificationIds)
+                {
+                    System.out.println("id"+id);
+                    Qualification qualification=entityManager.find(Qualification.class,id);
+                    if(qualification!=null)
+                    {
+                        newQf.add(qualification);
+                    }
+                }
+                streamToEdit.setQualifications(newQf);
+            }
+            streamToEdit.setStreamName(stream.getStreamName());
+            streamToEdit.setStreamDescription(stream.getStreamDescription());
+            entityManager.merge(streamToEdit);
+
+            return streamToEdit;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
         }
     }
 }

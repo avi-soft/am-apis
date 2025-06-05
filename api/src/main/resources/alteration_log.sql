@@ -345,14 +345,34 @@
 -- RAMAN 30-05-2025
 DO $$
 BEGIN
-    ALTER TABLE service_provider
-        ADD CONSTRAINT chk_ticket_assigned_non_negative CHECK (ticket_assigned IS NULL OR ticket_assigned >= 0);
+--    ALTER TABLE service_provider
+--        ADD CONSTRAINT chk_ticket_assigned_non_negative CHECK (ticket_assigned IS NULL OR ticket_assigned >= 0);
+--
+--    ALTER TABLE service_provider
+--        ADD CONSTRAINT chk_ticket_pending_non_negative CHECK (ticket_pending IS NULL OR ticket_pending >= 0);
+--
+--    ALTER TABLE service_provider
+--        ADD CONSTRAINT chk_ticket_completed_non_negative CHECK (ticket_completed IS NULL OR ticket_completed >= 0);
 
-    ALTER TABLE service_provider
-        ADD CONSTRAINT chk_ticket_pending_non_negative CHECK (ticket_pending IS NULL OR ticket_pending >= 0);
+--    INSERT INTO filetype (file_type_id, file_type_name)
+--    VALUES (8, 'DOC'),
+--           (9, 'DOCX'),
+--           (10, 'TXT'),
+--           (11, 'RTF'),
+--           (12, 'HTML'),
+--           (13, 'CSV'),
+--           (14, 'XLS'),
+--           (15, 'XLSX'),
+--           (16, 'GIF'),
+--           (17, 'SVG'),
+--           (18, 'MP3'),
+--           (19, 'MP4'),
+--           (20, 'AVI'),
+--           (21, 'ZIP'),
+--           (22, 'TIFF');
 
-    ALTER TABLE service_provider
-        ADD CONSTRAINT chk_ticket_completed_non_negative CHECK (ticket_completed IS NULL OR ticket_completed >= 0);
+--    INSERT INTO custom_document
+--    VALUES (32, 'Ticket_Document', 'Ticket Document', '5KB', '5MB', FALSE, FALSE, FALSE, 30);
 
 END $$;
 

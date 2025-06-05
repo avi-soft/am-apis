@@ -2070,7 +2070,7 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
 --            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
 --            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7),
 --            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8),
---            (32, 'Ticket_Document', 'Ticket Document', '5KB', '5MB', FALSE, FALSE, FALSE, 30);
+--            (32, 'Ticket_Document', 'Ticket Document', '5MB', '5KB', FALSE, FALSE, FALSE, 30);
 --    END IF;
 --
     -- Check and insert into file_type_name table
@@ -2136,6 +2136,7 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
 --            (29, 1), (29, 2), (29, 4),
 --            (30, 1), (30, 2), (30, 4),
 --            (31, 1), (31, 2), (31, 4);
+--            (32, 1), (32, 2), (32, 4), (32, 3), (32, 8), (32, 9), (32, 10), (32, 11), (32, 12), (32, 13), (32, 14), (32, 15), (32, 16), (32, 17), (32, 18), (32, 19), (32, 20), (32, 21), (32, 22);
 --    END IF;
 --
    IF (SELECT COUNT(*) FROM board_university) = 0 THEN

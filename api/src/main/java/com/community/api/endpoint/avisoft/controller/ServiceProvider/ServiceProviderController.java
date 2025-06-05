@@ -3,15 +3,15 @@ package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.BankAccountDTO;
+import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CreateTicketDto;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.order.service.OrderService;
 
@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,12 +39,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.CURRENT_ADDRESS_ID;
 import static com.community.api.component.Constant.PERMANENT_ADDRESS_ID;
@@ -99,6 +98,14 @@ public class ServiceProviderController {
     @Autowired
     private PrivilegeService privilegeService;
 
+    private StatusChangeEmailService statusChangeEmailService;
+
+    @Autowired
+    public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
+        this.statusChangeEmailService = statusChangeEmailService;
+    }
+
+
     @Autowired
     QualificationService qualificationService;
     /*@Autowired
@@ -135,7 +142,7 @@ public class ServiceProviderController {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if(serviceProvider.getRole()!=roleId&& !Objects.equals(tokenUserId,userId ))
+            if(serviceProvider.getRole()!=roleId || !Objects.equals(tokenUserId,userId ))
                 return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
             if (serviceProvider.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
@@ -596,8 +603,11 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if (role != null && (role <= roleId)&&roleId!=5)
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+
+            if(role!=null&&(role<=roleId&&roleId!=5))
+                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            System.out.println("bypassed");
+
             // Validate input
             if ((uri.containsKey("state") && (state == null || state.isEmpty())) ||
                     (uri.containsKey("district") && (district == null || district.isEmpty())) ||
@@ -976,11 +986,11 @@ public class ServiceProviderController {
         List<Long> ids = getLongList(map, "spIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
-        action=action.toLowerCase();
+        List<ServiceProviderEntity> processedServiceProviders = new ArrayList<>();
+        action = action.toLowerCase();
         String actionReq = null;
 
-
-        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)&&(!action.equals(Constant.ACTION_APPROVE))&&(!action.equals(Constant.ACTION_REJECT))) {
+        if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE) && (!action.equals(Constant.ACTION_APPROVE)) && (!action.equals(Constant.ACTION_REJECT))) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
         }
         // Check if the spIds list is empty and return an error response
@@ -988,8 +998,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("No Service Provider IDs provided", HttpStatus.BAD_REQUEST);
         }
 
-
-        if (action.equals("suspend")||action.equals("reject"))
+        if (action.equals("suspend") || action.equals("reject"))
             actionReq = action + "ed";
         else
             actionReq = action + "d";
@@ -1000,27 +1009,30 @@ public class ServiceProviderController {
                 skippedIds.put(customerId, "SP Not Found");
                 continue;
             }
-            if (serviceProvider.getRole() ==1) {
+            if (serviceProvider.getRole() == 1) {
                 skippedIds.put(customerId, "Action not Authorized");
                 continue;
             }
             if (action.equals(Constant.ACTION_APPROVE)) {
-                Role role=roleService.getRoleByRoleId(roleId);
-                if(!Constant.roleSuperAdmin.equals(role.getRole_name())&&!Constant.roleAdmin.equals(role.getRole_name()))
-                {
-                    return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
+                Role role = roleService.getRoleByRoleId(roleId);
+                if (!Constant.roleSuperAdmin.equals(role.getRole_name()) && !Constant.roleAdmin.equals(role.getRole_name())) {
+                    return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
                 if (serviceProvider.getApproved().equals(true)) {
                     skippedIds.put(customerId, "User Already approved");
                     ++actionCount;
                     continue;
                 }
-                if(!serviceProvider.getCompleted())
-                {
-                        skippedIds.put(customerId, "Profile not completed");
-                        continue;
+                if (!serviceProvider.getCompleted()) {
+                    skippedIds.put(customerId, "Profile not completed");
+                    continue;
                 }
                 serviceProvider.setApproved(true);
+                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_SP);
+                if (serviceProviderTestStatus == null) {
+                    return ResponseService.generateErrorResponse("Test Status id " + Constant.APPROVED_SP + " Not found", HttpStatus.NOT_FOUND);
+                }
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
 
                 Long id = serviceProvider.getService_provider_id();
                 int role_id = serviceProvider.getRole();
@@ -1040,33 +1052,29 @@ public class ServiceProviderController {
                 }
 
                 serviceProvider.setRejected(false);
-            }
-            else if(Constant.ACTION_REJECT.equals(action))
-            {
-                Role role=roleService.getRoleByRoleId(roleId);
-                if(!Constant.roleSuperAdmin.equals(role.getRole_name())&&!Constant.roleAdmin.equals(role.getRole_name()))
-                {
-                    return ResponseService.generateErrorResponse("Action Forbidden",HttpStatus.FORBIDDEN);
+            } else if (Constant.ACTION_REJECT.equals(action)) {
+                Role role = roleService.getRoleByRoleId(roleId);
+                if (!Constant.roleSuperAdmin.equals(role.getRole_name()) && !Constant.roleAdmin.equals(role.getRole_name())) {
+                    return ResponseService.generateErrorResponse("Action Forbidden", HttpStatus.FORBIDDEN);
                 }
-                if (serviceProvider.getRejected()!=null&&serviceProvider.getRejected().equals(true)) {
+                if (serviceProvider.getRejected() != null && serviceProvider.getRejected().equals(true)) {
                     skippedIds.put(customerId, "User Already rejected");
                     ++actionCount;
                     continue;
                 }
-                if (serviceProvider.getRejected()!=null&&serviceProvider.getApproved()) {
+                if (serviceProvider.getRejected() != null && serviceProvider.getApproved()) {
                     skippedIds.put(customerId, "Cannot reject,User is approved");
                     ++actionCount;
                     continue;
                 }
-/*                if(!serviceProvider.getCompleted())
-                {
-                    skippedIds.put(customerId, "Profile not completed");
-                    continue;
-                }*/
                 serviceProvider.setRejected(true);
+                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.REJECTED_SP);
+                if (serviceProviderTestStatus == null) {
+                    return ResponseService.generateErrorResponse("Test Status id " + Constant.REJECTED_SP + " Not found", HttpStatus.NOT_FOUND);
+                }
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProvider.setApproved(false);
             }
-
             //checking valid permissions
             else if (action.equals(Constant.ACTION_SUSPEND)) {
                 if (serviceProvider.getIsArchived().equals(true)) {
@@ -1074,7 +1082,13 @@ public class ServiceProviderController {
                     ++actionCount;
                     continue;
                 }
+                serviceProvider.setLastStatusId(serviceProvider.getServiceProviderStatus().getTest_status_id());
                 serviceProvider.setIsArchived(true);
+                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.SUSPENDED_SP);
+                if (serviceProviderTestStatus == null) {
+                    return ResponseService.generateErrorResponse("Test Status id " + Constant.SUSPENDED_SP + " Not found", HttpStatus.NOT_FOUND);
+                }
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
             } else {
                 if (serviceProvider.getIsArchived().equals(false)) {
                     skippedIds.put(customerId, "User Already Activate");
@@ -1082,19 +1096,32 @@ public class ServiceProviderController {
                     continue;
                 }
                 serviceProvider.setIsArchived(false);
+                //set the last status
+                ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, serviceProvider.getLastStatusId());
+                if (serviceProviderTestStatus == null) {
+                    return ResponseService.generateErrorResponse("Test Status id " + serviceProvider.getLastStatusId() + " Not found", HttpStatus.NOT_FOUND);
+                }
+                serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
             }
+
             if (action.equals(Constant.ACTION_SUSPEND)) {
                 sharedUtilityService.blackListToken(serviceProvider.getToken(), 4, serviceProvider.getService_provider_id());
                 customerEndpoint.logout(serviceProvider.getToken());
-            }
-            else
-            {
+            } else {
                 sharedUtilityService.removeToken(serviceProvider.getToken());
             }
+
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(serviceProvider);
+
+            processedServiceProviders.add(serviceProvider);
         }
+
+        if (!processedServiceProviders.isEmpty()) {
+           statusChangeEmailService.sendStatusChangeEmails(processedServiceProviders, action, authHeader);
+        }
+
         Map<String, Object> response = new HashMap<>();
         if (skippedIds.isEmpty()) {
             response.put(actionReq + "Ids", actionedIds);
@@ -1156,5 +1183,4 @@ public class ServiceProviderController {
         result.put("Admins",res.subList(fromIndex,toIndex));
         return ResponseService.generateSuccessResponse("Admins fetched successfully",res.subList(fromIndex,toIndex),HttpStatus.OK);
     }
-
 }

@@ -3,7 +3,6 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
@@ -12,7 +11,6 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
-import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -21,8 +19,6 @@ import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -50,8 +46,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -822,7 +816,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
         serviceProviderDetails.put("latitude", serviceProvider.getLatitude());
         serviceProviderDetails.put("longitude", serviceProvider.getLongitude());
-        serviceProviderDetails.put("service_provider_status", serviceProvider.getTestStatus());
+        serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
+        serviceProviderDetails.put("staff_score", serviceProvider.getStaffScore());
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
@@ -846,6 +841,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
         serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
+
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {

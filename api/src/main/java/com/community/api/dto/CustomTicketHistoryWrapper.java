@@ -1,29 +1,27 @@
 package com.community.api.dto;
 
-import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.Role;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
+import java.util.Set;
 
 public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
 
     @JsonProperty("ticket_history_id")
     protected Long ticketHistoryId;
 
-    @JsonProperty("ticket_id")
-    protected Long ticketId;
-
-    @JsonProperty("created_date")
-    protected Date createdDate;
+    @JsonProperty("ticket")
+    protected CustomServiceProviderTicket ticket;
 
     @JsonProperty("modified_date")
     protected Date modifiedDate;
@@ -55,13 +53,15 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
     @JsonProperty("ticket_status")
     protected CustomTicketStatus customTicketStatus;
 
+    @JsonProperty("ticket_documents")
+    protected Set<ServiceProviderDocument> serviceProviderDocument;
+
 
     public void customWrapDetails(CustomTicketHistory customTicketHistory) {
-        this.ticketId = customTicketHistory.getTicketId().getTicketId();
+        this.ticket = customTicketHistory.getTicket();
         this.ticketHistoryId = customTicketHistory.getTicketHistoryId();
         this.assigneeUserId = customTicketHistory.getAssignee();
         this.assigneeRole = customTicketHistory.getAssigneeRole();
-        this.createdDate = customTicketHistory.getCreatedDate();
         this.modifiedDate = customTicketHistory.getModifiedDate();
         this.targetCompletionDate = customTicketHistory.getTargetCompletionDate();
         this.modifierUserId = customTicketHistory.getModifierId();
@@ -70,7 +70,7 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
         this.customTicketType = customTicketHistory.getTicketType();
         this.customTicketStatus = customTicketHistory.getTicketStatus();
         this.assignedDate = customTicketHistory.getTicketAssignDate();
-        this.createdDate = customTicketHistory.getCreatedDate();
+        this.serviceProviderDocument = customTicketHistory.getServiceProviderDocuments();
     }
 
     @Override

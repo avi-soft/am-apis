@@ -1,6 +1,9 @@
 package com.community.api.entity;
 
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,9 +17,11 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "custom_ticket_history")
@@ -32,9 +37,9 @@ public class CustomTicketHistory {
 
     @ManyToOne
     @JoinColumn(name = "ticket_id")
-    @JsonBackReference
+    @JsonIgnore
     @JsonProperty("ticket")
-    protected CustomServiceProviderTicket ticketId;
+    protected CustomServiceProviderTicket ticket;
 
     @ManyToOne
     @JoinColumn(name = "ticket_state_id")
@@ -77,16 +82,12 @@ public class CustomTicketHistory {
     @JsonProperty("target_completion_time")
     private Date targetCompletionDate;
 
-    @Column(name = "created_date")
-    @JsonProperty("created_date")
-    private Date createdDate;
-
     @Column(name = "ticket_assign_time")
     @JsonProperty("ticket_assign_time")
     private Date ticketAssignDate;
 
-    @OneToOne
-    @JsonBackReference
+    @ManyToOne
+    @JsonIgnore
     @JoinColumn(name = "ORDER_ID")
     @JsonProperty("order")
     private OrderImpl order;
@@ -94,4 +95,8 @@ public class CustomTicketHistory {
     @Column
     @JsonProperty("comment")
     private String comment;
+
+    @OneToMany(mappedBy = "ticketHistory")
+    private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
+
 }
