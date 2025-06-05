@@ -36,7 +36,7 @@ public class UploadedPdf {
     @Column(name = "image_size")
     private String pdf_size;
 
-    @JsonBackReference
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProvider;
