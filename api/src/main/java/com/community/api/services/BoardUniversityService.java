@@ -3,7 +3,6 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.entity.BoardUniversity;
-import com.community.api.entity.CustomSubject;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -111,10 +110,13 @@ public class BoardUniversityService
     }
 
     public List<BoardUniversity> getAllBoardUniversities() {
-        TypedQuery<BoardUniversity> query = entityManager.createQuery(Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
-        List<BoardUniversity> boardUniversityList = query.getResultList();
+        TypedQuery<BoardUniversity> query = entityManager.createQuery(
+                Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
+        query.setParameter("archived", false);
+        List<BoardUniversity> boardUniversityList = query.getResultList(); // then execute
         return boardUniversityList;
     }
+
 
     //need to be change here
     public long findCount() {

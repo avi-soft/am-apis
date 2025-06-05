@@ -271,7 +271,7 @@ public class StreamService {
                 throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
             }
             List<Qualification>newQf=new ArrayList<>();
-            if(!qualificationIds.isEmpty())
+            if(qualificationIds!=null&&!qualificationIds.isEmpty())
             {
                 for(Integer id:qualificationIds)
                 {
@@ -284,7 +284,6 @@ public class StreamService {
                 }
                 streamToEdit.setQualifications(newQf);
             }
-
             streamToEdit.setStreamName(stream.getStreamName());
             streamToEdit.setStreamDescription(stream.getStreamDescription());
             entityManager.merge(streamToEdit);

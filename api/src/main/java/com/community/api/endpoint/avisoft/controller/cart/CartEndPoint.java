@@ -430,7 +430,7 @@ public class CartEndPoint extends BaseEndpoint {
         }
     }
 
-    @JsonBackReference
+//    @JsonBackReference
     @RequestMapping(value = "preview-cart/{customerId}", method = RequestMethod.GET)
     public ResponseEntity<?> retrieveCartItems(@PathVariable long customerId, @RequestHeader(value = "inFunctionCall", required = false, defaultValue = "false") boolean inFunctionCall,@RequestHeader(value = "Authorization")String authHeader) {
         try {

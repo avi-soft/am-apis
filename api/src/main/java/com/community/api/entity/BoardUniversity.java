@@ -46,7 +46,7 @@
         private Long sortOrder;
 
         @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
-        private Boolean Archived;
+        private Boolean archived;
 
 
     }
