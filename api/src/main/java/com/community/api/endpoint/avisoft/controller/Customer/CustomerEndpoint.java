@@ -328,10 +328,10 @@ public class CustomerEndpoint {
                       customCustomer.setHasStateCategory(false);
                   }
             }
-            else
+          /*  else
             {
                 return ResponseService.generateErrorResponse("Need to provide whether state level category or not",HttpStatus.BAD_REQUEST);
-            }
+            }*/
 
             if (details.containsKey("familyIncome")) {
                 Object incomeObj = details.get("familyIncome");

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.validation.constraints.NotNull;
 import java.util.Date;
@@ -34,6 +35,7 @@ public class CreateTicketDto {
 
     @NotNull
     @JsonProperty("target_completion_time")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH-mm-ss")
     private Date targetCompletionDate;
 
     @JsonProperty("comment")

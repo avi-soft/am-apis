@@ -25,8 +25,9 @@ public class DistrictService {
     @Autowired
     private ExceptionHandlingImplement exceptionHandling;
 
-    public List<Districts> findDistrictsByStateCode(String state_code) {
+    public List<Districts> findDistrictsByStateCode(String state_code,Boolean archived) {
         TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_QUERY, Districts.class);
+        query.setParameter("archived",archived);
         query.setParameter("state_code", state_code);
         return query.getResultList();
     }
@@ -53,8 +54,9 @@ public class DistrictService {
                 .orElse(null);
     }
 
-    public List<StateCode> findStateList() {
+    public List<StateCode> findStateList(Boolean archived) {
         TypedQuery<StateCode> query = entityManager.createQuery(Constant.GET_STATES_LIST, StateCode.class);
+        query.setParameter("archived",archived);
         return query.getResultList();
     }
 
@@ -278,6 +280,14 @@ public class DistrictService {
                     throw new IllegalArgumentException("State already archived");
                 else {
                     state.setArchived(true);
+                    Query query =entityManager.createQuery("SELECT d from Districts d where d.state_code = :code",Districts.class);
+                    query.setParameter("code",state.getState_code());
+                    List<Districts>districts=query.getResultList();
+                    for(Districts district:districts)
+                    {
+                        district.setArchived(true);
+                        entityManager.merge(district);
+                    }
                     entityManager.merge(state);
                 }
             }
@@ -287,6 +297,14 @@ public class DistrictService {
                     throw new IllegalArgumentException("State already unarchived");
                 else {
                     state.setArchived(false);
+                    Query query =entityManager.createQuery("SELECT d from Districts d where d.state_code = :code",Districts.class);
+                    query.setParameter("code",state.getState_code());
+                    List<Districts>districts=query.getResultList();
+                    for(Districts district:districts)
+                    {
+                        district.setArchived(false);
+                        entityManager.merge(district);
+                    }
                     entityManager.merge(state);
                 }
             }
