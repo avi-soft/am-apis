@@ -9,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -26,5 +27,7 @@ public class AddStreamDto {
     @Size(max = 255)
     @Pattern(regexp = "^[a-zA-Z0-9 ,.!?';:()&-]*$", message = "Stream description must contains only Alphabets and Digits.")
     private String streamDescription;
+
+    private List<Integer>qualificationIds;
 
 }

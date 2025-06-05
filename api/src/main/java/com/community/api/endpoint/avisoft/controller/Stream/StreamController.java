@@ -153,7 +153,7 @@ public class StreamController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @RequestMapping(value = "{streamId}/manage", method = RequestMethod.DELETE)
+    @RequestMapping(value = "stream/{streamId}/manage", method = RequestMethod.DELETE)
     public ResponseEntity<?> manageStream(
             @PathVariable Long streamId,
             @RequestParam(defaultValue = "true") Boolean archive) {
@@ -174,7 +174,7 @@ public class StreamController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @RequestMapping(value = "{streamId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "stream/{streamId}/edit", method = RequestMethod.PATCH)
     public ResponseEntity<?> editStream(
             @PathVariable Long streamId,
             @RequestBody CustomStream stream) {
