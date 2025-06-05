@@ -154,10 +154,11 @@ public class SubjectController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PutMapping("/{subjectId}/edit")
+    @PutMapping("subject/{subjectId}/edit")
     public ResponseEntity<?> editSubject(
             @PathVariable Long subjectId,
-            @RequestBody CustomSubject subject) {
+            @RequestBody CustomSubject subject,
+            @RequestParam(required = false)List<Long>streamIds) {
         try {
             CustomSubject existingSubject = entityManager.find(CustomSubject.class, subjectId);
             if (existingSubject == null) {
@@ -166,7 +167,7 @@ public class SubjectController {
 
             return ResponseService.generateSuccessResponse(
                     "Subject updated successfully",
-                    subjectService.editSubject(subjectId, subject),
+                    subjectService.editSubject(subjectId,streamIds, subject),
                     HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse("Cannot edit subject: " + e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -176,7 +177,7 @@ public class SubjectController {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin})
-    @DeleteMapping("/{subjectId}/manage")
+    @DeleteMapping("subject/{subjectId}/manage")
     public ResponseEntity<?> manageSubject(
             @PathVariable Long subjectId,
             @RequestParam(defaultValue = "true") Boolean archive) {
@@ -197,7 +198,7 @@ public class SubjectController {
         }
     }
 
-    @GetMapping("/{subjectId}/streams")
+    @GetMapping("subject/{subjectId}/streams")
     public ResponseEntity<?> getStreamsForSubject(@PathVariable Long subjectId) {
         try {
             List<CustomStream> streams = subjectService.getStreamsForSubject(subjectId);

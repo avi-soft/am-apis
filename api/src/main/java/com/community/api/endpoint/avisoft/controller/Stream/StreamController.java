@@ -178,7 +178,7 @@ public class StreamController {
     public ResponseEntity<?> editStream(
             @PathVariable Long streamId,
             @RequestBody CustomStream stream,
-            @RequestParam List<Integer>qualificationIds) {
+            @RequestParam(required = false) List<Integer>qualificationIds) {
         try {
             CustomStream existingStream = entityManager.find(CustomStream.class, streamId);
             if (existingStream == null) {

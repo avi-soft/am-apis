@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -162,6 +164,21 @@ public class SubjectService {
             subject.setSubjectDescription(addSubjectDto.getSubjectDescription());
             subject.setCreatedDate(new Date());
             subject.setCreatorUserId(creatorId);
+            List<CustomStream>subjects=new ArrayList<>();
+            TypedQuery<Long> query = entityManager.createQuery(
+                    "SELECT MAX(c.sortOrder) FROM CustomSubject c WHERE c.sortOrder < 1000000", Long.class
+            );
+            Long maxSortOrder = query.getSingleResult();
+            subject.setSortOrder(maxSortOrder+1);
+            for(Long id:addSubjectDto.getStreamIds())
+            {
+                CustomStream stream=entityManager.find(CustomStream.class,id);
+                if(stream!=null)
+                {
+                    subjects.add(stream);
+                }
+            }
+            subject.setStreams(subjects);
             subject.setCreatorRole(creatorRole);
             return entityManager.merge(subject);
         } catch (Exception exception) {
@@ -186,7 +203,7 @@ public class SubjectService {
         }
     }
     @Transactional
-    public CustomSubject editSubject(Long subjectId, CustomSubject subject) throws Exception {
+    public CustomSubject editSubject(Long subjectId,List<Long>streamIds,CustomSubject subject) throws Exception {
         try {
             CustomSubject subjectToEdit = entityManager.find(CustomSubject.class, subjectId);
             if (subjectToEdit == null) {
@@ -212,6 +229,17 @@ public class SubjectService {
             if (subject.getSortOrder() != null) {
                 subjectToEdit.setSortOrder(subject.getSortOrder());
             }
+            List<CustomStream>newStreams=new ArrayList<>();
+            for(Long id:streamIds)
+            {
+                CustomStream stream=entityManager.find(CustomStream.class,id);
+                if(stream!=null)
+                {
+                    newStreams.add(stream);
+                }
+            }
+            if(!newStreams.isEmpty())
+                subjectToEdit.setStreams(newStreams);
 
             entityManager.merge(subjectToEdit);
             return subjectToEdit;
