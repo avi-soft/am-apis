@@ -30,8 +30,9 @@ public class QualificationService {
     private QualificationService qualificationService;
     @Autowired
     private ResponseService responseService;
-    public List<Qualification> getAllQualifications() {
+    public List<Qualification> getAllQualifications(Boolean archived) {
         TypedQuery<Qualification> query = entityManager.createQuery(Constant.FIND_ALL_QUALIFICATIONS_QUERY, Qualification.class);
+        query.setParameter("archived",archived);
         List<Qualification> qualifications = query.getResultList();
         return qualifications;
     }
@@ -66,7 +67,7 @@ public class QualificationService {
         }
 
 
-        List<Qualification> qualifications = qualificationService.getAllQualifications();
+        List<Qualification> qualifications = qualificationService.getAllQualifications(false);
         for (Qualification existingQualification : qualifications) {
             if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())) {
                 throw new IllegalArgumentException("Qualification with the same name already exists");
@@ -114,7 +115,7 @@ public class QualificationService {
         }
 
 
-        List<Qualification> qualifications = qualificationService.getAllQualifications();
+        List<Qualification> qualifications = qualificationService.getAllQualifications(false);
         for (Qualification existingQualification : qualifications) {
             if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())) {
                 throw new IllegalArgumentException("Qualification with the same name already exists");

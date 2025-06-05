@@ -79,7 +79,7 @@ public class QualificationDetailsService {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
             dateValidations();
 
-            List<Qualification> qualifications = qualificationService.getAllQualifications();
+            List<Qualification> qualifications = qualificationService.getAllQualifications(false);
             Integer qualificationToAdd= findQualificationId(qualificationDetails.getQualification_id(), qualifications);
             OtherItem qualificationOtherItemToAdd=handleOtherCaseForQualification(qualificationToAdd,qualificationOthers,roleId,userId,sourceName);
             allOtherItemsToSave.add(qualificationOtherItemToAdd);
@@ -187,7 +187,7 @@ public class QualificationDetailsService {
             dateValidations();
         }
         checkIfQualificationAlreadyExists(userId, qualificationDetails.getQualification_id(), roleName);
-        List<Qualification> qualifications = qualificationService.getAllQualifications();
+        List<Qualification> qualifications = qualificationService.getAllQualifications(false);
         Integer qualificationToAdd= findQualificationId(qualificationDetails.getQualification_id(), qualifications);
         OtherItem qualificationOtherItemToAdd=handleOtherCaseForQualification(qualificationToAdd,qualificationOthers,roleId,userId,sourceName);
         allOtherItemsToSave.add(qualificationOtherItemToAdd);
@@ -509,7 +509,7 @@ public class QualificationDetailsService {
         List<OtherItem> existingItems = qualificationDetailsToUpdate.getOtherItems();
         if (Objects.nonNull(qualification.getQualification_id())) {
             Boolean isOtherQualification = false;
-            List<Qualification> qualificationDetailsList = qualificationService.getAllQualifications();
+            List<Qualification> qualificationDetailsList = qualificationService.getAllQualifications(false);
             Integer qualificationToAdd = findQualificationId(qualification.getQualification_id(), qualificationDetailsList);
             OtherItem qualificationOtherItemToAdd = null;
             Qualification qualificationToFind = entityManager.find(Qualification.class, qualificationToAdd);
