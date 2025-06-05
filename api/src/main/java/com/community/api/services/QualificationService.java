@@ -78,8 +78,55 @@ public class QualificationService {
         Long maxSortOrder = getSecondMaxSortOrder();
         qualificationToBeSaved.setSort_order(maxSortOrder + 1);
         qualificationToBeSaved.setIs_stream_required(qualification.getIs_stream_required());
+        qualificationToBeSaved.setArchived(false);
         qualificationToBeSaved.setIs_subjects_required(qualification.getIs_subjects_required());
         entityManager.persist(qualificationToBeSaved);
+        return qualificationToBeSaved;
+    }
+    @Transactional
+    public Qualification edit(Long qualificationId,@RequestBody Qualification qualification) throws Exception {
+        Qualification qualificationToBeSaved = entityManager.find(Qualification.class,qualificationId);
+        if(qualificationToBeSaved==null)
+            throw new IllegalArgumentException("Qualification not found");
+        if (qualification.getQualification_name() == null || qualification.getQualification_name().trim().isEmpty()) {
+            throw new IllegalArgumentException("Qualification name cannot be empty or consist only of whitespace");
+        }
+        if (qualification.getQualification_description() == null || qualification.getQualification_description().trim().isEmpty()) {
+            throw new IllegalArgumentException("Qualification description cannot be empty or consist only of whitespace");
+        }
+        if (!qualification.getQualification_name().matches("^[a-zA-Z ]+$")) {
+            throw new IllegalArgumentException("Qualification name cannot contain numeric values or special characters");
+        }
+        if (!(qualification.getQualification_description() instanceof String)) {
+            throw new IllegalArgumentException("Qualification description must be a string");
+        }
+        if(qualification.getIs_stream_required()==null)
+        {
+            throw new IllegalArgumentException("You have to give whether stream required or not for qualification");
+        }
+        if(qualification.getIs_subjects_required()==null)
+        {
+            throw new IllegalArgumentException("You have to give whether subject required or not for qualification");
+        }
+        String description = qualification.getQualification_description();
+        if (description.isEmpty()) {
+            throw new IllegalArgumentException("Qualification description cannot be empty");
+        }
+
+
+        List<Qualification> qualifications = qualificationService.getAllQualifications();
+        for (Qualification existingQualification : qualifications) {
+            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())) {
+                throw new IllegalArgumentException("Qualification with the same name already exists");
+            }
+        }
+        qualificationToBeSaved.setQualification_name(qualification.getQualification_name());
+        qualificationToBeSaved.setQualification_description(qualification.getQualification_description());
+        Long maxSortOrder = getSecondMaxSortOrder();
+        qualificationToBeSaved.setSort_order(maxSortOrder + 1);
+        qualificationToBeSaved.setIs_stream_required(qualification.getIs_stream_required());
+        qualificationToBeSaved.setIs_subjects_required(qualification.getIs_subjects_required());
+        entityManager.merge(qualificationToBeSaved);
         return qualificationToBeSaved;
     }
     public Long getSecondMaxSortOrder() {

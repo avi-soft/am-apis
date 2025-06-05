@@ -35,6 +35,9 @@ public class SubjectService {
     @Autowired
     RoleService roleService;
 
+    @Autowired
+    SharedUtilityService sharedUtilityService;
+
     public Boolean validiateAuthorization(String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
@@ -181,6 +184,79 @@ public class SubjectService {
             exceptionHandlingService.handleException(exception);
             throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
         }
+    }
+    @Transactional
+    public CustomSubject editSubject(Long subjectId, CustomSubject subject) throws Exception {
+        try {
+            CustomSubject subjectToEdit = entityManager.find(CustomSubject.class, subjectId);
+            if (subjectToEdit == null) {
+                throw new IllegalArgumentException("Subject not found");
+            }
+
+            if (subject.getSubjectId() != null) {
+                throw new IllegalArgumentException("Cannot change subject ID");
+            }
+
+            // Validate subject name
+            if (subject.getSubjectName() != null) {
+                if (!sharedUtilityService.isAlphabetic(subject.getSubjectName())) {
+                    throw new IllegalArgumentException("Subject name should contain only alphabets");
+                }
+                subjectToEdit.setSubjectName(subject.getSubjectName());
+            }
+
+            // Update other fields if provided
+            if (subject.getSubjectDescription() != null) {
+                subjectToEdit.setSubjectDescription(subject.getSubjectDescription());
+            }
+            if (subject.getSortOrder() != null) {
+                subjectToEdit.setSortOrder(subject.getSortOrder());
+            }
+
+            entityManager.merge(subjectToEdit);
+            return subjectToEdit;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @Transactional
+    public CustomSubject manageSubject(Long subjectId, Boolean archive) throws Exception {
+        try {
+            CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+            if (subject == null) {
+                throw new IllegalArgumentException("Subject not found");
+            }
+
+            if (archive) {
+                if (subject.getArchived() == 'Y') {
+                    throw new IllegalArgumentException("Subject already archived");
+                }
+                subject.setArchived('Y');
+            } else {
+                if (subject.getArchived() == 'N') {
+                    throw new IllegalArgumentException("Subject already unarchived");
+                }
+                subject.setArchived('N');
+            }
+
+            entityManager.merge(subject);
+            return subject;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public List<CustomStream> getStreamsForSubject(Long subjectId) {
+        CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
+        if (subject == null) {
+            throw new IllegalArgumentException("Subject not found");
+        }
+        return entityManager.createQuery(
+                        "SELECT s FROM CustomStream s JOIN s.subjects sub WHERE sub.subjectId = :subjectId",
+                        CustomStream.class)
+                .setParameter("subjectId", subjectId)
+                .getResultList();
     }
 
 }

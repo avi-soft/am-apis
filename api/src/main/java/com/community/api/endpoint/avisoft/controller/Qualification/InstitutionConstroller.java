@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Qualification;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.entity.Institution;
 import com.community.api.services.InstitutionService;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
         import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 import java.util.List;
 
 import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
@@ -31,10 +33,11 @@ public class InstitutionConstroller {
     }
 
     @GetMapping("/get-all-institutions")
-    public ResponseEntity<?> getAllInstitutions() {
+    public ResponseEntity<?> getAllInstitutions(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try
         {
             TypedQuery<Institution> query = entityManager.createQuery(Constant.FIND_ALL_INSTITUTION_QUERY, Institution.class);
+            query.setParameter("archived",archived);
             List<Institution> institutionList = query.getResultList();
             if(institutionList.isEmpty())
             {
@@ -83,6 +86,22 @@ public class InstitutionConstroller {
         {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @PatchMapping("/{id}/manage")
+    public ResponseEntity<?> manageInstitutionArchiveStatus(
+            @PathVariable Long id,
+            @RequestParam Boolean archive) {
+        try {
+            Institution institution = institutionService.manageInstitutionArchiveStatus(id, archive);
+            String message = archive ? "Institution archived successfully" : "Institution unarchived successfully";
+            return ResponseService.generateSuccessResponse(message, institution, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Error updating institution status", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

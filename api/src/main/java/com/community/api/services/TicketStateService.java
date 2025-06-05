@@ -8,6 +8,7 @@ import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
@@ -66,6 +67,8 @@ public class TicketStateService {
     protected WorkQualityService workQualityService;
     @Autowired
     protected CatalogService catalogService;
+    @Autowired
+    protected TicketHistoryService ticketHistoryService;
     @Autowired
     protected SharedUtilityService sharedUtilityService;
     @Autowired
@@ -231,6 +234,11 @@ public class TicketStateService {
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
+            List<Long> previousTicketDocumentIds = new ArrayList<>();
+            for (ServiceProviderDocument serviceProviderDocument : ticket.getServiceProviderDocuments()) {
+                previousTicketDocumentIds.add(serviceProviderDocument.getDocumentId());
+            }
+
             if (ticket == null)
                 throw new NotFoundException("Ticket not found");
 
@@ -337,6 +345,12 @@ public class TicketStateService {
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
+
+                        // Change order state in case of ticket completes.
+                        CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
+                        orderState.setOrderStateId(7);
+                        entityManager.merge(orderState);
+
                     } else {
                         parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
@@ -376,14 +390,15 @@ public class TicketStateService {
                     ticket.setAssigneeRole(null);
                 }
 
-                if(!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && files != null) {
+                if (!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && files != null) {
                     throw new IllegalArgumentException("Files can only be uploaded when state changes to Review, Close and Support");
                 }
 
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
 
-            } else if (createTicketDTO.getTicketStatus() != null) {
+            }
+            else if (createTicketDTO.getTicketStatus() != null) {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
@@ -421,9 +436,13 @@ public class TicketStateService {
                         if (serviceProvider == null)
                             throw new NotFoundException("Assignee not found");
                     } else if (role.getRole_name().equals(Constant.roleAdmin)) {
-                        CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, createTicketDTO.getAssignee());
+                        ServiceProviderEntity customAdmin = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                         if (customAdmin == null)
                             throw new NotFoundException("Assignee not found");
+                    }
+
+                    if(createTicketDTO.getTargetCompletionDate() == null) {
+                        throw new IllegalArgumentException("target completion date is mandatory when changing the assignee");
                     }
 
                     if (ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
@@ -509,13 +528,33 @@ public class TicketStateService {
             if (newAssigneeId != null) {
                 ticket.setAssignee(newAssigneeId);
             }
-            ticket =  entityManager.merge(ticket);
+            ticket = entityManager.merge(ticket);
 
+            log.info("HERE file size is: {}", files);
             // If there exists some files then upload them as well.
-            if(files != null) {
+            if (files != null) {
+
+                log.info("INSIDE FILES IS NOT EMPTY");
                 Set<ServiceProviderDocument> serviceProviderDocument = updateTicketDocument(files, ticket, tokenUserId, tokenRole);
                 ticket.setServiceProviderDocuments(serviceProviderDocument);
                 entityManager.merge(ticket);
+
+                // get the latest entry from the ticket history table.
+                CustomTicketHistory ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId()).get(0);
+
+                log.info("old ticket file size is: {}", previousTicketDocumentIds.size());
+                log.info("ticket history is: {}", ticketHistory.getTicketHistoryId());
+
+                Set<ServiceProviderDocument> clonedDocuments = new HashSet<>();
+                for (Long previousDocumentId : previousTicketDocumentIds) {
+                    ServiceProviderDocument oldDocument = entityManager.find(ServiceProviderDocument.class, previousDocumentId);
+                    oldDocument.setTicketHistory(ticketHistory);
+                    oldDocument.setServiceProviderTicket(null);
+                    clonedDocuments.add(oldDocument);
+                    entityManager.persist(oldDocument); // or merge if needed
+                }
+                ticketHistory.setServiceProviderDocuments(clonedDocuments);
+                entityManager.merge(ticketHistory);
             }
             return ticket;
 

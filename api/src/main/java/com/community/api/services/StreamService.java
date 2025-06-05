@@ -37,6 +37,9 @@ public class StreamService {
     JwtUtil jwtTokenUtil;
 
     @Autowired
+    SharedUtilityService sharedUtilityService;
+
+    @Autowired
     RoleService roleService;
 
     public Boolean validiateAuthorization(String authHeader) throws Exception {
@@ -181,6 +184,82 @@ public class StreamService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage());
+        }
+    }
+    @Transactional
+    public CustomStream manageStream(Long streamId, Boolean archive) throws IllegalArgumentException, Exception {
+        try {
+            CustomStream stream = entityManager.find(CustomStream.class, streamId);
+            if (stream == null) {
+                throw new IllegalArgumentException("Stream not found");
+            }
+
+            if (archive) {
+                if (stream.getArchived() == 'Y') {
+                    throw new IllegalArgumentException("Stream already archived");
+                } else {
+                    stream.setArchived('Y');
+                    entityManager.merge(stream);
+                }
+            } else {
+                if (stream.getArchived() == 'N') {
+                    throw new IllegalArgumentException("Stream already unarchived");
+                } else {
+                    stream.setArchived('N');
+                    entityManager.merge(stream);
+                }
+            }
+            return stream;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
+        }
+    }
+
+    public List<Qualification> getQualificationsForStream(Long streamId) {
+        CustomStream stream = entityManager.find(CustomStream.class, streamId);
+        if (stream == null) {
+            throw new IllegalArgumentException("Stream not found");
+        }
+        return entityManager.createQuery(
+                        "SELECT q FROM Qualification q JOIN q.streams s WHERE s.streamId = :streamId",
+                        Qualification.class)
+                .setParameter("streamId", streamId)
+                .getResultList();
+    }
+    @Transactional
+    public CustomStream editStream(Long streamId, CustomStream stream) throws IllegalArgumentException, Exception {
+        try {
+            CustomStream streamToEdit = entityManager.find(CustomStream.class, streamId);
+            if (streamToEdit == null) {
+                throw new IllegalArgumentException("Stream not found");
+            }
+
+            if (stream.getStreamId() != null) {
+                throw new IllegalArgumentException("Cannot give stream id when editing");
+            }
+
+            Query query = entityManager.createQuery(
+                    "SELECT s FROM CustomStream s WHERE s.streamName = :streamName AND s.streamId != :streamId",
+                    CustomStream.class);
+            query.setParameter("streamName", stream.getStreamName());
+            query.setParameter("streamId", streamId);
+
+            List<CustomStream> existingStreams = query.getResultList();
+            if (!existingStreams.isEmpty()) {
+                throw new IllegalArgumentException("Stream with this name already exists");
+            }
+
+            if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
+                throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
+            }
+
+            streamToEdit.setStreamName(stream.getStreamName());
+            streamToEdit.setStreamDescription(stream.getStreamDescription());
+            entityManager.merge(streamToEdit);
+
+            return streamToEdit;
+        } catch (Exception e) {
+            throw new Exception(e.getMessage());
         }
     }
 }
