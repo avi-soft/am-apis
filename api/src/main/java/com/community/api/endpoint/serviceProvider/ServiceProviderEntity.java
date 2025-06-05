@@ -30,7 +30,6 @@ import org.hibernate.annotations.FetchMode;
 import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
@@ -209,8 +208,9 @@ public class ServiceProviderEntity  {
     private ServiceProviderStatus status;
 
     @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
-    @JoinColumn(name="test_status_id", referencedColumnName = "test_status_id")
-    private ServiceProviderTestStatus testStatus;
+    @JoinColumn(name="service_provider_status_id", referencedColumnName = "test_status_id")
+    private ServiceProviderTestStatus serviceProviderStatus;
+    private Long lastStatusId;
 
     @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
     @JoinColumn(name="rank_id", referencedColumnName = "rank_id")

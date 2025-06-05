@@ -34,7 +34,7 @@ public class SignatureImage {
     @Column(name = "image_size")
     private String image_size;
 
-    @JsonBackReference
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProvider;

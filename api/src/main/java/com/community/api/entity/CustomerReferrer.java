@@ -2,6 +2,8 @@ package com.community.api.entity;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,8 +32,7 @@ public class CustomerReferrer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Add matching @JsonBackReference
-    @JsonBackReference("customer-referrer")
+   @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private CustomCustomer customer;
