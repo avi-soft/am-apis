@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -88,7 +89,8 @@ public class OtpEndpoint {
     @Autowired
     private AdminService adminService;
 
-    @PostMapping("/send-otp")
+    @PostMapping(value = "/send-otp", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session,@RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
         try {
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {

@@ -101,7 +101,7 @@ public class CustomServiceProviderTicket {
     private Date ticketAssignDate;
 
     @OneToOne
-    @JsonBackReference
+    @JsonIgnore
     @JoinColumn(name = "ORDER_ID")
     @JsonProperty("order")
     private OrderImpl order;
@@ -127,7 +127,7 @@ public class CustomServiceProviderTicket {
 
     @ManyToOne
     @JoinColumn(name = "parent_ticket_id")
-    @JsonBackReference
+    @JsonIgnore
     @JsonProperty("parent_ticket_id")
     private CustomServiceProviderTicket parentTicket;
 
@@ -146,7 +146,6 @@ public class CustomServiceProviderTicket {
 
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProviderTicket")
-    @JsonManagedReference
     private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
 
 }
