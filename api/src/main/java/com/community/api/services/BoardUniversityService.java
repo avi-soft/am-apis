@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.entity.BoardUniversity;
+import com.community.api.entity.CustomSubject;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -193,5 +194,31 @@ public class BoardUniversityService
         String now = LocalDateTime.now().format(formatter);
         boardUniversityToUpdate.setModified_date(now);
         return entityManager.merge(boardUniversityToUpdate);
+    }
+    @Transactional
+    public BoardUniversity manageUni(Long boardUnivId, Boolean active) throws Exception {
+        try {
+            BoardUniversity subject = entityManager.find(BoardUniversity.class, boardUnivId);
+            if (subject == null) {
+                throw new IllegalArgumentException("Subject not found");
+            }
+
+            if (active) {
+                if (subject.getArchived()) {
+                    throw new IllegalArgumentException("Subject already archived");
+                }
+                subject.setArchived(true);
+            } else {
+                if (!subject.getArchived()) {
+                    throw new IllegalArgumentException("Subject already unarchived");
+                }
+                subject.setArchived(false);
+            }
+
+            entityManager.merge(subject);
+            return subject;
+        } catch (Exception e) {
+            throw e;
+        }
     }
 }
