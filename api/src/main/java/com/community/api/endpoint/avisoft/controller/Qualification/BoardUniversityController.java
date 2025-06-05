@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Qualification;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.entity.BoardUniversity;
 import com.community.api.services.BoardUniversityService;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 import java.util.List;
 
 import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
@@ -33,10 +35,11 @@ public class BoardUniversityController {
 
     @GetMapping("/get-all-board-universities")
 
-    public ResponseEntity<?> getAllBoardUniversities() {
+    public ResponseEntity<?> getAllBoardUniversities(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try
         {
             TypedQuery<BoardUniversity> query = entityManager.createQuery(Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
+            query.setParameter("archived",false);
             List<BoardUniversity> boardUniversityList = query.getResultList();
             if(boardUniversityList.isEmpty())
             {
@@ -85,6 +88,22 @@ public class BoardUniversityController {
         {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> manageUniversityStatus(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") Boolean archive) {
+        try {
+            BoardUniversity university = boardUniversityService.manageUni(id, archive);
+            String message = archive ? "University activated successfully" : "University deactivated successfully";
+            return responseService.generateSuccessResponse(message, university, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return responseService.generateErrorResponse("Error updating university status", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

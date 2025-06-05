@@ -37,7 +37,7 @@ public class SectorController {
     public ResponseEntity<?> addSubject(@RequestBody AddSectorDto addSectorDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!staticDataService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A STREAM", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SECTOR", HttpStatus.UNAUTHORIZED);
             }
 
             sectorService.validateAddSubjectDto(addSectorDto);
