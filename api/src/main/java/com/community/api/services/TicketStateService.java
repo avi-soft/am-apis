@@ -345,6 +345,12 @@ public class TicketStateService {
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
+
+                        // Change order state in case of ticket completes.
+                        CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
+                        orderState.setOrderStateId(7);
+                        entityManager.merge(orderState);
+
                     } else {
                         parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
@@ -430,9 +436,13 @@ public class TicketStateService {
                         if (serviceProvider == null)
                             throw new NotFoundException("Assignee not found");
                     } else if (role.getRole_name().equals(Constant.roleAdmin)) {
-                        CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, createTicketDTO.getAssignee());
+                        ServiceProviderEntity customAdmin = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                         if (customAdmin == null)
                             throw new NotFoundException("Assignee not found");
+                    }
+
+                    if(createTicketDTO.getTargetCompletionDate() == null) {
+                        throw new IllegalArgumentException("target completion date is mandatory when changing the assignee");
                     }
 
                     if (ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
