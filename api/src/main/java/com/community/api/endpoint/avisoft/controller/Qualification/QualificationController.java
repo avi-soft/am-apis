@@ -84,7 +84,7 @@ public class QualificationController {
         }
     }
     @PatchMapping("/{qualificationId}/edit")
-    public ResponseEntity<?> editQualification(@PathVariable Long qualificationId,@RequestBody Qualification qualification) throws Exception {
+    public ResponseEntity<?> editQualification(@PathVariable Integer qualificationId,@RequestBody Qualification qualification) throws Exception {
         try
         {
             Qualification addedQualification = qualificationService.edit(qualificationId,qualification);

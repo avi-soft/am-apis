@@ -5,6 +5,7 @@ import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.Qualification;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.DocumentType;
+import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -84,7 +85,7 @@ public class QualificationService {
         return qualificationToBeSaved;
     }
     @Transactional
-    public Qualification edit(Long qualificationId,@RequestBody Qualification qualification) throws Exception {
+    public Qualification edit(Integer qualificationId, @RequestBody Qualification qualification) throws Exception {
         Qualification qualificationToBeSaved = entityManager.find(Qualification.class,qualificationId);
         if(qualificationToBeSaved==null)
             throw new IllegalArgumentException("Qualification not found");
