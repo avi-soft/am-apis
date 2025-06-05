@@ -425,7 +425,7 @@ public class CategoryController extends CatalogEndpoint {
 
     }
 
-    @PatchMapping(value = "/update/{categoryId}")
+    @PutMapping(value = "/update/{categoryId}")
     public ResponseEntity<?> updateCategoryById(HttpServletRequest request, @RequestBody AddCategoryDto addCategoryDto, @PathVariable("categoryId") String id) {
         try {
 
