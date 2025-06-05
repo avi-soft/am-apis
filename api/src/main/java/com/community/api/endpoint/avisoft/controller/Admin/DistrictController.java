@@ -38,11 +38,11 @@ public class DistrictController {
     @Autowired
     private ResponseService responseService;
     @RequestMapping(value = "get-districts", method = RequestMethod.GET)
-    public ResponseEntity<?> getDistricts(@RequestParam String state_code) {
+    public ResponseEntity<?> getDistricts(@RequestParam String state_code,@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try {
             if(state_code==null)
                 return responseService.generateErrorResponse("Empty value for State Code passed",HttpStatus.BAD_REQUEST);
-            List<Districts> names= districtService.findDistrictsByStateCode(state_code);
+            List<Districts> names= districtService.findDistrictsByStateCode(state_code,archived);
             if(names.isEmpty()) {
                 return responseService.generateErrorResponse("No data found",HttpStatus.NOT_FOUND);
             }

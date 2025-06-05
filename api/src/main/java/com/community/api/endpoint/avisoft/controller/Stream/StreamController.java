@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller.Stream;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddStreamDto;
@@ -19,10 +20,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityManager;
 import javax.validation.Valid;
 import java.util.List;
+
+
 
 @RestController
 public class StreamController {
@@ -32,6 +39,8 @@ public class StreamController {
     private final RoleService roleService;
     private final JwtUtil jwtTokenUtil;
 
+    @Autowired
+    EntityManager entityManager;
     @Autowired
     public StreamController(ExceptionHandlingService exceptionHandlingService, StreamService streamService, RoleService roleService, JwtUtil jwtTokenUtil) {
         this.exceptionHandlingService = exceptionHandlingService;
@@ -107,7 +116,7 @@ public class StreamController {
         }
     }
 
-    @DeleteMapping("/remove-stream-by-id/{streamIdString}")
+ /*   @DeleteMapping("/remove-stream-by-id/{streamIdString}")
     public ResponseEntity<?> removeStreamByStreamId(@PathVariable String streamIdString) {
         try {
             Long streamId = Long.parseLong(streamIdString);
@@ -127,7 +136,7 @@ public class StreamController {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
+    }*/
 
     @GetMapping("/get-streams-by-qualification-id/{qualificationId}")
     public ResponseEntity<?> getStreamsByQualification(@PathVariable Integer qualificationId) {
@@ -141,6 +150,48 @@ public class StreamController {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @RequestMapping(value = "{streamId}/manage", method = RequestMethod.DELETE)
+    public ResponseEntity<?> manageStream(
+            @PathVariable Long streamId,
+            @RequestParam(defaultValue = "true") Boolean archive) {
+        try {
+            CustomStream stream = entityManager.find(CustomStream.class, streamId);
+            if (stream == null) {
+                return ResponseService.generateErrorResponse("Stream not found", HttpStatus.BAD_REQUEST);
+            }
+
+            return ResponseService.generateSuccessResponse(
+                    "Stream archive status updated successfully",
+                    streamService.manageStream(streamId, archive),
+                    HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse("Cannot update stream: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse("Cannot update stream: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @RequestMapping(value = "{streamId}/edit", method = RequestMethod.PATCH)
+    public ResponseEntity<?> editStream(
+            @PathVariable Long streamId,
+            @RequestBody CustomStream stream) {
+        try {
+            CustomStream existingStream = entityManager.find(CustomStream.class, streamId);
+            if (existingStream == null) {
+                return ResponseService.generateErrorResponse("Stream not found", HttpStatus.BAD_REQUEST);
+            }
+
+            return ResponseService.generateSuccessResponse(
+                    "Stream updated successfully",
+                    streamService.editStream(streamId, stream),
+                    HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse("Cannot edit stream: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse("Cannot edit stream: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
