@@ -172,6 +172,11 @@ public class StreamService {
                 }
             }
             stream.setQualifications(list);
+            TypedQuery<Long> query = entityManager.createQuery(
+                    "SELECT MAX(c.streamId) FROM CustomStream c", Long.class
+            );
+            Long maxStreamId = query.getSingleResult();
+            stream.setSortOrder(maxStreamId+1);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
