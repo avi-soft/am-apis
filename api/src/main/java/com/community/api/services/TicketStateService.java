@@ -324,7 +324,7 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");
                         }
                     }
-                    serviceProviderTicketService.createReviewTicket(ticket);
+                    serviceProviderTicketService.createReviewTicket(ticket, createTicketDTO, files, tokenUserId, tokenRole);
 
                 } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     if (createTicketDTO.getIsComplete() == null || createTicketDTO.getWorkQualityId() == null) {
@@ -358,6 +358,10 @@ public class TicketStateService {
                         parentTicket.setWorkQuality(workQuality);
                     }
 
+                    if (files != null) {
+                        Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, parentTicket, tokenUserId, tokenRole);
+                        parentTicket.setServiceProviderDocuments(serviceProviderDocument);
+                    }
                     entityManager.merge(parentTicket);
 
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
