@@ -11,6 +11,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import org.apache.tomcat.util.bcel.Const;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -18,6 +19,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -160,6 +162,16 @@ public class StreamService {
         try{
             CustomStream stream = new CustomStream();
             stream.setStreamName(addStreamDto.getStreamName());
+            List<Qualification>list=new ArrayList<>();
+            for(Integer id:addStreamDto.getQualificationIds())
+            {
+                Qualification qualification=entityManager.find(Qualification.class,id);
+                if(qualification!=null)
+                {
+                    list.add(qualification);
+                }
+            }
+            stream.setQualifications(list);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
@@ -252,7 +264,7 @@ public class StreamService {
             if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
                 throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
             }
-
+            streamToEdit.setQualifications(stream.getQualifications());
             streamToEdit.setStreamName(stream.getStreamName());
             streamToEdit.setStreamDescription(stream.getStreamDescription());
             entityManager.merge(streamToEdit);
