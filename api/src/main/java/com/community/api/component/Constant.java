@@ -46,7 +46,9 @@ public class Constant {
     public static final int INITIAL_STATUS = 1;
     public static final Long INITIAL_TEST_STATUS = 1L;
     public static final Long TEST_COMPLETED_STATUS = 2L;
-    public static final Long APPROVED_TEST = 3L;
+    public static final Long APPROVED_SP = 3L;
+    public static final Long REJECTED_SP = 4L;
+    public static final Long SUSPENDED_SP = 5L;
 
     public static String STATE_CODE_QUERY = "SELECT s FROM StateCode s WHERE s.state_name = :state_name";
     public static final String APPLIED_FORM_QUERY = "SELECT DISTINCT o.order_id FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.customer_id = :customerId AND o.tax_override IS NULL AND os.order_state_id NOT IN (5, 999)";

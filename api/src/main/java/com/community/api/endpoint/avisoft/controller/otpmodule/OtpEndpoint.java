@@ -31,9 +31,7 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -311,7 +309,7 @@ public class OtpEndpoint {
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
-                serviceProviderEntity.setTestStatus(serviceProviderTestStatus);
+                serviceProviderEntity.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProviderEntity.setRole(4);
                 em.persist(serviceProviderEntity);
             } else if (existingServiceProvider.getOtp() != null) {
