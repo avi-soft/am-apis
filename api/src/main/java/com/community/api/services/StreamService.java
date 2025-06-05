@@ -172,14 +172,20 @@ public class StreamService {
                 }
             }
             stream.setQualifications(list);
+            TypedQuery<Long> query = entityManager.createQuery(
+                    "SELECT MAX(c.sortOrder) FROM CustomStream c WHERE c.sortOrder < 10000000", Long.class
+            );
+            Long maxSortOrder = query.getSingleResult();
+            stream.setSortOrder(maxSortOrder+1);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
             stream.setCreatorRole(creatorRole);
-            return entityManager.merge(stream);
+            entityManager.persist(stream);
+            return stream;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception(exception.getMessage());
         }
     }
 
@@ -239,7 +245,7 @@ public class StreamService {
                 .getResultList();
     }
     @Transactional
-    public CustomStream editStream(Long streamId, CustomStream stream) throws IllegalArgumentException, Exception {
+    public CustomStream editStream(Long streamId,List<Integer>qualificationIds,CustomStream stream) throws IllegalArgumentException, Exception {
         try {
             CustomStream streamToEdit = entityManager.find(CustomStream.class, streamId);
             if (streamToEdit == null) {
@@ -264,7 +270,21 @@ public class StreamService {
             if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
                 throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
             }
-            streamToEdit.setQualifications(stream.getQualifications());
+            List<Qualification>newQf=new ArrayList<>();
+            if(!qualificationIds.isEmpty())
+            {
+                for(Integer id:qualificationIds)
+                {
+                    System.out.println("id"+id);
+                    Qualification qualification=entityManager.find(Qualification.class,id);
+                    if(qualification!=null)
+                    {
+                        newQf.add(qualification);
+                    }
+                }
+                streamToEdit.setQualifications(newQf);
+            }
+
             streamToEdit.setStreamName(stream.getStreamName());
             streamToEdit.setStreamDescription(stream.getStreamDescription());
             entityManager.merge(streamToEdit);
