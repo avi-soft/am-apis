@@ -83,7 +83,7 @@ public class StatusChangeEmailService
             case "approve":
                 return "Congratulations! Your service provider account has been approved. You can now access all service provider features and start offering your services.";
             case "reject":
-                return "Unfortunately, your service provider application has been rejected.You can contact support for more information regarding this or resubmit your application.";
+                return "Unfortunately, your service provider application has been rejected.You can contact support for more information regarding this or resubmit your profile after required correction.";
             case "suspend":
                 return "Your service provider account has been suspended. Please contact support for assistance in resolving this matter.";
             case "activate":
