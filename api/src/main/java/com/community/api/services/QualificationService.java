@@ -85,7 +85,7 @@ public class QualificationService {
         return qualificationToBeSaved;
     }
     @Transactional
-    public Qualification edit(Integer qualificationId, @RequestBody Qualification qualification) throws Exception {
+    public Qualification edit(Integer qualificationId,@RequestBody Qualification qualification) throws Exception {
         Qualification qualificationToBeSaved = entityManager.find(Qualification.class,qualificationId);
         if(qualificationToBeSaved==null)
             throw new IllegalArgumentException("Qualification not found");

@@ -72,7 +72,7 @@ public class BoardUniversityController {
         }
     }
 
-    @PatchMapping("/update/{boardUniversityId}")
+    @PutMapping("/update/{boardUniversityId}")
     public ResponseEntity<?> updateBoardUniversity(@PathVariable Long boardUniversityId,@RequestBody BoardUniversity boardUniversity,@RequestHeader(value = "Authorization")String authHeader)
     {
         try
@@ -91,7 +91,7 @@ public class BoardUniversityController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PatchMapping("/{id}/status")
+    @PutMapping("/{id}/status")
     public ResponseEntity<?> manageUniversityStatus(
             @PathVariable Long id,
             @RequestParam(defaultValue = "false") Boolean archive) {

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -153,7 +154,7 @@ public class SubjectController {
         }
     }
     @Authorize(value = {Constant.roleSuperAdmin})
-    @PatchMapping("/{subjectId}/edit")
+    @PutMapping("/{subjectId}/edit")
     public ResponseEntity<?> editSubject(
             @PathVariable Long subjectId,
             @RequestBody CustomSubject subject) {
