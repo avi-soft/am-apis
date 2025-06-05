@@ -812,6 +812,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     errorMessages.add("DOB cannot be in future");
             }
 
+            if (updates.containsKey("secondary_email") && "".equals(updates.get("secondary_email"))) {
+                existingServiceProvider.setSecondary_email(null);
+                updates.remove("secondary_email");
+            }
+
+
             if (updates.containsKey("aadhaar_number")) {
                 String newAadhaarNumber = (String) updates.get("aadhaar_number");
 
