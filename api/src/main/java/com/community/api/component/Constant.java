@@ -11,6 +11,7 @@ public class Constant {
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
     public static final long MAX_FILE_SIZE = 100* 1024;
+    public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 500 * 1024;
     public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;

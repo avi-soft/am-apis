@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Lob;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.Set;
@@ -135,8 +136,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             } else {
                 this.assigneeName = "-";
             }
-            this.primaryEmail = serviceProvider.getPrimary_email();
-            this.mobileNumber = serviceProvider.getMobileNumber();
+            if(serviceProvider != null) {
+                this.primaryEmail = serviceProvider.getPrimary_email();
+                this.mobileNumber = serviceProvider.getMobileNumber();
+            }
         }
         catch (Exception e)
         {
