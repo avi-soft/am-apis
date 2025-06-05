@@ -3686,7 +3686,7 @@ public class ProductService {
         }
 
         // Get all districts for this state
-        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code());
+        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code(),false);
         Set<Integer> validDistrictIds = stateDistricts.stream()
                 .map(Districts::getDistrict_id)
                 .collect(Collectors.toSet());
