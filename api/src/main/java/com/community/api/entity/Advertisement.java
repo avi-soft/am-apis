@@ -109,7 +109,7 @@ public class Advertisement {
     @JsonProperty("notifying_authority")
     private String notifyingAuthority;
 
-    @Column(name = "additional_comments")
+    @Column(name = "adv_additional_comments", columnDefinition = "TEXT")
     @JsonProperty("adv_additional_comments")
     private String additionalComments;
 }
