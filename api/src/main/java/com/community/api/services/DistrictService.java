@@ -32,8 +32,9 @@ public class DistrictService {
         return query.getResultList();
     }
 
-    public List<Districts> findAllDistricts() {
+    public List<Districts> findAllDistricts(Boolean archived) {
         TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_ALL_QUERY, Districts.class);
+        query.setParameter("archived",archived);
         return query.getResultList();
     }
 
