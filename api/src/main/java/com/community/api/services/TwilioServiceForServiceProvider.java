@@ -7,6 +7,10 @@ import com.twilio.Twilio;
 import com.twilio.exception.ApiException;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -33,6 +37,9 @@ public class TwilioServiceForServiceProvider {
 
     @Value("${twilio.phoneNumber}")
     private String twilioPhoneNumber;
+
+    @Value("${fast2sms.api.key}")
+    private String apiKey;
 
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;  // Service to manage ServiceProviderEntity
@@ -66,8 +73,35 @@ public class TwilioServiceForServiceProvider {
                 existingServiceProvider.setOtp(otp);
                 entityManager.merge(existingServiceProvider);
             }
+            Twilio.init(accountSid, authToken);
+            String completeMobileNumber = countryCode + mobileNumber;
+            otp = generateOTP();
+            OkHttpClient client = new OkHttpClient();
 
+            MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+
+            String message = "Your YuvaNiti otp for login is " + otp+",check out https://am-public-ui.vercel.app/";
+            String jsonBody = "{"
+                    + "\"route\":\"q\","
+                    + "\"message\":\"" + message + "\","
+                    + "\"flash\":0,"
+                    + "\"numbers\":\"" + mobileNumber + "\""
+                    + "}";
+
+            okhttp3.RequestBody body = okhttp3.RequestBody.create(jsonBody, mediaType);
+
+            Request request = new Request.Builder()
+                    .url("https://www.fast2sms.com/dev/bulkV2")
+                    .post(body)
+                    .addHeader("authorization", apiKey)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
             String maskedNumber = this.genereateMaskednumber(mobileNumber);
+            try {
+                Response response = client.newCall(request).execute();
+            }catch (Exception e) {
+            return ResponseService.generateErrorResponse("Error sending otp to mobile",HttpStatus.INTERNAL_SERVER_ERROR);
+            }
             return responseService.generateSuccessResponse("Otp has been sent successfully on " + maskedNumber,otp,HttpStatus.OK);
 
         } catch (ApiException e) {

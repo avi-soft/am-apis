@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Customer;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.CustomCategoryWrapper;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.ProductDetailsDTO;
@@ -68,6 +69,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2896,6 +2898,7 @@ public class CustomerEndpoint {
     }
 
 
+
     public ResponseEntity<?> getRecos(Long customerId, Integer offset, Integer limit) {
         Customer customer = customerService.readCustomerById(customerId);
         if (customer == null)
@@ -2992,4 +2995,5 @@ public class CustomerEndpoint {
         response.put("currentPage", offset + 1);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
+
 }
