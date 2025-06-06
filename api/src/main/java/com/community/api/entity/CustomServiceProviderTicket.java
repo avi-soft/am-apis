@@ -1,19 +1,20 @@
 package com.community.api.entity;
 
 import com.community.api.utils.ServiceProviderDocument;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.broadleafcommerce.core.order.domain.OrderImpl;
 
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -31,7 +32,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "custom_service_provider_ticket")
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomServiceProviderTicket {
@@ -118,11 +120,12 @@ public class CustomServiceProviderTicket {
     @JsonProperty("task_desc")
     private String desc;
 
-    @Lob
+//    @Lob
     @ElementCollection
     @CollectionTable(name = "ticket_rejected_by",
             joinColumns = @JoinColumn(name = "ticket_id"))
     @Column(name = "rejected_by_id")
+    @JsonProperty("rejected_by_user_id")
     private List<Long>rejectedBy = new ArrayList<>();
 
     @ManyToOne
@@ -144,8 +147,8 @@ public class CustomServiceProviderTicket {
     @JsonProperty("is_review_required")
     private Boolean isReviewRequired;
 
-    @JsonIgnore
-    @OneToMany(mappedBy = "serviceProviderTicket")
+    @JsonProperty("ticket_documents")
+    @OneToMany(mappedBy = "serviceProviderTicket", fetch = FetchType.EAGER)
     private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
 
 }

@@ -79,7 +79,6 @@ public class ServiceProviderEntity  {
     private String last_name;
     //@TODO-countryCode to country_code for both customer and service provider
     private String country_code;
-
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Father's name must contain only alphabets")
     private String father_name;
     @Pattern(regexp = "^[a-zA-Z]+( [a-zA-Z]+)*$", message = "Mother's name must contain only alphabets")
