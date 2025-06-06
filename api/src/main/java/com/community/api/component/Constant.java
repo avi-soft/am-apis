@@ -57,7 +57,7 @@ public class Constant {
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
-    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d ";
+    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d where archived =:archived";
     public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
