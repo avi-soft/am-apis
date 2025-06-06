@@ -142,4 +142,7 @@ public class AddProductDto {
     @JsonProperty("is_modification_date_to_na")
     protected Boolean isModificationDateToNa;
 
+    @JsonProperty("update_summary")
+    protected String updateSummary;
+
 }
