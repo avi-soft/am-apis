@@ -956,6 +956,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
+                    qualificationInfo.put("cumulative_cgpa_value", qualificationDetail.getCumulative_cgpa_value());
                     qualificationInfo.put("qualification_id", qualificationDetail.getQualification_id());
                     qualificationInfo.put("is_grade",qualificationDetail.getIs_grade());
                     qualificationInfo.put("grade_value",qualificationDetail.getGrade_value());
@@ -1112,6 +1113,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("stream_id",qualificationDetail.getStream_id());
                     qualificationInfo.put("total_marks_type",qualificationDetail.getTotal_marks_type());
                     qualificationInfo.put("cumulative_percentage_value", qualificationDetail.getCumulative_percentage_value());
+                    qualificationInfo.put("cumulative_cgpa_value", qualificationDetail.getCumulative_cgpa_value());
                     qualificationInfo.put("subject_name", qualificationDetail.getSubject_name());
                     qualificationInfo.put("total_marks", qualificationDetail.getTotal_marks());
                     qualificationInfo.put("marks_obtained", qualificationDetail.getMarks_obtained());

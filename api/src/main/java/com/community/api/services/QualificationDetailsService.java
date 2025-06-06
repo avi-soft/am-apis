@@ -1233,12 +1233,11 @@ public class QualificationDetailsService {
             if (qualificationDetails.getTotal_marks_type().equalsIgnoreCase("Percentage")) {
                 Double percentage = (Double.parseDouble(qualificationDetails.getMarks_obtained()) / Double.parseDouble(qualificationDetails.getTotal_marks())) * 100;
                 qualificationDetails.setCumulative_percentage_value(percentage);
-                if(qualificationDetails.getCumulative_cgpa_value()==null)
+                if(qualificationDetails.getCumulative_cgpa_value()!=null)
                 {
-                    throw new IllegalArgumentException("Overall CGPA value cannot be null. You have to calculate your CGPA and fill it");
-                }
-                if (qualificationDetails.getCumulative_cgpa_value() < 0 || qualificationDetails.getCumulative_cgpa_value() > 10) {
-                    throw new IllegalArgumentException("Overall Cgpa must be between 0 and 10");
+                    if (qualificationDetails.getCumulative_cgpa_value() < 0 || qualificationDetails.getCumulative_cgpa_value() > 10) {
+                        throw new IllegalArgumentException("Overall Cgpa must be between 0 and 10");
+                    }
                 }
             } else if (qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA")) {
                 if (qualificationDetails.getCumulative_percentage_value() == null) {
