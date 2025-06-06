@@ -1391,6 +1391,7 @@ public class ServiceProviderTicketService {
         }
     }
 
+    @Transactional
     public CustomServiceProviderTicket fetchTicketByTicketId(Long ticketId) throws Exception {
         try {
             if (ticketId == null || ticketId <= 0) {
