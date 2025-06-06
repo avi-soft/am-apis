@@ -80,7 +80,7 @@ public class GenderController {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin})
-    @RequestMapping(value = "gender/{genderId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "gender/{genderId}/edit", method = RequestMethod.PUT)
     public ResponseEntity<?> editGender(@PathVariable Long genderId, @RequestBody CustomGender customGender) {
         try {
             CustomGender gender = genderService.getGenderById(genderId);
