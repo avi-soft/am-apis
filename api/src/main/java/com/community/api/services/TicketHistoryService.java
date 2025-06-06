@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.util.List;
 
 @Service
@@ -19,6 +20,7 @@ public class TicketHistoryService {
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
 
+    @Transactional
     public List<CustomTicketHistory> fetchTicketHistoryByTicketId(Long ticketId) throws Exception {
         try {
             if (ticketId == null || ticketId <= 0) {
