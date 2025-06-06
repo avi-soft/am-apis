@@ -5,9 +5,9 @@ import com.community.api.component.JwtUtil;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.entity.Image;
 import com.community.api.entity.Institution;
+import com.community.api.entity.RandomImageType;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -112,9 +112,10 @@ public class InstitutionService
 
     public List<Institution> getAllInstitutions() {
         TypedQuery<Institution> query = entityManager.createQuery(Constant.FIND_ALL_INSTITUTION_QUERY, Institution.class);
-        List<Institution> institutionList = query.getResultList();
-        return institutionList;
+        query.setParameter("archived", false); // or true, depending on what you want
+        return query.getResultList();
     }
+
 
     //need to be change here
     public long findCount() {
@@ -193,20 +194,25 @@ public class InstitutionService
         @Autowired
         private DocumentStorageService fileUploadService;
 
-        @Value("${spring.servlet.multipart.max-file-size}")
-        private String maxImageSize;
-
         public ImageService(EntityManager entityManager) {
             this.entityManager = entityManager;
         }
 
 
         @Transactional
-        public Image saveImage(MultipartFile file) throws Exception {
+        public Image saveImage(MultipartFile file,Integer randomImageTypeId) throws Exception {
             if (file == null || file.isEmpty()) {
                 throw new IllegalStateException("File is missing or empty");
             }
-
+            if(randomImageTypeId==null)
+            {
+                throw new IllegalArgumentException("Random image type cannot be null");
+            }
+            RandomImageType randomImage= entityManager.find(RandomImageType.class,randomImageTypeId);
+            if(randomImage==null)
+            {
+                throw new IllegalArgumentException("No Any randomImage type exists with id " + randomImageTypeId);
+            }
             byte[] uploadImageData = file.getBytes();
             List<Image> images = getAllRandomImages();
             for(Image image : images) {
@@ -228,11 +234,29 @@ public class InstitutionService
             if (!isValidFileType(file)) {
                 throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
             }
-            long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
-            if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
-                String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
-                throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
+            if(randomImageTypeId.equals(1))
+            {
+                if (file.getSize() < Constant.RANDOM_RESIZED_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_RESIZED_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
+                }
             }
+            else if(randomImageTypeId.equals(2)){
+                if (file.getSize()< Constant.RANDOM_PDF_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_PDF_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be below " +   minImageSize + " and " + maxImageSize);
+                }
+            }
+            else if(randomImageTypeId.equals(3)){
+                if (file.getSize()< Constant.RANDOM_SIGN_MIN_FILE_SIZE ||file.getSize()> Constant.RANDOM_SIGN_MAX_FILE_SIZE) {
+                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MIN_FILE_SIZE);
+                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MAX_FILE_SIZE);
+                    throw new IllegalArgumentException("Image size should be below " +  minImageSize + " and " + maxImageSize);
+                }
+            }
+
 
             byte[] fileBytes = file.getBytes();
 
@@ -245,13 +269,16 @@ public class InstitutionService
             image.setFile_type(file.getContentType());
             image.setImage_data(fileBytes);
             image.setFile_path(dbPath);
+            image.setRandomImageType(randomImage);
+            Long uploadedImageSize=(long) file.getSize();
+            image.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedImageSize));
 
             // Persist the image entity to the database
             entityManager.persist(image);
             return image;
         }
 
-        @Transactional
+        /*@Transactional
         public List<Image> saveImages(List<MultipartFile> files) throws Exception {
 
             List<Image> savedImages = new ArrayList<>();
@@ -286,8 +313,8 @@ public class InstitutionService
 
                 // Validate the file size
                 long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
-                if (file.getSize() < Constant.MAX_FILE_SIZE || file.getSize() > maxSizeInBytes) {
-                    String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
+                if (file.getSize() < Constant.RANDOM_MIN_FILE_SIZE || file.getSize() > maxSizeInBytes) {
+                    String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_MIN_FILE_SIZE);
                     throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
                 }
 
@@ -309,7 +336,7 @@ public class InstitutionService
 
             return savedImages;
         }
-
+*/
         @Transactional
         public List<Image> deleteAllImages()
         {
@@ -342,5 +369,25 @@ public class InstitutionService
             return image;
         }
     }
+    @Transactional
+    public Institution manageInstitutionArchiveStatus(Long id, Boolean archive) {
+        Institution institution = entityManager.find(Institution.class, id);
+        if (institution == null) {
+            throw new IllegalArgumentException("Institution not found with id: " + id);
+        }
+
+        if (archive == null) {
+            throw new IllegalArgumentException("Archive status must be provided (true/false)");
+        }
+
+        if (institution.getArchived().equals(archive)) {
+            throw new IllegalArgumentException("Institution already " + (archive ? "archived" : "unarchived"));
+        }
+
+        institution.setArchived(archive);
+        entityManager.merge(institution);
+        return institution;
+    }
+
 }
 

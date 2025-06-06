@@ -9,6 +9,7 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
@@ -18,6 +19,7 @@ import com.community.api.entity.OrderStateRef;
 import com.community.api.entity.Role;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -34,6 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
@@ -51,10 +54,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -304,10 +309,11 @@ public class ServiceProviderTicketService {
 
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
-                    .append("WHERE 1=1 ") // Use this to simplify appending conditions
+                    .append("WHERE 1=1 ")
                     .append("AND c.assignee IS NULL ")
                     .append("AND c.ticketState IN :states ")
-                    .append("AND c.ticketType IN :types ");
+                    .append("AND c.ticketType IN :types ")
+                    .append("AND (c.ticketType.id <> 2 OR (c.ticketType.id = 2 AND c.parentTicket.ticketType.id = 1))");
 
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
@@ -317,7 +323,7 @@ public class ServiceProviderTicketService {
 
             // Firstly we fetch all the tickets which are in return state.
             List<CustomServiceProviderTicket> tickets = query.getResultList();
-            log.info("ticket recieved for auto-assignment: {}", tickets.size());
+            log.info("ticket received for auto-assignment: {}", tickets.size());
 
             randomBindingTicketAllocationForTickets(tickets, assignedTickets);
 
@@ -406,15 +412,16 @@ public class ServiceProviderTicketService {
                 calendar.setTime(currentDate);
                 Date newTargetDate = null;
 
+                Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
+                if (!newTargetDate.before(product.getActiveEndDate())) {
+                    log.info("cannot assign ticket at the target completion date is after or equal to application close date.");
+                    return false;
+                }
+
                 if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
                     calendar.add(Calendar.HOUR_OF_DAY, 2);
                     newTargetDate = calendar.getTime();
 
-                    Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-                    if (!newTargetDate.before(product.getActiveEndDate())) {
-                        log.info("cannot assign ticket at the target completion date is after or equal to application close date.");
-                        return false;
-                    }
 
                 } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     calendar.add(Calendar.HOUR_OF_DAY, 4);
@@ -497,8 +504,10 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() && serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
                         assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    } else {
+                        log.info("Either the service provider is not primary referee or not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
                     }
                     if (assigned) {
                         iterator.remove();
@@ -512,7 +521,11 @@ public class ServiceProviderTicketService {
                         ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
                         log.info("REFERRER ID: {}", serviceProvider.getService_provider_id());
 
-                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
+                            assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                        } else {
+                            log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
+                        }
                         if (assigned) {
                             iterator.remove();
                             break;
@@ -529,7 +542,11 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    if(serviceProvider.getIsActive() != null && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && (serviceProvider.getApproved() != null && serviceProvider.getApproved())) {
+                        assigned = allocateTicket(order, serviceProvider, customOrderState, customer, assignedTickets);
+                    } else {
+                        log.info("Either the service provider is not active nor approved or neither admin or service provider with id {}", serviceProvider.getService_provider_id());
+                    }
                     if (assigned) {
                         iterator.remove();
                         break;
@@ -590,7 +607,7 @@ public class ServiceProviderTicketService {
                     ServiceProviderEntity serviceProvider = referrer.getServiceProvider();
 
                     // Check if the referee is the primary Referee.
-                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                    if (referrer.getPrimaryRef() != null && referrer.getPrimaryRef() == true && serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                         log.info("Primary Referrer !!");
                         if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
@@ -602,6 +619,8 @@ public class ServiceProviderTicketService {
                                 break;
                             }
                         }
+                    } else {
+                        log.info("Either the service provider is not primary referee or not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                     }
                 }
 
@@ -612,7 +631,7 @@ public class ServiceProviderTicketService {
                         log.info("Other Referrer !!");
 
                         // check that it should not assigned to any sp who already rejected the ticket.
-                        if (!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                        if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive()  && serviceProvider.getApproved() != null && serviceProvider.getApproved() && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id()) && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2)) {
 
                             if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), referrer.getId())) {
                                 log.info("cannot assign ticket to assignee of parent ticket");
@@ -623,6 +642,8 @@ public class ServiceProviderTicketService {
                                     break;
                                 }
                             }
+                        } else {
+                            log.info("Either the service provider is not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                         }
                     }
                 }
@@ -636,7 +657,7 @@ public class ServiceProviderTicketService {
 
                     ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(customProduct.getUserId());
 
-                    if (!ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
+                    if (serviceProvider.getIsActive() != null && serviceProvider.getIsActive() && serviceProvider.getApproved() != null && serviceProvider.getApproved() && (serviceProvider.getRole() == 4 || serviceProvider.getRole() == 2) && !ticket.getRejectedBy().contains(serviceProvider.getService_provider_id())) {
                         if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && Objects.equals(ticket.getParentTicket().getAssignee(), serviceProvider.getService_provider_id())) {
                             log.info("cannot assign ticket to assignee of parent ticket");
                         } else {
@@ -646,6 +667,8 @@ public class ServiceProviderTicketService {
                                 break;
                             }
                         }
+                    } else {
+                        log.info("Either the service provider is not active nor approved or neither admin or service provider with id: {}", serviceProvider.getService_provider_id());
                     }
                 }
 
@@ -750,7 +773,7 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket) throws Exception {
+    public CustomServiceProviderTicket createReviewTicket(CustomServiceProviderTicket parentTicket, CreateTicketDto createTicketDto, List<MultipartFile> files, Long tokenUserId, Role tokenRole) throws Exception {
         try {
 
             CustomServiceProviderTicket reviewTicket = new CustomServiceProviderTicket();
@@ -763,7 +786,7 @@ public class ServiceProviderTicketService {
 //            customServiceProviderTicket.setTicketAssignDate(createdDate);
             reviewTicket.setModifiedDate(createdDate);
 //            customServiceProviderTicket.setTargetCompletionDate(createTicketDto.getTargetCompletionDate());
-
+            reviewTicket.setComment(parentTicket.getComment());
             reviewTicket.setParentTicket(parentTicket);
 
             CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(1L); // Sate (to-do)
@@ -773,6 +796,15 @@ public class ServiceProviderTicketService {
             reviewTicket.setTicketState(ticketState);
             reviewTicket.setTicketStatus(ticketStatus);
             reviewTicket.setTicketType(ticketType);
+            reviewTicket.setComment(createTicketDto.getComment());
+
+            // If there exists some files then upload them as well.
+            if (files != null) {
+
+                Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, reviewTicket, tokenUserId, tokenRole);
+                reviewTicket.setServiceProviderDocuments(serviceProviderDocument);
+
+            }
 
             reviewTicket = entityManager.merge(reviewTicket);
             return reviewTicket;

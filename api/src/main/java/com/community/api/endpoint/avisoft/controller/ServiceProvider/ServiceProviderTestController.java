@@ -42,15 +42,10 @@ public class ServiceProviderTestController {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
-        catch (IllegalArgumentException e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
         catch (Exception e)
         {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -75,6 +70,11 @@ public class ServiceProviderTestController {
         {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (RuntimeException e)
+        {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException(e.getMessage());
         }
         catch (Exception e)
         {
@@ -143,10 +143,10 @@ public class ServiceProviderTestController {
     }
 
     @PostMapping("/upload-resized-signature/{serviceProviderId}/{testId}")
-    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request) throws Exception {
+    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
         try
         {
-            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request);
+            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request,authHeader);
             return responseService.generateResponse(HttpStatus.OK,"Signature image is uploaded",test);
         }
         catch (EntityDoesNotExistsException e)

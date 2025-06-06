@@ -36,7 +36,6 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
 
     @ManyToOne
     @NotNull
-    @JsonBackReference
     @JsonIgnore
     @JoinColumn(name = "product_id")
     protected CustomProduct customProduct;

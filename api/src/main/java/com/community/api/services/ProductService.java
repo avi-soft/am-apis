@@ -23,8 +23,6 @@ import javassist.NotFoundException;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.Product;
-import org.broadleafcommerce.core.catalog.domain.ProductImpl;
-import org.broadleafcommerce.core.catalog.domain.SkuImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -709,11 +707,12 @@ public class ProductService {
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
-            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql).toString(),Long.class);
+            jpql.append("ORDER BY p.createdDate DESC ");
+
+            TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql.toString().replace("ORDER BY p.createdDate DESC ", "")).toString(),Long.class);
             jpql=result.append(jpql);
             // Create the query with the final JPQL string
             TypedQuery<CustomProduct> query = entityManager.createQuery(jpql.toString(), CustomProduct.class);
-            System.out.println(jpql.toString());
             query.setFirstResult(offset*limit);     // e.g., offset = 20
             query.setMaxResults(limit);// e.g., limit = 10
             // Set parameters
@@ -768,7 +767,6 @@ public class ProductService {
             int res=queryToCount.getSingleResult().intValue();
              response.put("count",res);
              response.put("products",query.getResultList());
-            System.out.println("hello i have returned");
             // Execute and return the result
             return response;
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1900,13 +1898,6 @@ public class ProductService {
                 {
                     addProductDto.setExamDateFrom(null);
                 }
-                else if(addProductDto.getIsExamDateFromNa().equals(false))
-                {
-                    if(addProductDto.getExamDateFrom()==null && customProduct.getExamDateFrom()==null)
-                    {
-                        throw new IllegalArgumentException("Exam date from cannot be null if isExamDateFromNa is false");
-                    }
-                }
                 customProduct.setIsExamDateFromNa(addProductDto.getIsExamDateFromNa());
             }
             if(addProductDto.getIsAnswerKeyAvailableDateNa()!=null)
@@ -1914,13 +1905,6 @@ public class ProductService {
                 if(addProductDto.getIsAnswerKeyAvailableDateNa().equals(true))
                 {
                     addProductDto.setAnswerKeyAvailableDate(null);
-                }
-                else if(addProductDto.getIsAnswerKeyAvailableDateNa().equals(false))
-                {
-                    if(addProductDto.getAnswerKeyAvailableDate()==null && customProduct.getAnswerKeyAvailableDate()==null)
-                    {
-                        throw new IllegalArgumentException("Answer Key Available date from cannot be null if isAnswerKeyAvailableDateNa is false");
-                    }
                 }
                 customProduct.setIsAnswerKeyAvailableDateNa(addProductDto.getIsAnswerKeyAvailableDateNa());
             }
@@ -1930,13 +1914,6 @@ public class ProductService {
                 {
                     addProductDto.setResultDeclarationDate(null);
                 }
-                else if(addProductDto.getIsResultDeclarationDateNa().equals(false))
-                {
-                    if(addProductDto.getResultDeclarationDate()==null && customProduct.getResultDeclarationDate()==null)
-                    {
-                        throw new IllegalArgumentException("ResultDeclarationDate from cannot be null if isResultDeclarationDateNa is false");
-                    }
-                }
                 customProduct.setIsResultDeclarationDateNa(addProductDto.getIsResultDeclarationDateNa());
             }
             if(addProductDto.getIsCounsellingDateNa()!=null)
@@ -1944,13 +1921,6 @@ public class ProductService {
                 if(addProductDto.getIsCounsellingDateNa().equals(true))
                 {
                     addProductDto.setCounsellingDate(null);
-                }
-                else if(addProductDto.getIsCounsellingDateNa().equals(false))
-                {
-                    if(addProductDto.getCounsellingDate()==null && customProduct.getCounsellingDate()==null)
-                    {
-                        throw new IllegalArgumentException("CounsellingDate from cannot be null if isCounsellingDateNa is false");
-                    }
                 }
                 customProduct.setIsCounsellingDateNa(addProductDto.getIsCounsellingDateNa());
             }
@@ -1960,13 +1930,6 @@ public class ProductService {
                 {
                     addProductDto.setTentativeVerificationTo(null);
                 }
-                else if(addProductDto.getIsTentativeVerificationToNa().equals(false))
-                {
-                    if(addProductDto.getTentativeVerificationTo()==null && customProduct.getTentativeVerificationTo()==null)
-                    {
-                        throw new IllegalArgumentException("TentativeVerificationTo from cannot be null if isTentativeVerificationToNa is false");
-                    }
-                }
                 customProduct.setIsTentativeVerificationToNa(addProductDto.getIsTentativeVerificationToNa());
             }
             if(addProductDto.getIsTentativeVerificationFromNa()!=null)
@@ -1974,13 +1937,6 @@ public class ProductService {
                 if(addProductDto.getIsTentativeVerificationFromNa().equals(true))
                 {
                     addProductDto.setTentativeVerificationFrom(null);
-                }
-                else if(addProductDto.getIsTentativeVerificationFromNa().equals(false))
-                {
-                    if(addProductDto.getTentativeVerificationFrom()==null && customProduct.getTentativeVerificationFrom()==null)
-                    {
-                        throw new IllegalArgumentException("tentativeVerificationFrom from cannot be null if isTentativeVerificationFromNa is false");
-                    }
                 }
                 customProduct.setIsTentativeVerificationFromNa(addProductDto.getIsTentativeVerificationFromNa());
             }
@@ -1990,13 +1946,6 @@ public class ProductService {
                 {
                     addProductDto.setExamDateTo(null);
                 }
-                else if(addProductDto.getIsExamDateToNa().equals(false))
-                {
-                    if(addProductDto.getExamDateTo()==null && customProduct.getExamDateTo()==null)
-                    {
-                        throw new IllegalArgumentException("examDateTo from cannot be null if isExamDateToNa is false");
-                    }
-                }
                 customProduct.setIsExamDateToNa(addProductDto.getIsExamDateToNa());
             }
             if(addProductDto.getIsExamCenterAvailableDateNa()!=null)
@@ -2004,13 +1953,6 @@ public class ProductService {
                 if(addProductDto.getIsExamCenterAvailableDateNa().equals(true))
                 {
                     addProductDto.setExamCenterAvailableDate(null);
-                }
-                else if(addProductDto.getIsExamCenterAvailableDateNa().equals(false))
-                {
-                    if(addProductDto.getExamCenterAvailableDate()==null && customProduct.getExamCenterAvailableDate()==null)
-                    {
-                        throw new IllegalArgumentException("examCenterAvailableDate from cannot be null if isExamCenterAvailableDateNa is false");
-                    }
                 }
                 customProduct.setIsExamCenterAvailableDateNa(addProductDto.getIsExamCenterAvailableDateNa());
             }
@@ -2020,13 +1962,6 @@ public class ProductService {
                 {
                     addProductDto.setLastDateToPayFee(null);
                 }
-                else if(addProductDto.getIsLateDateToPayFeeNa().equals(false))
-                {
-                    if(addProductDto.getLastDateToPayFee()==null && customProduct.getLateDateToPayFee()==null)
-                    {
-                        throw new IllegalArgumentException("LastDateToPayFee from cannot be null if IsLateDateToPayFeeNa is false");
-                    }
-                }
                 customProduct.setIsLateDateToPayFeeNa(addProductDto.getIsLateDateToPayFeeNa());
             }
             if(addProductDto.getIsAdmitCardDateToNa()!=null)
@@ -2034,13 +1969,6 @@ public class ProductService {
                 if(addProductDto.getIsAdmitCardDateToNa().equals(true))
                 {
                     addProductDto.setAdmitCardDateTo(null);
-                }
-                else if(addProductDto.getIsAdmitCardDateToNa().equals(false))
-                {
-                    if(addProductDto.getAdmitCardDateTo()==null && customProduct.getAdmitCardDateTo()==null)
-                    {
-                        throw new IllegalArgumentException("AdmitCardDateTo from cannot be null if isAdmitCardDateToNa is false");
-                    }
                 }
                 customProduct.setIsAdmitCardDateToNa(addProductDto.getIsAdmitCardDateToNa());
             }
@@ -2050,13 +1978,6 @@ public class ProductService {
                 {
                     addProductDto.setAdmitCardDateFrom(null);
                 }
-                else if(addProductDto.getIsAdmitCardDateFromNa().equals(false))
-                {
-                    if(addProductDto.getAdmitCardDateFrom()==null && customProduct.getAdmitCardDateFrom()==null)
-                    {
-                        throw new IllegalArgumentException("AdmitCardDateFrom from cannot be null if isAdmitCardDateFromNa is false");
-                    }
-                }
                 customProduct.setIsAdmitCardDateFromNa(addProductDto.getIsAdmitCardDateFromNa());
             }
             if(addProductDto.getIsModificationDateFromNa()!=null)
@@ -2065,13 +1986,6 @@ public class ProductService {
                 {
                     addProductDto.setModificationDateFrom(null);
                 }
-                else if(addProductDto.getIsModificationDateFromNa().equals(false))
-                {
-                    if(addProductDto.getModificationDateFrom()==null && customProduct.getModificationDateFrom()==null)
-                    {
-                        throw new IllegalArgumentException("ModificationDateFrom from cannot be null if isModificationDateFromNa is false");
-                    }
-                }
                 customProduct.setIsModificationDateFromNa(addProductDto.getIsModificationDateFromNa());
             }
             if(addProductDto.getIsModificationDateToNa()!=null)
@@ -2079,13 +1993,6 @@ public class ProductService {
                 if(addProductDto.getIsModificationDateToNa().equals(true))
                 {
                     addProductDto.setModificationDateTo(null);
-                }
-                else if(addProductDto.getIsModificationDateToNa().equals(false))
-                {
-                    if(addProductDto.getModificationDateTo()==null && customProduct.getModificationDateTo()==null)
-                    {
-                        throw new IllegalArgumentException("ModificationDateTo from cannot be null if isModificationDateToNa is false");
-                    }
                 }
                 customProduct.setIsModificationDateToNa(addProductDto.getIsModificationDateToNa());
             }
@@ -2260,7 +2167,6 @@ public class ProductService {
             // Check if lastDateToPayFee is null or empty (for when an empty value is passed)
             if (addProductDto.getLastDateToPayFee() == null) {
                 // If last date to pay fee is null or empty, set it to null in the custom product
-             validateLastDateToPayFromForNullDates(customProduct);
                 return true;
             }
             validateLastDateToPayFromForNonNullDates(customProduct);
@@ -2329,8 +2235,6 @@ public class ProductService {
 
     public Boolean validateAndSetModifiedDates(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
         try {
-            validateModificationDateFromForNullDates(customProduct);
-            validateModificationDateToForNullDates(customProduct);
             // Case 1: Both dates are null - set both as null in customProduct and return
             if (addProductDto.getModificationDateFrom() == null && addProductDto.getModificationDateTo() == null) {
                 customProduct.setModificationDateFrom(null);
@@ -2341,7 +2245,6 @@ public class ProductService {
             // Case 2: Only ModificationDateFrom is provided
             if (addProductDto.getModificationDateFrom() != null && addProductDto.getModificationDateTo() == null) {
                 validateModificationDateFromForNonNullDates(customProduct);
-                validateModificationDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getModificationDateFrom()));
 
                 // Validate ModificationDateFrom against other dates
@@ -2355,7 +2258,6 @@ public class ProductService {
 
             // Case 3: Only ModificationDateTo is provided
             if (addProductDto.getModificationDateFrom() == null && addProductDto.getModificationDateTo() != null) {
-                validateModificationDateFromForNullDates(customProduct);
                 validateModificationDateToForNonNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getModificationDateTo()));
 
@@ -2474,7 +2376,6 @@ public class ProductService {
             // Case 2: If only from date is provided
             else if (addProductDto.getExamDateFrom() != null) {
                 validateExamDateFromForNonNullDates(customProduct);
-                validateExamDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateFrom()));
 
                 // Perform validation checks
@@ -2487,7 +2388,6 @@ public class ProductService {
             // Case 3: If only to date is provided
             else if (addProductDto.getExamDateTo() != null) {
                 validateExamDateToForNonNullDates(customProduct);
-                validateExamDateFromForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getExamDateTo()));
 
                 if (customProduct.getExamDateFrom() != null) {
@@ -2504,8 +2404,6 @@ public class ProductService {
             // Case 4: If both dates are null
             else {
                 // Set both dates to null
-                validateExamDateFromForNullDates(customProduct);
-                validateExamDateToForNullDates(customProduct);
                 customProduct.setExamDateFrom(null);
                 customProduct.setExamDateTo(null);
             }
@@ -2596,7 +2494,6 @@ public class ProductService {
             // Case 2: If only from date is provided
             else if (addProductDto.getAdmitCardDateFrom() != null) {
                 validateAdmitDateFromForNonNullDates(customProduct);
-                validateAdmitCardDateToForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateFrom()));
 //                addProductDto.setAdmitCardDateTo(addProductDto.getAdmitCardDateFrom());
 
@@ -2610,7 +2507,6 @@ public class ProductService {
             // Case 3: If only to date is provided
             else if (addProductDto.getAdmitCardDateTo() != null) {
                 validateAdmitCardDateToForNonNullDates(customProduct);
-                validateAdmitCardDateFromForNullDates(customProduct);
                 dateFormat.parse(dateFormat.format(addProductDto.getAdmitCardDateTo()));
 
                 if (customProduct.getAdmitCardDateFrom() != null) {
@@ -2626,8 +2522,6 @@ public class ProductService {
             }
             // Case 4: If both dates are null
             else {
-                validateAdmitCardDateFromForNullDates(customProduct);
-                validateAdmitCardDateToForNullDates(customProduct);
                 // Set both dates to null
                 customProduct.setAdmitCardDateFrom(null);
                 customProduct.setAdmitCardDateTo(null);
@@ -3367,9 +3261,14 @@ public class ProductService {
             if (addProductDto.getLastDateToPayFee() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
 
-                if (addProductDto.getModificationDateFrom()!=null&&!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
-                    throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
+                if(addProductDto.getModificationDateFrom()!=null)
+                {
+                    if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                        throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
+                    }
+
                 }
+
             } /*else {
                 if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
                     throw new IllegalArgumentException("Modification date from has to be future of active end date.");
@@ -3787,7 +3686,7 @@ public class ProductService {
         }
 
         // Get all districts for this state
-        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code());
+        List<Districts> stateDistricts = districtService.findDistrictsByStateCode(stateCode.getState_code(),false);
         Set<Integer> validDistrictIds = stateDistricts.stream()
                 .map(Districts::getDistrict_id)
                 .collect(Collectors.toSet());
@@ -3860,9 +3759,9 @@ public class ProductService {
         }*/
        /* if(postDto.getDuration()<0)
             throw new IllegalArgumentException("Post duration cannot be < 0");*/
-        if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
+      /*  if (!postDto.getPostName().matches("^[a-zA-Z0-9/_\\-(),.\"' \\[\\]{}]*$")) {
             throw new IllegalArgumentException("Post name can only contain alphanumeric values, /_-(),.\"' []{}, and cannot have leading spaces.");
-        }
+        }*/
         if(postDto.getIncome()!=null)
         {
             if (postDto.getIncome()<0)
@@ -4041,7 +3940,7 @@ public class ProductService {
 
         if (!state.getCategoryDistributions().isEmpty()) {
             long categorySum = state.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
 
             if (categorySum != totalGenderVacancies) {
@@ -4057,7 +3956,7 @@ public class ProductService {
     private long validateNonGenderWiseState(StateDistributionDto state) {
         if (!state.getCategoryDistributions().isEmpty()) {
             return state.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
         } else {
             if (state.getTotalVacanciesInState() == null) {
@@ -4266,7 +4165,7 @@ public class ProductService {
 
         if (!zone.getCategoryDistributions().isEmpty()) {
             int categorySum = zone.getCategoryDistributions().stream()
-                    .mapToInt(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToInt(CategoryDistributionDto::getVacancyCount)
                     .sum();
 
             if (categorySum != totalGenderVacancies) {
@@ -4281,7 +4180,7 @@ public class ProductService {
     private long validateNonGenderWiseZone(ZoneDistributionDto zone) {
         if (!zone.getCategoryDistributions().isEmpty()) {
             return zone.getCategoryDistributions().stream()
-                    .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                    .mapToLong(CategoryDistributionDto::getVacancyCount)
                     .sum();
         } else {
             if (zone.getTotalVacanciesInZone() == null) {
@@ -4295,8 +4194,8 @@ public class ProductService {
 
     private void validateCategoryDistributions(List<CategoryDistributionDto> categoryDistributions, Long totalVacancy) {
         Long categoryVacancySum = categoryDistributions.stream()
-                .filter(category -> category.getCategoryVacancies() != null)  // Ensure no null categoryVacancies
-                .mapToLong(CategoryDistributionDto::getCategoryVacancies)
+                .filter(category -> category.getVacancyCount() != null)  // Ensure no null categoryVacancies
+                .mapToLong(CategoryDistributionDto::getVacancyCount)
                 .sum();
 
         if (!categoryVacancySum.equals(totalVacancy)) {
@@ -4304,13 +4203,18 @@ public class ProductService {
         }
 
         for (CategoryDistributionDto categoryDistribution : categoryDistributions) {
-            if (categoryDistribution.getCategoryId() == null || categoryDistribution.getCategoryVacancies() == null) {
-                throw new IllegalArgumentException("Category ID and vacancies must be provided for each category.");
-            }
+
             if(categoryDistribution.getIsStateLevelCategory()==null)
             {
                 throw new IllegalArgumentException("isStateLevelCategory cannot be null");
             }
+            if(categoryDistribution.getIsStateLevelCategory().equals(false))
+            {
+                if (categoryDistribution.getCategoryId() == null || categoryDistribution.getVacancyCount() == null) {
+                    throw new IllegalArgumentException("Category ID and vacancies must be provided for each category if isStateLevelCategory is false.");
+                }
+            }
+
             if(categoryDistribution.getIsStateLevelCategory().equals(true))
             {
                 if(categoryDistribution.getStateLevelCategory()==null || categoryDistribution.getStateLevelCategory().trim().isEmpty())
@@ -4319,6 +4223,13 @@ public class ProductService {
                 }
                 if (!categoryDistribution.getStateLevelCategory().matches("^[a-zA-Z0-9 ]*$")) {
                     throw new IllegalArgumentException("Only alphanumeric characters are allowed in state category");
+                }
+                if(categoryDistribution.getStateId()==null)
+                {
+                    throw new IllegalArgumentException("Provide the state for which you are adding state level category");
+                }
+                if (categoryDistribution.getStateId() <= 0) {
+                    throw new IllegalArgumentException("state id cannot be negative or equal to 0");
                 }
             }
             if(categoryDistribution.getIsGenderWise()==null)
@@ -4340,7 +4251,7 @@ public class ProductService {
                 else if(categoryDistribution.getFemaleVacancy()<0)
                     throw new IllegalArgumentException("Female vacancies cannot be <0");
 
-                if(categoryDistribution.getCategoryVacancies()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
+                if(categoryDistribution.getVacancyCount()!= categoryDistribution.getMaleVacancy()+ categoryDistribution.getFemaleVacancy())
                 {
                     throw new IllegalArgumentException("Category vacancies is not equal to sum of male vacancies and female vacancies");
                 }
@@ -4366,27 +4277,35 @@ public class ProductService {
             long sum = 0;
             long f=0;
             long m=0;
-            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()&&stateDistribution.getIsGenderWise()) {
+            if (stateDistribution.getCategoryDistributions() != null&&!stateDistribution.getCategoryDistributions().isEmpty()) {
                 for (CategoryDistributionDto categoryDistributionDto : stateDistribution.getCategoryDistributions()) {
-                    if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Male vacancy is not given");
-                    if(categoryDistributionDto.getFemaleVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Female vacancy is not given");
-                    if(categoryDistributionDto.getTotalVacancy()==null&&stateDistribution.getIsGenderWise())
-                        throw new IllegalArgumentException("Total vacancy is not given");
-                    sum+=categoryDistributionDto.getTotalVacancy();
-                    f+=categoryDistributionDto.getFemaleVacancy();
-                    m+=categoryDistributionDto.getMaleVacancy();
-                    if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
-                        throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
+
+                    if(stateDistribution.getIsGenderWise())
+                    {
+                        if(categoryDistributionDto.getMaleVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Male vacancy is not given");
+                        if(categoryDistributionDto.getFemaleVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Female vacancy is not given");
+                        if(categoryDistributionDto.getTotalVacancy()==null&&stateDistribution.getIsGenderWise())
+                            throw new IllegalArgumentException("Total vacancy is not given");
+                        sum+=categoryDistributionDto.getTotalVacancy();
+                        f+=categoryDistributionDto.getFemaleVacancy();
+                        m+=categoryDistributionDto.getMaleVacancy();
+                        if (categoryDistributionDto.getTotalVacancy()!= categoryDistributionDto.getFemaleVacancy() + categoryDistributionDto.getMaleVacancy()) {
+                            throw new IllegalArgumentException("female vacancy +male vacancy for category is not equal to total");
+                        }
                     }
+
                 }
-                if(f!=stateDistribution.getFemaleVacancy())
-                    throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
-                if(m!=stateDistribution.getMaleVacancy())
-                    throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
-                if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
-                    throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
+                if(stateDistribution.getIsGenderWise())
+                {
+                    if(f!=stateDistribution.getFemaleVacancy())
+                        throw new IllegalArgumentException("Total category female vacancies not equal to total female vacancy in state");
+                    if(m!=stateDistribution.getMaleVacancy())
+                        throw new IllegalArgumentException("Total category male vacancies not equal to total male vacancy in state");
+                    if (stateDistribution.getMaleVacancy() + stateDistribution.getFemaleVacancy() != sum)
+                        throw new IllegalArgumentException("Total vacancy sum for state is not equal to the sum of vacancies in category wise distribution");
+                }
             }
         }
     }
@@ -4638,16 +4557,7 @@ public class ProductService {
         return calendar.getTime();
     }
 
-    public void validateLastDateToPayFromForNullDates( CustomProduct customProduct)
-    {
-        if(customProduct.getIsLateDateToPayFeeNa()!=null )
-        {
-            if(customProduct.getIsLateDateToPayFeeNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill IsLateDateToPayFeeNa as true if u want to remove last date to pay fee");
-            }
-        }
-    }
+
     public void validateLastDateToPayFromForNonNullDates(CustomProduct customProduct)
     {
         if(customProduct.getIsLateDateToPayFeeNa()!=null )
@@ -4655,16 +4565,6 @@ public class ProductService {
             if(customProduct.getIsLateDateToPayFeeNa().equals(true))
             {
                 throw new IllegalArgumentException("You have to fill isLateDateToPayFeeNa as false if u want to give last date to pay fee");
-            }
-        }
-    }
-    public void validateModificationDateFromForNullDates( CustomProduct customProduct)
-    {
-        if(customProduct.getIsModificationDateFromNa()!=null )
-        {
-            if(customProduct.getIsModificationDateFromNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isModificationDateFromNa as true if u want to remove modification date from");
             }
         }
     }
@@ -4678,16 +4578,6 @@ public class ProductService {
             }
         }
     }
-    public void validateModificationDateToForNullDates(CustomProduct customProduct)
-    {
-        if(customProduct.getIsModificationDateToNa()!=null )
-        {
-            if(customProduct.getIsModificationDateToNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isModificationDateToNa as true if u want to remove modification date to");
-            }
-        }
-    }
     public void validateModificationDateToForNonNullDates(CustomProduct customProduct)
     {
         if(customProduct.getIsModificationDateToNa()!=null )
@@ -4695,16 +4585,6 @@ public class ProductService {
             if(customProduct.getIsModificationDateToNa().equals(true))
             {
                 throw new IllegalArgumentException("You have to fill isModificationDateToNa as false if u want to give modification date to");
-            }
-        }
-    }
-    public void validateAdmitCardDateFromForNullDates( CustomProduct customProduct)
-    {
-        if(customProduct.getIsAdmitCardDateFromNa()!=null )
-        {
-            if(customProduct.getIsAdmitCardDateFromNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isAdmitCardDateFromNa as true if u want to remove admit card date from");
             }
         }
     }
@@ -4718,16 +4598,6 @@ public class ProductService {
             }
         }
     }
-    public void validateAdmitCardDateToForNullDates(CustomProduct customProduct)
-    {
-        if(customProduct.getIsAdmitCardDateToNa()!=null )
-        {
-            if(customProduct.getIsAdmitCardDateToNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isAdmitCardDateToNa as true if u want to remove admit card date to");
-            }
-        }
-    }
     public void validateAdmitCardDateToForNonNullDates(CustomProduct customProduct)
     {
         if(customProduct.getIsAdmitCardDateToNa()!=null )
@@ -4738,16 +4608,6 @@ public class ProductService {
             }
         }
     }
-    public void validateExamDateFromForNullDates( CustomProduct customProduct)
-    {
-        if(customProduct.getIsExamDateFromNa()!=null )
-        {
-            if(customProduct.getIsExamDateFromNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isExamDateFromNa as true if u want to remove exam date from");
-            }
-        }
-    }
     public void validateExamDateFromForNonNullDates(CustomProduct customProduct)
     {
         if(customProduct.getIsExamDateFromNa()!=null )
@@ -4755,16 +4615,6 @@ public class ProductService {
             if(customProduct.getIsExamDateFromNa().equals(true))
             {
                 throw new IllegalArgumentException("You have to fill isExamDateFromNa as false if u want to give exam date from");
-            }
-        }
-    }
-    public void validateExamDateToForNullDates(CustomProduct customProduct)
-    {
-        if(customProduct.getIsExamDateToNa()!=null )
-        {
-            if(customProduct.getIsExamDateToNa().equals(false))
-            {
-                throw new IllegalArgumentException("You have to fill isExamDateToNa as true if u want to remove exam date to");
             }
         }
     }

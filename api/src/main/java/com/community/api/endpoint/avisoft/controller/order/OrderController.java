@@ -8,6 +8,8 @@ import com.community.api.dto.CustomTicketWrapper;
 import com.community.api.dto.SPDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
+import com.community.api.dto.OrderStateGroupDto;
+
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
@@ -172,7 +174,7 @@ public class OrderController {
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
-            @RequestParam(value = "order_state", required = false) Integer orderStateId,
+            @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds,
             @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
@@ -196,11 +198,11 @@ public class OrderController {
             if (offset < 0 || limit <= 0)
                 return ResponseService.generateErrorResponse("Offset or Limit invalid", HttpStatus.BAD_REQUEST);
 
-            if (orderStateId != null) {
-                // Validate that the order state ID exists
-                boolean stateExists = isOrderStateIdValid(orderStateId);
-                if (!stateExists) {
-                    return ResponseService.generateErrorResponse("Invalid Order State ID", HttpStatus.BAD_REQUEST);
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                for (Integer id : orderStateIds) {
+                    if (!isOrderStateIdValid(id)) {
+                        return ResponseService.generateErrorResponse("Invalid Order State ID: " + id, HttpStatus.BAD_REQUEST);
+                    }
                 }
             }
 
@@ -210,8 +212,8 @@ public class OrderController {
                             "JOIN order_state os ON o.order_id = os.order_id " +
                             "WHERE o.customer_id = :customerId AND o.tax_override IS NULL";
 
-            if (orderStateId != null) {
-                baseQuery += " AND os.order_state_id = :orderStateId";
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                baseQuery += " AND os.order_state_id IN (:orderStateIds)";
             }
 
             if (dateFrom != null && dateTo != null) {
@@ -232,8 +234,8 @@ public class OrderController {
             countQuery.setParameter("customerId", customerId);
 
 
-            if (orderStateId != null) {
-                countQuery.setParameter("orderStateId", orderStateId);
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                countQuery.setParameter("orderStateIds", orderStateIds);
             }
             if (dateFrom != null) {
                 countQuery.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
@@ -266,8 +268,8 @@ public class OrderController {
             dataQuery.setMaxResults(limit);
             dataQuery.setParameter("customerId", customerId);
 
-            if (orderStateId != null) {
-                dataQuery.setParameter("orderStateId", orderStateId);
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                dataQuery.setParameter("orderStateIds", orderStateIds);
             }
             if (dateFrom != null) {
                 dataQuery.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
@@ -511,7 +513,7 @@ public class OrderController {
                         // This will throw NoResultException if no result is found
                         customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, id.longValue());
                         System.out.println(customServiceProviderTicket);
-                        orderDetails.add(orderDTOService.wrapOrder(order, orderState, customServiceProviderTicket, customerDetailsDTO));
+                        orderDetails.add(orderDTOService.wrapOrderCustomer(order, orderState, customServiceProviderTicket, customerDetailsDTO));
                     } catch (NoResultException e) {
                         //the case where no result is found
                         customServiceProviderTicket = null;
@@ -771,5 +773,18 @@ public class OrderController {
         BigInteger count = (BigInteger) query.getSingleResult();
         return count.intValue() > 0;
     }
+
+    @GetMapping("get-all-grouped-order-state")
+    public ResponseEntity<?> getGroupedOrderState() {
+        List<OrderStateGroupDto> groupedStates = new ArrayList<>();
+
+        groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1,0,3)));
+        groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2,4,6, 8)));
+        groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
+        groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5)));
+
+        return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
+    }
+
 
 }

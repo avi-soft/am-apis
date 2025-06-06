@@ -1,5 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.ServiceProvider;
 
+import com.community.api.annotation.Authorize;
+import com.community.api.component.Constant;
 import com.community.api.dto.UpdateTestStatus;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.services.ResponseService;
@@ -54,8 +56,9 @@ public class ServiceProviderTestStatusController {
 
     }
 
+ /*   @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @Transactional
-    @PatchMapping("/update-test-status/{serviceProviderId}")
+    @PutMapping("/update-test-status/{serviceProviderId}")
     public ResponseEntity<?> updateTestStatus(@RequestBody UpdateTestStatus updateTestStatus, @PathVariable Long serviceProviderId) {
         try {
             return serviceProviderTestStatusService.updateTestStatus(updateTestStatus,serviceProviderId);
@@ -65,5 +68,5 @@ public class ServiceProviderTestStatusController {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Some error updating: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
+    }*/
 }

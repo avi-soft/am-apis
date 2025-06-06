@@ -15,6 +15,7 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.InvalidFileTypeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.ParameterResolutionDelegate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/roles",
+    @RequestMapping(value = "/roles",
         produces = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE }
 )
 public class RoleController {
@@ -106,7 +107,7 @@ public class RoleController {
         }
     }
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin})
+//    @Authorize(value = {Constant.roleSuperAdmin})
     @PostMapping("/change-role/{id}/{roleToBeId}")
     public ResponseEntity<?> changeRole(@RequestHeader(value = "Authorization") String authHeader,@PathVariable Long id,@PathVariable Integer roleToBeId)
     {
@@ -185,7 +186,9 @@ public class RoleController {
                                 "Best regards,\n" +
                                 "System Administrator"
                 );
+
                 communicateWithCustomersAsync(communicationRequest, roleToBeId, authHeader);
+
             }
             return response;
     }catch (Exception exception)
@@ -193,6 +196,7 @@ public class RoleController {
             return ResponseService.generateErrorResponse("Some error occured"+exception.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @Async
     public void communicateWithCustomersAsync(CommunicationRequest communicationRequest, Integer roleToBeId, String authHeader) {
         try {
@@ -202,7 +206,5 @@ public class RoleController {
             // Log the error or handle it as necessary
         }
     }
-
-
 
 }

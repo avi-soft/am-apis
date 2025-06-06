@@ -67,14 +67,14 @@ public class QualificationDetails {
     private Date date_of_passing;
 
     @Column(name = "examination_role_number",nullable = true)
-    private Long examination_role_number;
+    private String examination_role_number;
 
     @Column(name = "course_duration_in_months",nullable = true)
     private Long course_duration_in_months;
 
     //    @NotNull(message = "Examination Registration Number is required")
     @Column(name = "examination_registration_number",nullable = true)
-    private Long examination_registration_number;
+    private String examination_registration_number;
 
     @NotNull(message = "board or university id is required")
     @Column(name = "board_university_id", nullable = false)
@@ -115,6 +115,9 @@ public class QualificationDetails {
     @Column(name = "cumulative_percentage_value" )
     private Double cumulative_percentage_value;
 
+    @Column(name = "cumulative_cgpa_value" )
+    private Double cumulative_cgpa_value;
+
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
     @Column(name = "subject_name")
@@ -137,7 +140,10 @@ public class QualificationDetails {
     @Column(name = "subject_name")
     private List<String> highest_qualification_subject_names;
 
-    @JsonBackReference("qualificationDetailsList-customer")
+    @Column(name = "institution_address")
+    private String institution_address;
+
+    @JsonBackReference("qualificationDetailsList-customer") // This matches the managed reference
     @ManyToOne
     @JoinColumn(name = "custom_customer_id")
     private CustomCustomer custom_customer;

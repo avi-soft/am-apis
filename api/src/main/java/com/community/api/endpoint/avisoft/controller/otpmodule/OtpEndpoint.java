@@ -35,11 +35,8 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -65,6 +62,9 @@ public class OtpEndpoint {
 
     @Autowired
     private RateLimiterService rateLimiterService;
+
+    @Autowired
+    TwilioServiceForServiceProvider twilioServiceForServiceProvider;
 
     @Autowired
     private EntityManager em;
@@ -96,7 +96,8 @@ public class OtpEndpoint {
     @Autowired
     private AdminService adminService;
 
-    @PostMapping("/send-otp")
+    @PostMapping(value = "/send-otp", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE,
+            produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session,@RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
         try {
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
@@ -292,7 +293,7 @@ public class OtpEndpoint {
                 return responseService.generateErrorResponse(ApiConstants.NUMBER_REGISTERED_AS_CUSTOMER, HttpStatus.BAD_REQUEST);
             }
 
-            CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
+            /*CustomAdmin customAdmin= adminService.findAdminByPhone(mobileNumber,countryCode);
             if(customAdmin!=null)
             {
                 if(customAdmin.getRole()==1)
@@ -307,7 +308,7 @@ public class OtpEndpoint {
                 {
                     return ResponseService.generateErrorResponse("Number already registered as "+ "Service Provider Admin" , HttpStatus.BAD_REQUEST);
                 }
-            }
+            }*/
 
             if (!serviceProviderService.isValidMobileNumber(mobileNumber)) {
                 return responseService.generateErrorResponse(ApiConstants.INVALID_MOBILE_NUMBER, HttpStatus.BAD_REQUEST);
@@ -327,7 +328,7 @@ public class OtpEndpoint {
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
-                serviceProviderEntity.setTestStatus(serviceProviderTestStatus);
+                serviceProviderEntity.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProviderEntity.setRole(4);
                 em.persist(serviceProviderEntity);
             } else if (existingServiceProvider.getOtp() != null) {
@@ -337,10 +338,16 @@ public class OtpEndpoint {
                 return responseService.generateErrorResponse(ApiConstants.MOBILE_NUMBER_REGISTERED, HttpStatus.BAD_REQUEST);
             }
             Map<String, Object> details = new HashMap<>();
-            String maskedNumber = twilioService.genereateMaskednumber(mobileNumber);
+            try {
+                return twilioServiceForServiceProvider.sendOtpToMobile(mobileNumber, "+91");
+            }catch (Exception e)
+            {
+                return ResponseService.generateErrorResponse("Error sending otp",HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+           /* String maskedNumber = twilioService.genereateMaskednumber(mobileNumber);
             details.put("otp", otp);
             return responseService.generateSuccessResponse(ApiConstants.OTP_SENT_SUCCESSFULLY + " on " +maskedNumber, otp, HttpStatus.OK);
-
+*/
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 return responseService.generateErrorResponse(ApiConstants.UNAUTHORIZED_ACCESS , HttpStatus.UNAUTHORIZED);

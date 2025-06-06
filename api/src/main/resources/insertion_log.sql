@@ -483,7 +483,6 @@ IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
         (140, 'N', 'PhD in Medical Science', 'Doctorate in Medical Science and Clinical Research', NOW(), NULL, NULL, 140),
         (141, 'N', 'PhD in Agriculture', 'Doctorate in Agricultural Science and Rural Development', NOW(), NULL, NULL, 141),
 
-        --More streams related to Bachelors
         --BA and BA(HONours)
 
         (142, 'N', 'Economics', 'Bachelor of Arts or Bachelor of Arts(Honours) in Economics', NOW(), NULL, NULL, 142),
@@ -586,7 +585,83 @@ IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
         (213, 'N', 'Archival Studies', 'Bachelor of Library Science in Archival Studies', NOW(), NULL, NULL, 213),
         (214, 'N', 'Library Automation', 'Bachelor of Library Science in Library Automation', NOW(), NULL, NULL, 214),
         (215, 'N', 'Others', 'Others', NOW(), NULL, NULL, 10000001),
-        (216, 'N', 'NA', 'NA', NOW(), NULL, NULL, 10000000);
+        (216, 'N', 'NA', 'NA', NOW(), NULL, NULL, 10000000),
+
+ --Bachelors
+        (217, 'N', 'Science/B.Sc', 'Bachelor of Science', NOW(), NULL, NULL, 218),
+        (218, 'N', 'Commerce/B.Com', 'Bachelor of Commerce', NOW(), NULL, NULL, 219),
+        (219, 'N', 'Arts/Humanities/B.A', 'Bachelor of Arts in Arts and Humanities', NOW(), NULL, NULL, 220),
+        (220, 'N', 'B.A(Honours)', 'Bachelor of Arts with Honours', NOW(), NULL, NULL, 221),
+        (221, 'N', 'B.Sc.(Honours)', 'Bachelor of Science with Honours', NOW(), NULL, NULL, 222),
+        (222, 'N', 'B.Com(Honours)', 'Bachelor of Commerce with Honours', NOW(), NULL, NULL, 223),
+        (223, 'N', 'Engineering', 'Bachelor of Engineering', NOW(), NULL, NULL, 224),
+        (224, 'N', 'B.E', 'Bachelor of Engineering', NOW(), NULL, NULL, 225),
+        (225, 'N', 'B.Tech', 'Bachelor of Technology', NOW(), NULL, NULL, 226),
+        (226, 'N', 'B.Arch.', 'Bachelor of Architecture', NOW(), NULL, NULL, 227),
+        (227, 'N', 'BCA', 'Bachelor of Computer Applications', NOW(), NULL, NULL, 228),
+        (228, 'N', 'Data Science', 'Bachelor of Science in Data Science', NOW(), NULL, NULL, 229),
+        (229, 'N', 'Agriculture', 'Bachelor of Science in Agriculture', NOW(), NULL, NULL, 230),
+        (230, 'N', 'BBA', 'Bachelor of Business Administration', NOW(), NULL, NULL, 231),
+        (231, 'N', 'Law(LLB)', 'Bachelor of Laws', NOW(), NULL, NULL, 232),
+        (232, 'N', 'Computer Science', 'Bachelor of Science in Computer Science', NOW(), NULL, NULL, 233),
+        (233, 'N', 'MBBS', 'Bachelor of Medicine, Bachelor of Surgery', NOW(), NULL, NULL, 234),
+        (234, 'N', 'BAMS', 'Bachelor of Ayurvedic Medicine and Surgery', NOW(), NULL, NULL, 235),
+        (235, 'N', 'BDS', 'Bachelor of Dental Surgery', NOW(), NULL, NULL, 236),
+        (236, 'N', 'B.Sc.(Nursing)', 'Bachelor of Science in Nursing', NOW(), NULL, NULL, 237),
+        (237, 'N', 'B Pharma', 'Bachelor of Pharmacy', NOW(), NULL, NULL, 238),
+        (238, 'N', 'BPT', 'Bachelor of Physiotherapy', NOW(), NULL, NULL, 239),
+        (239, 'N', 'BHMS', 'Bachelor of Homeopathic Medicine and Surgery', NOW(), NULL, NULL, 240),
+        (240, 'N', 'BMLT', 'Bachelor of Medical Laboratory Technology', NOW(), NULL, NULL, 241),
+        (241, 'N', 'Hotel Management', 'Bachelor of Hotel Management', NOW(), NULL, NULL, 242),
+        (242, 'N', 'BHMCT', 'Bachelor of Hotel Management and Catering Technology', NOW(), NULL, NULL, 243),
+        (243, 'N', 'BTTM', 'Bachelor of Tourism and Travel Management', NOW(), NULL, NULL, 244),
+        (244, 'N', 'B.Voc', 'Bachelor of Vocation', NOW(), NULL, NULL, 245),
+        (245, 'N', 'Visual Arts', 'Bachelor of Visual Arts', NOW(), NULL, NULL, 246),
+        (246, 'N', 'Fashion Design', 'Bachelor of Fashion Design', NOW(), NULL, NULL, 247),
+        (247, 'N', 'Media & Journalism', 'Bachelor of Arts in Media and Journalism', NOW(), NULL, NULL, 248),
+        (248, 'N', 'B.P.Ed', 'Bachelor of Physical Education', NOW(), NULL, NULL, 249),
+        (249, 'N', 'Digital Marketing', 'Bachelor of Digital Marketing', NOW(), NULL, NULL, 250),
+        (250, 'N', 'Literature', 'Bachelor of Arts in Literature', NOW(), NULL, NULL, 251),
+        (251, 'N', 'Language & linguistics', 'Bachelor of Arts in Language and Linguistics', NOW(), NULL, NULL, 252),
+        (252, 'N', 'Bachelors degree in Honours', 'Bachelor Degree with Honours', NOW(), NULL, NULL, 253),
+        (253, 'N', 'CA', 'Chartered Accountancy', NOW(), NULL, NULL, 254),
+        (254, 'N', 'CS', 'Company Secretary', NOW(), NULL, NULL, 255),
+        (255, 'N', 'Fine Arts', 'Bachelor of Fine Arts', NOW(), NULL, NULL, 256),
+        (256, 'N', 'B.Ed', 'Bachelor of Education', NOW(), NULL, NULL, 257),
+        (257, 'N', 'B.Li.Sc', 'Bachelor of Library Science', NOW(), NULL, NULL, 258),
+        (258, 'N', 'Biotechnology', 'Bachelor of Technology in Biotechnology', NOW(), NULL, NULL, 259),
+        (259, 'N', 'Aerospace', 'Bachelor of Technology in Aerospace Engineering', NOW(), NULL, NULL, 260),
+        (260, 'N', 'Aeronautics', 'Bachelor of Technology in Aeronautical Engineering', NOW(), NULL, NULL, 261),
+        (261, 'N', 'Animation & Multimedia', 'Bachelor of Arts in Animation and Multimedia', NOW(), NULL, NULL, 262),
+
+        -- Master's Degrees
+        (262, 'N', 'Arts/Humanities/M.A', 'Master of Arts in Arts and Humanities', NOW(), NULL, NULL, 263),
+        (263, 'N', 'Science/M.Sc.', 'Master of Science', NOW(), NULL, NULL, 264),
+        (264, 'N', 'M.Com', 'Master of Commerce', NOW(), NULL, NULL, 265),
+        (265, 'N', 'Management & Business', 'Master of Management and Business Studies', NOW(), NULL, NULL, 266),
+        (266, 'N', 'MBA', 'Master of Business Administration', NOW(), NULL, NULL, 267),
+        (267, 'N', 'Law & legal studies', 'Master of Laws and Legal Studies', NOW(), NULL, NULL, 268),
+        (268, 'N', 'LLM', 'Master of Laws', NOW(), NULL, NULL, 269),
+        (269, 'N', 'Engineering & Architecture', 'Master of Engineering and Architecture', NOW(), NULL, NULL, 270),
+        (270, 'N', 'Medical Science', 'Master of Medical Science', NOW(), NULL, NULL, 271),
+        (271, 'N', 'MS', 'Master of Science', NOW(), NULL, NULL, 272),
+        (272, 'N', 'MD', 'Doctor of Medicine', NOW(), NULL, NULL, 273),
+        (273, 'N', 'MDS', 'Master of Dental Surgery', NOW(), NULL, NULL, 274),
+        (274, 'N', 'MPT', 'Master of Physiotherapy', NOW(), NULL, NULL, 275),
+        (275, 'N', 'M.Sc.(Nursing)', 'Master of Science in Nursing', NOW(), NULL, NULL, 276),
+        (276, 'N', 'M.Pharm', 'Master of Pharmacy', NOW(), NULL, NULL, 277),
+        (277, 'N', 'M.Tech', 'Master of Technology', NOW(), NULL, NULL, 278),
+        (278, 'N', 'M.E', 'Master of Engineering', NOW(), NULL, NULL, 279),
+        (279, 'N', 'M.Arch.', 'Master of Architecture', NOW(), NULL, NULL, 280),
+        (280, 'N', 'MCA', 'Master of Computer Applications', NOW(), NULL, NULL, 281),
+        (281, 'N', 'Agriculture', 'Master of Science in Agriculture', NOW(), NULL, NULL, 282),
+        (282, 'N', 'Environmental Science', 'Master of Science in Environmental Science', NOW(), NULL, NULL, 283),
+        (283, 'N', 'Education(M.Ed.)', 'Master of Education', NOW(), NULL, NULL, 284),
+        (284, 'N', 'M.Ped', 'Master of Physical Education', NOW(), NULL, NULL, 285),
+        (285, 'N', 'Hotel Management', 'Master of Hotel Management', NOW(), NULL, NULL, 286),
+        (286, 'N', 'Social Work', 'Master of Social Work', NOW(), NULL, NULL, 287),
+        (287, 'N', 'Fashion Design', 'Master of Fashion Design', NOW(), NULL, NULL, 288),
+        (288, 'N', 'Media & Communication', 'Master of Arts in Media and Communication', NOW(), NULL, NULL, 289);
 
 END IF;
 --
@@ -1570,7 +1645,7 @@ END IF;
 --        (2, 'Resizing & Uploading Image/Document'),
 --        (3, 'Executing Online Payment/Transactions'),
 --        (4, 'Apply To Various Government Schemes'),
---        (5, 'Others');
+--        (6, 'Any Other Expertise');
 --END IF;
 ---- Insert into service_provider_status if empty
 --IF NOT EXISTS (SELECT 1 FROM serviceproviderstatus) THEN
@@ -1655,215 +1730,225 @@ END IF;
 --
 --    -- Mapping for INTERMEDIATE/12th (qualification_id: 2)
 --  -- 12th Standard Streams (qualification_id = 2)
---IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
---
---        -- Insert values if the table is empty
---
---        -- 12th Stream
+IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
+
+        -- Insert values if the table is empty
+
+        -- 12th Stream
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 2, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (1, 2, 3, 4);
+
+        -- Bachelor of Arts and BA Honours (qualification_id = 8, 21)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (8, 21)
+        AND stream_id IN (5, 6, 7, 8, 9, 142, 143, 144, 145, 146, 147);
+
+        -- Bachelor of Science and BSc Honours (qualification_id = 9, 22)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (9, 22)
+        AND stream_id IN (10, 11, 12, 13, 14, 15, 148, 149, 150, 151, 152);
+
+        -- Bachelor of Commerce and BCom Honours (qualification_id = 10, 23)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (10, 23)
+        AND stream_id IN (16, 17, 18, 153, 154, 155, 156, 157);
+
+        -- BTech/BE (qualification_id = 11, 12)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (11, 12)
+        AND stream_id IN (19, 20, 21, 22, 158, 159);
+
+        -- BAMS (qualification_id = 24)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 24, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 160 AND 165;
+
+        -- BSc Nursing (qualification_id = 25)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 25, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 166 AND 171;
+
+        -- BPT (qualification_id = 26)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 26, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 172 AND 176;
+
+        -- BHMS (qualification_id = 27)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 27, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 177 AND 182;
+
+        -- BMLT (qualification_id = 28)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 28, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 183 AND 187;
+
+        -- BHMCT (qualification_id = 29)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 29, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 188 AND 191;
+
+        -- BTTM (qualification_id = 30)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 30, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 192 AND 195;
+
+        -- B.Voc (qualification_id = 31)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 31, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 196 AND 201;
+
+        -- B.P.Ed (qualification_id = 32)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 32, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 202 AND 205;
+
+        -- B.Ed (qualification_id = 33)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 33, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 206 AND 210;
+
+        -- B.Li.Sc (qualification_id = 34)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 34, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 211 AND 214;
+
+        -- Masters Degrees
+        -- MA (qualification_id = 35)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 35, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (43, 44, 45, 46, 47);
+
+        -- MSc (qualification_id = 36)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 36, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (48, 49, 50, 51, 52);
+
+        -- MTech/ME (qualification_id = 38, 39)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT qualification_id, stream_id
+        FROM qualification CROSS JOIN custom_stream
+        WHERE qualification_id IN (38, 39)
+        AND stream_id IN (54, 59, 60, 61);
+
+        -- MD (qualification_id = 40)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 40, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (62, 63, 64, 65);
+
+        -- MS (qualification_id = 41)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 41, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (66, 67, 68);
+
+        -- Diplomas (qualification_id = 6)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 6, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 85 AND 103;
+
+        -- ITI (qualification_id = 7)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 7, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 104 AND 121;
+
+        -- PhD (qualification_id = 5)
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT 5, stream_id
+        FROM custom_stream
+        WHERE stream_id BETWEEN 122 AND 141;
+ -- BACHELORS
+            INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT 3, stream_id
+                FROM custom_stream
+                WHERE stream_id BETWEEN 217 AND 261;
+--MASTERS
+                INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT 4, stream_id
+                FROM custom_stream
+                WHERE stream_id BETWEEN 262 AND 288;
+
 --        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 2, stream_id
---        FROM custom_stream
---        WHERE stream_id IN (1, 2, 3, 4);
---
---        -- Bachelor of Arts and BA Honours (qualification_id = 8, 21)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT qualification_id, stream_id
---        FROM qualification CROSS JOIN custom_stream
---        WHERE qualification_id IN (8, 21)
---        AND stream_id IN (5, 6, 7, 8, 9, 142, 143, 144, 145, 146, 147);
---
---        -- Bachelor of Science and BSc Honours (qualification_id = 9, 22)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT qualification_id, stream_id
---        FROM qualification CROSS JOIN custom_stream
---        WHERE qualification_id IN (9, 22)
---        AND stream_id IN (10, 11, 12, 13, 14, 15, 148, 149, 150, 151, 152);
---
---        -- Bachelor of Commerce and BCom Honours (qualification_id = 10, 23)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT qualification_id, stream_id
---        FROM qualification CROSS JOIN custom_stream
---        WHERE qualification_id IN (10, 23)
---        AND stream_id IN (16, 17, 18, 153, 154, 155, 156, 157);
---
---        -- BTech/BE (qualification_id = 11, 12)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT qualification_id, stream_id
---        FROM qualification CROSS JOIN custom_stream
---        WHERE qualification_id IN (11, 12)
---        AND stream_id IN (19, 20, 21, 22, 158, 159);
---
---        -- BAMS (qualification_id = 24)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 24, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 160 AND 165;
---
---        -- BSc Nursing (qualification_id = 25)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 25, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 166 AND 171;
---
---        -- BPT (qualification_id = 26)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 26, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 172 AND 176;
---
---        -- BHMS (qualification_id = 27)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 27, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 177 AND 182;
---
---        -- BMLT (qualification_id = 28)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 28, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 183 AND 187;
---
---        -- BHMCT (qualification_id = 29)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 29, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 188 AND 191;
---
---        -- BTTM (qualification_id = 30)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 30, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 192 AND 195;
---
---        -- B.Voc (qualification_id = 31)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 31, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 196 AND 201;
---
---        -- B.P.Ed (qualification_id = 32)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 32, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 202 AND 205;
---
---        -- B.Ed (qualification_id = 33)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 33, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 206 AND 210;
---
---        -- B.Li.Sc (qualification_id = 34)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 34, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 211 AND 214;
---
---        -- Masters Degrees
---        -- MA (qualification_id = 35)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 35, stream_id
---        FROM custom_stream
---        WHERE stream_id IN (43, 44, 45, 46, 47);
---
---        -- MSc (qualification_id = 36)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 36, stream_id
---        FROM custom_stream
---        WHERE stream_id IN (48, 49, 50, 51, 52);
---
---        -- MTech/ME (qualification_id = 38, 39)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT qualification_id, stream_id
---        FROM qualification CROSS JOIN custom_stream
---        WHERE qualification_id IN (38, 39)
---        AND stream_id IN (54, 59, 60, 61);
---
---        -- MD (qualification_id = 40)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 40, stream_id
---        FROM custom_stream
---        WHERE stream_id IN (62, 63, 64, 65);
---
---        -- MS (qualification_id = 41)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 41, stream_id
---        FROM custom_stream
---        WHERE stream_id IN (66, 67, 68);
---
---        -- Diplomas (qualification_id = 6)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 6, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 85 AND 103;
---
---        -- ITI (qualification_id = 7)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 7, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 104 AND 121;
---
---        -- PhD (qualification_id = 5)
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT 5, stream_id
---        FROM custom_stream
---        WHERE stream_id BETWEEN 122 AND 141;
---
-----        INSERT INTO qualification_stream (qualification_id, stream_id)
-----        SELECT q.qualification_id, cs.stream_id
-----        FROM qualification q
-----        CROSS JOIN custom_stream cs
-----        WHERE cs.stream_id IN (215, 216)  -- 215 for 'NA' and 216 for 'Others'
-----        AND q.qualification_id BETWEEN 1 AND 60;
---
---INSERT INTO qualification_stream (qualification_id, stream_id)
 --        SELECT q.qualification_id, cs.stream_id
 --        FROM qualification q
 --        CROSS JOIN custom_stream cs
 --        WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
 --        AND q.qualification_id BETWEEN 1 AND 60;
---
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---                SELECT q.qualification_id, cs.stream_id
---                FROM qualification q
---                CROSS JOIN custom_stream cs
---                WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
---                AND q.qualification_id BETWEEN 3 AND 60;
---    END IF;
---
---      INSERT INTO stream_subject (stream_id, subject_id)
---      SELECT * FROM (VALUES
---          -- Mapping for 10th Stream
---          (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10),
---          (0, 11), (0, 12), (0, 13), (0, 14), (0, 15), (0, 16), (0, 17), (0, 18), (0, 19),
---          (0, 20), (0, 21), (0, 22), (0, 23), (0, 24), (0, 25), (0, 26), (0, 27), (0, 28),
---          (0, 29), (0, 30), (0, 31), (0, 32), (0, 33), (0, 34),
---
---          -- Mapping for 12th Science
---          (1, 4), (1, 6), (1, 7), (1, 8), (1, 26), (1, 33), (1, 20), (1, 34), (1, 35),
---          (1, 36), (1, 37), (1, 38), (1, 12), (1, 39), (1, 40), (1, 41), (1, 52), (1, 1),
---
---          -- Mapping for 12th Arts
---          (2, 4), (2, 12), (2, 38), (2, 9), (2, 42), (2, 10), (2, 43), (2, 5), (2, 17),
---          (2, 44), (2, 45), (2, 20), (2, 26), (2, 33), (2, 34), (2, 35), (2, 36), (2, 41),
---          (2, 46), (2, 47), (2, 48), (2, 49), (2, 50), (2, 51), (2, 52), (2, 53), (2, 1),
---          (2, 37), (2, 13), (2, 39),
---
---          -- Mapping for 12th Commerce
---          (3, 4), (3, 53), (3, 23), (3, 51), (3, 12), (3, 26), (3, 35), (3, 20), (3, 1),
---          (3, 34), (3, 36), (3, 46), (3, 48), (3, 49), (3, 50), (3, 37), (3, 41), (3, 39),
---
-----Mapping for Others Streams
---          (215,1),(215,2),(215,3),(215,4),(215,5),(215,6),(215,7),(215,8),(215,9),(215,10),(215,11),(215,12),(215,13),(215,14),(215,15),
---          (215,16),(215,17),(215,18),(215,19),(215,20),(215,21),(215,22),(215,23),(215,24),(215,25),(215,26),(215,27),(215,28),(215,29),(215,30),(215,31)
---          ,(215,32),(215,33),(215,34),(215,35),(215,36),(215,37),(215,38),(215,39),(215,40),(215,41),(215,42),(215,43),(215,44),(215,45),(215,46)
---          ,(215,47),(215,48),(215,49),(215,50),(215,51),(215,52),(215,53),
---          -- Others with all
---          (0, 54), (1, 54), (2, 54), (3, 54),(215,54)
---
---      ) AS tmp(stream_id, subject_id)
---      WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
---      ON CONFLICT DO NOTHING;
+
+INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT q.qualification_id, cs.stream_id
+        FROM qualification q
+        CROSS JOIN custom_stream cs
+        WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
+        AND q.qualification_id BETWEEN 1 AND 60;
+
+        INSERT INTO qualification_stream (qualification_id, stream_id)
+                SELECT q.qualification_id, cs.stream_id
+                FROM qualification q
+                CROSS JOIN custom_stream cs
+                WHERE cs.stream_id IN (216)  -- 215 for 'NA' and 216 for 'Others'
+                AND q.qualification_id BETWEEN 3 AND 60;
+    END IF;
+
+      INSERT INTO stream_subject (stream_id, subject_id)
+      SELECT * FROM (VALUES
+          -- Mapping for 10th Stream
+          (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10),
+          (0, 11), (0, 12), (0, 13), (0, 14), (0, 15), (0, 16), (0, 17), (0, 18), (0, 19),
+          (0, 20), (0, 21), (0, 22), (0, 23), (0, 24), (0, 25), (0, 26), (0, 27), (0, 28),
+          (0, 29), (0, 30), (0, 31), (0, 32), (0, 33), (0, 34),
+
+          -- Mapping for 12th Science
+          (1, 4), (1, 6), (1, 7), (1, 8), (1, 26), (1, 33), (1, 20), (1, 34), (1, 35),
+          (1, 36), (1, 37), (1, 38), (1, 12), (1, 39), (1, 40), (1, 41), (1, 52), (1, 1),
+
+          -- Mapping for 12th Arts
+          (2, 4), (2, 12), (2, 38), (2, 9), (2, 42), (2, 10), (2, 43), (2, 5), (2, 17),
+          (2, 44), (2, 45), (2, 20), (2, 26), (2, 33), (2, 34), (2, 35), (2, 36), (2, 41),
+          (2, 46), (2, 47), (2, 48), (2, 49), (2, 50), (2, 51), (2, 52), (2, 53), (2, 1),
+          (2, 37), (2, 13), (2, 39),
+
+          -- Mapping for 12th Commerce
+          (3, 4), (3, 53), (3, 23), (3, 51), (3, 12), (3, 26), (3, 35), (3, 20), (3, 1),
+          (3, 34), (3, 36), (3, 46), (3, 48), (3, 49), (3, 50), (3, 37), (3, 41), (3, 39),
+
+--Mapping for Others Streams
+          (215,1),(215,2),(215,3),(215,4),(215,5),(215,6),(215,7),(215,8),(215,9),(215,10),(215,11),(215,12),(215,13),(215,14),(215,15),
+          (215,16),(215,17),(215,18),(215,19),(215,20),(215,21),(215,22),(215,23),(215,24),(215,25),(215,26),(215,27),(215,28),(215,29),(215,30),(215,31)
+          ,(215,32),(215,33),(215,34),(215,35),(215,36),(215,37),(215,38),(215,39),(215,40),(215,41),(215,42),(215,43),(215,44),(215,45),(215,46)
+          ,(215,47),(215,48),(215,49),(215,50),(215,51),(215,52),(215,53),
+          -- Others with all
+          (0, 54), (1, 54), (2, 54), (3, 54),(215,54)
+
+      ) AS tmp(stream_id, subject_id)
+      WHERE NOT EXISTS (SELECT 1 FROM stream_subject)
+      ON CONFLICT DO NOTHING;
 --
 --
 -- IF NOT EXISTS (SELECT 1 FROM typing_text LIMIT 1) THEN
@@ -1984,18 +2069,37 @@ END IF;
 --            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
 --            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
 --            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7),
---            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8);
+--            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8),
+--            (32, 'Ticket_Document', 'Ticket Document', '5MB', '5KB', FALSE, FALSE, FALSE, 30);
 --    END IF;
 --
---    -- Check and insert into file_type_name table
---    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
---        INSERT INTO filetype (file_type_id,file_type_name)
---        VALUES
---            (1, 'PNG'),
---            (2, 'JPG'),
---            (3, 'PDF'),
---            (4, 'JPEG');
---    END IF;
+    -- Check and insert into file_type_name table
+    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
+        INSERT INTO filetype (file_type_id,file_type_name)
+        VALUES
+            (1, 'PNG'),
+            (2, 'JPG'),
+            (3, 'PDF'),
+            (4, 'JPEG'),
+            (5, 'PLAIN'),
+            (6, 'X-MSDOS-PROGRAM'),
+            (7, 'JSON'),
+            (8, 'DOC'),
+            (9, 'DOCX'),
+            (10, 'TXT'),
+            (11, 'RTF'),
+            (12, 'HTML'),
+            (13, 'CSV'),
+            (14, 'XLS'),
+            (15, 'XLSX'),
+            (16, 'GIF'),
+            (17, 'SVG'),
+            (18, 'MP3'),
+            (19, 'MP4'),
+            (20, 'AVI'),
+            (21, 'ZIP'),
+            (22, 'TIFF');
+    END IF;
 --
 --	  IF NOT EXISTS (SELECT 1 FROM document_file_types LIMIT 1) THEN
 --        -- Insert records into document_file_types
@@ -2032,6 +2136,7 @@ END IF;
 --            (29, 1), (29, 2), (29, 4),
 --            (30, 1), (30, 2), (30, 4),
 --            (31, 1), (31, 2), (31, 4);
+--            (32, 1), (32, 2), (32, 4), (32, 3), (32, 8), (32, 9), (32, 10), (32, 11), (32, 12), (32, 13), (32, 14), (32, 15), (32, 16), (32, 17), (32, 18), (32, 19), (32, 20), (32, 21), (32, 22);
 --    END IF;
 --
    IF (SELECT COUNT(*) FROM board_university) = 0 THEN
@@ -2109,6 +2214,14 @@ END IF;
         (35, 'Punjab University', 'Chandigarh', 'PU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',35),
 		(36, 'Jaypee Institute of Information and Technology', 'Noida', 'JIIT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',36);
 	END IF;
+
+	 IF (SELECT COUNT(*) FROM random_image_type) = 0 THEN
+        INSERT INTO random_image_type (random_image_type_id, random_image_type_name)
+        VALUES
+    		(1,'Resized'),
+    		(2,'Pdf'),
+    		(3,'Signature');
+    END IF;
 ----
 --    -- Check and insert into vacancy_distribution_type table
 --    IF NOT EXISTS (SELECT 1 FROM vacancy_distribution_type) THEN

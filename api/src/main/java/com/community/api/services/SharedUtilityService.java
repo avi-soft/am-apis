@@ -3,7 +3,6 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
-import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.CustomerBasicDetailsDto;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
@@ -12,7 +11,6 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
-import com.community.api.utils.DocumentType;
 import com.community.api.utils.ServiceProviderDocument;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.order.domain.Order;
@@ -21,8 +19,6 @@ import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -50,8 +46,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -215,8 +209,8 @@ public class SharedUtilityService {
                 customerDetailsForMobile.put("cartId", cart.getId());
             else
                 customerDetailsForMobile.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForMobile.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
@@ -252,6 +246,8 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("gender", customCustomer.getGender());
             customerDetailsForMobile.put("adharNumber", customCustomer.getAdharNumber());
             customerDetailsForMobile.put("category", customCustomer.getCategory());
+            customerDetailsForMobile.put("has_state_category", customCustomer.getHasStateCategory());
+            customerDetailsForMobile.put("state_category", customCustomer.getStateCategory());
             customerDetailsForMobile.put("subcategory", customCustomer.getSubcategory());
             customerDetailsForMobile.put("domicile", customCustomer.getDomicile());
             customerDetailsForMobile.put("domicileState", customCustomer.getDomicileState());
@@ -300,6 +296,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("numberOfAttempts", customCustomer.getNumberOfAttempts());
             customerDetailsForMobile.put("categoryValidUpto", customCustomer.getCategoryValidUpto());
             customerDetailsForMobile.put("religion", customCustomer.getReligion());
+            customerDetailsForMobile.put("category_state_name", customCustomer.getCategoryStateName());
             customerDetailsForMobile.put("otherReligion", customCustomer.getOtherReligion());
             customerDetailsForMobile.put("belongsToMinority", customCustomer.getBelongsToMinority());
             customerDetailsForMobile.put("secondaryMobileNumber", customCustomer.getSecondaryMobileNumber());
@@ -495,8 +492,9 @@ public class SharedUtilityService {
                 customerDetailsForDesktop.put("cartId", cart.getId());
             else
                 customerDetailsForDesktop.put("cartId", null);
-            if(role.equals(Constant.roleServiceProvider)) {
-                if (customCustomer.getHidePhoneNumber().equals(false)) {
+
+            if (customCustomer.getHidePhoneNumber().equals(true)) {
+                if (role.equals(Constant.roleUser) || role.equals(Constant.roleAdmin) || role.equals((Constant.roleSuperAdmin))) {
                     customerDetailsForDesktop.put("mobileNumber", customCustomer.getMobileNumber());
                 }
             }
@@ -539,6 +537,9 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("gender", customCustomer.getGender());
             customerDetailsForDesktop.put("adharNumber", customCustomer.getAdharNumber());
             customerDetailsForDesktop.put("category", customCustomer.getCategory());
+            customerDetailsForDesktop.put("has_state_category", customCustomer.getHasStateCategory());
+            customerDetailsForDesktop.put("state_category", customCustomer.getStateCategory());
+            customerDetailsForDesktop.put("category_state_name", customCustomer.getCategoryStateName());
             customerDetailsForDesktop.put("subcategory", customCustomer.getSubcategory());
             customerDetailsForDesktop.put("domicile", customCustomer.getDomicile());
             customerDetailsForDesktop.put("domicileState", customCustomer.getDomicileState());
@@ -815,7 +816,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
         serviceProviderDetails.put("latitude", serviceProvider.getLatitude());
         serviceProviderDetails.put("longitude", serviceProvider.getLongitude());
-        serviceProviderDetails.put("service_provider_status", serviceProvider.getTestStatus());
+        serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
+        serviceProviderDetails.put("staff_score", serviceProvider.getStaffScore());
         serviceProviderDetails.put("rank", serviceProvider.getRanking());
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
@@ -837,6 +839,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_assigned",serviceProvider.getTicketAssigned());
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
+        serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
+
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
@@ -850,6 +854,7 @@ public class SharedUtilityService {
         }
         serviceProviderDetails.put("business_geo_location",serviceProvider.getBusiness_geo_location());
         serviceProviderDetails.put("permanent_address_is_same_as_current_address",serviceProvider.getIsSameAsCurrentAddress());
+        serviceProviderDetails.put("work_experience_in",serviceProvider.getWork_experience_in());
 
 
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
@@ -963,6 +968,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
 
                     if (qualification != null) {
                         qualificationInfo.put("qualification_name", qualification.getQualification_name());
@@ -1119,6 +1125,7 @@ public class SharedUtilityService {
                     qualificationInfo.put("other_stream",qualificationDetail.getOther_stream());
                     qualificationInfo.put("other_board_university",qualificationDetail.getOther_board_university());
                     qualificationInfo.put("other_institution",qualificationDetail.getOther_institution());
+                    qualificationInfo.put("institution_address",qualificationDetail.getInstitution_address());
                     qualificationInfo.put("qualification_is_ongoing",qualificationDetail.getQualificationIsOngoing());
 
                     if (qualification != null) {
@@ -1948,6 +1955,7 @@ public class SharedUtilityService {
         }
         return true;
     }
+
 
 
     public String hmacSha256(String data, String secret) throws Exception {

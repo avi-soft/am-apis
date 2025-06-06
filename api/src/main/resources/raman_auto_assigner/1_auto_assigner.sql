@@ -6,6 +6,7 @@ CREATE OR REPLACE PROCEDURE public.auto_assigner_procedure(
 	OUT total_assigned_tickets bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
+
 DECLARE
     available_service_providers BIGINT[];         -- IDs of available SPs
     primary_assigned_tickets BIGINT[];            -- Tickets from primary flow (RBTA + VDTA)
@@ -24,7 +25,7 @@ BEGIN
     RAISE NOTICE 'Available Service Providers: %', available_service_providers;
 
 --     Step 2: Call Primary Ticket Flow (RBTA + VDTA)
---    CALL public.primary_ticket_normal_flow(available_service_providers, primary_assigned_tickets);
+    CALL public.primary_ticket_normal_flow(available_service_providers, primary_assigned_tickets);
 
     RAISE NOTICE 'Primary Ticket Assigned: %', primary_assigned_tickets;
 

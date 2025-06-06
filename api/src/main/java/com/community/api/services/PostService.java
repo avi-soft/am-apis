@@ -2,28 +2,22 @@
 package com.community.api.services;
 import javax.persistence.EntityManager;
 import javax.validation.ConstraintViolationException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.text.SimpleDateFormat;
-import java.util.TimeZone;
 
 import com.community.api.dto.*;
 import com.community.api.entity.*;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import javassist.NotFoundException;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import static com.community.api.services.ProductService.calculateDateRange;
 
 @Service
 public class PostService {
@@ -576,24 +570,22 @@ public class PostService {
                 CategoryDistribution catDist = new CategoryDistribution();
                 catDist.setStateDistribution(stateDistribution);
 
-                CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
-                if (category == null) {
-                    throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
-                }
-                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
-                    throw new IllegalArgumentException("Cannot add running field for Category except OTHERS");
-                else if (catDto.getCategoryId() == 6 &&
-                        (catDto.getCategoryRunningField() == null ||
-                                catDto.getCategoryRunningField().trim().isEmpty())) {
-                    throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
-                }
+
+                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
+                    if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                        throw new IllegalArgumentException("Cannot add running field for Category except OTHERS");
+                    else if (catDto.getCategoryId() == 6 &&
+                            (catDto.getCategoryRunningField() == null ||
+                                    catDto.getCategoryRunningField().trim().isEmpty())) {
+                        throw new IllegalArgumentException("Running field is required when selecting 'Others' for category");
+                    }
+                    catDist.setCategory(category);
                 catDist.setCategoryRunningField(catDto.getCategoryRunningField());
-                catDist.setCategory(category);
-                catDist.setCategoryVacancies(catDto.getCategoryVacancies());
+                catDist.setVacancyCount(catDto.getVacancyCount());
                 catDist.setMaleVacancy(catDto.getMaleVacancy());
                 catDist.setFemaleVacancy(catDto.getFemaleVacancy());
                 catDist.setTotalVacancy(catDto.getTotalVacancy());
-                totalVacancies += catDto.getCategoryVacancies();
+                totalVacancies += catDto.getVacancyCount();
                 catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
                 categoryDistributions.add(catDist);
@@ -743,11 +735,11 @@ public class PostService {
                     throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
                 }
                 catDist.setCategory(category);
-                catDist.setCategoryVacancies(catDto.getCategoryVacancies());
+                catDist.setVacancyCount(catDto.getVacancyCount());
                 catDist.setMaleVacancy(catDto.getMaleVacancy());
                 catDist.setFemaleVacancy(catDto.getFemaleVacancy());
                 catDist.setTotalVacancy(catDto.getTotalVacancy());
-                totalVacancies += catDto.getCategoryVacancies();
+                totalVacancies += catDto.getVacancyCount();
                 catDist.setAdditionalComment(catDto.getAdditionalComment());
                 entityManager.persist(catDist);
                 categoryDistributions.add(catDist);
@@ -954,14 +946,14 @@ public class PostService {
                     catDist.setIsStateLevelCategory(catDto.getIsStateLevelCategory());
 
                     catDist.setStateLevelCategory(catDto.getStateLevelCategory());
-                    CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, 6L);
-                    if (category == null) {
-                        throw new IllegalArgumentException("Category not found with id: " + catDto.getCategoryId());
-                    }
-                    if(category.getReserveCategoryName().equalsIgnoreCase("Others"))
+                    StateCode stateCode= entityManager.find(StateCode.class,catDto.getStateId());
+                    if(stateCode==null)
                     {
-                        catDist.setCategory(category);
+                        throw new IllegalArgumentException("State with id "+ catDto.getStateId()+ " does not exist");
                     }
+                    catDist.setState(stateCode);
+                    catDist.setCategory(null);
+
                 }
                 else {
                     CustomReserveCategory category = entityManager.find(CustomReserveCategory.class, catDto.getCategoryId());
@@ -972,18 +964,21 @@ public class PostService {
                     catDist.setCategory(category);
                 }
                 if(catDto.getIsGenderWise()) {
-                    if(catDto.getMaleVacancy()+catDto.getFemaleVacancy()!=catDto.getCategoryVacancies())
+                    if(catDto.getMaleVacancy()+catDto.getFemaleVacancy()!=catDto.getVacancyCount())
                         throw new IllegalArgumentException("Total vacancy should be equal to sum of male and female in category distribution");
                     catDist.setMaleVacancy(catDto.getMaleVacancy());
                     catDist.setFemaleVacancy(catDto.getFemaleVacancy());
                     catDist.setTotalVacancy(catDist.getTotalVacancy());
                 }
-                if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
-                    throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
-                if(catDto.getCategoryId()==6&&(catDto.getCategoryRunningField()==null||catDto.getCategoryRunningField().trim().isEmpty()))
-                    throw new IllegalArgumentException("Running field required when selecting category : OTHERS");
+                if(catDto.getCategoryId()!=null)
+                {
+                    if(catDto.getCategoryId()!=6&&catDto.getCategoryRunningField()!=null)
+                        throw new IllegalArgumentException("Cannot add running field for category except OTHERS");
+                    if(catDto.getCategoryId()==6&&(catDto.getCategoryRunningField()==null||catDto.getCategoryRunningField().trim().isEmpty()))
+                        throw new IllegalArgumentException("Running field required when selecting category : OTHERS");
+                }
                 catDist.setCategoryRunningField(catDto.getCategoryRunningField());
-                catDist.setCategoryVacancies(catDto.getCategoryVacancies());
+                catDist.setVacancyCount(catDto.getVacancyCount());
 
                 entityManager.persist(catDist);
                 newDistributions.add(catDist);
@@ -992,7 +987,7 @@ public class PostService {
             Long totalCategoryVacancies=0L;
             for(CategoryDistribution categoryDistribution: newDistributions)
             {
-                totalCategoryVacancies+=categoryDistribution.getCategoryVacancies();
+                totalCategoryVacancies+=categoryDistribution.getVacancyCount();
             }
             genderDist.setTotalVacancy(totalCategoryVacancies);
             genderDist.setCategoryDistributions(newDistributions);

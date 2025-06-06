@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Column;
-
 @Getter
 @Setter
 public class CategoryDistributionDto {
@@ -13,11 +11,13 @@ public class CategoryDistributionDto {
     private Long id;
     private Long categoryId;
     private String categoryRunningField;
-    private Integer categoryVacancies;
+    @JsonProperty("categoryVacancies")
+    private Integer vacancyCount;
     private Boolean isStateLevelCategory;
     private String stateLevelCategory;
     private String additionalComment;
     private Boolean isGenderWise;
+    private Integer stateId;
     @JsonProperty("maleVacancy")
     Long maleVacancy;
     @JsonProperty("femaleVacancy")

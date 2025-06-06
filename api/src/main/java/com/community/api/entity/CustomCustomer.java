@@ -4,6 +4,9 @@ package com.community.api.entity;
 import com.community.api.utils.Document;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
@@ -33,6 +36,8 @@ import java.util.List;
 @Entity
 @Table(name = "CUSTOM_CUSTOMER")
 @Inheritance(strategy = InheritanceType.JOINED)
+@JsonIgnoreProperties(ignoreUnknown = true, value = {"hibernateLazyInitializer", "handler"})
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -316,7 +321,7 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "visible_identification_mark_2")
     private String identificationMark2;
 
-    @JsonBackReference("referrer-customer")
+    @JsonIgnore
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
@@ -391,4 +396,11 @@ public class CustomCustomer extends CustomerImpl {
     private Long primaryRef=0L;
     @Column(name = "email_active",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean emailActive=false;
+
+    @Column(name = "has_state_category",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean hasStateCategory=false;
+    @Column(name = "state_category")
+    private String stateCategory;
+    @Column(name = "category_state_name")
+    private String categoryStateName;
 }

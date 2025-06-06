@@ -32,7 +32,7 @@ import java.util.List;
 public class CustomStream {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "stream_id")
     @JsonProperty("stream_id")
     protected Long streamId;
@@ -72,10 +72,10 @@ public class CustomStream {
     private Long sortOrder;
 
     @ManyToMany(mappedBy = "streams")
-    @JsonIgnore
+
     private List<Qualification> qualifications = new ArrayList<>();
 
-    @JsonIgnore
+@JsonIgnore
     @ManyToMany
     @JoinTable(
             name = "stream_subject",

@@ -8,13 +8,16 @@ import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.entity.TicketStateLinkage;
+import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +27,8 @@ import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -35,8 +37,13 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -61,9 +68,13 @@ public class TicketStateService {
     @Autowired
     protected CatalogService catalogService;
     @Autowired
+    protected TicketHistoryService ticketHistoryService;
+    @Autowired
     protected SharedUtilityService sharedUtilityService;
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
+    @Autowired
+    ServiceProviderServiceImpl serviceProviderService;
 
     public List<CustomTicketState> getAllTicketState() throws Exception {
         try {
@@ -103,11 +114,10 @@ public class TicketStateService {
     @Transactional
     public void updateSpTicketAvailibility(CustomServiceProviderTicket ticket, CustomTicketState nextState, Long oldSp, Long newSp) throws Exception {
         try {
-            log.info("HERE {}, {}",oldSp, newSp);
+            log.info("HERE {}, {}", oldSp, newSp);
             if (oldSp != null && newSp != null && !oldSp.equals(newSp)) {
                 ServiceProviderEntity exServiceProvider = entityManager.find(ServiceProviderEntity.class, oldSp);
                 if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-                    log.info("HERHEHREHRHEHR");
                     exServiceProvider.setTicketAssigned(exServiceProvider.getTicketAssigned() - 1);
                 } else if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     exServiceProvider.setTicketPending(exServiceProvider.getTicketPending() - 1);
@@ -115,7 +125,7 @@ public class TicketStateService {
                 entityManager.merge(exServiceProvider);
 
                 ServiceProviderEntity newServiceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
-                if(nextState != null) {
+                if (nextState != null) {
                     if (nextState.getTicketState().equals("TO-DO")) {
                         newServiceProvider.setTicketAssigned(newServiceProvider.getTicketAssigned() + 1);
                     }
@@ -131,11 +141,11 @@ public class TicketStateService {
                 }
 
                 entityManager.merge(newServiceProvider);
-            } else if(newSp != null) {
+            } else if (newSp != null) {
                 ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, newSp);
 
                 // TODO NEEDS TO CHECK THIS @RAMAN
-                if(nextState != null) {
+                if (nextState != null) {
                     if (nextState.getTicketState().equals("TO-DO")) {
                         serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
                     }
@@ -154,7 +164,7 @@ public class TicketStateService {
             }
 
             // Approve and close ticket flow.
-            if(nextState != null) {
+            /*if(nextState != null) {
                 if(nextState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
                     ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
                     serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()-1);
@@ -185,9 +195,9 @@ public class TicketStateService {
                         entityManager.merge(assignee);
                     }
                 }
-            }
+            }*/
 
-        } catch(IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new Exception(illegalArgumentException.getMessage());
         } catch (Exception exception) {
@@ -198,20 +208,24 @@ public class TicketStateService {
     }
 
     @Transactional
-    public CustomServiceProviderTicket updateTicket(CreateTicketDto createTicketDTO, Long ticketId, String authHeader) throws Exception {
+    public CustomServiceProviderTicket updateTicket(CreateTicketDto createTicketDTO, List<MultipartFile> files, Long ticketId, String authHeader) throws Exception {
         try {
+            if (createTicketDTO == null) {
+                log.info("CREATE TICKET DTO IS NULL");
+            }
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
                 throw new IllegalArgumentException("At least one parameter is required to update the ticket");
             }
 
-            if(createTicketDTO.getTicketType() != null) {
+            if (createTicketDTO.getTicketType() != null) {
                 throw new IllegalArgumentException("Ticket type of a ticket cannot be changed");
             }
 
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            String roleNameToken = roleService.getRoleByRoleId(roleId).getRole_name();
+            Role tokenRole = roleService.getRoleByRoleId(roleId);
+            String roleNameToken = tokenRole.getRole_name();
 
             log.info("USER ID{}", tokenUserId);
 
@@ -220,11 +234,16 @@ public class TicketStateService {
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
+            List<Long> previousTicketDocumentIds = new ArrayList<>();
+            for (ServiceProviderDocument serviceProviderDocument : ticket.getServiceProviderDocuments()) {
+                previousTicketDocumentIds.add(serviceProviderDocument.getDocumentId());
+            }
+
             if (ticket == null)
                 throw new NotFoundException("Ticket not found");
 
             // the assignee not allowed to modify the ticket now.
-            if( ticket.getAssignee() != null && ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT)) ){
+            if (ticket.getAssignee() != null && ticket.getAssignee().equals(tokenUserId) && ticket.getAssigneeRole().getRole_id() == roleId && (ticket.getTicketId().equals(Constant.TICKET_STATE_IN_REVIEW) || ticket.getTicketId().equals(Constant.TICKET_STATE_CLOSE) || ticket.getTicketId().equals(Constant.TICKET_STATE_SUPPORT))) {
                 throw new NotAuthorizedException("Forbidden Access");
             }
 
@@ -248,17 +267,34 @@ public class TicketStateService {
                 ticketState = getTicketStateByTicketId(createTicketDTO.getTicketState());
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
 
-                if(ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
+                if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().isEmpty() || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is required");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                }
+                // Commented to allow super admin and admin to do what ever they want within the flow.
+                /*if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
+                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
+                        throw new IllegalArgumentException("Forbidden Access");
+                    }
+                }*/
+                if (ticket.getTicketState().equals(ticketState) && ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the same state and status");
                 }
+
+                /*// Increment pending ticket and decrement assigned ticket
+                if(ticket.getTicketId().equals(Constant.TICKET_STATE_TO_DO) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS)) {
+                    ServiceProviderEntity assignee =
+                }*/
 
                 if (ticketState == null)
                     throw new NotFoundException("Ticket state not found");
 
-                if(ticketStatus == null)
+                if (ticketStatus == null)
                     throw new NotFoundException("Ticket status not found");
 
-                ticketStateService.verifyState(ticket.getTicketType(), ticket.getTicketState(), ticketState);
+                ticketStateService.verifyState(roleService.getRoleByRoleId(roleId), ticket.getTicketType(), ticket.getTicketState(), ticketState);
                 ticketStatusService.verifyStatus(ticketState, ticketStatus, ticket.getTicketType());
 
                 // TODO Understand canTransitTicket with more clarity @Raman
@@ -273,54 +309,83 @@ public class TicketStateService {
                 }
 
                 // Automatically handles the creation of review ticket when ticket state changed to IN-REVIEW.
-                if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
-                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
-                        if(!ticket.getIsReviewRequired()) {
+                if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                    if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                        if (!ticket.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");
                         }
-                    } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
-                        CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
-                        if(!customProduct.getIsReviewRequired()) {
+                    } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                        CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId());
+                        if (!customProduct.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot create review ticket for this as review required for this is false.");
                         }
                     }
-                    serviceProviderTicketService.createReviewTicket(ticket);
+                    serviceProviderTicketService.createReviewTicket(ticket, createTicketDTO, files, tokenUserId, tokenRole);
 
-                } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
-                    if(createTicketDTO.getIsComplete() == null || createTicketDTO.getWorkQualityId() == null) {
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    if (createTicketDTO.getIsComplete() == null || createTicketDTO.getWorkQualityId() == null) {
                         throw new IllegalArgumentException("Is Complete and Work Quality is required to close a review ticket");
                     }
                     CustomWorkQuality workQuality = workQualityService.getWorkQualityByWorkQualityId(createTicketDTO.getWorkQualityId());
-                    if(workQuality == null) {
+                    if (workQuality == null) {
                         throw new NotFoundException("Work Quality Not found with this Id");
+                    }
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close and in-review");
                     }
 
                     CustomServiceProviderTicket parentTicket = ticket.getParentTicket();
-                    if(createTicketDTO.getIsComplete()) {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(5L));
+                    parentTicket.setComment(createTicketDTO.getComment().trim());
+                    if (createTicketDTO.getIsComplete()) {
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(15L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
+
+                        // Change order state in case of ticket completes.
+                        CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
+                        orderState.setOrderStateId(7);
+                        entityManager.merge(orderState);
+
                     } else {
-                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(2L));
+                        parentTicket.setTicketState(ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_IN_PROGRESS));
                         parentTicket.setTicketStatus(ticketStatusService.getTicketStatusByTicketStatusId(16L));
                         parentTicket.setIsComplete(createTicketDTO.getIsComplete());
                         parentTicket.setWorkQuality(workQuality);
                     }
 
+                    if (files != null) {
+                        Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, parentTicket, tokenUserId, tokenRole);
+                        parentTicket.setServiceProviderDocuments(serviceProviderDocument);
+                    }
                     entityManager.merge(parentTicket);
-                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
-                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
-                        if(ticket.getIsReviewRequired()) {
+
+                } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                    if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
+                        if (ticket.getIsReviewRequired()) {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
-                    } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
-                        CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId() );
-                        if(customProduct.getIsReviewRequired()) {
+                    } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                        CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId());
+                        if (customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
                             throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
                         }
                     }
-                } else if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Comment is mandatory for a ticket to close, in-review and support.");
+                    }
+                    ticket.setComment(createTicketDTO.getComment().trim());
+                } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
                     List<Long> rejectedList = ticket.getRejectedBy();
                     rejectedList.add(ticket.getAssignee());
                     ticket.setRejectedBy(rejectedList);
@@ -329,16 +394,21 @@ public class TicketStateService {
                     ticket.setAssigneeRole(null);
                 }
 
+                if (!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_IN_PROGRESS)) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && files != null) {
+                    throw new IllegalArgumentException("Files can only be uploaded when state changes to Review, Close and Support or From Support.");
+                }
+
                 ticket.setTicketStatus(ticketStatus);
                 ticket.setTicketState(ticketState);
 
-            } else if(createTicketDTO.getTicketStatus() != null) {
+            }
+            else if (createTicketDTO.getTicketStatus() != null) {
 
                 ticketStatus = ticketStatusService.getTicketStatusByTicketStatusId(createTicketDTO.getTicketStatus());
                 if (ticketStatus == null)
                     throw new NotFoundException("Ticket Status not found");
 
-                if(ticket.getTicketStatus().equals(ticketStatus)) {
+                if (ticket.getTicketStatus().equals(ticketStatus)) {
                     throw new IllegalArgumentException("Already in the status");
                 }
 
@@ -354,7 +424,7 @@ public class TicketStateService {
 
                 ticket.setTicketStatus(ticketStatus);
 
-            } else if(createTicketDTO.getTicketState() != null) {
+            } else if (createTicketDTO.getTicketState() != null) {
                 throw new IllegalArgumentException("Ticket State cannot be changed without status.");
             }
 
@@ -370,35 +440,45 @@ public class TicketStateService {
                         if (serviceProvider == null)
                             throw new NotFoundException("Assignee not found");
                     } else if (role.getRole_name().equals(Constant.roleAdmin)) {
-                        CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, createTicketDTO.getAssignee());
+                        ServiceProviderEntity customAdmin = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
                         if (customAdmin == null)
                             throw new NotFoundException("Assignee not found");
                     }
 
-                    if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
-                        throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    if(createTicketDTO.getTargetCompletionDate() == null) {
+                        throw new IllegalArgumentException("target completion date is mandatory when changing the assignee");
                     }
 
-                    if(ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                    if (ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    } else if (ticket.getAssignee() == null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to parent assignee");
+                    }
+
+                    if (ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
                         throw new IllegalArgumentException("Already is the assignee");
                     }
 
-                    if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
-                        if (ticketState == null) {
-                            throw new IllegalArgumentException("Cannot change the assignee from return state without passing the state");
+                    if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
+                        } else {
+                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
+                            ticket.setTicketState(ticketState);
                         }
                     }
 
-                    if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                    if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
                         throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
                     }
 
                     List<Long> rejectedBy = ticket.getRejectedBy();
-                    for(Long rejectedUserId : rejectedBy) {
-                        if(rejectedUserId.equals(createTicketDTO.getAssignee())) {
+                    for (Long rejectedUserId : rejectedBy) {
+                        if (rejectedUserId.equals(createTicketDTO.getAssignee())) {
                             throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
                         }
                     }
+//                    ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -414,15 +494,17 @@ public class TicketStateService {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == -1)
                     throw new IllegalArgumentException("Invalid Date-Time");
 
-                Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
-                if(!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
-                    throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
+                    if (!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+                        throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
+                    }
                 }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
 
             // As only primary ticket will be linked to the order.
-            if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 Order order = orderService.findOrderById(ticket.getOrder().getId());
                 order.getOrderAttributes().get("product_id");
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
@@ -442,13 +524,81 @@ public class TicketStateService {
             Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
             ticket.setModifiedDate(date);
             ticket.setModifierId(tokenUserId);
-            ticket.setModifierRole(roleService.getRoleByRoleId(roleId));
+            ticket.setModifierRole(tokenRole);
 
-            if(oldAssigneeId != null || newAssigneeId != null) {
+            if (oldAssigneeId != null || newAssigneeId != null) {
                 updateSpTicketAvailibility(ticket, ticketState, oldAssigneeId, newAssigneeId);
             }
+            if (newAssigneeId != null) {
+                ticket.setAssignee(newAssigneeId);
+            }
+            ticket = entityManager.merge(ticket);
 
-            return entityManager.merge(ticket);
+            log.info("HERE file size is: {}", files);
+            // If there exists some files then upload them as well.
+            if (files != null) {
+
+                log.info("INSIDE FILES IS NOT EMPTY");
+                Set<ServiceProviderDocument> serviceProviderDocument = updateTicketDocument(files, ticket, tokenUserId, tokenRole);
+                ticket.setServiceProviderDocuments(serviceProviderDocument);
+                entityManager.merge(ticket);
+
+                // get the latest entry from the ticket history table.
+                CustomTicketHistory ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId()).get(0);
+
+                log.info("old ticket file size is: {}", previousTicketDocumentIds.size());
+                log.info("ticket history is: {}", ticketHistory.getTicketHistoryId());
+
+                Set<ServiceProviderDocument> clonedDocuments = new HashSet<>();
+                for (Long previousDocumentId : previousTicketDocumentIds) {
+                    ServiceProviderDocument oldDocument = entityManager.find(ServiceProviderDocument.class, previousDocumentId);
+                    oldDocument.setTicketHistory(ticketHistory);
+                    oldDocument.setServiceProviderTicket(null);
+                    clonedDocuments.add(oldDocument);
+                    entityManager.persist(oldDocument); // or merge if needed
+                }
+                ticketHistory.setServiceProviderDocuments(clonedDocuments);
+                entityManager.merge(ticketHistory);
+            }
+            return ticket;
+
+        } catch (PersistenceException persistenceException) {
+            exceptionHandlingService.handleException(persistenceException);
+            throw new PersistenceException("Cannot find valid result : " + persistenceException.getMessage());
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (NotFoundException notFoundException) {
+            exceptionHandlingService.handleException(notFoundException);
+            throw new NotFoundException(notFoundException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Error updating ticket :" + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public Set<ServiceProviderDocument> updateTicketDocument(List<MultipartFile> files, CustomServiceProviderTicket ticket, Long tokenUserId, Role role) throws Exception {
+        try {
+
+            List<Integer> fileTypes = new ArrayList<>();
+            fileTypes.add(Constant.DOCUMENT_TYPE_TICKET_DOCUMENT_ID);
+            // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
+            Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
+            for (int i = 0; i < files.size(); i++) {
+                Integer fileTypeId = fileTypes.get(0); // here fileType id meaning documentTypeId
+                MultipartFile file = files.get(i);
+                groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
+            }
+            log.info("group document size is: {}", groupedFiles.size());
+            log.info("group document files size is: {}", groupedFiles.get(32).size());
+
+            // Keep track of documents to be saved
+            Set<ServiceProviderDocument> serviceProviderDocumentToSave = new HashSet<>();
+            Map<String, Object> responseData = serviceProviderService.updateServiceProviderTicketDocument(groupedFiles, tokenUserId, null, null, null, null, role.getRole_name(), null, ticket, serviceProviderDocumentToSave);
+            log.info("FILES DATA: {}", responseData);
+
+            return serviceProviderDocumentToSave;
 
         } catch (PersistenceException persistenceException) {
             log.info("Inside persistence");
@@ -469,13 +619,14 @@ public class TicketStateService {
         }
     }
 
+
     public Boolean canTransitTicket(CustomServiceProviderTicket customServiceProviderTicket, Long ticketStateId, String roleName, Long customTicketStatus) throws Exception {
         try {
 
             CustomTicketState nextState = getTicketStateByTicketId(ticketStateId);
             CustomTicketStatus status = ticketStatusService.getTicketStatusByTicketStatusId(customTicketStatus);
 
-            if(customServiceProviderTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET) ) {
+            if (customServiceProviderTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 Long productId = Long.parseLong(customServiceProviderTicket.getOrder().getOrderItems().get(0).getOrderItemAttributes().get("productId").getValue());
                 log.info("product id:{}", productId);
 
@@ -491,7 +642,7 @@ public class TicketStateService {
                 }
             }
 
-            if(roleName.equals(Constant.roleServiceProvider)) {
+            if (roleName.equals(Constant.roleServiceProvider)) {
                 ticketStatusService.verifyStatus(nextState, status, customServiceProviderTicket.getTicketType());
             }
 
@@ -526,29 +677,37 @@ public class TicketStateService {
         }
     }
 
-    public TicketStateLinkage verifyState(CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
+    public TicketStateLinkage verifyState(Role role, CustomTicketType ticketType, CustomTicketState ticketStateFrom, CustomTicketState ticketStateTo) throws Exception {
         try {
-            if(ticketType == null || ticketStateFrom == null || ticketStateTo == null) {
+            if (ticketType == null || ticketStateFrom == null || ticketStateTo == null) {
                 throw new IllegalArgumentException("Ticket Type, Ticket State From and Ticket State To cannot be NULL");
             }
 
             Long ticketTypeId = ticketType.getTicketTypeId();
             Long ticketStateFromId = ticketStateFrom.getTicketStateId();
             Long ticketStateToId = ticketStateTo.getTicketStateId();
-
+            Integer roleId = role.getRole_id();
+            List<Integer> roleIds = new ArrayList<>();
+            if (roleId.equals(2) || roleId.equals(1)) {
+                roleIds.add(2);
+                roleIds.add(4);
+            } else {
+                roleIds.add(4);
+            }
             Query query = entityManager.createQuery(Constant.GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET, TicketStateLinkage.class);
             query.setParameter("ticketTypeId", ticketTypeId);
             query.setParameter("ticketStateIdFrom", ticketStateFromId);
             query.setParameter("ticketStateIdTo", ticketStateToId);
+            query.setParameter("roleId", roleIds);
 
             List<TicketStateLinkage> ticketStateLinkageList = query.getResultList();
-            if(ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {
+            if (ticketStateLinkageList == null || ticketStateLinkageList.isEmpty()) {
                 throw new IllegalArgumentException("Linkage not Found between type and states.");
             }
 
             return ticketStateLinkageList.get(0);
 
-        } catch(IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {

@@ -1,10 +1,7 @@
 package com.community.api.component;
 
-import com.community.api.annotation.Authorize;
 import com.community.api.entity.CustomOrderState;
-import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -13,25 +10,34 @@ public class Constant {
     public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
-    public static final long MAX_FILE_SIZE = 1 * 1024 * 1024;
-    public static final long MIN_RESIZED_IMAGE_SIZE = 500 * 1024;
-    public static final long MAX_SIGNATURE_IMAGE_SIZE= 1 * 1024 * 1024;
-    public static final long MIN_SIGNATURE_IMAGE_SIZE= 300 * 1024;
-    public static final long MAX_PDF_SIZE =  1 * 1024 * 1024;
-    public static final long MIN_PDF_SIZE = 500 * 1024;
+    public static final long MAX_FILE_SIZE = 100* 1024;
+    public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
+    public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 500 * 1024;
+    public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;
+    public static final long RANDOM_PDF_MIN_FILE_SIZE = 500 * 1024;
+    public static final long RANDOM_SIGN_MAX_FILE_SIZE = 350 * 1024;
+    public static final long RANDOM_SIGN_MIN_FILE_SIZE = 300 * 1024;
+    public static final long MIN_RESIZED_IMAGE_SIZE = 50 * 1024;
+    public static final long MAX_SIGNATURE_IMAGE_SIZE= 50 * 1024;
+    public static final long MIN_SIGNATURE_IMAGE_SIZE= 30 * 1024;
+    public static final long MAX_PDF_SIZE =  300 * 1024;
+    public static final long MIN_PDF_SIZE = 100 * 1024;
     public static String COUNTRY_CODE = "+91";
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
     public static String ID_QUERY = "SELECT c FROM CustomCustomer c WHERE c.customer_id = :customer_id";
-    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt ORDER BY sort_order ASC";
+    public static final String FIND_ALL_QUALIFICATIONS_QUERY = "SELECT dt FROM Qualification dt where dt.archived =:archived ORDER BY dt.sort_order ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_STATUS_QUERY= "SELECT q FROM ServiceProviderTestStatus q";
-    public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY= "SELECT q FROM BoardUniversity q ORDER BY sortOrder ASC";
-    public static final String FIND_ALL_INSTITUTION_QUERY= "SELECT q FROM Institution q ORDER BY sortOrder ASC";
+    public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY = "SELECT q FROM BoardUniversity q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
+
+    public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
+    public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
     public static String PHONE_QUERY_ADMIN="SELECT c FROM CustomAdmin c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String USERNAME_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.user_name = :username";
     public static String USERNAME_QUERY_CUSTOM_ADMIN = "SELECT c FROM CustomAdmin c WHERE c.user_name = :username";
@@ -42,13 +48,17 @@ public class Constant {
     public static final int INITIAL_STATUS = 1;
     public static final Long INITIAL_TEST_STATUS = 1L;
     public static final Long TEST_COMPLETED_STATUS = 2L;
-    public static final Long APPROVED_TEST = 3L;
+    public static final Long APPROVED_SP = 3L;
+    public static final Long REJECTED_SP = 4L;
+    public static final Long SUSPENDED_SP = 5L;
 
     public static String STATE_CODE_QUERY = "SELECT s FROM StateCode s WHERE s.state_name = :state_name";
+    public static final String APPLIED_FORM_QUERY = "SELECT DISTINCT o.order_id FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.customer_id = :customerId AND o.tax_override IS NULL AND os.order_state_id NOT IN (5, 999)";
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
-    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code";
+    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d ";
+    public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
@@ -77,7 +87,7 @@ public class Constant {
     public static String SOME_EXCEPTION_OCCURRED = "Some exception occurred";
     public static String NUMBER_FORMAT_EXCEPTION = "Number format exception";
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
-    public static String GET_STATES_LIST="Select s from StateCode s";
+    public static String GET_STATES_LIST="Select s from StateCode s where archived= :archived";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
@@ -89,7 +99,7 @@ public class Constant {
     public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
-    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category ORDER BY sort_order ASC";
+    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category where archived =:archive ORDER BY sort_order ASC";
     public static String GET_COUNT_OF_JOB_ROLE = "SELECT COUNT(c) FROM CustomJobGroup c";
     public static String GET_ALL_JOB_GROUP = "SELECT s FROM CustomJobGroup s";
     public static String GET_APPLICATION_SCOPE_BY_ID = "SELECT c FROM CustomApplicationScope c WHERE c.applicationScopeId = :applicationScopeId";
@@ -149,8 +159,9 @@ public class Constant {
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
     public static final String GET_STATE_BY_STATE_ID = "SELECT c FROM StateCode c WHERE c.state_id = :stateId";
     public static final String GET_STATE_BY_STATE_NAME = "SELECT c FROM StateCode c WHERE c.state_name = :state";
-
-    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c";
+    public static final String GET_DISTRICT_BY_DISTRICT_NAME = "SELECT c FROM Districts c WHERE c.district_name = :district AND c.state_code = :state";
+    public static final String GET_STATE_BY_STATE_CODE = "SELECT c FROM StateCode c WHERE c.state_code = :code";
+    public static final String GET_ALL_GENDER = "SELECT c FROM CustomGender c where archived =:archived";
     public static final String GET_GENDER_BY_GENDER_ID = "SELECT c FROM CustomGender c WHERE c.genderId = :genderId";
     public static final String GET_GENDER_BY_GENDER_NAME = "SELECT c FROM CustomGender c WHERE c.genderName = :genderName";
     public static final Double MAX_HEIGHT = 300d;
@@ -242,7 +253,7 @@ public class Constant {
 
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
-    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId";
+    public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY modified_date DESC";
     public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId Order by division_id ASC";
     public static final String GET_ALL_ZONES="SELECT z FROM Zone z";
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
@@ -263,7 +274,7 @@ public class Constant {
     public static final Integer SUPER_ADMIN_PRIVILEGES=4;
 
     public static final String GET_ORDER_TICKET_LINKAGE_BY_TICKET_STATE_AND_TICKET_STATUS = "SELECT c FROM OrderTicketLinkage c WHERE c.ticketStateId = :ticketStateId AND c.ticketStatusId = :ticketStatusId AND c.ticketTypeId = :ticketTypeId";
-    public static final String GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET = "SELECT t FROM TicketStateLinkage t WHERE t.ticketStateIdFrom = :ticketStateIdFrom AND t.ticketStateIdTo = :ticketStateIdTo AND t.ticketTypeId = :ticketTypeId";
+    public static final String GET_TICKET_STATE_LINKAGE_BY_TICKET_TYPE_AND_TICKET_FROM_AND_TICKET = "SELECT t FROM TicketStateLinkage t WHERE t.ticketStateIdFrom = :ticketStateIdFrom AND t.ticketStateIdTo = :ticketStateIdTo AND t.ticketTypeId = :ticketTypeId AND t.roleId IN (:roleId)";
 
     public static final String GET_ALL_WORK_QUALITY = "SELECT c FROM CustomWorkQuality c";
     public static final String GET_TICKET_TYPE_BY_WORK_QUALITY_ID = "SELECT c FROM CustomWorkQuality c WHERE c.workQualityId = :workQualityId";
@@ -272,6 +283,204 @@ public class Constant {
     public static final Long TICKET_TYPE_ID_OF_REVIEW_TICKET = 2L;
     public static final Long TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET = 3L;
 
+    public static final Integer DOCUMENT_TYPE_OTHER_ID = 13;
+    public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
+    public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
+    public static final Integer DOCUMENT_TYPE_TICKET_DOCUMENT_ID = 32;
+    public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
+
+    public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_CUSTOMER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND d.name IS NOT NULL ";
+
+    public static final String GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND (:otherDocument IS NULL OR LOWER(d.otherDocument) = LOWER(:otherDocument)) AND d.name = :documentName AND d.name IS NOT NULL";
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.name IS NOT NULL";
+
+    public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID_AND_TICKET = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.serviceProviderTicket = :serviceProviderTicket AND d.name IS NOT NULL";
 
 
+    //add constants above this query//*******************************************************************************
+    public static  final String recosQuery =
+            "WITH overlappings AS (" +
+                    "    SELECT qualification_id " +
+                    "    FROM qualification " +
+                    "    WHERE qualification_id IN (:qualificationIds) " +
+                    "), " +
+                    "customer_qualifications AS (" +
+                    "    SELECT " +
+                    "        qd.qualification_id, " +
+                    "        qd.cumulative_percentage_value, " +
+                    "        qd.grade_value, " +
+                    "        qd.division_value, " +
+                    "        qd.is_division, " +
+                    "        qd.is_grade " +
+                    "    FROM qualification_details qd " +
+                    "    WHERE qd.custom_customer_id = :customerId " +
+                    "), " +
+                    "products_with_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN post_details post ON post.product_id = p.product_id " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    LEFT JOIN custom_product_reserve_category_born_before_after_reference rf " +
+                    "        ON post.postid = rf.post_id " +
+                    "    LEFT JOIN qualification_eligibility qf " +
+                    "        ON qf.post_id = post.postid " +
+                    "    LEFT JOIN qualification_eligibility_qualifications qd " +
+                    "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
+                    "    LEFT JOIN customer_qualifications cq " +
+                    "        ON qd.qualification_id = cq.qualification_id " +
+                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND (" +
+                    "        (qd.qualification_id IS NULL) " +
+                    "        OR (qd.qualification_id IN (:qualificationIds)) " +
+                    "        OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.gender_id IS NULL OR rf.gender_id IN (:genderId, 4)) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (rf.minimum_age IS NULL AND rf.maximum_age IS NULL) " +
+                    "        OR (:age BETWEEN rf.minimum_age AND rf.maximum_age) " +
+                    "    ) " +
+                    "    AND (" +
+                    "        (qf.is_appearing = true) " +
+                    "        OR (qf.percentage IS NULL AND qf.cgpa IS NULL) " +
+                    "        OR (" +
+                    "            qf.is_percentage = true AND " +
+                    "            qf.percentage IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.percentage) " +
+                    "        ) " +
+                    "        OR (" +
+                    "            qf.is_percentage = false AND " +
+                    "            qf.cgpa IS NOT NULL AND " +
+                    "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.cgpa) " +
+                    "        ) " +
+                    "    ) " +
+                    "), " +
+                    "products_without_requirements AS (" +
+                    "    SELECT p.product_id " +
+                    "    FROM custom_product p " +
+                    "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+                    "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+                    "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+                    "        ON p.product_id = fee.product_id " +
+                    "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    AND p.soft_delete = 'N' " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN custom_product_reserve_category_born_before_after_reference rf ON pd.postid = rf.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    "    AND NOT EXISTS (" +
+                    "        SELECT 1 FROM post_details pd " +
+                    "        JOIN qualification_eligibility qe ON pd.postid = qe.post_id " +
+                    "        WHERE pd.product_id = p.product_id " +
+                    "    ) " +
+                    ") " +
+                    "SELECT DISTINCT product_id " +
+                    "FROM (" +
+                    "    SELECT product_id FROM products_with_requirements " +
+                    "    UNION ALL " +
+                    "    SELECT product_id FROM products_without_requirements " +
+                    ") combined_products " +
+                    "ORDER BY product_id DESC " +
+                    "LIMIT :limit OFFSET :offset";
+
+    public static final String recosCount=// Query to get count of distinct product IDs
+            "WITH overlappings AS (" +
+            "    SELECT qualification_id " +
+            "    FROM qualification " +
+            "    WHERE qualification_id IN (:qualificationIds) " +
+            "), " +
+            "customer_qualifications AS (" +
+            "    SELECT " +
+            "        qd.qualification_id, " +
+            "        qd.cumulative_percentage_value, " +
+            "        qd.grade_value, " +
+            "        qd.division_value, " +
+            "        qd.is_division, " +
+            "        qd.is_grade " +
+            "    FROM qualification_details qd " +
+            "    WHERE qd.custom_customer_id = :customerId " +
+            "), " +
+            "products_with_requirements AS (" +
+            "    SELECT p.product_id " +
+            "    FROM custom_product p " +
+            "    JOIN post_details post ON post.product_id = p.product_id " +
+            "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+            "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+            "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+            "        ON p.product_id = fee.product_id " +
+            "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+            "    LEFT JOIN custom_product_reserve_category_born_before_after_reference rf " +
+            "        ON post.postid = rf.post_id " +
+            "    LEFT JOIN qualification_eligibility qf " +
+            "        ON qf.post_id = post.postid " +
+            "    LEFT JOIN qualification_eligibility_qualifications qd " +
+            "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
+            "    LEFT JOIN customer_qualifications cq " +
+            "        ON qd.qualification_id = cq.qualification_id " +
+            "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+            "    AND p.soft_delete = 'N' " +
+            "    AND (" +
+            "        (qd.qualification_id IS NULL) " +
+            "        OR (qd.qualification_id IN (:qualificationIds)) " +
+            "        OR (qd.qualification_id IN (SELECT qualification_id FROM overlappings)) " +
+            "    ) " +
+            "    AND (" +
+            "        (rf.gender_id IS NULL OR rf.gender_id IN (:genderId, 4)) " +
+            "    ) " +
+            "    AND (" +
+            "        (rf.minimum_age IS NULL AND rf.maximum_age IS NULL) " +
+            "        OR (:age BETWEEN rf.minimum_age AND rf.maximum_age) " +
+            "    ) " +
+            "    AND (" +
+            "        (qf.is_appearing = true) " +
+            "        OR (qf.percentage IS NULL AND qf.cgpa IS NULL) " +
+            "        OR (" +
+            "            qf.is_percentage = true AND " +
+            "            qf.percentage IS NOT NULL AND " +
+            "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.percentage) " +
+            "        ) " +
+            "        OR (" +
+            "            qf.is_percentage = false AND " +
+            "            qf.cgpa IS NOT NULL AND " +
+            "            (cq.cumulative_percentage_value IS NOT NULL AND cq.cumulative_percentage_value >= qf.cgpa) " +
+            "        ) " +
+            "    ) " +
+            "), " +
+            "products_without_requirements AS (" +
+            "    SELECT p.product_id " +
+            "    FROM custom_product p " +
+            "    JOIN blc_product bp ON bp.product_id = p.product_id " +
+            "    JOIN blc_sku sku ON sku.sku_id = bp.default_sku_id " +
+            "    JOIN custom_product_reserve_category_fee_post_reference fee " +
+            "        ON p.product_id = fee.product_id " +
+            "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
+            "    WHERE sku.active_end_date >= CURRENT_DATE " +
+            "    AND p.soft_delete = 'N' " +
+            "    AND NOT EXISTS (" +
+            "        SELECT 1 FROM post_details pd " +
+            "        JOIN custom_product_reserve_category_born_before_after_reference rf ON pd.postid = rf.post_id " +
+            "        WHERE pd.product_id = p.product_id " +
+            "    ) " +
+            "    AND NOT EXISTS (" +
+            "        SELECT 1 FROM post_details pd " +
+            "        JOIN qualification_eligibility qe ON pd.postid = qe.post_id " +
+            "        WHERE pd.product_id = p.product_id " +
+            "    ) " +
+            ") " +
+            "SELECT COUNT(DISTINCT product_id) " +
+            "FROM (" +
+            "    SELECT product_id FROM products_with_requirements " +
+            "    UNION ALL " +
+            "    SELECT product_id FROM products_without_requirements " +
+            ") combined_products";
+    //add constants above this query//*******************************************************************************
 }
