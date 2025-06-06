@@ -271,7 +271,6 @@ public class CustomCustomerService {
 
     @Transactional
     public Map<String, Object> updateCustomerDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes, HashSet<Document> documentsToSave) throws Exception {
-        try {
 
             String dateFormat = "yyyy-MM-dd";
             MultipartFile processedFile = null;
@@ -597,16 +596,7 @@ public class CustomCustomerService {
             log.info("Deleted Documents logs: {}", deletedDocumentMessages);
             responseData.put("uploadedDocuments", filteredDocuments);
             return responseData;
-        } catch (NoResultException noResultException) {
-            exceptionHandlingService.handleException(noResultException);
-            throw new NoResultException("No record found: " + noResultException.getMessage());
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
-        }
+
     }
 
     public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString) throws Exception {
