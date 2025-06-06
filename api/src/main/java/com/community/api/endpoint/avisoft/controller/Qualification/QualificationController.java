@@ -100,6 +100,7 @@ public class QualificationController {
             return ResponseService.generateErrorResponse("Something went wrong "+e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
+    @Transactional
     @PutMapping("/{qualificationId}/manage")
     public ResponseEntity<?> manage(@PathVariable Integer qualificationId,@RequestParam(required = false,defaultValue = "BOOLEAN DEFAULT FALSE") Boolean archive) throws Exception {
         try
@@ -131,7 +132,7 @@ public class QualificationController {
         }
         catch (Exception e)
         {
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Something went wrong"+e,HttpStatus.BAD_REQUEST);
         }
     }
 }
