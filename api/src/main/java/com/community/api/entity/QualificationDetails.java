@@ -115,8 +115,8 @@ public class QualificationDetails {
     @Column(name = "cumulative_percentage_value" )
     private Double cumulative_percentage_value;
 
-    @Column(name = "cumulative_cgpa_value" )
-    private Double cumulative_cgpa_value;
+    @Column(name = "cumulative_cgpa_value" ,columnDefinition = "DOUBLE DEFAULT 0.0")
+    private Double cumulative_cgpa_value= 0.0;
 
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
