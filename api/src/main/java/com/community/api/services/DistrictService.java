@@ -154,8 +154,8 @@ public class DistrictService {
                 throw new IllegalArgumentException("State name is required");
             if(stateCode.getState_code()==null)
                 throw new IllegalArgumentException("State code is required");
-            if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
-                throw new IllegalArgumentException("State name should contain only alphabets");
+        /*    if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
+                throw new IllegalArgumentException("State name should contain only alphabets");*/
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
                 throw new IllegalArgumentException("State code should contain only alphabets");
             if(stateCode.getArchived()!=null)
@@ -191,8 +191,8 @@ public class DistrictService {
             if(district.getDistrict_name()==null)
                 throw new IllegalArgumentException("District name is required");
 
-            if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
-                throw new IllegalArgumentException("District name should contain only alphabets");
+            /*if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                throw new IllegalArgumentException("District name should contain only alphabets");*/
             if (!sharedUtilityService.isAlphabetic(district.getState_code()))
                 throw new IllegalArgumentException("District code should contain only alphabets");
             if(district.getArchived()!=null)
@@ -223,8 +223,8 @@ public class DistrictService {
             stateCodes = query.getResultList();
             if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=state.getState_id())
                 throw new IllegalArgumentException("State with this state code already exists");
-            if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
-                throw new IllegalArgumentException("State name should contain only alphabets");
+           /* if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
+                throw new IllegalArgumentException("State name should contain only alphabets");*/
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
                 throw new IllegalArgumentException("State code should contain only alphabets");
             if(stateCode.getArchived()!=null)
@@ -254,8 +254,8 @@ public class DistrictService {
             List<Districts> districts = query.getResultList();
             if(!districts.isEmpty()&&districtToEdit.getDistrict_id()!=districts.get(0).getDistrict_id())
                 throw new IllegalArgumentException("District already exists in state "+districts.get(0).getDistrict_name());
-            if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
-                throw new IllegalArgumentException("District name should contain only alphabets");
+           /* if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                throw new IllegalArgumentException("District name should contain only alphabets");*/
             if (!sharedUtilityService.isAlphabetic(district.getState_code()))
                 throw new IllegalArgumentException("State code should contain only alphabets");
             if(district.getArchived()!=null)
