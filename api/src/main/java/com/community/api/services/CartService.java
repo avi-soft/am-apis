@@ -534,7 +534,11 @@ public class CartService {
                 }
 
                 if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentageOrCGPA(qualification, eligibility,isAppearing);
+                    return checkPercentage(qualification, eligibility,isAppearing);
+                }
+                else if(eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(false))
+                {
+                    return checkCGPA(qualification,eligibility,isAppearing);
                 }
             } else if (eligibility.getIsAppearing() != null && eligibility.getIsAppearing().equals(true)) {
                 isAppearing=true;
@@ -545,7 +549,11 @@ public class CartService {
                 }
 
                 if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentageOrCGPA(qualification, eligibility,isAppearing);
+                    return checkPercentage(qualification, eligibility,isAppearing);
+                }
+                else if(eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(false))
+                {
+                    return checkCGPA(qualification,eligibility,isAppearing);
                 }
             }
 
@@ -559,12 +567,11 @@ public class CartService {
         }
     }
 
-    private EligibilityResult checkPercentageOrCGPA(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
+    private EligibilityResult checkPercentage(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
         EligibilityResult result = new EligibilityResult();
 
         if (eligibility.getPercentage() != null) {
-            if(isAppearing.equals(false)|| (isAppearing.equals(true) && qualification.getCumulative_percentage_value()!=null))
-            {
+            if (isAppearing.equals(false) || (isAppearing.equals(true) && qualification.getCumulative_percentage_value() != null)) {
                 if (qualification.getCumulative_percentage_value() == null) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("Percentage marks are required but not provided by customer");
@@ -580,6 +587,12 @@ public class CartService {
             }
 
         }
+        result.setStatus(EligibilityStatus.ELIGIBLE);
+        return result;
+    }
+
+    private EligibilityResult checkCGPA(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
+        EligibilityResult result = new EligibilityResult();
 
         if (eligibility.getCgpa() != null) {
             if(isAppearing.equals(false))
