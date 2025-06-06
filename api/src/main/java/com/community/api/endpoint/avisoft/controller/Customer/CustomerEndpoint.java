@@ -505,7 +505,6 @@ public class CustomerEndpoint {
                 }
             }
 
-
             if (details.containsKey("workExperienceScopeId")) {
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(Long.parseLong(details.get("workExperienceScopeId").toString()));
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
