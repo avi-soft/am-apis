@@ -1239,6 +1239,7 @@ public class QualificationDetailsService {
                         throw new IllegalArgumentException("Overall Cgpa must be between 0 and 10");
                     }
                 }
+
             } else if (qualificationDetails.getTotal_marks_type().equalsIgnoreCase("CGPA")) {
                 if (qualificationDetails.getCumulative_percentage_value() == null) {
                     throw new IllegalArgumentException("Overall Cumulative Percentage value cannot be null");
