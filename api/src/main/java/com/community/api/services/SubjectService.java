@@ -67,10 +67,14 @@ public class SubjectService {
         }
     }
 
-    public List<CustomSubject> getAllSubject() {
+    public List<CustomSubject> getAllSubject(Boolean archived) {
         try {
-
-            List<CustomSubject> subjectList = entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class).getResultList();
+            Query query=entityManager.createQuery(Constant.GET_ALL_SUBJECT, CustomSubject.class);
+            if(archived)
+                query.setParameter("archived",'Y');
+            else
+                query.setParameter("archived",'N');
+            List<CustomSubject> subjectList = query.getResultList();
             return subjectList;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);

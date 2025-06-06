@@ -72,10 +72,14 @@ public class StreamService {
         }
     }
 
-    public List<CustomStream> getAllStream() {
+    public List<CustomStream> getAllStream(Boolean archived) {
         try {
-
-            List<CustomStream> streamList = entityManager.createQuery(Constant.GET_ALL_STREAM, CustomStream.class).getResultList();
+            Query query=entityManager.createQuery(Constant.GET_ALL_STREAM, CustomStream.class);
+            if(archived)
+                query.setParameter("archived",'Y');
+            else
+                query.setParameter("archived",'N');
+            List<CustomStream> streamList = query.getResultList();
             return streamList;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
