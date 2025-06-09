@@ -105,6 +105,7 @@ public class InstitutionService
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
             institutionToBeSaved.setCreated_date(now);
+            institutionToBeSaved.setArchived(false);
             entityManager.persist(institutionToBeSaved);
 
         return institutionToBeSaved;
