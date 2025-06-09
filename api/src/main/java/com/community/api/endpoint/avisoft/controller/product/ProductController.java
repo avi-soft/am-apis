@@ -560,7 +560,10 @@ public class ProductController extends CatalogEndpoint {
                             "System Administrator"
             );
             ResponseEntity<?> response= serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader,true);
-            if(customProduct.getProductState().getProductStateId())
+            if(customProduct.getProductState().getProductStateId()==1||customProduct.getProductState().getProductStateId()==3) {
+                CustomProductState productState=entityManager.find(CustomProductState.class,2);
+                customProduct.setProductState(productState);
+            }
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
