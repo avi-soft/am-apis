@@ -307,6 +307,13 @@ public class ServiceProviderEntity  {
 
     @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean autoScoring=true;
+
+    @Column(name = "is_admin_overridden", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean adminOverridden = false;
+
+    @Column(name = "is_eligible_for_re_ranking")
+    private Boolean eligibleForReRanking;
+
 }
 
 

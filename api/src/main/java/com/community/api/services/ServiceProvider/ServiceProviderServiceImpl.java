@@ -2674,4 +2674,45 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
     }
 
+    @Transactional
+    public void updateServiceProviderEligibilityForReRanking(List<ServiceProviderEntity> reRankingServiceProviders) throws Exception {
+        try {
+            List<ServiceProviderEntity> serviceProviderEntityNotAdminOverriddenList = entityManager.createQuery(Constant.GET_SERVICE_PROVIDER_CONDITION_ADMIN_OVERRIDDEN, ServiceProviderEntity.class)
+                    .setParameter("adminOverridden", false)
+                    .getResultList();
+
+            // Iterate each Service Provider
+            for(ServiceProviderEntity serviceProvider: serviceProviderEntityNotAdminOverriddenList) {
+
+                // If service provider eligibility is null then will update depending on logic (if Professional and completed more than or equal to 10 then make it eligible else not and for individual if his ticket completion number is more than or equal to 3 then make him eligible else not.
+                if(serviceProvider.getEligibleForReRanking() == null) {
+                    if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_PROFESSIONAL)) {
+
+                    } else if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_INDIVIDUAL)) {
+
+                    } else {
+                        throw new IllegalArgumentException("Service Provider w/o recognised Type found");
+                    }
+                }
+            }
+
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+//    public List<ServiceProviderEntity> findServiceProviderNotAdminOverridden() throws Exception {
+//
+//        try {
+//            return entityManager.createQuery(Constant.GET_SERVICE_PROVIDER_NOT_ADMIN_OVERRIDDEN, ServiceProviderEntity.class)
+//                    .setParameter("adminOverridden", false)
+//                    .getResultList();
+//        } catch (Exception exception) {
+//            exceptionHandlingService.handleException(exception);
+//            throw new Exception(exception.getMessage());
+//        }
+//    }
+
 }
