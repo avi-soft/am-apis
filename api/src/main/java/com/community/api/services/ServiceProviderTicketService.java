@@ -227,7 +227,7 @@ public class ServiceProviderTicketService {
             log.info("Order which are in new state have size of: {}", customOrders.size());
 
             if (customOrders.isEmpty()) {
-                throw new IllegalArgumentException("No Orders to Assign");
+                return;
             }
 
             /*

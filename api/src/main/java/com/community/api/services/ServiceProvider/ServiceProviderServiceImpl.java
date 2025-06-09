@@ -2029,7 +2029,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             roleIds.add(4);
             roleIds.add(2);
 
-            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role IN :roleIds", ServiceProviderEntity.class);
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.serviceProviderStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role IN :roleIds", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
             query.setParameter("isApproved", true);
