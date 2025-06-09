@@ -5,12 +5,14 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
+import com.community.api.entity.ProductEvents;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
@@ -124,6 +126,9 @@ public class ProductController extends CatalogEndpoint {
 
     @Value("${origin.url}")
     private String origin;
+
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
@@ -538,7 +543,23 @@ public class ProductController extends CatalogEndpoint {
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
-
+            ProductEvents productEvents=new ProductEvents();
+            if(addProductDto.getUpdateSummary()==null||addProductDto.getUpdateSummary().trim().isEmpty())
+                return ResponseService.generateErrorResponse("Need a summary of update to notify users about the update",HttpStatus.BAD_REQUEST);
+            CommunicationRequest communicationRequest=new CommunicationRequest();
+            communicationRequest.setUserIds(customProduct.getPurchasedBy());
+            communicationRequest.setSubject("Product Update Notification");
+            communicationRequest.setModes(1);
+            communicationRequest.setContentText(
+                    "Hello,\n\n" +
+                            "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                            "Update Summary: " + addProductDto.getUpdateSummary() + "\n\n" +
+                            "To view the latest changes, please visit:\n" +
+                            "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
+                            "Thank you,\n" +
+                            "System Administrator"
+            );
+            ResponseEntity<?> response= serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader,true);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
