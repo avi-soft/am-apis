@@ -79,6 +79,9 @@ import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -543,23 +546,46 @@ public class ProductController extends CatalogEndpoint {
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
-            ProductEvents productEvents=new ProductEvents();
-            if(addProductDto.getUpdateSummary()==null||addProductDto.getUpdateSummary().trim().isEmpty())
-                return ResponseService.generateErrorResponse("Need a summary of update to notify users about the update",HttpStatus.BAD_REQUEST);
-            CommunicationRequest communicationRequest=new CommunicationRequest();
-            communicationRequest.setUserIds(customProduct.getPurchasedBy());
-            communicationRequest.setSubject("Product Update Notification");
-            communicationRequest.setModes(1);
-            communicationRequest.setContentText(
-                    "Hello,\n\n" +
-                            "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
-                            "Update Summary: " + addProductDto.getUpdateSummary() + "\n\n" +
-                            "To view the latest changes, please visit:\n" +
-                            "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
-                            "Thank you,\n" +
-                            "System Administrator"
-            );
-            ResponseEntity<?> response= serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader,true);
+            Query query=entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
+            query.setParameter("productId",productId);
+            Boolean communicate=true;
+            Long id = (Long) query.getSingleResult();
+            ProductEvents productEvents=null;
+            if(id==null) {
+                productEvents = new ProductEvents();
+                productEvents.setLastUpdate(LocalDateTime.now());
+                productEvents.setSummaryOfUpdate(null);
+                productEvents.setProductId(productId);
+
+            }
+            else
+            {
+                productEvents = entityManager.find(ProductEvents.class,id);
+                if(Duration.between(productEvents.getLastUpdate(),LocalDateTime.now()).toMinutes()>=10) {
+                    productEvents=new ProductEvents();
+                    productEvents.setLastUpdate(LocalDateTime.now());
+                    productEvents.setSummaryOfUpdate(null);
+                    productEvents.setProductId(productId);
+                }
+                else
+                    communicate=false;
+            }
+            if(communicate) {
+                CommunicationRequest communicationRequest = new CommunicationRequest();
+                communicationRequest.setUserIds(customProduct.getPurchasedBy());
+                communicationRequest.setSubject("Product Update Notification");
+                communicationRequest.setModes(1);
+                communicationRequest.setContentText(
+                        "Hello,\n\n" +
+                                "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                                "To view the latest changes, please visit:\n" +
+                                "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
+                                "Thank you,\n" +
+                                "System Administrator"
+                );
+                entityManager.persist(productEvents);
+                ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
+            }
             if(customProduct.getProductState().getProductStateId()==1||customProduct.getProductState().getProductStateId()==3) {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2);
                 customProduct.setProductState(productState);
