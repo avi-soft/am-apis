@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.File;
@@ -43,15 +44,14 @@ public class InstitutionService
     RoleService roleService;
 
     @Transactional
-    public List<Institution> addInstitutions(List<Institution> institutionsToBeSaved, String authHeader) {
+    public Institution addInstitutions(Institution institution, String authHeader) {
         String jwtToken = authHeader.substring(7);
 
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
         List<Institution> savedInstitutions = new ArrayList<>();
-        for(Institution institution: institutionsToBeSaved)
-        {
+
             Institution institutionToBeSaved =new Institution();
             long id = findCount() + 1;
             if (institution.getInstitution_name() == null || institution.getInstitution_name().trim().isEmpty()) {
@@ -95,19 +95,20 @@ public class InstitutionService
                     throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
-            institutionToBeSaved.setInstitution_id(id);
+        Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM Institution i WHERE i.sortOrder <> 1000000");
+        Long sortOrder = (Long) query.getSingleResult();
             institutionToBeSaved.setInstitution_name(institution.getInstitution_name());
             institutionToBeSaved.setInstitution_address(institution.getInstitution_address());
             institutionToBeSaved.setInstitution_code(institution.getInstitution_code());
+            institutionToBeSaved.setSortOrder(sortOrder+1);
             institutionToBeSaved.setCreated_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
             institutionToBeSaved.setCreated_date(now);
+            institutionToBeSaved.setArchived(false);
             entityManager.persist(institutionToBeSaved);
-            savedInstitutions.add(institutionToBeSaved);
-            id=id+1;
-        }
-        return savedInstitutions;
+
+        return institutionToBeSaved;
     }
 
     public List<Institution> getAllInstitutions() {

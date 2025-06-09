@@ -95,7 +95,7 @@ public class DistrictController {
         }
     }
     @Authorize(value ={Constant.roleSuperAdmin})
-    @RequestMapping(value = "{districtId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "{districtId}/edit", method = RequestMethod.PUT)
     public ResponseEntity<?> addState(@PathVariable Integer districtId, @RequestBody Districts district) {
         try {
             Districts districtToEdit =entityManager.find(Districts.class,districtId);

@@ -16,6 +16,7 @@
     public class BoardUniversity
     {
         @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
         private Long board_university_id;
 
         @Column(name="board_university_name",nullable = false)

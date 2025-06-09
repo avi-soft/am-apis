@@ -433,6 +433,7 @@ public class TicketController {
 
         try {
 
+            log.info("dto is: {}", createTicketDto);
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);
