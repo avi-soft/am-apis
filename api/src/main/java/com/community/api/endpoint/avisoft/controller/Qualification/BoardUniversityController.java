@@ -39,7 +39,7 @@ public class BoardUniversityController {
         try
         {
             TypedQuery<BoardUniversity> query = entityManager.createQuery(Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
-            query.setParameter("archived",false);
+            query.setParameter("archived",archived);
             List<BoardUniversity> boardUniversityList = query.getResultList();
             if(boardUniversityList.isEmpty())
             {
