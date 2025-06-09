@@ -37,7 +37,7 @@ public class ReserveCategoryController {
         try {
             List<CustomReserveCategory> authorities = reserveCategoryService.getAllReserveCategory(archived);
             if (authorities.isEmpty()) {
-                return ResponseService.generateErrorResponse("No Reserve Category Found", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("No Reserve Category Found", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("Reserve Categories Found", authorities, HttpStatus.OK);
         } catch (Exception exception) {
