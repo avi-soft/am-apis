@@ -819,7 +819,7 @@ public class CartEndPoint extends BaseEndpoint {
                 OrderItem orderItem = order.getOrderItems().get(0);
                 Product product = findProductFromItemAttribute(orderItem);
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
-                customProduct.getPurchasedBy().add(order.getCustomer().getId());
+                customProduct.getPurchasedBy().add(customCustomer.getId());
                 ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
 
                 if (refSp != null) {

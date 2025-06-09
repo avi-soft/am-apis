@@ -902,6 +902,7 @@ public class ServiceProviderActionController {
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(value = "bypass",defaultValue = "false")Boolean bypass){
         try {
+            System.out.println("I have been called");
             if(role==null)
                 return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
             if(roleService.findRoleName(role)==null)
@@ -1085,7 +1086,7 @@ public class ServiceProviderActionController {
                     .collect(Collectors.toList());
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
-
+            System.out.println("Role is"+role);
             if (role == 5) {
                 List<CustomCustomer> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(CustomCustomer.class, id))
