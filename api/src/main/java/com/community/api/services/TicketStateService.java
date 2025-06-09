@@ -367,12 +367,12 @@ public class TicketStateService {
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                         if (ticket.getIsReviewRequired()) {
-                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                            throw new IllegalArgumentException("Cannot close this ticket without creation of review ticket for this as review required for this is true.");
                         }
                     } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                         CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId());
                         if (customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
-                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                            throw new IllegalArgumentException("Cannot close this ticket without creation of review ticket for this as review required for this is true.");
                         }
                     }
 

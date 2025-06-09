@@ -57,7 +57,7 @@ public class Constant {
     public static final String SP_USERNAME_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.user_name LIKE :username";
     public static final String SP_EMAIL_QUERY = "SELECT s FROM ServiceProviderEntity s WHERE s.primary_email LIKE :email";
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
-    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d ";
+    public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d where archived =:archived";
     public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
@@ -177,8 +177,8 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_BY_ID= "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name";
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId AND p.gender_id = :genderId";
-    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived != 'Y' ORDER BY sortOrder ASC";
-    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived != 'Y' ORDER BY sortOrder  ASC ";
+    public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived = :archived ORDER BY sortOrder ASC";
+    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived = :archived ORDER BY sortOrder  ASC ";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
     public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
     public static final String GET_STREAM_BY_STREAM_ID = "SELECT c FROM CustomStream c WHERE c.streamId = :streamId";

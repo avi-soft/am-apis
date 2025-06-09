@@ -566,7 +566,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     updates.remove("latitude");
                     updates.remove("longitude");
-                    existingServiceProvider.setNumber_of_employees(Integer.parseInt((String) updates.get("number_of_employees")));
+                    existingServiceProvider.setNumber_of_employees((Integer) updates.get("number_of_employees"));
                     updates.remove("number_of_employees");
 
                 }  else  {
@@ -591,14 +591,31 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 }
             }
-            if (updates.containsKey("work_experience_in")) {
+            if (updates.containsKey("work_experience_in_months")) {
+                Object workExpMonths = updates.get("work_experience_in_months");
+                int months = 0;
+
+
+                if (workExpMonths != null && !workExpMonths.toString().trim().isEmpty()) {
+                    try {
+                        months = Integer.parseInt(workExpMonths.toString().trim());
+                    } catch (NumberFormatException e) {
+                        return ResponseService.generateErrorResponse("Invalid value for work_experience_in_months", HttpStatus.BAD_REQUEST);
+                    }
+                }
+
                 Object workExp = updates.get("work_experience_in");
-                if (workExp != null && !workExp.toString().trim().isEmpty()) {
 
-                    Object workExpMonths = updates.get("work_experience_in_months");
+                if (months != 0) {
 
-                    if (workExpMonths == null || workExpMonths.toString().trim().isEmpty()) {
-                        return ResponseService.generateErrorResponse("Work Experience duration cannot be empty", HttpStatus.BAD_REQUEST);
+                    if (workExp == null || workExp.toString().trim().isEmpty()) {
+                        return ResponseService.generateErrorResponse("Work Experience description is required ", HttpStatus.BAD_REQUEST);
+                    }
+                } else {
+
+                    if (workExp != null && workExp.toString().trim().isEmpty()) {
+                        existingServiceProvider.setWork_experience_in(null);
+                        updates.remove("work_experience_in");
                     }
                 }
             }
@@ -622,7 +639,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     return responseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
                 }
                 if (existingSPByEmail != null && !existingSPByEmail.getService_provider_id().equals(userId)) {
-                    return responseService.generateErrorResponse("Email not available", HttpStatus.BAD_REQUEST);
+                    return responseService.generateErrorResponse("Email already in use", HttpStatus.BAD_REQUEST);
                 }
             }
             List<Skill> serviceProviderSkills = new ArrayList<>();
@@ -2055,7 +2072,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
     @Transactional
     public Map<String, Object> updateServiceProviderDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes, Set<ServiceProviderDocument> serviceProviderDocumentToSave) throws Exception {
-        try {
 
             String dateFormat = "yyyy-MM-dd";
             MultipartFile processedFile=null;
@@ -2413,16 +2429,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             log.info("Deleted Documents logs: {}", deletedDocumentMessages);
             responseData.put("uploadedDocuments", filteredDocuments);
             return responseData;
-        } catch (NoResultException noResultException) {
-            exceptionHandlingService.handleException(noResultException);
-            throw new NoResultException("No record found: " + noResultException.getMessage());
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
-        }
     }
 
     @Transactional
