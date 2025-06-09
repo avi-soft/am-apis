@@ -141,6 +141,7 @@ public class TicketController {
         }
     }
 
+    @Transactional
     @GetMapping("/get-all-ticket-stats")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> retrieveAllTicketsStatistics() {
@@ -432,6 +433,7 @@ public class TicketController {
 
         try {
 
+            log.info("dto is: {}", createTicketDto);
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long userId = jwtTokenUtil.extractId(jwtToken);

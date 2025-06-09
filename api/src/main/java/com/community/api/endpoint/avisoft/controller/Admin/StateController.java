@@ -59,7 +59,7 @@ public class StateController {
         }
     }
     @Authorize(value ={Constant.roleSuperAdmin})
-    @RequestMapping(value = "{stateId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "{stateId}/edit", method = RequestMethod.PUT)
     public ResponseEntity<?> addState(@PathVariable Integer stateId, @RequestBody StateCode stateCode) {
         try {
             StateCode state =districtService.getStateByStateId(stateId);
