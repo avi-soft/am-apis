@@ -27,4 +27,7 @@ public class CustomSector {
 
     @Column(name = "sector_description")
     protected String sectorDescription;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    protected Boolean archived = false;
 }
