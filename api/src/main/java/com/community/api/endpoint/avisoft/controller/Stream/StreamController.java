@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
@@ -82,9 +83,9 @@ public class StreamController {
     }
 
     @GetMapping("/get-all-stream")
-    public ResponseEntity<?> getAllStream() {
+    public ResponseEntity<?> getAllStream(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try {
-            List<CustomStream> applicationScopeList = streamService.getAllStream();
+            List<CustomStream> applicationScopeList = streamService.getAllStream(archived);
             if (applicationScopeList.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.NOT_FOUND);
             }

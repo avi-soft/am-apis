@@ -53,9 +53,9 @@ public class DistrictController {
         }
     }
     @RequestMapping(value = "get-all-districts", method = RequestMethod.GET)
-    public ResponseEntity<?> getAll() {
+    public ResponseEntity<?> getAll(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try {
-            List<Districts> names= districtService.findAllDistricts();
+            List<Districts> names= districtService.findAllDistricts(archived);
             if(names.isEmpty()) {
                 return responseService.generateErrorResponse("No data found",HttpStatus.NOT_FOUND);
             }
@@ -95,7 +95,7 @@ public class DistrictController {
         }
     }
     @Authorize(value ={Constant.roleSuperAdmin})
-    @RequestMapping(value = "{districtId}/edit", method = RequestMethod.PATCH)
+    @RequestMapping(value = "{districtId}/edit", method = RequestMethod.PUT)
     public ResponseEntity<?> addState(@PathVariable Integer districtId, @RequestBody Districts district) {
         try {
             Districts districtToEdit =entityManager.find(Districts.class,districtId);

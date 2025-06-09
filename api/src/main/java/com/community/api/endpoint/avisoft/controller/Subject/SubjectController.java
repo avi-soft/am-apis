@@ -83,9 +83,9 @@ public class SubjectController {
     }
 
     @GetMapping("/get-all-subject")
-    public ResponseEntity<?> getAllSubject() {
+    public ResponseEntity<?> getAllSubject(@RequestParam(required = false,defaultValue = "false") Boolean archived) {
         try {
-            List<CustomSubject> subjectList = subjectService.getAllSubject();
+            List<CustomSubject> subjectList = subjectService.getAllSubject(archived);
             if (subjectList.isEmpty()) {
                 return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
             }

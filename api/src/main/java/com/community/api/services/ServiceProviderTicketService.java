@@ -800,14 +800,14 @@ public class ServiceProviderTicketService {
 
             reviewTicket = entityManager.merge(reviewTicket);
             // If there exists some files then upload them as well.
+            reviewTicket = entityManager.merge(reviewTicket);
             if (files != null) {
 
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, reviewTicket, tokenUserId, tokenRole);
                 reviewTicket.setServiceProviderDocuments(serviceProviderDocument);
 
             }
-
-            reviewTicket = entityManager.merge(reviewTicket);
+            entityManager.merge(reviewTicket);
             return reviewTicket;
 
         } catch (IllegalArgumentException illegalArgumentException) {
