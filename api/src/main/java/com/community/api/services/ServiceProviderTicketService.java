@@ -799,14 +799,14 @@ public class ServiceProviderTicketService {
             reviewTicket.setComment(createTicketDto.getComment());
 
             // If there exists some files then upload them as well.
+            reviewTicket = entityManager.merge(reviewTicket);
             if (files != null) {
 
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, reviewTicket, tokenUserId, tokenRole);
                 reviewTicket.setServiceProviderDocuments(serviceProviderDocument);
 
             }
-
-            reviewTicket = entityManager.merge(reviewTicket);
+            entityManager.merge(reviewTicket);
             return reviewTicket;
 
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -1257,7 +1257,7 @@ public class ServiceProviderTicketService {
 
     public List<CustomServiceProviderTicket> getAllTickets() throws Exception {
         try {
-            String sql = "SELECT * FROM custom_service_provider_ticket";
+            String sql = "SELECT * FROM custom_service_provider_ticket ORDER BY modified_date DESC NULLS LAST";
             return entityManager.createNativeQuery(sql, CustomServiceProviderTicket.class).getResultList();
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -1341,6 +1341,7 @@ public class ServiceProviderTicketService {
                 }
             }
 
+            jpql.append("ORDER BY modified_date DESC NULLS LAST ");
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
 
@@ -1390,6 +1391,7 @@ public class ServiceProviderTicketService {
         }
     }
 
+    @Transactional
     public CustomServiceProviderTicket fetchTicketByTicketId(Long ticketId) throws Exception {
         try {
             if (ticketId == null || ticketId <= 0) {

@@ -367,12 +367,12 @@ public class TicketStateService {
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
                     if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_MISCELLANEOUS_TICKET)) {
                         if (ticket.getIsReviewRequired()) {
-                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                            throw new IllegalArgumentException("Cannot close this ticket without creation of review ticket for this as review required for this is true.");
                         }
                     } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                         CustomProduct customProduct = entityManager.find(CustomProduct.class, findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0)).getId());
                         if (customProduct.getIsReviewRequired() && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
-                            throw new IllegalArgumentException("Cannot close this ticket with creation of review ticket for this as review required for this.");
+                            throw new IllegalArgumentException("Cannot close this ticket without creation of review ticket for this as review required for this is true.");
                         }
                     }
 
@@ -394,8 +394,8 @@ public class TicketStateService {
                     ticket.setAssigneeRole(null);
                 }
 
-                if (!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && files != null) {
-                    throw new IllegalArgumentException("Files can only be uploaded when state changes to Review, Close and Support");
+                if (!ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_REVIEW) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && createTicketDTO.getTicketState().equals(Constant.TICKET_STATE_IN_PROGRESS)) && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && files != null) {
+                    throw new IllegalArgumentException("Files can only be uploaded when state changes to Review, Close and Support or From Support.");
                 }
 
                 ticket.setTicketStatus(ticketStatus);

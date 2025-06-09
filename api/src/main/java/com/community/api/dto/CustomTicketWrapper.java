@@ -10,6 +10,7 @@ import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.ServiceProviderDocument;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
@@ -95,6 +96,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("is_completed")
     protected Boolean isCompleted;
 
+//    @JsonIgnore
     @JsonProperty("ticket_documents")
     private Set<ServiceProviderDocument> serviceProviderDocuments;
 
