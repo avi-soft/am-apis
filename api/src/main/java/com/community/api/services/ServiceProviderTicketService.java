@@ -798,6 +798,7 @@ public class ServiceProviderTicketService {
             reviewTicket.setTicketType(ticketType);
             reviewTicket.setComment(createTicketDto.getComment());
 
+            reviewTicket = entityManager.merge(reviewTicket);
             // If there exists some files then upload them as well.
             if (files != null) {
 

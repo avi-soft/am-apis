@@ -141,6 +141,7 @@ public class TicketController {
         }
     }
 
+    @Transactional
     @GetMapping("/get-all-ticket-stats")
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> retrieveAllTicketsStatistics() {
