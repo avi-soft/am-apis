@@ -4,12 +4,14 @@ import com.community.api.component.Constant;
 import com.community.api.dto.AddSectorDto;
 import com.community.api.entity.CustomSector;
 import com.community.api.services.exception.ExceptionHandlingService;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
+import javax.transaction.Transactional;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,9 +24,10 @@ public class SectorService {
     @Autowired
     protected ExceptionHandlingService exceptionHandlingService;
 
-    public List<CustomSector> getAllSector() {
+    public List<CustomSector> getAllSector(Boolean archived) {
         try {
-            List<CustomSector> sectorList = entityManager.createQuery(Constant.GET_ALL_SECTOR, CustomSector.class).getResultList();
+            List<CustomSector> sectorList = entityManager.createQuery(Constant.GET_ALL_SECTOR, CustomSector.class).setParameter("archived",archived)
+                    .getResultList();
             return sectorList;
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -65,19 +68,63 @@ public class SectorService {
         }
     }
 
+    @Transactional
     public void saveSector(AddSectorDto addSectorDto) throws Exception {
-        try{
-            Query query = entityManager.createQuery("INSERT INTO custom_sector (sector_name, sector_description) VALUES (:sectorName, :sectorDescription");
-            query.setParameter("subjectName", addSectorDto.getSectorName());
-            query.setParameter("subjectDescription", addSectorDto.getSectorDescription());
+        try {
+            Query query = entityManager.createNativeQuery(
+                    "INSERT INTO custom_sector (sector_name, sector_description) VALUES (:sectorName, :sectorDescription)"
+            );
+            query.setParameter("sectorName", addSectorDto.getSectorName());
+            query.setParameter("sectorDescription", addSectorDto.getSectorDescription());
 
             int affectedRow = query.executeUpdate();
-            if(affectedRow <= 0){
+            if (affectedRow <= 0) {
                 throw new IllegalArgumentException("ENTRY NOT ADDED IN THE DB");
             }
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
         }
+    }
+    @Transactional
+    public void edit(Long sectorId, AddSectorDto addSectorDto) throws Exception {
+        try {
+            Query query = entityManager.createNativeQuery(
+                    "UPDATE custom_sector SET sector_name = :sectorName, sector_description = :sectorDescription WHERE sector_id = :sectorId"
+            );
+            query.setParameter("sectorName", addSectorDto.getSectorName());
+            query.setParameter("sectorDescription", addSectorDto.getSectorDescription());
+            query.setParameter("sectorId", sectorId);
+
+            int affectedRow = query.executeUpdate();
+            if (affectedRow <= 0) {
+                throw new IllegalArgumentException("ENTRY NOT UPDATED IN THE DB");
+            }
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
+        }
+    }
+    @Transactional
+    public CustomSector manageSector(Long sectorId,Boolean archive) throws NotFoundException {
+        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
+        if(customSector==null)
+            throw new NotFoundException("Sector not found");
+        if (archive) {
+            if (Boolean.TRUE.equals(customSector.getArchived())) {
+                throw new IllegalArgumentException("Sector is already archived");
+            }
+            customSector.setArchived(true);
+            // Optionally move to high sort order when archiving
+        } else {
+            if (Boolean.FALSE.equals(customSector.getArchived())) {
+                throw new IllegalArgumentException("Sector is already active");
+            }
+            customSector.setArchived(false);
+            // When unarchiving, assign next available sort order
+        }
+
+        entityManager.merge(customSector);
+        return customSector;
     }
 }
