@@ -572,9 +572,12 @@ public class ProductController extends CatalogEndpoint {
             }
             if(communicate) {
                 CommunicationRequest communicationRequest = new CommunicationRequest();
-                communicationRequest.setUserIds(customProduct.getPurchasedBy());
+                CustomProduct customProductSession=getProductWithPurchasers(customProduct.getId());
+                communicationRequest.setUserIds(customProductSession.getPurchasedBy());
                 communicationRequest.setSubject("Product Update Notification");
-                communicationRequest.setModes(1);
+                List<Integer>modes=new ArrayList<>();
+                modes.add(1);
+                communicationRequest.setModes(modes);
                 communicationRequest.setContentText(
                         "Hello,\n\n" +
                                 "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
@@ -584,10 +587,11 @@ public class ProductController extends CatalogEndpoint {
                                 "System Administrator"
                 );
                 entityManager.persist(productEvents);
+                System.out.println("Calling email trigger");
                 ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
             }
-            if(customProduct.getProductState().getProductStateId()==1||customProduct.getProductState().getProductStateId()==3) {
-                CustomProductState productState=entityManager.find(CustomProductState.class,2);
+            if(customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L) {
+                CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
@@ -1190,5 +1194,11 @@ public class ProductController extends CatalogEndpoint {
         } catch (Exception e) {
             System.err.println("Error updating product states: " + e.getMessage());
         }
+    }
+    @Transactional
+    public CustomProduct getProductWithPurchasers(Long id) {
+        CustomProduct product = entityManager.find(CustomProduct.class,id);
+        product.getPurchasedBy().size(); // triggers initialization
+        return product;
     }
 }
