@@ -103,6 +103,7 @@ public class BoardUniversityService
             boardUniversityToBeSaved.setCreated_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
+            boardUniversityToBeSaved.setArchived(false);
             boardUniversityToBeSaved.setCreated_date(now);
             entityManager.persist(boardUniversityToBeSaved);
             savedBoardUniversities.add(boardUniversityToBeSaved);
