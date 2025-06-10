@@ -298,6 +298,13 @@ public class Constant {
 
     public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID_AND_TICKET = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.serviceProviderTicket = :serviceProviderTicket AND d.name IS NOT NULL";
 
+    public static final String GET_SERVICE_PROVIDER_CONDITION_ADMIN_OVERRIDDEN = "SELECT sp FROM ServiceProviderEntity sp WHERE sp.adminOverridden = :adminOverridden AND sp.type IS NOT NULL";
+
+    public static final String SERVICE_PROVIDER_PROFESSIONAL = "PROFESSIONAL";
+    public static final String SERVICE_PROVIDER_INDIVIDUAL = "INDIVIDUAL";
+
+    public static final Long PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT = 10L;
+    public static final Long INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT = 4L;
 
     //add constants above this query//*******************************************************************************
     public static  final String recosQuery =
