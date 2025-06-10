@@ -55,7 +55,7 @@ public class OrderDTOService {
             assigneeId=ticket.getAssignee();
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>postPreferenceOrder=new ArrayList<>();
-        OrderAttribute orderAttribute =(OrderAttribute)order.getOrderAttributes().get("sorted");
+        OrderAttribute orderAttribute =(OrderAttribute)order.getOrderAttributes().get("postPreference");
         if(orderAttribute!=null)
         {
         String retrievedPostPreferenceString=orderAttribute.getValue();
@@ -127,7 +127,7 @@ public class OrderDTOService {
 
         List<Long> preferenceOrder = null;
         List<PostDetailsDTO> postPreferenceOrder = new ArrayList<>();
-        OrderAttribute orderAttribute = (OrderAttribute) order.getOrderAttributes().get("sorted");
+        OrderAttribute orderAttribute = (OrderAttribute) order.getOrderAttributes().get("postPreference");
         if (orderAttribute != null) {
             String retrievedPostPreferenceString = orderAttribute.getValue();
             if (!"NO_AVAILABLE_POSTS".equals(retrievedPostPreferenceString)) {
