@@ -16,6 +16,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.ServiceProviderDocument;
 import com.mchange.rmi.NotAuthorizedException;
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.service.OrderService;
 
 import org.broadleafcommerce.profile.core.service.CustomerService;
@@ -51,6 +52,7 @@ import static com.community.api.component.Constant.CURRENT_ADDRESS_ID;
 import static com.community.api.component.Constant.PERMANENT_ADDRESS_ID;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
+@Slf4j
 @RestController
 @RequestMapping("/service-providers")
 public class ServiceProviderController {
@@ -1178,14 +1180,20 @@ public class ServiceProviderController {
 
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("re-ranking")
+    @Transactional
     public ResponseEntity<?> reRankingOfServiceProvider() throws Exception {
         try {
             // Re-ranking of Service-Providers.
 
-            // FETCH ALL THE NEW SERVICE PROVIDERS WHOSE ADMIN OVERRIDDEN IS FALSE AND IS ELIGIBLE FOR RANKING IS NULL OR 0.
-            serviceProviderService.updateServiceProviderEligibilityForReRanking();
+            // Fetch all the service provider whom we have to re-rank.
+            List<ServiceProviderEntity> subsequentReRanking = new ArrayList<>();
+            List<ServiceProviderEntity> firstTimeReRanking = new ArrayList<>();
 
-            serviceProviderService.
+            // FETCH ALL THE NEW SERVICE PROVIDERS WHOSE ADMIN OVERRIDDEN IS FALSE AND IS ELIGIBLE FOR RANKING IS NULL OR 0.
+            serviceProviderService.updateServiceProviderEligibilityForReRanking(subsequentReRanking, firstTimeReRanking);
+
+            log.info("Subsequent service provider for re-ranking: {}", subsequentReRanking.size());
+            log.info("First time re-ranking: {}", firstTimeReRanking.size());
 
 
             return ResponseService.generateSuccessResponse("Re-ranking run successfully.", null, HttpStatus.OK);
@@ -1200,7 +1208,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse("Error updating ticket state :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Some Exception Occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
