@@ -1,6 +1,8 @@
 package com.community.api.endpoint.avisoft.controller;
 
 import com.community.api.entity.Image;
+import com.community.api.entity.TypingText;
+import com.community.api.services.ImageService;
 import com.community.api.services.InstitutionService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
@@ -19,7 +21,7 @@ import java.util.List;
 public class ImageController
 {
     @Autowired
-    InstitutionService.ImageService imageService;
+    ImageService imageService;
     @Autowired
     EntityManager entityManager;
 
@@ -57,13 +59,51 @@ public class ImageController
 
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages()
+    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false) List<Integer> randomImageTypeIds)
     {
-       List<Image> randomImages= imageService.getAllRandomImages();
+       List<Image> randomImages= imageService.getAllRandomImages(randomImageTypeIds);
        if(randomImages.isEmpty())
        {
            return ResponseService.generateSuccessResponse("Image list is empty",randomImages,HttpStatus.OK);
        }
        return ResponseService.generateSuccessResponse("Image list is found",randomImages,HttpStatus.OK);
+    }
+
+    @DeleteMapping("/manage/{randomImageId}")
+    public ResponseEntity<?>  manageRandomImages(@PathVariable Long randomImageId,@RequestParam(defaultValue = "false") Boolean archive)
+    {
+        try {
+            Image imageToDelete = imageService.archiveOrUnArchiveImage(randomImageId, archive);
+            String message = archive ? "Random Image is archived successfully" : "Random Image is unarchived successfully";
+            return ResponseService.generateSuccessResponse(message, imageToDelete,HttpStatus.OK);
+        }
+        catch (IllegalArgumentException e)
+        {
+            exceptionHandlingImplement.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e)
+        {
+            exceptionHandlingImplement.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/update/{randomImageId}")
+    public ResponseEntity<?> updateImageTypeInRandomImage(@RequestParam(required = false) Integer randomImageTypeId,@PathVariable Long randomImageId)
+    {
+        try
+        {
+            Image imageToUpdate= imageService.updateImageTypeInRandomImage(randomImageTypeId,randomImageId);
+            return ResponseService.generateSuccessResponse("Random image information is updated successfully", imageToUpdate,HttpStatus.OK);
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandlingImplement.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse( illegalArgumentException.getMessage(),HttpStatus.BAD_REQUEST);
+        }catch (Exception e)
+        {
+            exceptionHandlingImplement.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+        }
     }
 }

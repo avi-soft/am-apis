@@ -59,4 +59,57 @@ public class TypingTextService
         TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
         return query.getSingleResult();
     }
+
+    @Transactional
+    public TypingText archiveOrUnarchiveTypingText(Long typingTextId, Boolean archive)
+    {
+        TypingText typingText= entityManager.find(TypingText.class,typingTextId);
+        if(typingText==null)
+        {
+            throw new IllegalArgumentException("No typing text exists in db with id "+ typingTextId);
+        }
+        if (archive) {
+            if(typingText.getArchived().equals(true))
+            {
+                throw new IllegalArgumentException("Typing text is already archived");
+            }
+            typingText.setArchived(true);
+        } else {
+            if (!typingText.getArchived()) {
+                throw new IllegalArgumentException("Typing text already unarchived");
+            }
+            typingText.setArchived(false);
+        }
+        entityManager.merge(typingText);
+        return typingText;
+    }
+
+    @Transactional
+    public TypingText updateTypingText(TypingText typingText, Long typingTextId)
+    {
+        TypingText typingTextToUpdate= entityManager.find(TypingText.class,typingTextId);
+        if(typingTextToUpdate==null)
+        {
+            throw new IllegalArgumentException("Typing text not found");
+        }
+        if(typingTextToUpdate.getArchived().equals(true))
+        {
+            throw new IllegalArgumentException("Typing text is archived");
+        }
+        if(typingText.getText()!=null)
+        {
+            if (typingText.getText().trim().isEmpty()) {
+                throw new IllegalArgumentException("Typing text cannot be empty or consist only of whitespace");
+            }
+            List<TypingText> existingTypingText = getAllRandomTypingTexts();
+            for (TypingText existingTypingText1: existingTypingText) {
+                if (existingTypingText1.getText().equalsIgnoreCase(typingText.getText()) && !existingTypingText1.getId().equals(typingTextId)) {
+                    throw new IllegalArgumentException("Typing Text with name '"+typingText.getText()+"' already exists");
+                }
+            }
+            typingTextToUpdate.setText(typingText.getText());
+        }
+        entityManager.merge(typingTextToUpdate);
+        return typingTextToUpdate;
+    }
 }
