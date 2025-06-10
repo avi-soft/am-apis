@@ -293,85 +293,122 @@ public class OrderController {
         }
     }
 
-
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
     public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader,
-                                         @RequestParam(defaultValue = "9") Integer orderState,
+                                         @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds,
                                          @RequestParam(defaultValue = "oldest-to-latest") String sort,
                                          @RequestParam(defaultValue = "0") int offset,
-                                         @RequestParam(defaultValue = "10") int limit) {
+                                         @RequestParam(defaultValue = "10") int limit,
+                                         @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
+                                         @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
+                                         @RequestParam(value = "product_name", required = false) String productName) {
         try {
+            if (offset < 0 || limit <= 0) {
+                throw new IllegalArgumentException("Offset or Limit invalid");
+            }
 
-            if (offset < 0) {
-                throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
-            }
-            if (limit <= 0) {
-                throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
-            }
+            int offset1 = offset * limit;
             sort = sort.toLowerCase();
-            int offset1 = offset * limit; // Ensure offset1 changes with offset number
 
-            // OrderState validation
-            OrderStateRef orderStateRef = entityManager.find(OrderStateRef.class, orderState);
-            if (!orderState.equals(9) && orderStateRef == null) {
-                return ResponseService.generateErrorResponse("Invalid orderState provided", HttpStatus.BAD_REQUEST);
+            // Validate order state IDs
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                for (Integer id : orderStateIds) {
+                    OrderStateRef ref = entityManager.find(OrderStateRef.class, id);
+                    if (ref == null) {
+                        return ResponseService.generateErrorResponse("Invalid Order State ID: " + id, HttpStatus.BAD_REQUEST);
+                    }
+                }
             }
 
-            // Base Query
-            String baseQuery = orderState.equals(9)
-                    ? "SELECT os.order_id FROM ORDER_STATE os"
-                    : "SELECT os.order_id FROM ORDER_STATE os WHERE os.order_state_id = :orderStateId";
+            // Build dynamic base query
+            String baseQuery = "FROM blc_order o JOIN order_state os ON o.order_id = os.order_id WHERE o.tax_override IS NULL";
 
-            // Sorting
-            String orderByClause = sort.equals("latest-to-oldest") ? " ORDER BY os.order_id DESC" : " ORDER BY os.order_id ASC";
-            String finalQuery = baseQuery + orderByClause;
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                baseQuery += " AND os.order_state_id IN (:orderStateIds)";
+            }
 
-            // Count Query
-            String countQueryStr = "SELECT COUNT(*) FROM (" + baseQuery + ") AS countQuery";
+            if (dateFrom != null && dateTo != null) {
+                baseQuery += " AND CAST(o.submit_date AS DATE) BETWEEN :dateFrom AND :dateTo";
+            } else if (dateFrom != null) {
+                baseQuery += " AND CAST(o.submit_date AS DATE) >= :dateFrom";
+            } else if (dateTo != null) {
+                baseQuery += " AND CAST(o.submit_date AS DATE) <= :dateTo";
+            }
+
+            if (productName != null && !productName.trim().isEmpty()) {
+                baseQuery += " AND LOWER(o.name) LIKE LOWER(:productName)";
+            }
+
+            //  Count Query
+            String countQueryStr = "SELECT COUNT(*) " + baseQuery;
             Query countQuery = entityManager.createNativeQuery(countQueryStr);
-            if (!orderState.equals(9)) {
-                countQuery.setParameter("orderStateId", orderState);
+
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                countQuery.setParameter("orderStateIds", orderStateIds);
+            }
+            if (dateFrom != null) {
+                countQuery.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
+            }
+            if (dateTo != null) {
+                countQuery.setParameter("dateTo", new java.sql.Date(dateTo.getTime()));
+            }
+            if (productName != null && !productName.trim().isEmpty()) {
+                countQuery.setParameter("productName", "%" + productName.trim() + "%");
             }
 
             BigInteger totalItems = (BigInteger) countQuery.getSingleResult();
+            int totalPages = (int) Math.ceil(totalItems.doubleValue() / limit);
 
-            // Pagination Query
-            finalQuery += " LIMIT :limit OFFSET :offset1"; // Ensure OFFSET is applied
-
-
-            Query query = entityManager.createNativeQuery(finalQuery);
-            if (!orderState.equals(9)) {
-                query.setParameter("orderStateId", orderState);
+            if (offset >= totalPages && offset != 0) {
+                throw new IllegalArgumentException("No more orders available");
             }
-            query.setParameter("limit", limit);
-            query.setParameter("offset1", offset1);
+
+            // Data Query
+            String dataQueryStr = "SELECT o.order_id " + baseQuery;
+            dataQueryStr += sort.equals("latest-to-oldest") ? " ORDER BY o.order_id DESC" : " ORDER BY o.order_id ASC";
+
+            Query query = entityManager.createNativeQuery(dataQueryStr);
+            query.setFirstResult(offset1);
+            query.setMaxResults(limit);
+
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+                query.setParameter("orderStateIds", orderStateIds);
+            }
+            if (dateFrom != null) {
+                query.setParameter("dateFrom", new java.sql.Date(dateFrom.getTime()));
+            }
+            if (dateTo != null) {
+                query.setParameter("dateTo", new java.sql.Date(dateTo.getTime()));
+            }
+            if (productName != null && !productName.trim().isEmpty()) {
+                query.setParameter("productName", "%" + productName.trim() + "%");
+            }
 
             @SuppressWarnings("unchecked")
             List<BigInteger> orderIds = query.getResultList();
 
-            // Fetch Order Details
+            // Generate DTO and build response
             List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sort);
 
-            // Pagination response
-            int totalPages = (int) Math.ceil(totalItems.doubleValue() / limit);
             Map<String, Object> response = new HashMap<>();
             response.put("orders", orderDetails);
             response.put("totalItems", totalItems);
             response.put("totalPages", totalPages);
-            response.put("currentPage", offset); // Ensure this correctly returns the requested offset
-            if (offset >= totalPages && offset != 0) {
-                throw new IllegalArgumentException("No more orders available");
-            }
+            response.put("currentPage", offset);
+
             return ResponseService.generateSuccessResponse("Orders are fetched", response, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Error Fetching Order List", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @Transactional
     @GetMapping("/details/{orderId}")
@@ -589,7 +626,7 @@ public class OrderController {
     }
 
     @Transactional
-    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @RequestMapping(value = "assign-order/{orderId}", method = RequestMethod.POST)
     public ResponseEntity<?> manuallyAssignOrder(@PathVariable Long orderId, @RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
         try {
@@ -630,7 +667,7 @@ public class OrderController {
             }
 
             CustomOrderState customOrderState = entityManager.find(CustomOrderState.class, order.getId());
-            if(!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId()) ) {
+            if (!customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_NEW.getOrderStateId())) {
                 throw new IllegalArgumentException("Order can only be allowed to allocate at new state.");
             }
 
@@ -639,7 +676,7 @@ public class OrderController {
                     return ResponseService.generateErrorResponse("Target completion date cannot be in past", HttpStatus.BAD_REQUEST);
 
                 Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-                if(createTicketDto.getTargetCompletionDate().after(product.getActiveEndDate()) || createTicketDto.getTargetCompletionDate().before(product.getActiveStartDate()) || !createTicketDto.getTargetCompletionDate().after(new Date())) {
+                if (createTicketDto.getTargetCompletionDate().after(product.getActiveEndDate()) || createTicketDto.getTargetCompletionDate().before(product.getActiveStartDate()) || !createTicketDto.getTargetCompletionDate().after(new Date())) {
                     log.info(String.valueOf(createTicketDto.getTargetCompletionDate()));
                     log.info(String.valueOf(product.getActiveStartDate()));
                     log.info(String.valueOf(product.getActiveEndDate()));
@@ -672,7 +709,7 @@ public class OrderController {
                 serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDto.getAssignee());
                 assignedUserId = serviceProvider.getService_provider_id();
                 assignedRoleId = role.getRole_id();
-                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
                 entityManager.merge(serviceProvider);
 
                 if (serviceProvider == null)
@@ -778,8 +815,8 @@ public class OrderController {
     public ResponseEntity<?> getGroupedOrderState() {
         List<OrderStateGroupDto> groupedStates = new ArrayList<>();
 
-        groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1,0,3)));
-        groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2,4,6, 8)));
+        groupedStates.add(new OrderStateGroupDto("New", Arrays.asList(1, 0, 3)));
+        groupedStates.add(new OrderStateGroupDto("In Progress", Arrays.asList(2, 4, 6, 8)));
         groupedStates.add(new OrderStateGroupDto("Fulfilled", Collections.singletonList(7)));
         groupedStates.add(new OrderStateGroupDto("Canceled", Arrays.asList(999, 5)));
 
