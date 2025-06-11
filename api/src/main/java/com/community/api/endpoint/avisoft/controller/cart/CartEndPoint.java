@@ -683,7 +683,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderAttribute.setOrder(individualOrder);
                     orderAttribute.setName("postPreference");
                     orderAttribute.setValue(retrievedPostPreferenceString);
-                    individualOrder.getOrderAttributes().put("sorted", orderAttribute);
+                    individualOrder.getOrderAttributes().put("postPreference", orderAttribute);
                     entityManager.merge(individualOrder);
                     individualOrder.setEmailAddress(customer.getEmailAddress());
                     CustomOrderState orderState = new CustomOrderState();

@@ -543,6 +543,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.state = customProduct.getState();
         this.customProductRejectionStatus = customProduct.getRejectionStatus();
         this.createdDate = customProduct.getCreatedDate();
+        this.isReviewRequired = customProduct.getIsReviewRequired();
 
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
 

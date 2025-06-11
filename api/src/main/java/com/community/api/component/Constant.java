@@ -13,7 +13,7 @@ public class Constant {
     public static final long MAX_FILE_SIZE = 100* 1024;
     public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
     public static final long RANDOM_RESIZED_MAX_FILE_SIZE = 1 * 1024 * 1024;
-    public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 500 * 1024;
+    public static final long RANDOM_RESIZED_MIN_FILE_SIZE = 101 * 1024;
     public static final long RANDOM_PDF_MAX_FILE_SIZE = 1 * 1024 * 1024;
     public static final long RANDOM_PDF_MIN_FILE_SIZE = 500 * 1024;
     public static final long RANDOM_SIGN_MAX_FILE_SIZE = 350 * 1024;
@@ -33,8 +33,8 @@ public class Constant {
 
     public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
-    public static final String GET_ALL_RANDOM_IMAGES="SELECT q FROM Image q";
-    public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
+    public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where q.archived=false ORDER BY dt.sort_order ASC";
+    public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = false";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
@@ -91,6 +91,7 @@ public class Constant {
     public static String GET_DIVISIONS_LIST="Select s from StateCode s where archived= :archived and isZone = true";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
+    public static String GET_DOCUMENT_TYPE_COUNT="SELECT COUNT(*) FROM DocumentType";
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
 
@@ -298,6 +299,13 @@ public class Constant {
 
     public static final String GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID_AND_TICKET = "SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND d.documentType = :documentType AND d.serviceProviderTicket = :serviceProviderTicket AND d.name IS NOT NULL";
 
+    public static final String GET_SERVICE_PROVIDER_CONDITION_ADMIN_OVERRIDDEN = "SELECT sp FROM ServiceProviderEntity sp WHERE sp.adminOverridden = :adminOverridden AND sp.type IS NOT NULL";
+
+    public static final String SERVICE_PROVIDER_PROFESSIONAL = "PROFESSIONAL";
+    public static final String SERVICE_PROVIDER_INDIVIDUAL = "INDIVIDUAL";
+
+    public static final Long PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT = 10L;
+    public static final Long INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT = 4L;
 
     //add constants above this query//*******************************************************************************
     public static  final String recosQuery =

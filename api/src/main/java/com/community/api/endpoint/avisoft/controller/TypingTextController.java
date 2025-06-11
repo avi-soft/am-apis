@@ -50,4 +50,42 @@ public class TypingTextController
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
         }
     }
+
+    @DeleteMapping("/manage/{typingTextId}")
+    public ResponseEntity<?>  deleteTypingTexts(@PathVariable Long typingTextId,@RequestParam(defaultValue = "false") Boolean archive)
+    {
+        try {
+            TypingText typingTextToDelete = typingTextService.archiveOrUnarchiveTypingText(typingTextId, archive);
+            String message = archive ? "Typing text is archived successfully" : "Typing text is unarchived successfully";
+            return ResponseService.generateSuccessResponse(message, typingTextToDelete,HttpStatus.OK);
+        }
+        catch (IllegalArgumentException e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/update/{typingTextId}")
+    public ResponseEntity<?> updateTypingText(@RequestBody TypingText typingText,@PathVariable Long typingTextId)
+    {
+        try
+        {
+            TypingText typingTextToUpdate= typingTextService.updateTypingText(typingText,typingTextId);
+            return ResponseService.generateSuccessResponse("Typing text is updated successfully", typingTextToUpdate,HttpStatus.OK);
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandling.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse( illegalArgumentException.getMessage(),HttpStatus.BAD_REQUEST);
+        }catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
+        }
+    }
 }
