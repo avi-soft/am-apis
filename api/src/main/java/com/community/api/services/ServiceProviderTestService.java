@@ -11,6 +11,7 @@ import com.community.api.entity.Image;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.EntityDoesNotExistsException;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.community.api.utils.DocumentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -45,39 +47,58 @@ public class ServiceProviderTestService {
     private FileService fileService;
     @Autowired
     private DocumentStorageService fileUploadService;
+
+    @Autowired
+    private ExceptionHandlingImplement exceptionHandlingImplement;
     private StatusChangeEmailService statusChangeEmailService;
     @Autowired
     public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
         this.statusChangeEmailService = statusChangeEmailService;
     }
-
-    @Autowired
-    private ExceptionHandlingImplement exceptionHandlingImplement;
-
-    private String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_FILE_SIZE);
-
-    private String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_RESIZED_IMAGE_SIZE);
-
-    private String minSignatureImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_SIGNATURE_IMAGE_SIZE);
-
-    private String maxSignatureImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_SIGNATURE_IMAGE_SIZE);
-
-    private String minPdfSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MIN_PDF_SIZE);
-
-    private String maxPdfSize= ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_PDF_SIZE);
-
-    @Value("${image.validation.targetWidth}")
-    private float targetWidth;
-
-    @Value("${image.validation.targetHeight}")
-    private float targetHeight;
+    private DocumentType resizedImageDocumentType;
+    private DocumentType pdfDocumentType;
+    private DocumentType signatureImageDocumentType;
+    private double targetWidth;
+    private double targetHeight;
 
     @Value("${image.validation.tolerance}")
     private float tolerance;
 
-    public ServiceProviderTestService(EntityManager entityManager,ExceptionHandlingImplement exceptionHandlingImplement) {
+    public ServiceProviderTestService(EntityManager entityManager, ExceptionHandlingImplement exceptionHandlingImplement) {
         this.entityManager = entityManager;
-        this.exceptionHandlingImplement=exceptionHandlingImplement;
+        this.exceptionHandlingImplement = exceptionHandlingImplement;
+    }
+
+    @PostConstruct
+    private void initializeDocumentTypes() {
+        try {
+            if (doesTableExist("custom_document")) {
+                this.resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+                this.pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+                this.signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+                this.targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+                this.targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
+                System.out.println("DocumentTypes initialized successfully");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during DocumentType initialization: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if a table exists in the database
+     */
+    private boolean doesTableExist(String tableName) {
+        try {
+            // Using native SQL query to check table existence
+            String sql = "SELECT 1 FROM " + tableName + " LIMIT 1";
+            entityManager.createNativeQuery(sql).setMaxResults(1).getResultList();
+            return true;
+        } catch (Exception e) {
+            // Table doesn't exist or query failed
+            System.out.println("Table '" + tableName + "' does not exist or is not accessible");
+            return false;
+        }
     }
 
     @Transactional
@@ -103,19 +124,17 @@ public class ServiceProviderTestService {
                     String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
                     String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
                     String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
-                    String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
                     Map<String, Object> response = new HashMap<>();
                     response.put("test", test);
-                    response.put("imageValidation", imageValidation);
                     response.put("downloadImageUrl", imageUrl);
                     response.put("downloadPdfImageUrl", randomPdfUrl);
                     response.put("downloadSignImageUrl", randomSignUrl);
-                    response.put("minResizedImageSize",minImageSize);
-                    response.put("maxResizedImageSize",maxImageSize);
-                    response.put("minSignatureImageSize",minSignatureImageSize);
-                    response.put("maxSignatureImageSize",maxSignatureImageSize);
-                    response.put("minPdfSize",minPdfSize);
-                    response.put("maxPdfSize",maxPdfSize);
+                    response.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
+                    response.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
+                    response.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
+                    response.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
+                    response.put("minPdfSize",pdfDocumentType.getMin_document_size());
+                    response.put("maxPdfSize",pdfDocumentType.getMax_document_size());
                     response.put("requiredSignatureImageWidth",targetWidth);
                     response.put("requiredSignatureImageHeight",targetHeight);
                     response.put("uploadedResizedImage",test.getResized_image());
@@ -177,19 +196,17 @@ public class ServiceProviderTestService {
             String imageUrl = fileService.getFileUrl(test.getDownloaded_image().getFile_path(),request);
             String randomPdfUrl = fileService.getFileUrl(test.getDownloaded_pdf_image().getFile_path(),request);
             String randomSignUrl = fileService.getFileUrl(test.getDownloaded_signature_image().getFile_path(),request);
-            String imageValidation = "Only images between "+minImageSize+" and "+maxImageSize+" are allowed";
             Map<String, Object> response = new HashMap<>();
             response.put("test", test);
-            response.put("imageValidation", imageValidation);
             response.put("downloadImageUrl", imageUrl);
             response.put("downloadPdfImageUrl", randomPdfUrl);
             response.put("downloadSignImageUrl", randomSignUrl);
-            response.put("minResizedImageSize",minImageSize);
-            response.put("maxResizedImageSize",maxImageSize);
-            response.put("minSignatureImageSize",minSignatureImageSize);
-            response.put("maxSignatureImageSize",maxSignatureImageSize);
-            response.put("minPdfSize",minPdfSize);
-            response.put("maxPdfSize",maxPdfSize);
+            response.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
+            response.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
+            response.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
+            response.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
+            response.put("minPdfSize",pdfDocumentType.getMin_document_size());
+            response.put("maxPdfSize",pdfDocumentType.getMax_document_size());
             response.put("requiredSignatureImageWidth",targetWidth);
             response.put("requiredSignatureImageHeight",targetHeight);
             response.put("uploadedResizedImage",test.getResized_image());
@@ -248,18 +265,12 @@ public class ServiceProviderTestService {
         }
 
         test.setIs_image_test_passed(false);
-
-        if(!documentStorageService.isValidFileType(resizedFile))
+        DocumentType documentType= entityManager.find(DocumentType.class,Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        if(documentType==null)
         {
-            throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
+            throw new IllegalArgumentException("The requirements not found in DB for Resize image");
         }
-
-        // Validate image size
-        if (resizedFile.getSize() < Constant.MIN_RESIZED_IMAGE_SIZE || resizedFile.getSize() > Constant.MAX_FILE_SIZE) {
-            test.setIs_image_test_passed(false);
-            entityManager.merge(test);
-            throw new IllegalArgumentException("Resized image size should be between " + minImageSize + " and " + maxImageSize);
-        }
+        documentStorageService.validateDocument(resizedFile,documentType);
 
         // Validate the image size using saveDocuments method logic
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(resizedFile, "Resized Images", serviceProviderId, "SERVICE_PROVIDER");
@@ -339,15 +350,12 @@ public class ServiceProviderTestService {
             throw new EntityNotFoundException("Test not found with id: " + testId);
         }
 
-        if(!isValidPdfFormat(pdfFile.getBytes()))
+        DocumentType documentType= entityManager.find(DocumentType.class,Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        if(documentType==null)
         {
-            throw new IllegalArgumentException("Invalid file type. It should be a pdf file");
+            throw new IllegalArgumentException("The requirements not found in DB for pdf which would be uploaded by Service provider to give skill test");
         }
-
-        // Validate pdf size
-        if (pdfFile.getSize() < Constant.MIN_PDF_SIZE || pdfFile.getSize() > Constant.MAX_PDF_SIZE) {
-            throw new IllegalArgumentException("Pdf size should be between " + minPdfSize + " and " + maxPdfSize);
-        }
+        documentStorageService.validateDocument(pdfFile,documentType);
 
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(pdfFile, "Uploaded_Pdf_Files", serviceProviderId, "SERVICE_PROVIDER");
         Map<String, Object> responseBody = savedResponse.getBody();
@@ -487,21 +495,16 @@ public class ServiceProviderTestService {
             throw new IllegalArgumentException("Either resized image,pdf or typing text is not submitted yet. Submit them along with signature image to complete the test");
         }
 
-        // Check the MIME type of the file
-        if(!documentStorageService.isValidFileType(signatureFile))
+        DocumentType documentType= entityManager.find(DocumentType.class,Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        if(documentType==null)
         {
-            throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
+            throw new IllegalArgumentException("The requirements not found in DB for Signature image which would be uploaded by Service provider to give skill test");
         }
-
+        targetWidth= documentType.getMax_width_dimension_in_mm();
+        targetHeight=documentType.getMax_height_dimension_in_mm();
+        documentStorageService.validateDocument(signatureFile,documentType);
         validateImageDimension(signatureFile.getBytes(), targetWidth, targetHeight, tolerance);
 
-        // Validate image size
-        if (signatureFile.getSize() < Constant.MIN_SIGNATURE_IMAGE_SIZE || signatureFile.getSize() > Constant.MAX_SIGNATURE_IMAGE_SIZE) {
-            test.setIs_image_test_passed(false);
-            entityManager.merge(test);
-
-            throw new IllegalArgumentException("Signature image size should be between " + minSignatureImageSize + " and " + maxSignatureImageSize);
-        }
         // Use the saveDocuments method to validate and store the signature image
         ResponseEntity<Map<String, Object>> savedResponse = documentStorageService.saveDocuments(signatureFile, "Signature Image", serviceProviderId, "SERVICE_PROVIDER");
         Map<String, Object> responseBody = savedResponse.getBody();
@@ -558,7 +561,7 @@ public class ServiceProviderTestService {
         return response;
     }
 
-    public void validateImageDimension(byte[] signatureImageData, float targetWidth, float targetHeight, float tolerance) {
+    public void validateImageDimension(byte[] signatureImageData, double targetWidth, double targetHeight, float tolerance) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
             if (image == null) {
@@ -664,12 +667,12 @@ public class ServiceProviderTestService {
         completedTestMap.put("resizedImageUrl",resizedImageUrl);
         completedTestMap.put("signatureImageUrl",signatureImageUrl);
         completedTestMap.put("uploadedPdfUrl",pdfUrl);
-        completedTestMap.put("minResizedImageSize",minImageSize);
-        completedTestMap.put("maxResizedImageSize",maxImageSize);
-        completedTestMap.put("minSignatureImageSize",minSignatureImageSize);
-        completedTestMap.put("maxSignatureImageSize",maxSignatureImageSize);
-        completedTestMap.put("minPdfSize",minPdfSize);
-        completedTestMap.put("maxPdfSize",maxPdfSize);
+        completedTestMap.put("minResizedImageSize",resizedImageDocumentType.getMin_document_size());
+        completedTestMap.put("maxResizedImageSize",resizedImageDocumentType.getMax_document_size());
+        completedTestMap.put("minSignatureImageSize",signatureImageDocumentType.getMin_document_size());
+        completedTestMap.put("maxSignatureImageSize",signatureImageDocumentType.getMax_document_size());
+        completedTestMap.put("minPdfSize",pdfDocumentType.getMin_document_size());
+        completedTestMap.put("maxPdfSize",pdfDocumentType.getMax_document_size());
         completedTestMap.put("requiredSignatureImageWidth",targetWidth);
         completedTestMap.put("requiredSignatureImageHeight",targetHeight);
         completedTestMap.put("uploadedResizedImage",serviceProviderTestToReturn.getResized_image());
@@ -791,7 +794,7 @@ public class ServiceProviderTestService {
     private Image getRandomImageByTypeId(int typeId) {
         // Count images with the given type ID
         Long count = (Long) entityManager.createQuery(
-                        "SELECT COUNT(i) FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId")
+                        "SELECT COUNT(i) FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
                 .setParameter("typeId", typeId)
                 .getSingleResult();
 
@@ -811,7 +814,7 @@ public class ServiceProviderTestService {
 
     private String getRandomTypingText() {
         // Fetch a random TypingText entity from the database
-        long count = (long) entityManager.createQuery("SELECT COUNT(t) FROM TypingText t").getSingleResult();
+        long count = (long) entityManager.createQuery( "SELECT COUNT(t) FROM TypingText t WHERE t.archived = false").getSingleResult();
         if (count == 0) {
             throw new EntityNotFoundException("No typing texts available");
         }
@@ -900,15 +903,6 @@ public class ServiceProviderTestService {
         return Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
     }
 
-    public static boolean isValidPdfFormat(byte[] pdfData) {
-        if (pdfData == null || pdfData.length < 4) {
-            return false;
-        }
-//         Check for the PDF signature (starts with "%PDF" in ASCII)
-        String pdfSignature = new String(pdfData, 0, 4);
-        return pdfSignature.equals("%PDF");
-    }
-
     public ServiceProviderRank assignRankingForProfessional(Integer totalScore) {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
@@ -957,6 +951,16 @@ public class ServiceProviderTestService {
             exceptionHandlingImplement.handleException(e);
         }
         return null;
+    }
+
+    public DocumentType getDocumentType(Integer documentTypeId)
+    {
+        DocumentType documentType= entityManager.find(DocumentType.class,documentTypeId);
+        if(documentType==null)
+        {
+            throw new IllegalArgumentException("The requirements not found in DB for image/pdf");
+        }
+        return documentType;
     }
 }
 

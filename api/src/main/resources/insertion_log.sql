@@ -2035,43 +2035,49 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
 --    END IF;
 --
 --    -- Check and insert into custom_document table
---   IF NOT EXISTS (SELECT 1 FROM custom_document LIMIT 1)THEN
---             INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,
---                 is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order)
---             VALUES
---            (1, 'Aadhaar_Card_Front', 'Front side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 2),
---            (2, 'Pan_Card', 'A permanent account number card for tax purposes in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 4),
---            (3, 'Live_Passport_Size_Photo', 'A live photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 5),
---            (4, 'Signature', 'A handwritten sign used to authenticate documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 1),
---            (5, 'Ews_Certificate', 'Certificate for individuals and families below a certain income threshold to access various benefits and concessions.', '300KB', '200KB', FALSE, TRUE, FALSE, 29),
---            (6, 'Caste_Certificate', 'Certifies an individuals caste for reservations and benefits in education and employment.', '300KB', '200KB', FALSE, TRUE, FALSE, 6),
---            (7, 'Address_Certificate', 'Verifies an individuals residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26),
---            (8, 'Income_Certificate', 'Confirms an individuals or family annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27),
---            (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28),
---            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, TRUE, FALSE, 9),
---            (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities, person with a disability is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10),
---            (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25),
---            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '500KB', '50KB', FALSE, FALSE, FALSE, 1000),
---            (14, 'C_Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24),
---            (15, 'Ex_Service_Men', 'Ex Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11),
---            (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23),
---            (17, 'Personal_Photo', 'A Personal Photograph of SP.', '200KB', '100KB', FALSE, FALSE, FALSE, 0),
---            (18, 'NCC_Certificate_A', 'Ncc CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 12),
---            (19, 'NCC_Certificate_B', 'NCC CERTIFICATE B', '500KB', '100KB', FALSE, FALSE, FALSE, 13),
---            (20, 'NCC_Certificate_C', 'NCC CERTIFICATE C', '500KB', '100KB', FALSE, FALSE, FALSE, 14),
---            (21, 'NSS_Certificate_A', 'NSS CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 15),
---            (22, 'Sports_Certificate_State', 'SPORTS CERTIFICATE FOR STATE LEVEL', '200KB', '100KB', FALSE, FALSE, FALSE, 18),
---            (23, 'Sports_Certificate_Centre', 'SPORTS CERTIFICATE FOR CENTRE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 19),
---            (24, 'Aadhaar_Card_Backside', 'Back side of a government issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 3),
---            (25, 'Left_Thumb_Impression', 'The left thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 20),
---            (26, 'Right_Thumb_Impression', 'The right thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 21),
---            (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22),
---            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', TRUE, TRUE, TRUE, 16),
---            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', TRUE, FALSE, FALSE, 17),
---            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, TRUE, FALSE,7),
---            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8),
---            (32, 'Ticket_Document', 'Ticket Document', '5MB', '5KB', FALSE, FALSE, FALSE, 30);
---    END IF;
+   IF NOT EXISTS (SELECT 1 FROM custom_document LIMIT 1)THEN
+             INSERT INTO custom_document (document_type_id, document_type_name, description, max_document_size, min_document_size,
+                 is_qualification_document, is_issue_date_required, is_expiration_date_required, sort_order,min_width_dimension_in_mm,max_width_dimension_in_mm,min_height_dimension_in_mm,max_height_dimension_in_mm)
+             VALUES
+            (1, 'Aadhaar_Card_Front', 'Front side of a government-issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 2,NULL,NULL,NULL,NULL),
+            (2, 'Pan_Card', 'A permanent account number card for tax purposes in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 4,NULL,NULL,NULL,NULL),
+            (3, 'Live_Passport_Size_Photo', 'A live photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 5,NULL,NULL,NULL,NULL),
+            (4, 'Signature', 'A handwritten sign used to authenticate documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 1,NULL,NULL,NULL,NULL),
+            (5, 'Ews_Certificate', 'Certificate for individuals and families below a certain income threshold to access various benefits and concessions.', '300KB', '200KB', FALSE, FALSE, FALSE, 29,NULL,NULL,NULL,NULL),
+            (6, 'Caste_Certificate', 'Certifies an individuals caste for reservations and benefits in education and employment.', '300KB', '200KB', FALSE, FALSE, FALSE, 6,NULL,NULL,NULL,NULL),
+            (7, 'Address_Certificate', 'Verifies an individuals residential address for identity verification and other purposes.', '500KB', '100KB', FALSE, FALSE, FALSE, 26,NULL,NULL,NULL,NULL),
+            (8, 'Income_Certificate', 'Confirms an individuals or family annual income for applying for government benefits and financial assistance.', '500KB', '100KB', FALSE, FALSE, FALSE, 27,NULL,NULL,NULL,NULL),
+            (9, 'Driving_License', 'Authorizes an individual to operate motor vehicles, confirming knowledge of traffic laws and vehicle operation skills.', '200KB', '100KB', FALSE, FALSE, FALSE, 28,NULL,NULL,NULL,NULL),
+            (10, 'Domicile', 'The permanent home or principal residence of a person.', '300KB', '200KB', FALSE, FALSE, FALSE, 9,NULL,NULL,NULL,NULL),
+            (11, 'Disability_Certificate', 'An outdated term for individuals with physical or mental disabilities, person with a disability is preferred today.', '300KB', '200KB', FALSE, FALSE, FALSE, 10,NULL,NULL,NULL,NULL),
+            (12, 'Mark_Sheet', 'Mark sheet of Qualification.', '300KB', '200KB', TRUE, FALSE, FALSE, 25,NULL,NULL,NULL,NULL),
+            (13, 'Others', 'Includes other document types not listed above, tailored to specific needs or contexts.', '500KB', '50KB', FALSE, FALSE, FALSE, 1000,NULL,NULL,NULL,NULL),
+            (14, 'C_Form_Photo', 'A C Form photo is a standardized ID photo for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 24,NULL,NULL,NULL,NULL),
+            (15, 'Ex_Service_Men', 'Ex Service Men document is required for individuals who have previously worked in the organization and are now no longer employed.', '300KB', '200KB', FALSE, FALSE, FALSE, 11,NULL,NULL,NULL,NULL),
+            (16, 'Business_Photo', 'A Standard proof of Running Business.', '200KB', '100KB', FALSE, FALSE, FALSE, 23,NULL,NULL,NULL,NULL),
+            (17, 'Personal_Photo', 'A Personal Photograph of SP.', '200KB', '100KB', FALSE, FALSE, FALSE, 0,NULL,NULL,NULL,NULL),
+            (18, 'NCC_Certificate_A', 'Ncc CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 12,NULL,NULL,NULL,NULL),
+            (19, 'NCC_Certificate_B', 'NCC CERTIFICATE B', '500KB', '100KB', FALSE, FALSE, FALSE, 13,NULL,NULL,NULL,NULL),
+            (20, 'NCC_Certificate_C', 'NCC CERTIFICATE C', '500KB', '100KB', FALSE, FALSE, FALSE, 14,NULL,NULL,NULL,NULL),
+            (21, 'NSS_Certificate_A', 'NSS CERTIFICATE A', '500KB', '100KB', FALSE, FALSE, FALSE, 15,NULL,NULL,NULL,NULL),
+            (22, 'Sports_Certificate_State', 'SPORTS CERTIFICATE FOR STATE LEVEL', '200KB', '100KB', FALSE, FALSE, FALSE, 18,NULL,NULL,NULL,NULL),
+            (23, 'Sports_Certificate_Centre', 'SPORTS CERTIFICATE FOR CENTRE LEVEL.', '200KB', '100KB', FALSE, FALSE, FALSE, 19,NULL,NULL,NULL,NULL),
+            (24, 'Aadhaar_Card_Backside', 'Back side of a government issued ID card in India.', '200KB', '100KB', FALSE, FALSE, FALSE, 3,NULL,NULL,NULL,NULL),
+            (25, 'Left_Thumb_Impression', 'The left thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 20,NULL,NULL,NULL,NULL),
+            (26, 'Right_Thumb_Impression', 'The right thumb impression of the individual typically required for identity verification in official documents.', '100KB', '50KB', FALSE, FALSE, FALSE, 21,NULL,NULL,NULL,NULL),
+            (27, 'White_Background_Passport_Size_Photo', 'A white background passport size photo typically used for official documents.', '200KB', '100KB', FALSE, FALSE, FALSE, 22,NULL,NULL,NULL,NULL),
+            (28, 'NSS_Certificate_B', 'NSS CERTIFICATE B', '500KB', '100KB', FALSE, FALSE, FALSE, 16,NULL,NULL,NULL,NULL),
+            (29, 'NSS_Certificate_C', 'NSS CERTIFICATE C', '500KB', '100KB', FALSE, FALSE, FALSE, 17,NULL,NULL,NULL,NULL),
+            (30, 'Other_State_Category', 'Other or State Category which is not present in master list', '300KB', '200KB', FALSE, FALSE, FALSE,7,NULL,NULL,NULL,NULL),
+            (31, 'Minority_Certificate', 'Minority Certificate', '300KB', '200KB', FALSE, FALSE, FALSE,8,NULL,NULL,NULL,NULL),
+            (32, 'Ticket_Document', 'Ticket Document', '5MB', '5KB', FALSE, FALSE, FALSE, 30,NULL,NULL,NULL,NULL),
+            (33, 'Random_Resized_Image','A Random image which will be downloaded by Service Provider to give the skill test','1MB','101KB',FALSE,FALSE,FALSE,31,30.0,40.0,40.0,50.0),
+            (34, 'Random_Pdf_Image','A dummy image for pdf which the service provider needs to download','1MB','101KB',FALSE,FALSE,FALSE,32,NULL,NULL,NULL,NULL),
+            (35, 'Random_Signature_Image','A dummy image for signature which the service provider needs to download','350KB','300KB',FALSE,FALSE,FALSE,33,NULL,NULL,NULL,NULL),
+            (36, 'Resized_Image','A resized image which service provider uploads to give skill test','100KB','50KB',FALSE,FALSE,FALSE,34,NULL,NULL,NULL,NULL),
+            (37, 'Pdf','A pdf which service provider uploads to give skill test','300KB','100KB',FALSE,FALSE,FALSE,35,NULL,NULL,NULL,NULL),
+            (38, 'Signature_Image','Signature image which service provider uploads to give skill test','50KB','30KB',FALSE,FALSE,FALSE,36,60.0,60.0,30.0,30.0);
+    END IF;
 --
     -- Check and insert into file_type_name table
     IF NOT EXISTS (SELECT 1 FROM filetype) THEN

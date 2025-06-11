@@ -37,7 +37,7 @@ public class Image {
 
     @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     @JsonProperty("archived")
-    protected Boolean archived;
+    protected Boolean archived=false;
 
     @ManyToOne
     @JoinColumn(name = "random_image_type_id", referencedColumnName = "random_image_type_id")

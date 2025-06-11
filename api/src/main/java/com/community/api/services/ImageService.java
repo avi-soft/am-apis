@@ -5,6 +5,7 @@ import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.entity.Image;
 import com.community.api.entity.RandomImageType;
 import com.community.api.entity.TypingText;
+import com.community.api.utils.DocumentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,27 +30,15 @@ import static com.community.api.services.DocumentStorageService.isValidFileType;
 import static com.community.api.services.ServiceProviderTestService.areImagesVisuallyIdentical;
 
 @Service
-    public class ImageService {
-        @Autowired
-        private EntityManager entityManager;
-        @Autowired
-        private DocumentStorageService fileUploadService;
-
-        public ImageService(EntityManager entityManager) {
-            this.entityManager = entityManager;
-        }
-
-    // Millimeter dimensions (standard passport photo sizes)
-    public static double PASSPORT_MIN_WIDTH_MM = 32.0;  // Minimum width in mm
-    public static double PASSPORT_MAX_WIDTH_MM = 40.0;  // Maximum width in mm
-    public static double PASSPORT_MIN_HEIGHT_MM = 40.0; // Minimum height in mm
-    public static double PASSPORT_MAX_HEIGHT_MM = 50.0; // Maximum height in mm
-
-    // Aspect ratio validation (height/width)
-    public static final double PASSPORT_MIN_ASPECT_RATIO = 1.15;
-    public static final double PASSPORT_MAX_ASPECT_RATIO = 1.35;
-
-    public static final int DEFAULT_DPI = 300;
+public class ImageService {
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private DocumentStorageService documentStorageService;
+    public ImageService(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+    public static final double DEFAULT_DPI = 300.0;
 
     @Transactional
     public Image saveImage(MultipartFile file, Integer randomImageTypeId) throws Exception {
@@ -67,20 +56,19 @@ import static com.community.api.services.ServiceProviderTestService.areImagesVis
             throw new IllegalArgumentException("No randomImage type exists with id " + randomImageTypeId);
         }
 
-        if (!isValidFileType(file)) {
-            throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
-        }
+        DocumentType documentType= differentiateRandomType(randomImageTypeId);
+        documentStorageService.validateDocument(file,documentType);
 
         long fileSize = file.getSize();
 
         if (needsPassportValidation(randomImageTypeId)) {
-            validatePassportSizeDimensionsUltraFast(file);
+            validatePassportSizeDimensionsUltraFast(file,documentType);
         }
-        validateFileSize(fileSize, randomImageTypeId);
+//        validateFileSize(fileSize, randomImageTypeId);
 
         byte[] fileBytes = file.getBytes();
 
-        fileUploadService.uploadFileOnFileServer(file, "Random_Images", "Random", "SERVICE_PROVIDER");
+        documentStorageService.uploadFileOnFileServer(file, "Random_Images", "Random", "SERVICE_PROVIDER");
         String dbPath = "avisoftdocument/SERVICE_PROVIDER/Random/Random_Images" + File.separator + file.getOriginalFilename();
 
         Image image = new Image();
@@ -95,7 +83,7 @@ import static com.community.api.services.ServiceProviderTestService.areImagesVis
         return image;
     }
 
-    private void validatePassportSizeDimensionsUltraFast(MultipartFile file) throws Exception {
+    private void validatePassportSizeDimensionsUltraFast(MultipartFile file,DocumentType documentType) throws Exception {
         try (ImageInputStream iis = ImageIO.createImageInputStream(file.getInputStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
 
@@ -111,13 +99,15 @@ import static com.community.api.services.ServiceProviderTestService.areImagesVis
             int heightPx = reader.getHeight(0);
             reader.dispose();
 
-            // Fast mm conversion (300 DPI assumed)
-            double widthMm =  ((widthPx * 25.4) / 300.0);
-            double heightMm = ((heightPx * 25.4) / 300.0);
+            double widthMm =  ((widthPx * 25.4) / DEFAULT_DPI);
+            double heightMm = ((heightPx * 25.4) / DEFAULT_DPI);
 
            widthMm= ((int) widthMm);
            heightMm= ((int) heightMm);
-
+            double PASSPORT_MIN_WIDTH_MM = documentType.getMin_width_dimension_in_mm();
+            double PASSPORT_MAX_WIDTH_MM = documentType.getMax_width_dimension_in_mm();
+            double PASSPORT_MIN_HEIGHT_MM = documentType.getMin_height_dimension_in_mm();
+            double PASSPORT_MAX_HEIGHT_MM = documentType.getMax_height_dimension_in_mm();
             // Quick validation
             if (widthMm < PASSPORT_MIN_WIDTH_MM || widthMm > PASSPORT_MAX_WIDTH_MM || heightMm < PASSPORT_MIN_HEIGHT_MM || heightMm > PASSPORT_MAX_HEIGHT_MM || heightMm <= widthMm) {
                 throw new IllegalArgumentException(
@@ -134,34 +124,37 @@ import static com.community.api.services.ServiceProviderTestService.areImagesVis
         }
     }
 
-    private void validateFileSize(long fileSize, Integer randomImageTypeId) {
-        switch (randomImageTypeId) {
+    private DocumentType differentiateRandomType(Integer randomImageTypeId)
+    {
+        DocumentType documentType=null;
+        switch (randomImageTypeId){
             case 1:
-                if (fileSize < Constant.RANDOM_RESIZED_MIN_FILE_SIZE || fileSize> Constant.RANDOM_RESIZED_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
+                 documentType= entityManager.find(DocumentType.class,Constant.RANDOM_RESIZED_DOCUMENT_TYPE_ID);
+                if(documentType==null)
+                {
+                    throw new IllegalArgumentException("The requirements not found in DB for Random Resize image");
                 }
                 break;
+
             case 2:
-                if (fileSize< Constant.RANDOM_PDF_MIN_FILE_SIZE || fileSize> Constant.RANDOM_PDF_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be below " +   minImageSize + " and " + maxImageSize);
+                 documentType= entityManager.find(DocumentType.class,Constant.RANDOM_PDF_DOCUMENT_TYPE_ID);
+                if(documentType==null)
+                {
+                    throw new IllegalArgumentException("The requirements not found in DB for Random PDF image");
                 }
                 break;
             case 3:
-                if (fileSize< Constant.RANDOM_SIGN_MIN_FILE_SIZE ||fileSize> Constant.RANDOM_SIGN_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be below " +  minImageSize + " and " + maxImageSize);
+                 documentType= entityManager.find(DocumentType.class,Constant.RANDOM_SIGNATURE_DOCUMENT_TYPE_ID);
+                if(documentType==null)
+                {
+                    throw new IllegalArgumentException("The requirements not found in DB for Random Signature image");
                 }
-                break;
         }
+        return documentType;
     }
 
     private boolean needsPassportValidation(Integer randomImageTypeId) {
-        return randomImageTypeId.equals(1)|| randomImageTypeId.equals(2);
+        return randomImageTypeId.equals(1);
     }
 
     public void checkForDuplicateImageFast(byte[] uploadImageData, String filename) throws IllegalArgumentException {
