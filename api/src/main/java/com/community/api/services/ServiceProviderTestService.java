@@ -28,6 +28,9 @@ import javax.persistence.EntityNotFoundException;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.awt.image.BufferedImage;
@@ -71,34 +74,11 @@ public class ServiceProviderTestService {
 
     @PostConstruct
     private void initializeDocumentTypes() {
-        try {
-            if (doesTableExist("custom_document")) {
-                this.resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-                this.pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-                this.signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-                this.targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-                this.targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-                System.out.println("DocumentTypes initialized successfully");
-            }
-        } catch (Exception e) {
-            System.err.println("Error during DocumentType initialization: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Check if a table exists in the database
-     */
-    private boolean doesTableExist(String tableName) {
-        try {
-            // Using native SQL query to check table existence
-            String sql = "SELECT 1 FROM " + tableName + " LIMIT 1";
-            entityManager.createNativeQuery(sql).setMaxResults(1).getResultList();
-            return true;
-        } catch (Exception e) {
-            // Table doesn't exist or query failed
-            System.out.println("Table '" + tableName + "' does not exist or is not accessible");
-            return false;
-        }
+        this.resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        this.pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        this.signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        this.targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        this.targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
     }
 
     @Transactional

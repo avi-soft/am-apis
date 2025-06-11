@@ -119,7 +119,7 @@ public class DocumentEndpoint {
             return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error updating university status", HttpStatus.INTERNAL_SERVER_ERROR);
+            return responseService.generateErrorResponse("Error updating document-type status", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
