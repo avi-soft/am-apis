@@ -145,7 +145,9 @@ public class ServiceProviderController {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if (serviceProvider.getRole() != roleId || !Objects.equals(tokenUserId, userId))
+            Role role = roleService.getRoleByRoleId(roleId);
+
+            if (role.getRole_name().equals(Constant.SERVICE_PROVIDER) && (serviceProvider.getRole() != roleId || !Objects.equals(tokenUserId, userId)))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             if (serviceProvider.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
