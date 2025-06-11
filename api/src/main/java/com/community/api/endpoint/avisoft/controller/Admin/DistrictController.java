@@ -124,4 +124,5 @@ public class DistrictController {
             return responseService.generateErrorResponse("Cannot archive district : "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }
