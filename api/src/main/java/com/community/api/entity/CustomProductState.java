@@ -9,13 +9,14 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "custom_product_state")
-public class CustomProductState {
+public class CustomProductState implements Serializable {
 
     @Id
     @Column(name = "product_state_id")
