@@ -20,4 +20,6 @@ public class StateCode {
     private String state_code;
     @Column(columnDefinition ="BOOLEAN DEFAULT FALSE")
     private Boolean archived;
+    @Column(columnDefinition ="BOOLEAN DEFAULT TRUE")
+    private Boolean isState;
 }

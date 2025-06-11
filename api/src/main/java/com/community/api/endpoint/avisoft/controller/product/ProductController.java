@@ -40,6 +40,7 @@ import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefServic
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.SharedUtilityService;
 import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
@@ -89,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.community.api.component.Constant.*;
+import static com.mchange.v2.ser.SerializableUtils.deepCopy;
 
     /*
 
@@ -126,6 +128,9 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     DistrictService districtService;
+
+    @Autowired
+    SharedUtilityService sharedUtilityService;
 
     @Value("${origin.url}")
     private String origin;
@@ -382,6 +387,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            CustomProduct originalProduct = (CustomProduct) deepCopy(customProduct); // Deep clone before mutation
             Product product = catalogService.findProductById(customProduct.getId());
 
             if (customProduct == null) {
@@ -543,6 +549,8 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
+List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
+            System.out.println(diff);
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
@@ -551,6 +559,8 @@ public class ProductController extends CatalogEndpoint {
             Boolean communicate=true;
             Long id = (Long) query.getSingleResult();
             ProductEvents productEvents=null;
+
+
             if(id==null) {
                 productEvents = new ProductEvents();
                 productEvents.setLastUpdate(LocalDateTime.now());
@@ -581,6 +591,7 @@ public class ProductController extends CatalogEndpoint {
                 communicationRequest.setContentText(
                         "Hello,\n\n" +
                                 "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                                "Changes: " +diff.toString()+ "\n\n" +
                                 "To view the latest changes, please visit:\n" +
                                 "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
                                 "Thank you,\n" +
