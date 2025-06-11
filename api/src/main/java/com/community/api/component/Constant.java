@@ -29,6 +29,7 @@ public class Constant {
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=false ORDER BY dt.sort_order ASC";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = false";
+    public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = false";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
@@ -87,6 +88,7 @@ public class Constant {
     public static String GET_DOCUMENT_TYPE_COUNT="SELECT COUNT(*) FROM DocumentType";
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
+    public static String GET_FILE_TYPE_COUNT = "SELECT COUNT(*) FROM FileType";
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
     public static String CANNOT_ADD_MORE_THAN_ONE_FORM="You can only add one of this form. Please choose a different form if you need more";
