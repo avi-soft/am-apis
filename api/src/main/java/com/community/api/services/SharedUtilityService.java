@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.codec.binary.Hex;
 
@@ -46,6 +47,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -2013,7 +2015,30 @@ public class SharedUtilityService {
         }
         return null;
     }
+    public  List<String> getDifferences(Object before, Object after) {
+        if (before == null || after == null || !before.getClass().equals(after.getClass())) {
+            throw new IllegalArgumentException("Both objects must be non-null and of the same type");
+        }
 
+        List<String> differences = new ArrayList<>();
+        Class<?> clazz = before.getClass();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true); // Allows access to private fields
+            try {
+                Object beforeValue = field.get(before);
+                Object afterValue = field.get(after);
+
+                if (!Objects.equals(beforeValue, afterValue)) {
+                    differences.add(field.getName());
+                }
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Unable to access field: " + field.getName(), e);
+            }
+        }
+
+        return differences;
+    }
 
 
 }

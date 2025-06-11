@@ -27,6 +27,8 @@ public class ZoneDivisionService {
         if(zoneId==null)
             throw new IllegalArgumentException("Zone id is compulsory");
         Zone zone=entityManager.find(Zone.class,zoneId);
+        if(zone.getArchived())
+            throw new NotFoundException("Zone is archived");
         if(zone==null)
             throw new NotFoundException("Invalid zone selected");
         Query query =entityManager.createNativeQuery(Constant.GET_DIVISION_BY_ZONE);
@@ -74,9 +76,10 @@ public class ZoneDivisionService {
         return divisionIds;
     }
   
-    public List<Zone>getAllZones()
+    public List<Zone>getAllZones(Boolean archived)
     {
         Query query=entityManager.createQuery(Constant.GET_ALL_ZONES, Zone.class);
+        query.setParameter("archived",archived);
         return query.getResultList();
     }
     public Zone findDivisionsLinkedZone(Integer divisionId) throws NotFoundException {
