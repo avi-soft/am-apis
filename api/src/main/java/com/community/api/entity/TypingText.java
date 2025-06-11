@@ -1,5 +1,6 @@
 package com.community.api.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,8 @@ public class TypingText
 
     @Column(name = "text",nullable = false, columnDefinition = "TEXT")
     private String text;
+
+    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("archived")
+    protected Boolean archived;
 }
