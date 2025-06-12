@@ -15,6 +15,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
@@ -22,7 +23,7 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Advertisement {
+public class Advertisement implements Serializable {
 
     /*  NEED TO REVIEW THIS AS WE COULD ALSO USE THE BROADLEAF SEQUENCE FOR PRIMARY KEY.
 

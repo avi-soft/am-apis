@@ -12,7 +12,11 @@ import com.community.api.entity.*;
 import com.community.api.services.*;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
+import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.ServiceProviderDocument;
+import com.mchange.rmi.NotAuthorizedException;
+import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.order.service.OrderService;
 
 import org.broadleafcommerce.profile.core.service.CustomerService;
@@ -48,13 +52,19 @@ import static com.community.api.component.Constant.CURRENT_ADDRESS_ID;
 import static com.community.api.component.Constant.PERMANENT_ADDRESS_ID;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
+@Slf4j
 @RestController
 @RequestMapping("/service-providers")
 public class ServiceProviderController {
 
     @Autowired
+    CustomerEndpoint customerEndpoint;
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
+    @Autowired
+    QualificationService qualificationService;
+    @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
-
     @Autowired
     private BankAccountService bankAccountService;
     @Autowired
@@ -65,8 +75,6 @@ public class ServiceProviderController {
     private String accountSid;
     @Value("${twilio.authToken}")
     private String authToken;
-    @Autowired
-    CustomerEndpoint customerEndpoint;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -97,17 +105,12 @@ public class ServiceProviderController {
     private RoleService roleService;
     @Autowired
     private PrivilegeService privilegeService;
-
     private StatusChangeEmailService statusChangeEmailService;
 
     @Autowired
     public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
         this.statusChangeEmailService = statusChangeEmailService;
     }
-
-
-    @Autowired
-    QualificationService qualificationService;
     /*@Autowired
     private DummyAssignerService dummyAssignerService;*/
 
@@ -134,7 +137,7 @@ public class ServiceProviderController {
 
     @Transactional
     @PutMapping("save-service-provider")
-    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
+    public ResponseEntity<?> updateServiceProvider(@RequestParam Long userId, @RequestBody Map<String, Object> serviceProviderDetails, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (serviceProvider == null)
@@ -142,11 +145,13 @@ public class ServiceProviderController {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if(serviceProvider.getRole()!=roleId || !Objects.equals(tokenUserId,userId ))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            Role role = roleService.getRoleByRoleId(roleId);
+
+            if (role.getRole_name().equals(Constant.SERVICE_PROVIDER) && (serviceProvider.getRole() != roleId || !Objects.equals(tokenUserId, userId)))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             if (serviceProvider.getIsArchived().equals(true))
                 return ResponseService.generateErrorResponse("SP is archived", HttpStatus.NOT_FOUND);
-            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails,authHeader);
+            return serviceProviderService.updateServiceProvider(userId, serviceProviderDetails, authHeader);
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -603,8 +608,8 @@ public class ServiceProviderController {
             Role roleName = roleService.getRoleByRoleId(roleId);
             System.out.println("ticketId" + ticketId);
             Map<String, String[]> uri = request.getParameterMap();
-            if(role!=null&&(role<=roleId&&roleId!=5))
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
+            if (role != null && (role <= roleId && roleId != 5))
+                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             System.out.println("bypassed");
 
             // Validate input
@@ -649,7 +654,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)  serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -675,8 +680,7 @@ public class ServiceProviderController {
 
 
             if (user_name != null && !user_name.isEmpty()) {
-
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>)   serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected,user_name,qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -720,7 +724,6 @@ public class ServiceProviderController {
             }
 
 
-
                 // First call with the provided order of first_name and last_name
                 ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
 
@@ -753,24 +756,26 @@ public class ServiceProviderController {
 
                 List<Map<String, Object>> paginatedList = finalList.subList(fromIndex, toIndex);
 
-                // Construct response
-                Map<String, Object> response = new HashMap<>();
-                Map<Integer, String> resp = new HashMap<>();
-                resp.put(1, "Super Admins");
-                resp.put(0, "All users");
-                resp.put(2, "Admins");
-                resp.put(3, "Service Provider Admins");
-                resp.put(4, "Service Providers");
-                if (role == null)
-                    role = 0;
-                response.put("response", paginatedList);
-                response.put("totalItems", totalItems);
-                response.put("totalPages", totalPages);
-                response.put("currentPage", currentPage);
-                if (fromIndex >= totalItems) {
-                    return ResponseService.generateSuccessResponse("No " + resp.get(role) + " Found", response, HttpStatus.OK);
-                }
-                return ResponseService.generateSuccessResponse(resp.get(role), response, HttpStatus.OK);
+
+            // Construct response
+            Map<String, Object> response = new HashMap<>();
+            Map<Integer, String> resp = new HashMap<>();
+            resp.put(1, "Super Admins");
+            resp.put(0, "All users");
+            resp.put(2, "Admins");
+            resp.put(3, "Service Provider Admins");
+            resp.put(4, "Service Providers");
+            if (role == null)
+                role = 0;
+            response.put("response", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", currentPage);
+            if (fromIndex >= totalItems) {
+                return ResponseService.generateSuccessResponse("No " + resp.get(role) + " Found", response, HttpStatus.OK);
+            }
+            return ResponseService.generateSuccessResponse(resp.get(role), response, HttpStatus.OK);
+
         } catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -883,48 +888,49 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Some issue in fetching candidates: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
     @Transactional
     @PostMapping("/{serviceProviderId}/return-ticket/{ticketId}")
-    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long ticketId, @RequestBody CreateTicketDto createTicketDto,@RequestHeader(value = "Authorization")String authHeader) {
+    public ResponseEntity<?> orderRequestAction(@PathVariable Long serviceProviderId, @PathVariable Long ticketId, @RequestBody CreateTicketDto createTicketDto, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long tokenUserId=jwtTokenUtil.extractId(jwtToken);
-            Role role=roleService.getRoleByRoleId(roleId);
-            if(createTicketDto==null||createTicketDto.getTicketStatus()==null)
-                return ResponseService.generateErrorResponse("Return status is required",HttpStatus.BAD_REQUEST);
-            if(role.getRole_name().equals(Constant.roleUser)||((role.getRole_name().equals(Constant.roleServiceProvider)&& !Objects.equals(tokenUserId, serviceProviderId))))
-                return ResponseService.generateErrorResponse("FORBIDDEN",HttpStatus.FORBIDDEN);
-            CustomServiceProviderTicket ticket=entityManager.find(CustomServiceProviderTicket.class,ticketId);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role = roleService.getRoleByRoleId(roleId);
+            if (createTicketDto == null || createTicketDto.getTicketStatus() == null)
+                return ResponseService.generateErrorResponse("Return status is required", HttpStatus.BAD_REQUEST);
+            if (role.getRole_name().equals(Constant.roleUser) || ((role.getRole_name().equals(Constant.roleServiceProvider) && !Objects.equals(tokenUserId, serviceProviderId))))
+                return ResponseService.generateErrorResponse("FORBIDDEN", HttpStatus.FORBIDDEN);
+            CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
             if (ticket == null)
                 return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
-            if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
-                return ResponseService.generateErrorResponse("Ticket already returned",HttpStatus.BAD_REQUEST);
-            if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO))
-                return ResponseService.generateErrorResponse("Cannot return ticket after accepting",HttpStatus.BAD_REQUEST);
+            if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
+                return ResponseService.generateErrorResponse("Ticket already returned", HttpStatus.BAD_REQUEST);
+            if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO))
+                return ResponseService.generateErrorResponse("Cannot return ticket after accepting", HttpStatus.BAD_REQUEST);
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if (serviceProvider == null)
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             if (!ticket.getAssignee().equals(serviceProvider.getService_provider_id()))
                 return ResponseService.generateErrorResponse("Ticket does not belong to the specified SP,Check again", HttpStatus.BAD_REQUEST);
             if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED))
-                    return ResponseService.generateErrorResponse("Ticket already Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
-            CustomTicketStatus customTicketStatus=entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus());
-            if(!Arrays.asList(Constant.TICKET_STATUS_BDWL,Constant.TICKET_STATUS_OTHER).contains(createTicketDto.getTicketStatus())||customTicketStatus==null)
-                return ResponseService.generateErrorResponse("Invalid status selected",HttpStatus.BAD_REQUEST);
-            if(createTicketDto.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER)&&(createTicketDto.getComment()==null||createTicketDto.getComment().isEmpty()))
-                return ResponseService.generateErrorResponse("Comment is required",HttpStatus.BAD_REQUEST);
-            if(createTicketDto.getComment()==null)
-                createTicketDto.setComment("Returned by SP with ID :"+serviceProviderId);
+                return ResponseService.generateErrorResponse("Ticket already Returned ", HttpStatus.UNPROCESSABLE_ENTITY);
+            CustomTicketStatus customTicketStatus = entityManager.find(CustomTicketStatus.class, createTicketDto.getTicketStatus());
+            if (!Arrays.asList(Constant.TICKET_STATUS_BDWL, Constant.TICKET_STATUS_OTHER).contains(createTicketDto.getTicketStatus()) || customTicketStatus == null)
+                return ResponseService.generateErrorResponse("Invalid status selected", HttpStatus.BAD_REQUEST);
+            if (createTicketDto.getTicketStatus().equals(Constant.TICKET_STATUS_OTHER) && (createTicketDto.getComment() == null || createTicketDto.getComment().isEmpty()))
+                return ResponseService.generateErrorResponse("Comment is required", HttpStatus.BAD_REQUEST);
+            if (createTicketDto.getComment() == null)
+                createTicketDto.setComment("Returned by SP with ID :" + serviceProviderId);
             ticket.setAssignee(null);
             ticket.setAssigneeRole(null);
-            ticket.setTicketState(entityManager.find(CustomTicketState.class,Constant.TICKET_STATE_RETURNED));
-            ticket.setTicketStatus(entityManager.find(CustomTicketStatus.class,createTicketDto.getTicketStatus()));
+            ticket.setTicketState(entityManager.find(CustomTicketState.class, Constant.TICKET_STATE_RETURNED));
+            ticket.setTicketStatus(entityManager.find(CustomTicketStatus.class, createTicketDto.getTicketStatus()));
             ticket.getRejectedBy().add(serviceProviderId);
             ticket.setComment(createTicketDto.getComment());
             entityManager.merge(ticket);
-                return ResponseService.generateSuccessResponse("Ticket Returned", ticket, HttpStatus.OK);
-            } catch (Exception e) {
+            return ResponseService.generateSuccessResponse("Ticket Returned", ticket, HttpStatus.OK);
+        } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Some issue in returning ticket: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
@@ -1118,7 +1124,7 @@ public class ServiceProviderController {
         }
 
         if (!processedServiceProviders.isEmpty()) {
-           statusChangeEmailService.sendStatusChangeEmails(processedServiceProviders, action, authHeader);
+            statusChangeEmailService.sendStatusChangeEmails(processedServiceProviders, action, authHeader);
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -1135,21 +1141,21 @@ public class ServiceProviderController {
             return ResponseService.generateSuccessResponse("Action Partially Fulfilled", response, HttpStatus.OK);
         }
     }
+
     @Authorize(value = {Constant.roleSuperAdmin})
     @Transactional
     @PutMapping("{spId}/force-complete")
-    public ResponseEntity<?> completeSp(@PathVariable Long spId,@RequestHeader(value = "Authorization")String authHeader) throws Exception {
-        ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,spId);
-        if(serviceProvider==null)
-            return ResponseService.generateErrorResponse("User not found",HttpStatus.NOT_FOUND);
-        if(serviceProvider.getCompleted())
-            return ResponseService.generateErrorResponse("Profile already completed",HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> completeSp(@PathVariable Long spId, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, spId);
+        if (serviceProvider == null)
+            return ResponseService.generateErrorResponse("User not found", HttpStatus.NOT_FOUND);
+        if (serviceProvider.getCompleted())
+            return ResponseService.generateErrorResponse("Profile already completed", HttpStatus.BAD_REQUEST);
         serviceProvider.setCompleted(true);
         try {
             return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
-        }catch (Exception exception)
-        {
-            return ResponseService.generateErrorResponse("Could not complete profile due to an error",HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception exception) {
+            return ResponseService.generateErrorResponse("Could not complete profile due to an error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1157,7 +1163,7 @@ public class ServiceProviderController {
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
-    public ResponseEntity<?>returnAdmins(@RequestParam(defaultValue = "30",required = false)int limit,@RequestParam(defaultValue = "0",required = false)int page) throws Exception {
+    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "30", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
         Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);
@@ -1168,18 +1174,53 @@ public class ServiceProviderController {
 
         TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
         List<Map<String, Object>> res = new ArrayList<>();
-        for (ServiceProviderEntity serviceProvider:query.getResultList()) {
+        for (ServiceProviderEntity serviceProvider : query.getResultList()) {
             res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
         }
         int totalItems = query.getResultList().size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
         int fromIndex = page * limit;
         int toIndex = Math.min(fromIndex + limit, totalItems);
-        Map<String,Object>result=new HashMap<>();
-        result.put("totalItems",totalItems);
-        result.put("currentPage",page);
-        result.put("totalPages",totalPages);
-        result.put("Admins",res.subList(fromIndex,toIndex));
-        return ResponseService.generateSuccessResponse("Admins fetched successfully",res.subList(fromIndex,toIndex),HttpStatus.OK);
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalItems", totalItems);
+        result.put("currentPage", page);
+        result.put("totalPages", totalPages);
+        result.put("Admins", res.subList(fromIndex, toIndex));
+        return ResponseService.generateSuccessResponse("Admins fetched successfully", res.subList(fromIndex, toIndex), HttpStatus.OK);
     }
+
+    @Authorize(value = {Constant.roleSuperAdmin})
+    @GetMapping("re-ranking")
+    @Transactional
+    public ResponseEntity<?> reRankingOfServiceProvider() throws Exception {
+        try {
+            // Re-ranking of Service-Providers.
+
+            // Fetch all the service provider whom we have to re-rank.
+            List<ServiceProviderEntity> subsequentReRanking = new ArrayList<>();
+            List<ServiceProviderEntity> firstTimeReRanking = new ArrayList<>();
+
+            // FETCH ALL THE NEW SERVICE PROVIDERS WHOSE ADMIN OVERRIDDEN IS FALSE AND IS ELIGIBLE FOR RANKING IS NULL OR 0.
+            serviceProviderService.updateServiceProviderEligibilityForReRanking(subsequentReRanking, firstTimeReRanking);
+
+            log.info("Subsequent service provider for re-ranking: {}", subsequentReRanking.size());
+            log.info("First time re-ranking: {}", firstTimeReRanking.size());
+
+
+            return ResponseService.generateSuccessResponse("Re-ranking run successfully.", null, HttpStatus.OK);
+        } catch (NotFoundException notAuthorizedException) {
+            exceptionHandlingService.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (NotAuthorizedException notAuthorizedException) {
+            exceptionHandlingService.handleException(notAuthorizedException);
+            return ResponseService.generateErrorResponse(notAuthorizedException.getMessage(), HttpStatus.UNAUTHORIZED);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            return ResponseService.generateErrorResponse("Some Exception Occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

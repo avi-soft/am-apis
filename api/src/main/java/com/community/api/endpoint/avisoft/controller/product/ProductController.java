@@ -5,12 +5,14 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
+import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
+import com.community.api.entity.ProductEvents;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
@@ -38,6 +40,7 @@ import com.community.api.services.ProductReserveCategoryBornBeforeAfterRefServic
 import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.SharedUtilityService;
 import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
@@ -77,6 +80,9 @@ import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -84,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.community.api.component.Constant.*;
+import static com.mchange.v2.ser.SerializableUtils.deepCopy;
 
     /*
 
@@ -122,8 +129,14 @@ public class ProductController extends CatalogEndpoint {
     @Autowired
     DistrictService districtService;
 
+    @Autowired
+    SharedUtilityService sharedUtilityService;
+
     @Value("${origin.url}")
     private String origin;
+
+    @Autowired
+    private ServiceProviderActionController serviceProviderActionController;
 
     @Autowired
     private ReserveCategoryAgeService reserveCategoryAgeService;
@@ -375,6 +388,7 @@ public class ProductController extends CatalogEndpoint {
             }
 
             CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
+            CustomProduct originalProduct = (CustomProduct) deepCopy(customProduct); // Deep clone before mutation
             Product product = catalogService.findProductById(customProduct.getId());
 
             if (customProduct == null) {
@@ -536,10 +550,62 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
+List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
+            System.out.println(diff);
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
+            Query query=entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
+            query.setParameter("productId",productId);
+            Boolean communicate=true;
+            Long id = (Long) query.getSingleResult();
+            ProductEvents productEvents=null;
 
+
+            if(id==null) {
+                productEvents = new ProductEvents();
+                productEvents.setLastUpdate(LocalDateTime.now());
+                productEvents.setSummaryOfUpdate(null);
+                productEvents.setProductId(productId);
+
+            }
+            else
+            {
+                productEvents = entityManager.find(ProductEvents.class,id);
+                if(Duration.between(productEvents.getLastUpdate(),LocalDateTime.now()).toMinutes()>=10) {
+                    productEvents=new ProductEvents();
+                    productEvents.setLastUpdate(LocalDateTime.now());
+                    productEvents.setSummaryOfUpdate(null);
+                    productEvents.setProductId(productId);
+                }
+                else
+                    communicate=false;
+            }
+            if(communicate) {
+                CommunicationRequest communicationRequest = new CommunicationRequest();
+                CustomProduct customProductSession=getProductWithPurchasers(customProduct.getId());
+                communicationRequest.setUserIds(customProductSession.getPurchasedBy());
+                communicationRequest.setSubject("Product Update Notification");
+                List<Integer>modes=new ArrayList<>();
+                modes.add(1);
+                communicationRequest.setModes(modes);
+                communicationRequest.setContentText(
+                        "Hello,\n\n" +
+                                "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                                "Changes: " +diff.toString()+ "\n\n" +
+                                "To view the latest changes, please visit:\n" +
+                                "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
+                                "Thank you,\n" +
+                                "System Administrator"
+                );
+                entityManager.persist(productEvents);
+                System.out.println("Calling email trigger");
+                ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
+            }
+            if(customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L) {
+                CustomProductState productState=entityManager.find(CustomProductState.class,2L);
+                customProduct.setProductState(productState);
+            }
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -1140,5 +1206,11 @@ public class ProductController extends CatalogEndpoint {
         } catch (Exception e) {
             System.err.println("Error updating product states: " + e.getMessage());
         }
+    }
+    @Transactional
+    public CustomProduct getProductWithPurchasers(Long id) {
+        CustomProduct product = entityManager.find(CustomProduct.class,id);
+        product.getPurchasedBy().size(); // triggers initialization
+        return product;
     }
 }

@@ -39,7 +39,7 @@ public class BoardUniversityController {
         try
         {
             TypedQuery<BoardUniversity> query = entityManager.createQuery(Constant.FIND_ALL_BOARD_UNIVERSITY_QUERY, BoardUniversity.class);
-            query.setParameter("archived",false);
+            query.setParameter("archived",archived);
             List<BoardUniversity> boardUniversityList = query.getResultList();
             if(boardUniversityList.isEmpty())
             {
@@ -55,10 +55,10 @@ public class BoardUniversityController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addBoardUniversity(@RequestBody List<BoardUniversity>  boardUniversities,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
+    public ResponseEntity<?> addBoardUniversity(@RequestBody BoardUniversity  boardUniversities,@RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try
         {
-            List<BoardUniversity> addedBoardUniversities = boardUniversityService.addBoardUniversities(boardUniversities,authHeader);
+            BoardUniversity addedBoardUniversities = boardUniversityService.addBoardUniversities(boardUniversities,authHeader);
             return responseService.generateResponse(HttpStatus.CREATED,"Board or University is added successfully", addedBoardUniversities);
         }
         catch (IllegalArgumentException e) {

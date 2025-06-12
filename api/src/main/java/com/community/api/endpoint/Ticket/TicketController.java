@@ -11,6 +11,7 @@ import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomServiceProviderTicket;
+import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
@@ -23,6 +24,7 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.ServiceProviderTicketService;
+import com.community.api.services.TicketHistoryService;
 import com.community.api.services.TicketStateService;
 import com.community.api.services.TicketStatusService;
 import com.community.api.services.TicketTypeService;
@@ -98,6 +100,9 @@ public class TicketController {
 
     @Autowired
     CustomerService customerService;
+
+    @Autowired
+    TicketHistoryService ticketHistoryService;
 
     @Autowired
     OrderDTOService orderDTOService;
@@ -227,6 +232,8 @@ public class TicketController {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }
 
+            List<CustomTicketHistory> ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId());
+
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
 
             if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
@@ -235,9 +242,9 @@ public class TicketController {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
-                wrapper.customWrapDetails(ticket, orderDto, entityManager);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager, ticketHistory);
             } else {
-                wrapper.customWrapDetails(ticket, null, entityManager);
+                wrapper.customWrapDetails(ticket, null, entityManager, ticketHistory);
             }
 
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);

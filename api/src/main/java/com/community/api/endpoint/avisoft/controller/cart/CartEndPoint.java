@@ -684,7 +684,7 @@ public class CartEndPoint extends BaseEndpoint {
                     orderAttribute.setOrder(individualOrder);
                     orderAttribute.setName("postPreference");
                     orderAttribute.setValue(retrievedPostPreferenceString);
-                    individualOrder.getOrderAttributes().put("sorted", orderAttribute);
+                    individualOrder.getOrderAttributes().put("postPreference", orderAttribute);
                     entityManager.merge(individualOrder);
                     individualOrder.setEmailAddress(customer.getEmailAddress());
                     CustomOrderState orderState = new CustomOrderState();
@@ -820,6 +820,7 @@ public class CartEndPoint extends BaseEndpoint {
                 OrderItem orderItem = order.getOrderItems().get(0);
                 Product product = findProductFromItemAttribute(orderItem);
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
+                customProduct.getPurchasedBy().add(customCustomer.getId());
                 ServiceProviderEntity refSp = entityManager.find(ServiceProviderEntity.class, customProduct.getUserId());
 
                 if (refSp != null) {
