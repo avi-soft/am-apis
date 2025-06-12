@@ -282,12 +282,8 @@ public class DocumentStorageService {
 
         // Validate file size
 //        long fileSizeInMB = file.getSize() / BYTES_TO_MB;
-        if (file.getSize() > ImageSizeConfig.convertToBytes(documentType.getMax_document_size())) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of " + documentType.getMax_document_size());
-        }
-        if (file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size())) {
-            throw new IllegalArgumentException("File size is below minimum requirement of " +
-                    documentType.getMin_document_size());
+        if (file.getSize() > ImageSizeConfig.convertToBytes(documentType.getMax_document_size()) ||file.getSize() < ImageSizeConfig.convertToBytes(documentType.getMin_document_size()) ) {
+            throw new IllegalArgumentException("File size should be between " + documentType.getMin_document_size()+ " and "+ documentType.getMax_document_size() +" for "+documentType.getDocument_type_name());
         }
     }
 
