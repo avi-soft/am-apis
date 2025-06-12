@@ -134,7 +134,8 @@ public class ReserveCategoryService {
             if(reserveCategory.getReserveCategoryId() == null) {
                 reserveCategory.setIsReservedCategory(false);
             }
-            reserveCategory.setArchived(false);
+
+            reserveCategory.setIsReservedCategory(false);
             entityManager.persist(reserveCategory);
             return reserveCategory;
         } catch (Exception e) {
