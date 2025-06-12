@@ -834,10 +834,10 @@ public class CustomerEndpoint {
                 //errorMessages.add("DOB must be of past.");
                 //}
                 int age = sharedUtilityServiceApi.calculateAge(dob);
-                if (age == -1)
+                if (age < 0)
                     errorMessages.add("Invalid date of birth");
-                else if (age < 8)
-                    errorMessages.add("Your age should be greater than equal to 8");
+//                else if (age < 8)
+//                    errorMessages.add("Your age should be greater than equal to 8");
                 else
                     customCustomer.setDob(dob);
             }
