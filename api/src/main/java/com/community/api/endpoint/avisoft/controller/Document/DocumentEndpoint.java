@@ -75,7 +75,7 @@ public class DocumentEndpoint {
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             DocumentType documentTypeToAdd = documentTypeService.addDocumentTypes(documentType,authHeader);
-            return  ResponseService.generateSuccessResponse("Document type created successfully", documentTypeToAdd, HttpStatus.OK);
+            return  ResponseService.generateSuccessResponse("Document type created successfully", documentTypeToAdd, HttpStatus.CREATED);
         }
         catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
@@ -93,7 +93,7 @@ public class DocumentEndpoint {
         try
         {
             DocumentType updatedDocumentType= documentTypeService.updateDocumentType(documentTypeId,documentType,authHeader);
-            return responseService.generateResponse(HttpStatus.CREATED,"DocumentType is updated successfully", updatedDocumentType);
+            return responseService.generateResponse(HttpStatus.OK,"DocumentType is updated successfully", updatedDocumentType);
         }
         catch (IllegalArgumentException e) {
             exceptionHandling.handleException(e);
