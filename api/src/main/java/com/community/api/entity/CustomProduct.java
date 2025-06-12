@@ -8,10 +8,13 @@ import org.broadleafcommerce.core.catalog.domain.ProductImpl;
 import org.springframework.lang.Nullable;
 
 import javax.persistence.CascadeType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -214,5 +217,12 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "soft_delete", columnDefinition = "VARCHAR DEFAULT 'N'")
     private String del;
+
+
+    @ElementCollection
+    @CollectionTable(name = "product_purchasers",
+            joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "customer_id")
+    private List<Long>purchasedBy = new ArrayList<>();
 
 }

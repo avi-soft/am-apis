@@ -53,10 +53,10 @@ public class InstitutionConstroller {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> addInstitution(@RequestBody List<Institution>  institutions, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+    public ResponseEntity<?> addInstitution(@RequestBody Institution  institutions, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try
         {
-            List<Institution> addedInstitutions = institutionService.addInstitutions(institutions,authHeader);
+            Institution addedInstitutions = institutionService.addInstitutions(institutions,authHeader);
             return responseService.generateResponse(HttpStatus.CREATED,"Institution is added successfully", addedInstitutions);
         }
         catch (IllegalArgumentException e) {

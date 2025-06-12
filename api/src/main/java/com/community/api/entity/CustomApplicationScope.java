@@ -9,13 +9,14 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name="custom_application_scope")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CustomApplicationScope {
+public class CustomApplicationScope implements Serializable {
 
     @Id
     @Column(name="application_scope_id")
