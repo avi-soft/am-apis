@@ -83,9 +83,9 @@ public class SectorController {
         try {
             List<CustomSector> subjectList = sectorService.getAllSector(archived);
             if (subjectList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
+                return ResponseService.generateErrorResponse("NO SECTOR FOUND", HttpStatus.OK);
             }
-            return ResponseService.generateSuccessResponse("SUBJECTS FOUND", subjectList, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("SECTOR FOUND", subjectList, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
