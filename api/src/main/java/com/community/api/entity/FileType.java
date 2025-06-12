@@ -3,6 +3,7 @@ package com.community.api.entity;
 import com.community.api.utils.DocumentType;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +25,6 @@ import java.util.List;
 public class FileType
 {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer file_type_id;
 
     @Column(name = "file_type_name")
@@ -38,4 +38,8 @@ public class FileType
     @ManyToMany(mappedBy = "required_document_types")
     @JsonIgnore
     private List<DocumentType> documentTypes;
+
+    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("archived")
+    protected Boolean archived=false;
 }

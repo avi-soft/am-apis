@@ -48,9 +48,9 @@ public class QualificationService {
         if (qualification.getQualification_description() == null || qualification.getQualification_description().trim().isEmpty()) {
             throw new IllegalArgumentException("Qualification description cannot be empty or consist only of whitespace");
         }
-        if (!qualification.getQualification_name().matches("^[a-zA-Z ]+$")) {
+        /*if (!qualification.getQualification_name().matches("^[a-zA-Z ]+$")) {
             throw new IllegalArgumentException("Qualification name cannot contain numeric values or special characters");
-        }
+        }*/
         if (!(qualification.getQualification_description() instanceof String)) {
             throw new IllegalArgumentException("Qualification description must be a string");
         }
