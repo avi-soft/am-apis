@@ -25,11 +25,14 @@ import java.util.List;
 @Table(name = "custom_zones")
 public class Zone {
     @Id
-    @GeneratedValue(strategy =GenerationType.IDENTITY)
+    @GeneratedValue(strategy =GenerationType.AUTO)
     @Column(name = "zone_id")
     private Integer zoneId;
 
     @Column(name = "zone_name")
     private String zoneName;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived=false;
 
 }

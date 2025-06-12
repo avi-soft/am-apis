@@ -87,7 +87,8 @@ public class Constant {
     public static String SOME_EXCEPTION_OCCURRED = "Some exception occurred";
     public static String NUMBER_FORMAT_EXCEPTION = "Number format exception";
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
-    public static String GET_STATES_LIST="Select s from StateCode s where archived= :archived";
+    public static String GET_STATES_LIST="Select s from StateCode s where archived= :archived and isState = true";
+    public static String GET_DIVISIONS_LIST="Select s from StateCode s where archived= :archived and isZone = true";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
     public static String GET_DOCUMENT_TYPE_COUNT="SELECT COUNT(*) FROM DocumentType";
@@ -255,8 +256,8 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY modified_date DESC";
-    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c where c.zone_id =:zoneId Order by division_id ASC";
-    public static final String GET_ALL_ZONES="SELECT z FROM Zone z";
+    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c join custom_state_codes s on c.division_id = s.state_id where c.zone_id =:zoneId and s.archived = false Order by division_id ASC";
+    public static final String GET_ALL_ZONES="SELECT z FROM Zone z where archived = :archived";
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
     public static final String NO_CATEGORY="N/A";
     public static final String NO_GENDER="N/A";
