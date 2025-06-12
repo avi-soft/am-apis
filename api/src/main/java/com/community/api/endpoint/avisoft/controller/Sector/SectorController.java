@@ -83,7 +83,7 @@ public class SectorController {
         try {
             List<CustomSector> subjectList = sectorService.getAllSector(archived);
             if (subjectList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("SUBJECTS FOUND", subjectList, HttpStatus.OK);
         } catch (Exception exception) {
@@ -97,7 +97,7 @@ public class SectorController {
         try {
             CustomSector sector = sectorService.getSectorBySectorId(sectorId);
             if (sector == null) {
-                return ResponseService.generateErrorResponse("NO SECTOR FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO SECTOR FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("SECTORS FOUND", sector, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
