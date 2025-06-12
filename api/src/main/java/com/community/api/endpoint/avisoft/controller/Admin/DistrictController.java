@@ -44,7 +44,7 @@ public class DistrictController {
                 return responseService.generateErrorResponse("Empty value for State Code passed",HttpStatus.BAD_REQUEST);
             List<Districts> names= districtService.findDistrictsByStateCode(state_code,archived);
             if(names.isEmpty()) {
-                return responseService.generateErrorResponse("No data found",HttpStatus.NOT_FOUND);
+                return responseService.generateErrorResponse("No data found",HttpStatus.OK);
             }
             return responseService.generateSuccessResponse("List retrieved successfully",names,HttpStatus.OK);
         } catch (Exception e) {
@@ -57,7 +57,7 @@ public class DistrictController {
         try {
             List<Districts> names= districtService.findAllDistricts(archived);
             if(names.isEmpty()) {
-                return responseService.generateErrorResponse("No data found",HttpStatus.NOT_FOUND);
+                return responseService.generateErrorResponse("No data found",HttpStatus.OK);
             }
             return responseService.generateSuccessResponse("List retrieved successfully",names,HttpStatus.OK);
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public class DistrictController {
                 return ResponseService.generateErrorResponse("District Id needed", HttpStatus.BAD_REQUEST);
             Districts district = entityManager.find(Districts.class, districtId);
             if (district == null)
-                return ResponseService.generateErrorResponse("District not found", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("District not found", HttpStatus.OK);
             Query query = entityManager.createQuery("SELECT s FROM StateCode s WHERE s.state_code = :code", StateCode.class);
             query.setParameter("code", district.getState_code());
             return ResponseService.generateSuccessResponse("State found", query.getResultList().get(0), HttpStatus.OK);
