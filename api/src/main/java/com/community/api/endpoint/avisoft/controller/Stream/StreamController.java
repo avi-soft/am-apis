@@ -87,7 +87,7 @@ public class StreamController {
         try {
             List<CustomStream> applicationScopeList = streamService.getAllStream(archived);
             if (applicationScopeList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("STREAMS FOUND", applicationScopeList, HttpStatus.OK);
         } catch (Exception exception) {
@@ -102,7 +102,7 @@ public class StreamController {
             Long streamId = Long.parseLong(streamIdString);
             CustomStream stream = streamService.getStreamByStreamId(streamId);
             if (stream == null) {
-                return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO STREAM FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("STREAM FOUND", stream, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {

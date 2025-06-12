@@ -1,6 +1,7 @@
 package com.community.api.utils;
 
 import com.community.api.entity.FileType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,10 +35,10 @@ public class DocumentType {
     private Boolean is_qualification_document;
 
     @Column(name = "is_issue_date_required",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean is_issue_date_required;
+    private Boolean is_issue_date_required=false;
 
     @Column(name = "is_expiration_date_required",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean is_expiration_date_required;
+    private Boolean is_expiration_date_required=false;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -54,6 +55,23 @@ public class DocumentType {
 
     @Column(name = "sort_order", nullable = false)  // New column for sorting order
     private Integer sort_order = Integer.MAX_VALUE;
+
+    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("archived")
+    protected Boolean archived=false;
+
+    @Column(name = "min_width_dimension_in_mm")
+    protected Double min_width_dimension_in_mm;
+
+    @Column(name = "max_width_dimension_in_mm")
+    protected Double max_width_dimension_in_mm;
+
+    @Column(name = "min_height_dimension_in_mm")
+    protected Double min_height_dimension_in_mm;
+
+    @Column(name = "max_height_dimension_in_mm")
+    protected Double max_height_dimension_in_mm;
+
 
     public DocumentType(Integer document_type_id, String document_type_name, String description, String max_document_size, String min_document_size, Boolean is_qualification_document, Boolean is_issue_date_required, Boolean is_expiration_date_required) {
         this.document_type_id = document_type_id;

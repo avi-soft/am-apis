@@ -1,9 +1,12 @@
 package com.community.api.endpoint.avisoft.controller.Document;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.DocumentTypeDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
 import com.community.api.entity.SuccessResponse;
@@ -38,13 +41,16 @@ import java.util.stream.Collectors;
 import static com.community.api.component.Constant.roleServiceProvider;
 
 @RestController
-@RequestMapping(value = "/document")
+@RequestMapping(value = "/document-type")
 public class DocumentEndpoint {
     @Autowired
     private JwtUtil jwtTokenUtil;
 
     @Autowired
     private PrivilegeService privilegeService;
+
+    @Autowired
+    private CustomDocumentTypeService documentTypeService;
 
     @Autowired
     private FileService fileService;
@@ -65,48 +71,55 @@ public class DocumentEndpoint {
         this.responseService = responseService;
     }
 
-    @Transactional
-    @RequestMapping(value = "create-document-type", method = RequestMethod.POST)
-    public ResponseEntity<?> createDocumentType(@RequestBody DocumentType documentType, @RequestHeader(value = "Authorization") String authHeader) {
+    @RequestMapping(value = "/create", method = RequestMethod.POST)
+    public ResponseEntity<?> createDocumentType(@RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            String role = roleService.getRoleByRoleId(roleId).getRole_name();
-            boolean accessGrant = false;
-            Long userId = null;
-            if (role.equals(Constant.SUPER_ADMIN) || role.equals(Constant.ADMIN)) {
-                accessGrant = true;
+            DocumentType documentTypeToAdd = documentTypeService.addDocumentTypes(documentType,authHeader);
+            return  ResponseService.generateSuccessResponse("Document type created successfully", documentTypeToAdd, HttpStatus.CREATED);
+        }
+        catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 
-            } else if (role.equals(Constant.SERVICE_PROVIDER)) {
-                userId = jwtTokenUtil.extractId(jwtToken);
-                List<Privileges> privileges = privilegeService.getServiceProviderPrivilege(userId);
+    @PutMapping("/update/{documentTypeId}")
+    public ResponseEntity<?> updateDocumentType(@PathVariable Integer documentTypeId, @RequestBody DocumentTypeDto documentType, @RequestHeader(value = "Authorization")String authHeader)
+    {
+        try
+        {
+            DocumentType updatedDocumentType= documentTypeService.updateDocumentType(documentTypeId,documentType,authHeader);
+            return responseService.generateResponse(HttpStatus.OK,"DocumentType is updated successfully", updatedDocumentType);
+        }
+        catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
 
-                for (Privileges privilege : privileges) {
-                    if (privilege.getPrivilege_name().equals(Constant.PRIVILEGE_ADD_DOCUMENT_TYPE)) {
-                        accessGrant = true;
-                        break;
-                    }
-                }
-            }
-
-
-
-            if (accessGrant) {
-
-                if (documentType.getDescription() == null || documentType.getDocument_type_name() == null) {
-                    return responseService.generateErrorResponse("Cannot create Document Type : Fields Empty", HttpStatus.BAD_REQUEST);
-                }
-
-                entityManager.persist(documentType);
-                return responseService.generateSuccessResponse("Document type created successfully", documentType, HttpStatus.OK);
-            } else {
-                return responseService.generateSuccessResponse("You don't have privilege to create Document ", documentType, HttpStatus.OK);
-
-            }
-
+//    @Authorize(value = {Constant.roleSuperAdmin})
+    @PutMapping("/manage/{id}")
+    public ResponseEntity<?> manageDocumentTypeStatus(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "false") Boolean archive) {
+        try {
+            DocumentType university = documentTypeService.manageDocumentType(id, archive);
+            String message = archive ? "DocumentType archived successfully" : "DocumentType unarchived successfully";
+            return responseService.generateSuccessResponse(message, university, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return responseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return responseService.generateErrorResponse("Error retrieving Customer", HttpStatus.INTERNAL_SERVER_ERROR);
+            return responseService.generateErrorResponse("Error updating document-type status", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -131,6 +144,22 @@ public class DocumentEndpoint {
         }
     }
 
+    @GetMapping("/get-by-id/{documentTypeId}")
+    public ResponseEntity<?> getDocumentById(@PathVariable Integer documentTypeId) {
+        try {
+            DocumentType documentType = documentTypeService.getDocumentTypeById(documentTypeId);
+            if (documentType == null) {
+                return ResponseService.generateErrorResponse("NO DOCUMENT TYPE FOUND", HttpStatus.NOT_FOUND);
+            }
+            return ResponseService.generateSuccessResponse("DOCUMENT TYPE FOUND", documentType, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }  catch (Exception e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     @GetMapping("/get-document-of-customer")
     public ResponseEntity<?> getDocumentOfCustomer(

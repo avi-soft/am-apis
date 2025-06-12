@@ -87,7 +87,7 @@ public class SubjectController {
         try {
             List<CustomSubject> subjectList = subjectService.getAllSubject(archived);
             if (subjectList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("SUBJECTS FOUND", subjectList, HttpStatus.OK);
         } catch (Exception exception) {
@@ -102,7 +102,7 @@ public class SubjectController {
             Long subjectId = Long.parseLong(subjectIdString);
             CustomSubject subject = subjectService.getSubjectBySubjectId(subjectId);
             if (subject == null) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
+                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
             }
             return ResponseService.generateSuccessResponse("SUBJECT FOUND", subject, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
