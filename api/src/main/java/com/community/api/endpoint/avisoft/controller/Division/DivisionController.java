@@ -178,7 +178,7 @@ public class DivisionController {
                 throw new IllegalArgumentException("Division code should contain only alphabets");
 
             StateCode division = entityManager.find(StateCode.class, divisionId);
-            if (division == null || Boolean.TRUE.equals(division.getIsState()))
+            if (division == null )
                 return ResponseService.generateErrorResponse("Division not found", HttpStatus.NOT_FOUND);
 
             // Update name and code
