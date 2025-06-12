@@ -131,7 +131,7 @@ public class ServiceProviderEntity  {
     @Nullable
     private Boolean is_running_business_unit=false;
 
-    @Column(name = "is_password_created")
+    @Column(name = "is_password_created",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isPasswordCreated = false;
 
     @Nullable
@@ -139,7 +139,6 @@ public class ServiceProviderEntity  {
     @Nullable
     private String business_location;
     @Nullable
-    @Email
     private String business_email;
     @Nullable
     private Integer number_of_employees;
@@ -307,6 +306,13 @@ public class ServiceProviderEntity  {
 
     @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean autoScoring=true;
+
+    @Column(name = "is_admin_overridden", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean adminOverridden = false;
+
+    @Column(name = "is_eligible_for_re_ranking")
+    private Boolean eligibleForReRanking;
+
 }
 
 

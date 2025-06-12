@@ -5,6 +5,7 @@ import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Zone;
 import com.community.api.entity.ZoneDivisions;
+import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,8 @@ public class ZoneDivisionService {
         if(zoneId==null)
             throw new IllegalArgumentException("Zone id is compulsory");
         Zone zone=entityManager.find(Zone.class,zoneId);
+        if(zone.getArchived())
+            throw new NotFoundException("Zone is archived");
         if(zone==null)
             throw new NotFoundException("Invalid zone selected");
         Query query =entityManager.createNativeQuery(Constant.GET_DIVISION_BY_ZONE);
@@ -74,21 +77,27 @@ public class ZoneDivisionService {
         return divisionIds;
     }
   
-    public List<Zone>getAllZones()
+    public List<Zone>getAllZones(Boolean archived)
     {
         Query query=entityManager.createQuery(Constant.GET_ALL_ZONES, Zone.class);
+        query.setParameter("archived",archived);
         return query.getResultList();
     }
-    public Zone findDivisionsLinkedZone(Integer divisionId) throws NotFoundException {
+    public List<Zone> findDivisionsLinkedZone(Integer divisionId) throws NotFoundException {
         StateCode division=entityManager.find(StateCode.class,divisionId);
         if(division==null)
             throw new NotFoundException("Invalid Division");
         Query query=entityManager.createNativeQuery(Constant.GET_ZONE_LINKED_TO_DIVISION);
         query.setParameter("divisionId",divisionId);
-        Integer zoneId=(Integer)query.getSingleResult();
-        if(zoneId==null)
+        List<Integer>zoneIds=query.getResultList();
+        if(zoneIds==null)
             throw new NoResultException("No results found");
-        return entityManager.find(Zone.class,zoneId);
+        List<Zone>allZones=new ArrayList<>();
+        for(Integer id :zoneIds)
+        {
+            allZones.add(entityManager.find(Zone.class,id));
+        }
+        return allZones;
     }
     public void generateZoneDivision(Integer zoneId, Integer divisionId)
     {

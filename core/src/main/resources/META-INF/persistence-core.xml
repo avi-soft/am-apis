@@ -112,6 +112,7 @@
         <class>com.community.api.entity.CustomWorkQuality</class>
         <class>com.community.api.entity.RazorpayDetails</class>
         <class>com.community.api.entity.RandomImageType</class>
+        <class>com.community.api.entity.ProductEvents</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

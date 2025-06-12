@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -33,15 +34,14 @@ public class BoardUniversityService
     RoleService roleService;
 
     @Transactional
-    public List<BoardUniversity> addBoardUniversities( List<BoardUniversity> boardUniversitiesToBeSaved, String authHeader) {
+    public BoardUniversity addBoardUniversities( BoardUniversity boardUniversity, String authHeader) {
         String jwtToken = authHeader.substring(7);
 
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
         List<BoardUniversity> savedBoardUniversities = new ArrayList<>();
-        for(BoardUniversity boardUniversity: boardUniversitiesToBeSaved)
-        {
+
             BoardUniversity boardUniversityToBeSaved =new BoardUniversity();
             long id = findCount() + 1;
             if (boardUniversity.getBoard_university_name() == null || boardUniversity.getBoard_university_name().trim().isEmpty()) {
@@ -93,20 +93,21 @@ public class BoardUniversityService
                     throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
-            boardUniversityToBeSaved.setBoard_university_id(id);
+        Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM BoardUniversity i WHERE i.sortOrder <> 1000000");
+        Long sortOrder = (Long) query.getSingleResult();
             boardUniversityToBeSaved.setBoard_university_name(boardUniversity.getBoard_university_name());
+            boardUniversityToBeSaved.setSortOrder(sortOrder);
             boardUniversityToBeSaved.setBoard_university_location(boardUniversity.getBoard_university_location());
             boardUniversityToBeSaved.setBoard_university_code(boardUniversity.getBoard_university_code());
             boardUniversityToBeSaved.setBoard_university_type(boardUniversity.getBoard_university_type().toUpperCase());
             boardUniversityToBeSaved.setCreated_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
+            boardUniversityToBeSaved.setArchived(false);
             boardUniversityToBeSaved.setCreated_date(now);
             entityManager.persist(boardUniversityToBeSaved);
             savedBoardUniversities.add(boardUniversityToBeSaved);
-            id=id+1;
-        }
-        return savedBoardUniversities;
+            return boardUniversityToBeSaved;
     }
 
     public List<BoardUniversity> getAllBoardUniversities() {

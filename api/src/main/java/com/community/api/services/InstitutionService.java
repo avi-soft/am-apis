@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.File;
@@ -43,15 +44,14 @@ public class InstitutionService
     RoleService roleService;
 
     @Transactional
-    public List<Institution> addInstitutions(List<Institution> institutionsToBeSaved, String authHeader) {
+    public Institution addInstitutions(Institution institution, String authHeader) {
         String jwtToken = authHeader.substring(7);
 
         Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
         List<Institution> savedInstitutions = new ArrayList<>();
-        for(Institution institution: institutionsToBeSaved)
-        {
+
             Institution institutionToBeSaved =new Institution();
             long id = findCount() + 1;
             if (institution.getInstitution_name() == null || institution.getInstitution_name().trim().isEmpty()) {
@@ -95,19 +95,20 @@ public class InstitutionService
                     throw new IllegalArgumentException("Duplicate code not allowed");
                 }
             }
-            institutionToBeSaved.setInstitution_id(id);
+        Query query = entityManager.createQuery("SELECT MAX(i.sortOrder) FROM Institution i WHERE i.sortOrder <> 1000000");
+        Long sortOrder = (Long) query.getSingleResult();
             institutionToBeSaved.setInstitution_name(institution.getInstitution_name());
             institutionToBeSaved.setInstitution_address(institution.getInstitution_address());
             institutionToBeSaved.setInstitution_code(institution.getInstitution_code());
+            institutionToBeSaved.setSortOrder(sortOrder+1);
             institutionToBeSaved.setCreated_by(role);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String now = LocalDateTime.now().format(formatter);
             institutionToBeSaved.setCreated_date(now);
+            institutionToBeSaved.setArchived(false);
             entityManager.persist(institutionToBeSaved);
-            savedInstitutions.add(institutionToBeSaved);
-            id=id+1;
-        }
-        return savedInstitutions;
+
+        return institutionToBeSaved;
     }
 
     public List<Institution> getAllInstitutions() {
@@ -187,188 +188,6 @@ public class InstitutionService
         return entityManager.merge(institutionToUpdate);
     }
 
-    @Service
-    public static class ImageService {
-        @Autowired
-        private EntityManager entityManager;
-        @Autowired
-        private DocumentStorageService fileUploadService;
-
-        public ImageService(EntityManager entityManager) {
-            this.entityManager = entityManager;
-        }
-
-
-        @Transactional
-        public Image saveImage(MultipartFile file,Integer randomImageTypeId) throws Exception {
-            if (file == null || file.isEmpty()) {
-                throw new IllegalStateException("File is missing or empty");
-            }
-            if(randomImageTypeId==null)
-            {
-                throw new IllegalArgumentException("Random image type cannot be null");
-            }
-            RandomImageType randomImage= entityManager.find(RandomImageType.class,randomImageTypeId);
-            if(randomImage==null)
-            {
-                throw new IllegalArgumentException("No Any randomImage type exists with id " + randomImageTypeId);
-            }
-            byte[] uploadImageData = file.getBytes();
-            List<Image> images = getAllRandomImages();
-            for(Image image : images) {
-               byte[] imageData = image.getImage_data();
-               try{
-                   boolean areImagesIdentical=areImagesVisuallyIdentical(uploadImageData, imageData);
-                   if(areImagesIdentical) {
-                       throw new IllegalStateException("Image already exists");
-                   }
-               }
-               catch (IOException e) {
-                   throw new IllegalStateException("Error comparing images", e);
-               }
-            }
-
-            String db_path = "avisoftdocument/SERVICE_PROVIDER/Random/Random_Images";
-
-            String dbPath = db_path + File.separator + file.getOriginalFilename();
-            if (!isValidFileType(file)) {
-                throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
-            }
-            if(randomImageTypeId.equals(1))
-            {
-                if (file.getSize() < Constant.RANDOM_RESIZED_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_RESIZED_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_RESIZED_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
-                }
-            }
-            else if(randomImageTypeId.equals(2)){
-                if (file.getSize()< Constant.RANDOM_PDF_MIN_FILE_SIZE || file.getSize()> Constant.RANDOM_PDF_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_PDF_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be below " +   minImageSize + " and " + maxImageSize);
-                }
-            }
-            else if(randomImageTypeId.equals(3)){
-                if (file.getSize()< Constant.RANDOM_SIGN_MIN_FILE_SIZE ||file.getSize()> Constant.RANDOM_SIGN_MAX_FILE_SIZE) {
-                    String minImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MIN_FILE_SIZE);
-                    String maxImageSize= ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_SIGN_MAX_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be below " +  minImageSize + " and " + maxImageSize);
-                }
-            }
-
-
-            byte[] fileBytes = file.getBytes();
-
-            fileUploadService.uploadFileOnFileServer(file, "Random_Images", "Random", "SERVICE_PROVIDER");
-
-
-            // Create and populate the Image entity
-            Image image = new Image();
-            image.setFile_name(file.getOriginalFilename());
-            image.setFile_type(file.getContentType());
-            image.setImage_data(fileBytes);
-            image.setFile_path(dbPath);
-            image.setRandomImageType(randomImage);
-            Long uploadedImageSize=(long) file.getSize();
-            image.setImage_size(ImageSizeConfig.convertBytesToReadableSize(uploadedImageSize));
-
-            // Persist the image entity to the database
-            entityManager.persist(image);
-            return image;
-        }
-
-        /*@Transactional
-        public List<Image> saveImages(List<MultipartFile> files) throws Exception {
-
-            List<Image> savedImages = new ArrayList<>();
-
-            for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) {
-                    throw new IllegalStateException("File is missing or empty");
-                }
-
-                byte[] uploadImageData = file.getBytes();
-                List<Image> images = getAllRandomImages();
-                for(Image image : images) {
-                    byte[] imageData = image.getImage_data();
-                    try{
-                        boolean areImagesIdentical=areImagesVisuallyIdentical(uploadImageData, imageData);
-                        if(areImagesIdentical) {
-                            throw new IllegalStateException("Image already exists");
-                        }
-                    }
-                    catch (IOException e) {
-                        throw new IllegalStateException("Error comparing images", e);
-                    }
-                }
-                // Construct file path
-                String db_path = "avisoftdocument/SERVICE_PROVIDER/Random/Random_Images";
-                String dbPath = db_path + File.separator + file.getOriginalFilename();
-
-                // Validate the file type
-                if (!isValidFileType(file)) {
-                    throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
-                }
-
-                // Validate the file size
-                long maxSizeInBytes = ImageSizeConfig.convertToBytes(maxImageSize);
-                if (file.getSize() < Constant.RANDOM_MIN_FILE_SIZE || file.getSize() > maxSizeInBytes) {
-                    String minImageSize = ImageSizeConfig.convertBytesToReadableSize(Constant.RANDOM_MIN_FILE_SIZE);
-                    throw new IllegalArgumentException("Image size should be between " + minImageSize + " and " + maxImageSize);
-                }
-
-                byte[] fileBytes = file.getBytes();
-
-                fileUploadService.uploadFileOnFileServer(file, "Random_Images", "Random", "SERVICE_PROVIDER");
-
-                // Create and populate the Image entity
-                Image image = new Image();
-                image.setFile_name(file.getOriginalFilename());
-                image.setFile_type(file.getContentType());
-                image.setImage_data(fileBytes);
-                image.setFile_path(dbPath);
-
-                // Persist the image entity to the database
-                entityManager.persist(image);
-                savedImages.add(image);
-            }
-
-            return savedImages;
-        }
-*/
-        @Transactional
-        public List<Image> deleteAllImages()
-        {
-            List<Image> images =getAllRandomImages();
-            for(Image image :images)
-            {
-                entityManager.remove(image);
-            }
-            return images;
-        }
-
-
-        @Transactional
-        public List<Image> getAllRandomImages()
-        {
-            TypedQuery<Image> typedQuery= entityManager.createQuery(Constant.GET_ALL_RANDOM_IMAGES,Image.class);
-            List<Image> images = typedQuery.getResultList();
-            return images;
-        }
-
-        @Transactional
-        public Image deleteImageById(Long imageId)
-        {
-            Image image = entityManager.find(Image.class, imageId);
-            if(image == null)
-            {
-                throw new EntityNotFoundException("Image not found with id : " + imageId);
-            }
-            entityManager.remove(image);
-            return image;
-        }
-    }
     @Transactional
     public Institution manageInstitutionArchiveStatus(Long id, Boolean archive) {
         Institution institution = entityManager.find(Institution.class, id);

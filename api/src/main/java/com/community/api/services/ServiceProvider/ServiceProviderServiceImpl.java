@@ -53,6 +53,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
+import javax.persistence.Lob;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
@@ -255,6 +256,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
+                    existingServiceProvider.setAdminOverridden(true);
+                    existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setRanking(serviceProviderRank);
 //                    existingServiceProvider.setAutoScoring(false);
                 }
@@ -2046,7 +2049,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             roleIds.add(4);
             roleIds.add(2);
 
-            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.testStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role IN :roleIds", ServiceProviderEntity.class);
+            query = entityManager.createQuery("SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity WHERE s.serviceProviderStatus = :testStatusId AND s.isActive = :isActive AND s.approved = :isApproved AND s.role IN :roleIds", ServiceProviderEntity.class);
             query.setParameter("testStatusId", serviceProviderTestStatus.get(0));
             query.setParameter("isActive", true);
             query.setParameter("isApproved", true);
@@ -2673,5 +2676,90 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new IllegalArgumentException("Invalid date format", ex);
         }
     }
+
+    @Transactional
+    public void updateServiceProviderEligibilityForReRanking(List<ServiceProviderEntity> subsequentReRankingSP, List<ServiceProviderEntity> firstTimeReRankingSP) throws Exception {
+        try {
+            List<ServiceProviderEntity> serviceProviderEntityNotAdminOverriddenList = entityManager.createQuery(Constant.GET_SERVICE_PROVIDER_CONDITION_ADMIN_OVERRIDDEN, ServiceProviderEntity.class)
+                    .setParameter("adminOverridden", false)
+                    .getResultList();
+
+            // Iterate each Service Provider
+            for(ServiceProviderEntity serviceProvider: serviceProviderEntityNotAdminOverriddenList) {
+
+                log.info("service provider id is: {}", serviceProvider.getService_provider_id());
+                // If service provider eligibility is null then will update depending on logic (if Professional and completed more than or equal to 10 then make it eligible else not and for individual if his ticket completion number is more than or equal to 3 then make him eligible else not.
+                if(serviceProvider.getEligibleForReRanking() == null) {
+                    serviceProvider = updateServiceProviderEligibility(serviceProvider);
+                    if(serviceProvider.getEligibleForReRanking()) {
+                        subsequentReRankingSP.add(serviceProvider);
+                    } else {
+                        firstTimeReRankingSP.add(serviceProvider);
+                    }
+                }
+                else if(!serviceProvider.getEligibleForReRanking()) {
+                    serviceProvider = updateServiceProviderEligibility(serviceProvider);
+                    if(serviceProvider.getEligibleForReRanking()) {
+                        subsequentReRankingSP.add(serviceProvider);
+                    } else {
+                        firstTimeReRankingSP.add(serviceProvider);
+                    }
+                }
+                else {
+                    subsequentReRankingSP.add(serviceProvider);
+                }
+
+            }
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public ServiceProviderEntity updateServiceProviderEligibility(ServiceProviderEntity serviceProvider) throws Exception {
+        try {
+            if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_PROFESSIONAL)) {
+                if(serviceProvider.getTicketCompleted() <= Constant.PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT) {
+                    serviceProvider.setEligibleForReRanking(false);
+                } else {
+                    serviceProvider.setEligibleForReRanking(true);
+                }
+            } else if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_INDIVIDUAL)) {
+                if(serviceProvider.getTicketCompleted() <= Constant.INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT) {
+                    serviceProvider.setEligibleForReRanking(false);
+                } else {
+                    serviceProvider.setEligibleForReRanking(true);
+                }
+            } else {
+                throw new IllegalArgumentException("Service Provider w/o recognised Type found");
+            }
+
+            return entityManager.merge(serviceProvider);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception(exception.getMessage());
+        }
+    }
+
+//    public List<ServiceProviderEntity> findServiceProviderNotAdminOverridden() throws Exception {
+//
+//        try {
+//            return entityManager.createQuery(Constant.GET_SERVICE_PROVIDER_NOT_ADMIN_OVERRIDDEN, ServiceProviderEntity.class)
+//                    .setParameter("adminOverridden", false)
+//                    .getResultList();
+//        } catch (Exception exception) {
+//            exceptionHandlingService.handleException(exception);
+//            throw new Exception(exception.getMessage());
+//        }
+//    }
 
 }
