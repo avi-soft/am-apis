@@ -5,6 +5,7 @@ import com.community.api.dto.DivisionProjectionDTO;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Zone;
 import com.community.api.entity.ZoneDivisions;
+import io.swagger.models.auth.In;
 import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -82,16 +83,21 @@ public class ZoneDivisionService {
         query.setParameter("archived",archived);
         return query.getResultList();
     }
-    public Zone findDivisionsLinkedZone(Integer divisionId) throws NotFoundException {
+    public List<Zone> findDivisionsLinkedZone(Integer divisionId) throws NotFoundException {
         StateCode division=entityManager.find(StateCode.class,divisionId);
         if(division==null)
             throw new NotFoundException("Invalid Division");
         Query query=entityManager.createNativeQuery(Constant.GET_ZONE_LINKED_TO_DIVISION);
         query.setParameter("divisionId",divisionId);
-        Integer zoneId=(Integer)query.getSingleResult();
-        if(zoneId==null)
+        List<Integer>zoneIds=query.getResultList();
+        if(zoneIds==null)
             throw new NoResultException("No results found");
-        return entityManager.find(Zone.class,zoneId);
+        List<Zone>allZones=new ArrayList<>();
+        for(Integer id :zoneIds)
+        {
+            allZones.add(entityManager.find(Zone.class,id));
+        }
+        return allZones;
     }
     public void generateZoneDivision(Integer zoneId, Integer divisionId)
     {
