@@ -207,11 +207,16 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
 
     public CustomProductReserveCategoryBornBeforeAfterRef findByPost(Post post) {
         try {
-            return entityManager.createQuery(
+           List<CustomProductReserveCategoryBornBeforeAfterRef> res= entityManager.createQuery(
                             "SELECT c FROM CustomProductReserveCategoryBornBeforeAfterRef c WHERE c.post = :post",
                             CustomProductReserveCategoryBornBeforeAfterRef.class)
                     .setParameter("post", post)
-                    .getSingleResult();
+                    .getResultList();
+           if(res==null||res.isEmpty())
+               return null;
+           else
+               return res.get(0);
+
         } catch (NoResultException e) {
             return null;
         }
