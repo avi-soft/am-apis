@@ -313,15 +313,6 @@ public class ServiceProviderEntity  {
     @Column(name = "is_eligible_for_re_ranking")
     private Boolean eligibleForReRanking;
 
-    @Column(name = "review_ticket_status_score")
-    private Long reviewTicketStatusScore = 0L;
-
-    @Column(name = "review_ticket_feedback_score")
-    private Long reviewTicketFeedbackScore = 0L;
-
-    @Column(name = "time_completion_score")
-    private Long timeCompletionScore = 0L;
-
 }
 
 

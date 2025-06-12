@@ -304,15 +304,6 @@ public class Constant {
     public static final Long PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT = 10L;
     public static final Long INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT = 4L;
 
-    public static final Long REVIEW_TICKET_STATUS_SUCCESS = 5L;
-    public static final Long REVIEW_TICKET_STATUS_FAIL = -5L;
-
-    public static final Long TIME_COMPLETION_SUCCESS = 5L;
-    public static final Long TIME_COMPLETION_FAIL = -5L;
-
-    public static final Long REVIEW_TICKET_FEEDBACK_HIGH = 5L;
-    public static final Long REVIEW_TICKET_FEEDBACK_LOW = -5L;
-
     //add constants above this query//*******************************************************************************
     public static  final String recosQuery =
             "WITH overlappings AS (" +
