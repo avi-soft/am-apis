@@ -4,14 +4,18 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomTicketHistoryWrapper;
+import com.community.api.dto.TicketDocumentWrapper;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.Role;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.FileService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderTicketService;
 import com.community.api.services.TicketHistoryService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.community.api.utils.ServiceProviderDocument;
 import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +43,15 @@ public class TicketHistoryController {
 
     @Autowired
     RoleService roleService;
+
+    @Autowired
+    FileService fileService;
+
+    @Autowired
+    DocumentStorageService documentStorageService;
+
+    @Autowired
+    HttpServletRequest request;
 
     @Autowired
     ExceptionHandlingService exceptionHandlingService;
@@ -74,7 +88,17 @@ public class TicketHistoryController {
 
             for (CustomTicketHistory customTicketHistory: ticketHistory) {
                 CustomTicketHistoryWrapper wrapper = new CustomTicketHistoryWrapper();
-                wrapper.customWrapDetails(customTicketHistory);
+
+                List<TicketDocumentWrapper> ticketDocumentWrapperList = new ArrayList<>();
+                for(ServiceProviderDocument document: customTicketHistory.getServiceProviderDocuments()) {
+                    TicketDocumentWrapper ticketDocumentWrapper = new TicketDocumentWrapper();
+                    String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
+                    ticketDocumentWrapper.wrapDetails(document, fileUrl, request);
+
+                    ticketDocumentWrapperList.add(ticketDocumentWrapper);
+                }
+
+                wrapper.customWrapDetails(customTicketHistory, ticketDocumentWrapperList);
                 result.add(wrapper);
             }
 

@@ -6,14 +6,13 @@ import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.Role;
-import com.community.api.utils.ServiceProviderDocument;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
 
 public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrapper<CustomServiceProviderTicket> {
 
@@ -54,11 +53,11 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
     protected CustomTicketStatus customTicketStatus;
 
     @JsonProperty("ticket_documents")
-    protected Set<ServiceProviderDocument> serviceProviderDocument;
+    protected List<TicketDocumentWrapper> ticketDocumentWrapperList;
 
 
-    public void customWrapDetails(CustomTicketHistory customTicketHistory) {
-        this.ticket = customTicketHistory.getTicket();
+    public void customWrapDetails(CustomTicketHistory customTicketHistory, List<TicketDocumentWrapper> ticketDocumentWrapperList) {
+//        this.ticket = customTicketHistory.getTicket();
         this.ticketHistoryId = customTicketHistory.getTicketHistoryId();
         this.assigneeUserId = customTicketHistory.getAssignee();
         this.assigneeRole = customTicketHistory.getAssigneeRole();
@@ -70,7 +69,7 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
         this.customTicketType = customTicketHistory.getTicketType();
         this.customTicketStatus = customTicketHistory.getTicketStatus();
         this.assignedDate = customTicketHistory.getTicketAssignDate();
-        this.serviceProviderDocument = customTicketHistory.getServiceProviderDocuments();
+        this.ticketDocumentWrapperList = ticketDocumentWrapperList;
     }
 
     @Override
