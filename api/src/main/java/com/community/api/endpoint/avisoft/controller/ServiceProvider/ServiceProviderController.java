@@ -596,6 +596,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean approved,
             @RequestParam(required = false) Boolean rejected,
             @RequestParam(required = false) Integer role,
+            @RequestParam(required = false)Integer rank,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit,
             @RequestParam(required = false) Long ticketId,
@@ -654,7 +655,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -680,7 +681,7 @@ public class ServiceProviderController {
 
 
             if (user_name != null && !user_name.isEmpty()) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -724,15 +725,16 @@ public class ServiceProviderController {
             }
 
 
-                // First call with the provided order of first_name and last_name
-                ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
+            // First call with the provided order of first_name and last_name
+            ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
 
-                        serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
+            // Second call with swapped order of first_name and last_name
+            ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
 
 
-                // Second call with swapped order of first_name and last_name
-                ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                        serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType);
+
 
                 System.out.println("hello 3");
                 // Merge results and remove duplicates
