@@ -1137,7 +1137,6 @@ public class DocumentStorageService {
 
     @Transactional
     public List<String> deleteDocument(String role, List<Integer> fileTypes, Long customerId, String otherDocument, Long qualificationDetailId) throws Exception {
-        try {
             log.info("inside delete document logic");
             List<String> deleteLogs = new ArrayList<>();
 
@@ -1164,12 +1163,12 @@ public class DocumentStorageService {
                 if (documentTypeObj == null) {
                     throw new IllegalArgumentException("Unknown document type for file: ");
                 }
-                if (documentTypeObj.getDocument_type_id().equals(12)) {
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID)) {
                     if (qualificationDetailId == null) {
                         throw new IllegalArgumentException("Qualification detail id is required to delete a qualification document");
                     }
                 }
-                if (documentTypeObj.getDocument_type_id().equals(13) && otherDocument == null) {
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID) && otherDocument == null) {
                     throw new IllegalArgumentException("other document is required to delete a other document");
                 }
 
@@ -1202,9 +1201,12 @@ public class DocumentStorageService {
                 if (isOtherDocumentToDelete) {
                     query.setParameter("otherDocument", otherDocument);
                 }
+                List resultList = query.getResultList();
+                if (resultList.isEmpty()) {
+                    throw new IllegalArgumentException("No document found for deletion");
+                }
 
-                BigInteger id = (BigInteger) query.getSingleResult();
-
+                BigInteger id = (BigInteger) resultList.get(0);
                 query = entityManager.createNativeQuery(archiveQuery);
                 query.setParameter("userId", customerId);
                 query.setParameter("documentTypeId", fileType);
@@ -1228,6 +1230,10 @@ public class DocumentStorageService {
                                 while (iterator.hasNext()) {
                                     Document documentToDeleteC = iterator.next();
                                     if (documentToDeleteC.getDocumentId().equals(document.getDocumentId())) {
+                                        if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID))
+                                        {
+                                            documentToDeleteC.setQualificationDetails(null);
+                                        }
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(customCustomer);  // merge after modification
                                         break;
@@ -1244,6 +1250,10 @@ public class DocumentStorageService {
                                 while (iterator.hasNext()) {
                                     ServiceProviderDocument documentToDelete = iterator.next();
                                     if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
+                                        if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID))
+                                        {
+                                            documentToDelete.setQualificationDetails(null);
+                                        }
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(serviceProvider);  // merge after modification
                                         break;
@@ -1258,15 +1268,5 @@ public class DocumentStorageService {
                 }
             }
             return deleteLogs;
-        } catch (NoResultException noResultException) {
-            exceptionHandlingService.handleException(noResultException);
-            throw new NoResultException("No record found: " + noResultException.getMessage());
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
-        }
     }
 }

@@ -24,14 +24,14 @@ public class FileTypeController
     }
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages()
+    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false,defaultValue = "false")Boolean archived)
     {
-        List<FileType> randomFileTypes= fileTypeService.getAllRandomFileTypes();
+        List<FileType> randomFileTypes= fileTypeService.getAllRandomFileTypes(archived);
         if(randomFileTypes.isEmpty())
         {
-            return ResponseService.generateSuccessResponse("File Type list is empty",randomFileTypes, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(archived?"archived File type list is empty":"Unarchived File type list is empty",randomFileTypes, HttpStatus.OK);
         }
-        return ResponseService.generateSuccessResponse("File Type list is found",randomFileTypes,HttpStatus.OK);
+        return ResponseService.generateSuccessResponse(archived?"Archived File type list is found":"Unarchived file type list is found",randomFileTypes,HttpStatus.OK);
     }
 
     @PostMapping("/add-all")

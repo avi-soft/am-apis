@@ -28,8 +28,8 @@ public class Constant {
     public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
     public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=false ORDER BY dt.sort_order ASC";
-    public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = false";
-    public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = false";
+    public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = :archived";
+    public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = :archived";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
 
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
