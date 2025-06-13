@@ -23,28 +23,42 @@ public class ImageSizeConfig {
     }
 
     public static long convertToBytes(String size) {
-        if (size.endsWith("MB")) {
-            return Long.parseLong(size.replace("MB", "")) * 1024 * 1024;
+        size = size.trim().toUpperCase();
+
+        if (size.endsWith("EB")) {
+            return (long) (Double.parseDouble(size.replace("EB", "").trim()) * Math.pow(1024, 6));
+        } else if (size.endsWith("PB")) {
+            return (long) (Double.parseDouble(size.replace("PB", "").trim()) * Math.pow(1024, 5));
+        } else if (size.endsWith("TB")) {
+            return (long) (Double.parseDouble(size.replace("TB", "").trim()) * Math.pow(1024, 4));
+        } else if (size.endsWith("GB")) {
+            return (long) (Double.parseDouble(size.replace("GB", "").trim()) * Math.pow(1024, 3));
+        } else if (size.endsWith("MB")) {
+            return (long) (Double.parseDouble(size.replace("MB", "").trim()) * Math.pow(1024, 2));
         } else if (size.endsWith("KB")) {
-            return Long.parseLong(size.replace("KB", "")) * 1024;
+            return (long) (Double.parseDouble(size.replace("KB", "").trim()) * 1024);
+        } else if (size.endsWith("B")) {
+            return (long) (Double.parseDouble(size.replace("B", "").trim()));
         }
-        return Long.parseLong(size);
+
+        // Fallback: assume plain bytes if no suffix
+        return Long.parseLong(size.trim());
     }
+
 
     public static String convertBytesToReadableSize(long bytes) {
-        if (bytes >= 1024 * 1024) {
-            // Convert to MB if greater than or equal to 1MB
-            return String.format("%.2f MB", (double) bytes / (1024 * 1024));
-        } else if (bytes >= 1024) {
-            // Convert to KB if greater than or equal to 1KB
-            return String.format("%.2f KB", (double) bytes / 1024);
-        } else {
-            // If less than 1KB, show in bytes
-            return bytes + " Bytes";
+        double value = bytes;
+
+        String[] units = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+        int unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024.0;
+            unitIndex++;
         }
+
+        return String.format("%.2f %s", value, units[unitIndex]);
     }
-
-
 
 }
 
