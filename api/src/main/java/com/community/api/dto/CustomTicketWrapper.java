@@ -3,15 +3,12 @@ package com.community.api.dto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomServiceProviderTicket;
-import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.community.api.utils.ServiceProviderDocument;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
@@ -19,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
-import javax.persistence.Lob;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
@@ -100,10 +96,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
 //    @JsonIgnore
     @JsonProperty("ticket_documents")
-    private Set<ServiceProviderDocument> serviceProviderDocuments;
+    private Set<TicketDocumentWrapper> ticketDocumentWrapperSet;
 
     @JsonProperty("ticket_history")
-    private List<CustomTicketHistory> ticketHistoryList;
+    private List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
@@ -130,7 +126,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
-        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
+//        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
 
         ServiceProviderEntity serviceProvider = null;
         try {
@@ -158,7 +154,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
-    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager, List<CustomTicketHistory> customTicketHistoryList) {
+    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager, List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList, Set<TicketDocumentWrapper> ticketDocumentWrappers) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
@@ -183,7 +179,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
-        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
+        this.ticketDocumentWrapperSet = ticketDocumentWrappers;
 
         ServiceProviderEntity serviceProvider = null;
         try {
@@ -207,7 +203,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
         }
-        this.ticketHistoryList = customTicketHistoryList;
+        this.customTicketHistoryWrapperList = customTicketHistoryWrapperList;
         this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
