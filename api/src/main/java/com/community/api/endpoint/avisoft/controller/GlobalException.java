@@ -6,12 +6,14 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -20,7 +22,7 @@ import javax.jms.TransactionRolledBackException;
 import java.util.ArrayList;
 import java.util.List;
 
-@ControllerAdvice
+@RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 
 public class GlobalException {
@@ -78,6 +80,10 @@ public class GlobalException {
     @ExceptionHandler(value = {TransactionRolledBackException.class})
     public ResponseEntity<ErrorResponse> handleTransactionRollback(TransactionRolledBackException ex, WebRequest request) {
         return generateErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST,ex.getMessage());
+    }
+    @ExceptionHandler(value = {UnexpectedRollbackException.class})
+    public ResponseEntity<ErrorResponse> handleUnexpectedRollback(UnexpectedRollbackException ex, WebRequest request) {
+        return generateErrorResponse("Internal Server error", HttpStatus.BAD_REQUEST,ex.getMessage());
     }
     @ExceptionHandler(value = { RuntimeException.class })
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {

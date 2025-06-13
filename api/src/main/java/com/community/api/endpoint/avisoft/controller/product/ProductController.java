@@ -554,52 +554,51 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
-            Query query=entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
-            query.setParameter("productId",productId);
-            Boolean communicate=true;
-            Long id = (Long) query.getSingleResult();
-            ProductEvents productEvents=null;
+            if(!customProduct.getPurchasedBy().isEmpty()) {
+                Query query = entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
+                query.setParameter("productId", productId);
+                Boolean communicate = true;
+                Long id = (Long) query.getSingleResult();
+                ProductEvents productEvents = null;
 
 
-            if(id==null) {
-                productEvents = new ProductEvents();
-                productEvents.setLastUpdate(LocalDateTime.now());
-                productEvents.setSummaryOfUpdate(null);
-                productEvents.setProductId(productId);
-
-            }
-            else
-            {
-                productEvents = entityManager.find(ProductEvents.class,id);
-                if(Duration.between(productEvents.getLastUpdate(),LocalDateTime.now()).toMinutes()>=10) {
-                    productEvents=new ProductEvents();
+                if (id == null) {
+                    productEvents = new ProductEvents();
                     productEvents.setLastUpdate(LocalDateTime.now());
                     productEvents.setSummaryOfUpdate(null);
                     productEvents.setProductId(productId);
+
+                } else {
+                    productEvents = entityManager.find(ProductEvents.class, id);
+                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
+                        productEvents = new ProductEvents();
+                        productEvents.setLastUpdate(LocalDateTime.now());
+                        productEvents.setSummaryOfUpdate(null);
+                        productEvents.setProductId(productId);
+                    } else
+                        communicate = false;
                 }
-                else
-                    communicate=false;
-            }
-            if(communicate) {
-                CommunicationRequest communicationRequest = new CommunicationRequest();
-                CustomProduct customProductSession=getProductWithPurchasers(customProduct.getId());
-                communicationRequest.setUserIds(customProductSession.getPurchasedBy());
-                communicationRequest.setSubject("Product Update Notification");
-                List<Integer>modes=new ArrayList<>();
-                modes.add(1);
-                communicationRequest.setModes(modes);
-                communicationRequest.setContentText(
-                        "Hello,\n\n" +
-                                "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
-                                "Changes: " +diff.toString()+ "\n\n" +
-                                "To view the latest changes, please visit:\n" +
-                                "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
-                                "Thank you,\n" +
-                                "System Administrator"
-                );
-                entityManager.persist(productEvents);
-                System.out.println("Calling email trigger");
-                ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
+                if (communicate) {
+                    CommunicationRequest communicationRequest = new CommunicationRequest();
+                    CustomProduct customProductSession = getProductWithPurchasers(customProduct.getId());
+                    communicationRequest.setUserIds(customProductSession.getPurchasedBy());
+                    communicationRequest.setSubject("Product Update Notification");
+                    List<Integer> modes = new ArrayList<>();
+                    modes.add(1);
+                    communicationRequest.setModes(modes);
+                    communicationRequest.setContentText(
+                            "Hello,\n\n" +
+                                    "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                                    "Changes: " + diff.toString() + "\n\n" +
+                                    "To view the latest changes, please visit:\n" +
+                                    "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
+                                    "Thank you,\n" +
+                                    "System Administrator"
+                    );
+                    entityManager.persist(productEvents);
+                    System.out.println("Calling email trigger");
+                    ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
+                }
             }
             if(customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L) {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
