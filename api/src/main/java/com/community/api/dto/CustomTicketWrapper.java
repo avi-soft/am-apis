@@ -34,6 +34,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("assignee_name")
     protected String assigneeName;
 
+    @JsonProperty("modifier_name")
+    protected String modifierName;
+
     @JsonProperty("mobile_number")
     protected String mobileNumber;
 
@@ -128,20 +131,20 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isCompleted = customServiceProviderTicket.getIsComplete();
 //        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
 
-        ServiceProviderEntity serviceProvider = null;
+        ServiceProviderEntity assignee = null;
         try {
             if(customServiceProviderTicket.getAssignee() != null) {
-                serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
-                this.assigneeName = serviceProvider.getFirst_name();
-                if (serviceProvider.getLast_name() != null) {
-                    this.assigneeName += " " + serviceProvider.getLast_name();
+                assignee = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
+                this.assigneeName = assignee.getFirst_name();
+                if (assignee.getLast_name() != null) {
+                    this.assigneeName += " " + assignee.getLast_name();
                 }
             } else {
                 this.assigneeName = "-";
             }
-            if(serviceProvider != null) {
-                this.primaryEmail = serviceProvider.getPrimary_email();
-                this.mobileNumber = serviceProvider.getMobileNumber();
+            if(assignee != null) {
+                this.primaryEmail = assignee.getPrimary_email();
+                this.mobileNumber = assignee.getMobileNumber();
             }
         }
         catch (Exception e)
@@ -149,6 +152,29 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
             exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
+        }
+
+        ServiceProviderEntity modifier = null;
+        try {
+            if(customServiceProviderTicket.getModifierId() != null) {
+                modifier = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getModifierId());
+                this.modifierName = modifier.getFirst_name();
+                if (modifier.getLast_name() != null) {
+                    this.modifierName += " " + modifier.getLast_name();
+                }
+            } else {
+                this.modifierName = "-";
+            }
+            if(modifier != null) {
+                this.primaryEmail = modifier.getPrimary_email();
+                this.mobileNumber = modifier.getMobileNumber();
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
+            this.modifierName = "-";
         }
 
         this.parentTicket = customServiceProviderTicket.getParentTicket();
@@ -202,6 +228,29 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
             exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
+        }
+
+        ServiceProviderEntity modifier = null;
+        try {
+            if(customServiceProviderTicket.getModifierId() != null) {
+                modifier = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getModifierId());
+                this.modifierName = modifier.getFirst_name();
+                if (modifier.getLast_name() != null) {
+                    this.modifierName += " " + modifier.getLast_name();
+                }
+            } else {
+                this.modifierName = "-";
+            }
+            if(modifier != null) {
+                this.primaryEmail = modifier.getPrimary_email();
+                this.mobileNumber = modifier.getMobileNumber();
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
+            this.modifierName = "-";
         }
         this.customTicketHistoryWrapperList = customTicketHistoryWrapperList;
         this.parentTicket = customServiceProviderTicket.getParentTicket();

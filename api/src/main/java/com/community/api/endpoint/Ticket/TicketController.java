@@ -269,7 +269,7 @@ public class TicketController {
                     ticketHistoryDocumentWrapperList.add(ticketDocumentWrapper);
                 }
 
-                customTicketHistoryWrapper.customWrapDetails(ticketHistory, ticketHistoryDocumentWrapperList);
+                customTicketHistoryWrapper.customWrapDetails(ticketHistory, ticketHistoryDocumentWrapperList, entityManager);
                 customTicketHistoryWrapperList.add(customTicketHistoryWrapper);
             }
 
