@@ -109,6 +109,14 @@ public class CustomDocumentTypeService
                 throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
             }
         }
+
+        if(documentTypesToBeSaved.getMin_width_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_width_dimension_in_mm() !=null || documentTypesToBeSaved.getMin_height_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_height_dimension_in_mm()!=null )
+        {
+            if(documentTypesToBeSaved.getDpi()==null)
+            {
+                throw new IllegalArgumentException("Dpi cannot be null if you are giving dimensions");
+            }
+        }
         documentTypeToBeSaved.setDocument_type_id(id);
         documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name());
         documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription());
@@ -117,6 +125,7 @@ public class CustomDocumentTypeService
         documentTypeToBeSaved.setMin_document_size(documentTypesToBeSaved.getMin_document_size().toUpperCase());
         documentTypeToBeSaved.setSort_order(sortOrderToBeInserted);
         documentTypeToBeSaved.setRequired_document_types(validFileTypes);
+        documentTypeToBeSaved.setDpi(documentTypesToBeSaved.getDpi());
         entityManager.persist(documentTypeToBeSaved);
 
         return documentTypeToBeSaved;
@@ -316,6 +325,11 @@ public class CustomDocumentTypeService
             {
                 throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
             }
+        }
+
+        if(documentType.getDpi()!=null)
+        {
+            documentTypeToUpdate.setDpi(documentType.getDpi());
         }
 
         // Validate and fetch file types
