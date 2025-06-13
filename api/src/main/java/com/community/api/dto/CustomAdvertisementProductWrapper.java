@@ -190,7 +190,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
                     : "N/A";
             flag++;
         }
-        if(flag==0){
+        if(flag<2){
             try {
                 if (customCustomer == null) {
                     categoryId = 1L;
