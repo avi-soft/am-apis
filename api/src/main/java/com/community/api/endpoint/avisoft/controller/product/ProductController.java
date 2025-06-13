@@ -615,7 +615,7 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
-            if(addProductDto.getProductState()==3)
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3)
             {
                 customProduct.setIsApproved(true);
             }
