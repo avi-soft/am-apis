@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,9 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/ticket-custom", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class TicketHistoryController {
+
+    @Autowired
+    EntityManager entityManager;
 
     @Autowired
     TicketHistoryService ticketHistoryService;
@@ -59,14 +63,15 @@ public class TicketHistoryController {
     @Autowired
     JwtUtil jwtTokenUtil;
 
-    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     @GetMapping("/get-ticketHistory-by-ticket-id/{ticketId}")
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
     public ResponseEntity<?> retrieveTicketHistory(@PathVariable(name = "ticketId") Long ticketId,
                                                    @RequestHeader(value = "Authorization") String authHeader) {
         try {
 
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUseId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
             if(ticketId <= 0) {
@@ -74,7 +79,9 @@ public class TicketHistoryController {
             }
 
             CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByTicketId(ticketId);
-
+            if(role.getRole_name().equals(Constant.SERVICE_PROVIDER) && !ticket.getAssignee().equals(tokenUseId)) {
+                throw new IllegalArgumentException("Forbidden Access");
+            }
             if(ticket == null) {
                 throw new NotFoundException("No Ticket Found with provided ticket id.");
             }
@@ -98,7 +105,7 @@ public class TicketHistoryController {
                     ticketDocumentWrapperList.add(ticketDocumentWrapper);
                 }
 
-                wrapper.customWrapDetails(customTicketHistory, ticketDocumentWrapperList);
+                wrapper.customWrapDetails(customTicketHistory, ticketDocumentWrapperList, entityManager);
                 result.add(wrapper);
             }
 
