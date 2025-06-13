@@ -1846,7 +1846,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("archived", 's');
             alias.put("approved", 's');
             alias.put("rejected", 's');
-            alias.put("rank", 's');
+            alias.put("rank_id", 's');
 
             // Trim and lowercase
             if (first_name != null) first_name = first_name.trim().toLowerCase();
@@ -1913,7 +1913,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected","rank"};
+            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected","rank_id"};
             Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected,rank};
 
             // Add fields dynamically
