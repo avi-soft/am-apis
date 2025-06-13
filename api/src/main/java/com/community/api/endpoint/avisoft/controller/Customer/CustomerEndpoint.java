@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.mail.MessagingException;
+import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
 import javax.persistence.Query;
 import javax.persistence.EntityManager;
@@ -1648,8 +1649,8 @@ public class CustomerEndpoint {
 
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
-            for (int i = 0; i < fileTypes.size(); i++) {
-                Integer fileTypeId = fileTypes.get(i); // here fileType id meaning documentTypeId
+            for (int i = 0; i < files.size(); i++) {
+                Integer fileTypeId = fileTypes.get(0); // here fileType id meaning documentTypeId
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
@@ -1677,6 +1678,9 @@ public class CustomerEndpoint {
         } catch (NonUniqueResultException nonUniqueResultException) {
             exceptionHandling.handleException(nonUniqueResultException);
             return ResponseService.generateErrorResponse("Error updating documents: " + nonUniqueResultException.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (NoResultException noResultException) {
+            exceptionHandling.handleException(noResultException);
+            return ResponseService.generateErrorResponse("Error updating documents: " + noResultException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Error updating documents: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
