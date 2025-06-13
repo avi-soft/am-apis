@@ -22,9 +22,10 @@ public class TypingTextService
     private EntityManager entityManager;
 
     @Transactional
-    public List<TypingText> getAllRandomTypingTexts()
+    public List<TypingText> getAllRandomTypingTexts(Boolean archived)
     {
         TypedQuery<TypingText> typedQuery= entityManager.createQuery(Constant.GET_ALL_RANDOM_TYPING_TEXT,TypingText.class);
+        typedQuery.setParameter("archived",archived);
         List<TypingText> typingTexts = typedQuery.getResultList();
         return typingTexts;
     }
@@ -36,11 +37,11 @@ public class TypingTextService
         for(TypingText typedText : typingTexts)
         {
             TypingText typingTextToAdd =new TypingText();
-            long id = findCount() + 1;
+            long id = findMaxId() + 1;
             if (typedText.getText() == null || typedText.getText().trim().isEmpty()) {
                 throw new IllegalArgumentException("Typing text cannot be empty or consist only of whitespace");
             }
-            List<TypingText> existingTypingText = getAllRandomTypingTexts();
+            List<TypingText> existingTypingText = getAllRandomTypingTexts(false);
             for (TypingText existingTypingText1: existingTypingText) {
                 if (existingTypingText1.getText().equalsIgnoreCase(typedText.getText())) {
                     throw new IllegalArgumentException("Typing Text with name '"+typedText.getText()+"' already exists");
@@ -54,10 +55,8 @@ public class TypingTextService
         return typingTextsListToAdd;
     }
 
-    public long findCount() {
-        String queryString = Constant.GET_TYPING_TEXT_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
-        return query.getSingleResult();
+    public long findMaxId() {
+        return  entityManager.createQuery("SELECT COALESCE(MAX(t.id), 0) FROM TypingText t", Long.class).getSingleResult();
     }
 
     @Transactional
@@ -101,7 +100,7 @@ public class TypingTextService
             if (typingText.getText().trim().isEmpty()) {
                 throw new IllegalArgumentException("Typing text cannot be empty or consist only of whitespace");
             }
-            List<TypingText> existingTypingText = getAllRandomTypingTexts();
+            List<TypingText> existingTypingText = getAllRandomTypingTexts(false);
             for (TypingText existingTypingText1: existingTypingText) {
                 if (existingTypingText1.getText().equalsIgnoreCase(typingText.getText()) && !existingTypingText1.getId().equals(typingTextId)) {
                     throw new IllegalArgumentException("Typing Text with name '"+typingText.getText()+"' already exists");

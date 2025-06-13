@@ -563,7 +563,7 @@ public class ServiceProviderTestService {
 
             if (!isWidthValid || !isHeightValid) {
                 throw new IllegalArgumentException(
-                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm.",
+                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm. Keep DPI=300",
                                 targetWidth, targetHeight, tolerance)
                 );
             }
