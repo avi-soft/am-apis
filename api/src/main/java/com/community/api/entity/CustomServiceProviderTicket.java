@@ -151,4 +151,8 @@ public class CustomServiceProviderTicket {
     @OneToMany(mappedBy = "serviceProviderTicket", fetch = FetchType.EAGER)
     private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
 
+//    @JsonIgnore
+//    @OneToMany(mappedBy = "ticket")
+//    private List<CustomTicketHistory> ticketHistoryList = new ArrayList<>();
+
 }
