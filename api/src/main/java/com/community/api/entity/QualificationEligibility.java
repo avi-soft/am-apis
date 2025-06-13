@@ -17,13 +17,14 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import java.io.Serializable;
 import java.util.List;
 
 @Entity
 @Table(name = "qualification_eligibility")
 @Getter
 @Setter
-public class QualificationEligibility
+public class QualificationEligibility implements Serializable
 {
     @Id
     @Column(name = "qualification_eligibility_id")
