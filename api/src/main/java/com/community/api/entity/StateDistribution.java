@@ -16,6 +16,7 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.CascadeType;
 import javax.persistence.Table;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,7 @@ import java.util.List;
 @Table(name = "state_distribution")
 @Getter
 @Setter
-public class StateDistribution {
+public class StateDistribution implements Serializable {
 
 @Id
 @GeneratedValue(strategy = GenerationType.IDENTITY)

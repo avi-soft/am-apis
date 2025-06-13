@@ -13,6 +13,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "vacancy_distribution_type")
@@ -20,7 +21,7 @@ import javax.persistence.Table;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class VacancyDistributionType
+public class VacancyDistributionType implements Serializable
 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

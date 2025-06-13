@@ -2007,7 +2007,7 @@ public class ProductService {
         }
     }
 
-    public Boolean validateAndSetActiveStartDate(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
+    public Boolean  validateAndSetActiveStartDate(AddProductDto addProductDto, CustomProduct customProduct, Date createdDate) throws Exception {
         try {
             if (addProductDto.getActiveStartDate() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getActiveStartDate()));

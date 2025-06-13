@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
 @Table(name = "other_distribution")
 @Getter
 @Setter
-public class OtherDistribution {
+public class OtherDistribution implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
