@@ -49,6 +49,9 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
     @JsonProperty("assigned_date")
     protected Date assignedDate;
 
+    @JsonProperty("comment")
+    protected String comment;
+
     @JsonProperty("ticket_state")
     protected CustomTicketState customTicketState;
 
@@ -76,6 +79,7 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
         this.customTicketStatus = customTicketHistory.getTicketStatus();
         this.assignedDate = customTicketHistory.getTicketAssignDate();
         this.ticketDocumentWrapperList = ticketDocumentWrapperList;
+        this.comment = customTicketHistory.getComment();
 
         ServiceProviderEntity modifier = null;
         try {
