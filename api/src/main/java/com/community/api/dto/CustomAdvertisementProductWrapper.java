@@ -1,5 +1,6 @@
 package com.community.api.dto;
 
+import com.community.api.component.Constant;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
@@ -144,7 +145,7 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         this.metaDescription = product.getMetaDescription();
         this.displayTemplate = product.getDisplayTemplate();
-        this.isReviewRequired=product.getIsReviewRequired();
+        this.isReviewRequired = product.getIsReviewRequired();
 
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
@@ -165,57 +166,76 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
         this.downloadSyllabusLink = product.getDownloadSyllabusLink();
         this.formComplexity = product.getFormComplexity();
 
-        this.isMultiplePostSameFee= product.getIsMultiplePostSameFee();
+        this.isMultiplePostSameFee = product.getIsMultiplePostSameFee();
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacancies = product.getTotalVacanciesInProduct();
-        this.numberOfPosts=product.getPosts().size();
-        var genderId=0L;
-        var categoryId=0L;
-
-        try {
-            if(customCustomer==null)
-            {
-                categoryId = 1L;
-                genderId = 1L;
-            }
-            else {
-                categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-                genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-            }
-        }catch (Exception exception)
-        {
-            if(genderId==0L)
-                genderId=1L;
-            if(categoryId==0L)
-                categoryId=1L;
+        this.numberOfPosts = product.getPosts().size();
+        var genderId = 0L;
+        var categoryId = 0L;
+        int flag=0;
+        if (reserveCategoryService.getReserveCategoryFee(product.getId(), Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL) != null) {
+            this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), 7L, 4L);
+            flag++;
         }
+        if (reserveCategoryAgeService.fetchAgeLimitByCategory(product, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL) != null) {
+            var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product,  Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+            System.out.println(ageLimitResult.toString());
 
-        Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
-                .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+            if(ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
+                int[] ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(), null);
+                System.out.println("limits"+ageLimits.toString());
+                this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
+                        && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                        ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                        : (ageLimits != null && ageLimits.length >= 2)
+                        ? ageLimits[0] + "-" + ageLimits[1]
+                        : "N/A";
+                flag++;
+            }
+        }
+        if(flag<2){
+            try {
+                if (customCustomer == null) {
+                    categoryId = 1L;
+                    genderId = 1L;
+                } else {
+                    categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                    genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+                }
+            } catch (Exception exception) {
+                if (genderId == 0L)
+                    genderId = 1L;
+                if (categoryId == 0L)
+                    categoryId = 1L;
+            }
+
+            Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
+                    .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
 
 // Set fee as "N/A" if no fee is found
-        this.fee = (feeValue != null) ? feeValue : 0.0;
+            this.fee = (feeValue != null) ? feeValue : 0.0;
 
-        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+            var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
 
 // If age limit is null, fetch with default values (1L, 1L)
-        if (ageLimitResult == null) {
-            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
-        }
+            if (ageLimitResult == null) {
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+            }
 
 // Extract age limits
-        int[] ageLimits = null;
-        if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
-            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
-        }
+            int[] ageLimits = null;
+            if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
+                ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(), null);
+            }
 
 // Set ageLimit value
-        this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
-                && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
-                ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
-                : (ageLimits != null && ageLimits.length >= 2)
-                ? ageLimits[0] + "-" + ageLimits[1]
-                : "N/A";
+            this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
+                    && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                    ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                    : (ageLimits != null && ageLimits.length >= 2)
+                    ? ageLimits[0] + "-" + ageLimits[1]
+                    : "N/A";
+        }
     }
 
     @Override

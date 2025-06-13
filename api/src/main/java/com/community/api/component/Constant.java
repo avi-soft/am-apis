@@ -318,6 +318,10 @@ public class Constant {
     public static final Long REVIEW_TICKET_FEEDBACK_LOW = -5L;
 
 
+    public static final Long GENDER_ALL=4L;
+    public static final Long RESERVED_CATEGORY_ALL=7L;
+
+
     //add constants above this query//*******************************************************************************
     public static  final String recosQuery =
             "WITH overlappings AS (" +
