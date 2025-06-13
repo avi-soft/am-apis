@@ -62,6 +62,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -403,16 +404,24 @@ public class ProductController extends CatalogEndpoint {
             String formattedDate = dateFormat.format(new Date());
             Date currentDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             customProduct.setModifiedDate(currentDate);
+            customProduct.setAdmitCardDateFrom(originalProduct.getAdmitCardDateFrom());
+            System.out.println(originalProduct.getAdmitCardDateFrom());
+            customProduct.setAdmitCardDateTo(originalProduct.getAdmitCardDateTo());
+            customProduct.setModificationDateFrom(originalProduct.getModificationDateFrom());
+            customProduct.setModificationDateTo(originalProduct.getModificationDateTo());
+            customProduct.setExamDateFrom(originalProduct.getExamDateFrom());
+            customProduct.setExamDateTo(originalProduct.getExamDateTo());
+            if(addProductDto.getProductState()==null){
+                // Validate dates fields.
+                productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetGoLiveDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
 
-            // Validate dates fields.
-            productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetGoLiveDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
-
-            productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
-            productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
-            productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
+            }
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
 
@@ -550,6 +559,7 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
+            System.out.println("admit card date is "+customProduct.getAdmitCardDateFrom());
 List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
             System.out.println(diff);
             entityManager.merge(customProduct);
@@ -601,10 +611,11 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
-            if(customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L) {
+            if((customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L)&&addProductDto.getProductState()!=3) {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
+            entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {

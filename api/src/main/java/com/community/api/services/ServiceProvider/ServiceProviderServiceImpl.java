@@ -1810,7 +1810,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     mobileNumber == null &&
                     userName == null &&
                     test_status_id == null &&
-                    role == null && completed == null &&
+                    role == null && completed == null && rank==null&&
                     archived == null && approved == null && rejected == null &&
                     (qualificationType == null || qualificationType.isEmpty())) {
 
@@ -1969,7 +1969,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (qualificationType != null && !qualificationType.isEmpty()) {
                 finalQuery.setParameter("qualificationType", qualificationType);
             }
-
+            System.out.println(finalQuery.toString());
             // Execute query
             List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
 
