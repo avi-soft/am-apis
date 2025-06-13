@@ -160,7 +160,7 @@ public class ImageService {
     public void checkForDuplicateImageFast(byte[] uploadImageData, String filename) throws IllegalArgumentException {
         try {
             String uploadHash = generateImageHash(uploadImageData);
-            List<Image> images = getAllRandomImages(null);
+            List<Image> images = getAllRandomImages(null,false);
             for (Image image : images) {
                 String existingHash = generateImageHash(image.getImage_data());
                 if (uploadHash.equals(existingHash)) {
@@ -248,14 +248,15 @@ public class ImageService {
 */
 
     @Transactional
-    public List<Image> getAllRandomImages(List<Integer> randomImageTypeIds) {
-        String baseQuery = "SELECT i FROM Image i WHERE i.archived = false";
+    public List<Image> getAllRandomImages(List<Integer> randomImageTypeIds, Boolean archived) {
+        String baseQuery = "SELECT i FROM Image i WHERE i.archived = :archived";
 
         if (randomImageTypeIds != null && !randomImageTypeIds.isEmpty()) {
             baseQuery += " AND i.randomImageType.randomImageTypeId IN :typeIds";
         }
 
         TypedQuery<Image> typedQuery = entityManager.createQuery(baseQuery, Image.class);
+        typedQuery.setParameter("archived", archived);
 
         if (randomImageTypeIds != null && !randomImageTypeIds.isEmpty()) {
             typedQuery.setParameter("typeIds", randomImageTypeIds);
