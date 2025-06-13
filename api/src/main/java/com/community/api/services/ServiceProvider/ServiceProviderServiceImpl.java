@@ -1792,7 +1792,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Boolean approved,
             Boolean rejected,
             String userName,
-            List<Integer> qualificationType) {
+            List<Integer> qualificationType,
+            Integer rank) {
 
         try {
             CustomServiceProviderTicket customServiceProviderTicket = null;
@@ -1845,7 +1846,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("archived", 's');
             alias.put("approved", 's');
             alias.put("rejected", 's');
-
+            alias.put("rank", 's');
 
             // Trim and lowercase
             if (first_name != null) first_name = first_name.trim().toLowerCase();
@@ -1912,8 +1913,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected"};
-            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected, };
+            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected","rank"};
+            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected,rank};
 
             // Add fields dynamically
             for (int i = 0; i < fieldValues.length; i++) {
