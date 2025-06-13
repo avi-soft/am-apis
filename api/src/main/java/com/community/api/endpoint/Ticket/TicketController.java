@@ -4,7 +4,9 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.dto.CustomTicketHistoryWrapper;
 import com.community.api.dto.CustomTicketWrapper;
+import com.community.api.dto.TicketDocumentWrapper;
 import com.community.api.dto.TicketStatisticsDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
@@ -18,6 +20,8 @@ import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.Role;
 import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.DocumentStorageService;
+import com.community.api.services.FileService;
 import com.community.api.services.OrderDTOService;
 import com.community.api.services.ProductService;
 import com.community.api.services.ResponseService;
@@ -35,8 +39,6 @@ import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -47,7 +49,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,11 +57,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +103,15 @@ public class TicketController {
 
     @Autowired
     CustomerService customerService;
+
+    @Autowired
+    FileService fileService;
+
+    @Autowired
+    DocumentStorageService documentStorageService;
+
+    @Autowired
+    HttpServletRequest request;
 
     @Autowired
     TicketHistoryService ticketHistoryService;
@@ -232,9 +244,34 @@ public class TicketController {
                 return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
             }
 
-            List<CustomTicketHistory> ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId());
+            Set<TicketDocumentWrapper> ticketDocumentWrapperSet = new HashSet<>();
+            for(ServiceProviderDocument document: ticket.getServiceProviderDocuments()) {
+                TicketDocumentWrapper ticketDocumentWrapper = new TicketDocumentWrapper();
+                String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
+                ticketDocumentWrapper.wrapDetails(document, fileUrl, request);
 
+                ticketDocumentWrapperSet.add(ticketDocumentWrapper);
+            }
+
+            List<CustomTicketHistory> ticketHistoryList = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId());
+
+            List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList = new ArrayList<>();
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
+            for(CustomTicketHistory ticketHistory: ticketHistoryList) {
+                CustomTicketHistoryWrapper customTicketHistoryWrapper = new CustomTicketHistoryWrapper();
+
+                List<TicketDocumentWrapper> ticketHistoryDocumentWrapperList = new ArrayList<>();
+                for(ServiceProviderDocument document: ticketHistory.getServiceProviderDocuments()) {
+                    TicketDocumentWrapper ticketDocumentWrapper = new TicketDocumentWrapper();
+                    String fileUrl = fileService.getFileUrl(documentStorageService.encrypt(document.getFilePath()), request);
+                    ticketDocumentWrapper.wrapDetails(document, fileUrl, request);
+
+                    ticketHistoryDocumentWrapperList.add(ticketDocumentWrapper);
+                }
+
+                customTicketHistoryWrapper.customWrapDetails(ticketHistory, ticketHistoryDocumentWrapperList);
+                customTicketHistoryWrapperList.add(customTicketHistoryWrapper);
+            }
 
             if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
@@ -242,9 +279,9 @@ public class TicketController {
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
-                wrapper.customWrapDetails(ticket, orderDto, entityManager, ticketHistory);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
             } else {
-                wrapper.customWrapDetails(ticket, null, entityManager, ticketHistory);
+                wrapper.customWrapDetails(ticket, null, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
             }
 
             return ResponseService.generateSuccessResponse("Tickets Found", wrapper, HttpStatus.OK);
