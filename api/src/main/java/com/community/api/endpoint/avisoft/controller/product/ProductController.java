@@ -610,9 +610,13 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
                     ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
                 }
             }
-            if((customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L)&&addProductDto.getProductState()!=3) {
+            if((customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L)&&(addProductDto.getProductState()!=null&&addProductDto.getProductState()!=3)) {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
+            }
+            if(addProductDto.getProductState()==3)
+            {
+                customProduct.setIsApproved(true);
             }
             entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
