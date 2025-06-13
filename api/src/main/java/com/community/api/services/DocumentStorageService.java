@@ -54,6 +54,7 @@ import javax.persistence.EntityManager;
 import java.io.File;
 import java.io.IOException;
 import javax.persistence.NoResultException;
+import javax.persistence.NonUniqueResultException;
 import javax.persistence.Query;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -1264,6 +1265,9 @@ public class DocumentStorageService {
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             throw new IllegalArgumentException(illegalArgumentException);
+        } catch (NonUniqueResultException nonUniqueResultException) {
+            exceptionHandlingService.handleException(nonUniqueResultException);
+            throw new Exception(nonUniqueResultException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage());
