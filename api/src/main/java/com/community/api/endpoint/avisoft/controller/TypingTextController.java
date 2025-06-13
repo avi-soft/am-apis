@@ -23,14 +23,14 @@ public class TypingTextController
     }
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages()
+    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false,defaultValue = "false")Boolean archived)
     {
-        List<TypingText> randomTypingTexts= typingTextService.getAllRandomTypingTexts();
+        List<TypingText> randomTypingTexts= typingTextService.getAllRandomTypingTexts(archived);
         if(randomTypingTexts.isEmpty())
         {
-            return ResponseService.generateSuccessResponse("Typing Text list is empty",randomTypingTexts, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(archived?"archived Typing Text list is empty":"Unarchived Typing Text list is empty",randomTypingTexts, HttpStatus.OK);
         }
-        return ResponseService.generateSuccessResponse("Typing Text list is found",randomTypingTexts,HttpStatus.OK);
+        return ResponseService.generateSuccessResponse(archived?"Archived Typing Text list is found":"Unarchived Typing Text list is found",randomTypingTexts,HttpStatus.OK);
     }
 
     @PostMapping("/add-all")

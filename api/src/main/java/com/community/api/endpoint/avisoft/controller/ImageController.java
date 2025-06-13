@@ -59,14 +59,14 @@ public class ImageController
 
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false) List<Integer> randomImageTypeIds)
+    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false) List<Integer> randomImageTypeIds,@RequestParam(required = false,defaultValue = "false")Boolean archived)
     {
-       List<Image> randomImages= imageService.getAllRandomImages(randomImageTypeIds);
+       List<Image> randomImages= imageService.getAllRandomImages(randomImageTypeIds,archived);
        if(randomImages.isEmpty())
        {
-           return ResponseService.generateSuccessResponse("Image list is empty",randomImages,HttpStatus.OK);
+           return ResponseService.generateSuccessResponse(archived?"Archived Image list is empty":"Unarchived image list is empty",randomImages,HttpStatus.OK);
        }
-       return ResponseService.generateSuccessResponse("Image list is found",randomImages,HttpStatus.OK);
+       return ResponseService.generateSuccessResponse(archived?"Archived Image list is found":"Unarchived image list is found",randomImages,HttpStatus.OK);
     }
 
     @DeleteMapping("/manage/{randomImageId}")
