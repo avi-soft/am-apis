@@ -63,8 +63,9 @@ public class ServiceProviderDocument {
     @Column(name = "is_qualification_document",columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_qualification_document=false;
 
-    @OneToOne(cascade = CascadeType.ALL,orphanRemoval = true)
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
+    @JsonIgnore
     private QualificationDetails qualificationDetails;
 
     @OneToOne(cascade = CascadeType.ALL)
