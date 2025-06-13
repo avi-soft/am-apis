@@ -16,13 +16,14 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "custom_product_gender_physical_requirement_reference")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CustomProductGenderPhysicalRequirementRef {
+public class CustomProductGenderPhysicalRequirementRef  implements Serializable {
 
     @Id
     @Column(name = "physical_requirement_id")
