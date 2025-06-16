@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.component.Constant;
 import com.community.api.dto.EligibilityResult;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
@@ -483,7 +484,7 @@ public class CartService {
     private EligibilityResult checkCategoryEligibility(CustomCustomer customer, QualificationEligibility eligibility) {
         EligibilityResult result = new EligibilityResult();
 
-        if (eligibility.getCustomReserveCategory() == null) {
+        if (eligibility.getCustomReserveCategory() == null || eligibility.getCustomReserveCategory().getReserveCategoryId().equals(Constant.RESERVED_CATEGORY_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -491,6 +492,12 @@ public class CartService {
         if (customer.getCategory() == null) {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
             result.addReason("Customer category is required but not provided");
+            return result;
+        }
+
+        if(customer.getCategory().trim().equalsIgnoreCase("All"))
+        {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
 
@@ -756,7 +763,7 @@ public class CartService {
     private EligibilityResult checkGenderEligibilityForAge(CustomCustomer customer, CustomProductReserveCategoryBornBeforeAfterRef ageRequirement) {
         EligibilityResult result = new EligibilityResult();
 
-        if (ageRequirement.getGender() == null) {
+        if (ageRequirement.getGender() == null || ageRequirement.getGender().getGenderId().equals(Constant.GENDER_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -779,8 +786,8 @@ public class CartService {
 
         // Standard gender matching
         if (customerGender.equals(requiredGenderName) ||
-                requiredGenderName.equals("no gender") ||
-                requiredGenderName.equals("all")) {
+                requiredGenderName.equalsIgnoreCase("no gender") ||
+                requiredGenderName.equalsIgnoreCase("all")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -794,7 +801,7 @@ public class CartService {
     private EligibilityResult checkCategoryEligibilityForAge(CustomCustomer customer, CustomProductReserveCategoryBornBeforeAfterRef ageRequirement) {
         EligibilityResult result = new EligibilityResult();
 
-        if (ageRequirement.getCustomReserveCategory() == null) {
+        if (ageRequirement.getCustomReserveCategory() == null || ageRequirement.getCustomReserveCategory().getReserveCategoryId().equals(Constant.RESERVED_CATEGORY_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -816,9 +823,8 @@ public class CartService {
         }
 
         // Standard category matching
-        if (customerCategory.equals(requiredCategoryName) ||
-                requiredCategoryName.equals("no category") ||
-                requiredCategoryName.equals("all")) {
+        if (customerCategory.equalsIgnoreCase(requiredCategoryName) ||
+                requiredCategoryName.equalsIgnoreCase("all")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -970,7 +976,7 @@ public class CartService {
             return result;
         }
 
-        if (customerGender.equalsIgnoreCase(requirement.getCustomGender().getGenderName())) {
+        if (customerGender.equalsIgnoreCase(requirement.getCustomGender().getGenderName()) || customerGender.equalsIgnoreCase("All")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);

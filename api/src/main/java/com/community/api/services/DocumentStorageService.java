@@ -1234,6 +1234,7 @@ public class DocumentStorageService {
                                         {
                                             documentToDeleteC.setQualificationDetails(null);
                                         }
+                                        documentToDeleteC.setIsArchived(true);
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(customCustomer);  // merge after modification
                                         break;
@@ -1254,6 +1255,7 @@ public class DocumentStorageService {
                                         {
                                             documentToDelete.setQualificationDetails(null);
                                         }
+                                        documentToDelete.setIsArchived(true);
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(serviceProvider);  // merge after modification
                                         break;
