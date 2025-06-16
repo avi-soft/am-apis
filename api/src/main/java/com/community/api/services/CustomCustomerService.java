@@ -422,7 +422,7 @@ public class CustomCustomerService {
                     }
 
                     // If the file is not empty and a document already exists, update the document
-                    else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                    else if (existingDocument != null && (!file.isEmpty() || file != null) && !fileNameId.equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
                         String filePath = existingDocument.getFilePath();
                         if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
                             customCustomer.setIsLivePhotoNa(false);
