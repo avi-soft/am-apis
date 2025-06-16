@@ -5,8 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.CascadeType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -15,7 +16,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.io.Serializable;
 import java.util.List;
@@ -85,4 +85,9 @@ public class QualificationEligibility implements Serializable
     private String subjectIdRunningField;
     private String streamIdRunningField;
     private String reserveCatIdRunningField;
+
+    @ElementCollection
+    @CollectionTable(name = "highest_qualification_subject_names_in_product", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "subject_name")
+    private List<String> highestQualificationSubjectNames;
 }
