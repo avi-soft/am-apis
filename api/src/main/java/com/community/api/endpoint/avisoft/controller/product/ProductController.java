@@ -542,7 +542,12 @@ public class ProductController extends CatalogEndpoint {
                     customProduct.setProductState(customProductState);
                 }
             }
-
+            System.out.println("product_state id is"+addProductDto.getProductState());
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3)
+            {
+                System.out.println("hello");
+                customProduct.setIsApproved(true);
+            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
@@ -615,10 +620,7 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
-            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3)
-            {
-                customProduct.setIsApproved(true);
-            }
+
             entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
