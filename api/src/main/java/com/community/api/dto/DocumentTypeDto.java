@@ -21,4 +21,5 @@ public class DocumentTypeDto
     protected Double max_width_dimension_in_mm;
     protected Double min_height_dimension_in_mm;
     protected Double max_height_dimension_in_mm;
+    private Double dpi;
 }
