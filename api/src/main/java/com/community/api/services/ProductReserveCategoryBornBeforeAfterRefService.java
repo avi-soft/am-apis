@@ -111,7 +111,7 @@ public class ProductReserveCategoryBornBeforeAfterRefService {
                     int[]maxMin=sharedUtilityService.calculateAgeRange(addReserveCategoryDto.getBornBefore(),addReserveCategoryDto.getBornAfter(),dateFormat2.parse(addReserveCategoryDto.getAsOfDate()));
                     ref.setBornBefore(bornBefore);
                     ref.setBornAfter(bornAfter);
-
+                    System.out.println("Ages"+maxMin[0]+maxMin[1]);
                     ref.setMaximumAge(maxMin[1]);
                     ref.setMinimumAge(maxMin[0]);
                     System.out.println("aod"+addReserveCategoryDto.getAsOfDate());
