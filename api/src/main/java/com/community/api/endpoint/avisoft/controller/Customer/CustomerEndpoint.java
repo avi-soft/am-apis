@@ -3091,7 +3091,7 @@ public class CustomerEndpoint {
 
             ProductDetailsDTO dto = new ProductDetailsDTO();
             dto.setFee(fee);
-            dto.setAgeLimit(ageLimit);
+            dto.setAgeLimit(getAgeLimits(ageLimitResult, sharedUtilityService));
             dto.setId(id.longValue());
             dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
             dto.setMetaTitle(customProduct.getMetaTitle());
@@ -3128,5 +3128,28 @@ public class CustomerEndpoint {
                 : (ageLimits != null && ageLimits.length >= 2)
                 ? ageLimits[0] + "-" + ageLimits[1]
                 : "N/A";
+    }
+    private String getAgeLimits(CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult, SharedUtilityService sharedUtilityService) {
+        String ageLimit;
+        if (ageLimitResult == null) {
+            ageLimit = "N/A";
+            return ageLimit;
+        }
+        int[] ageLimits=null;
+        if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
+            ageLimits = sharedUtilityService.calculateAgeRange(
+                    ageLimitResult.getBornBefore(),
+                    ageLimitResult.getBornAfter(),
+                    null);
+        }
+
+
+        ageLimit = (ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null &&
+                ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                : (ageLimits != null && ageLimits.length >= 2)
+                ? ageLimits[0] + "-" + ageLimits[1]
+                : "N/A";
+        return ageLimit;
     }
 }
