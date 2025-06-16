@@ -176,7 +176,7 @@ public class DocumentEndpoint {
                         return responseService.generateErrorResponse("Data not found", HttpStatus.NOT_FOUND);
 
                     }
-                    StringBuilder jpql = new StringBuilder("SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity");
+                    StringBuilder jpql = new StringBuilder("SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND isArchived=false");
                     jpql.append(" AND d.filePath != null");
                     TypedQuery<ServiceProviderDocument> query1 = entityManager.createQuery(jpql.toString(), ServiceProviderDocument.class);
                     query1.setParameter("serviceProviderEntity", serviceProviderEntity);
@@ -209,7 +209,7 @@ public class DocumentEndpoint {
                     return responseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
                 }
 
-                StringBuilder jpql = new StringBuilder("SELECT d FROM Document d WHERE d.custom_customer = :customer");
+                StringBuilder jpql = new StringBuilder("SELECT d FROM Document d WHERE d.custom_customer = :customer AND isArchived=false");
                 jpql.append(" AND d.filePath != null");
                 TypedQuery<Document> query = entityManager.createQuery(jpql.toString(), Document.class);
                 query.setParameter("customer", customer);
