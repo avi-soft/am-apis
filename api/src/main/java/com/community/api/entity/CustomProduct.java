@@ -182,7 +182,7 @@ public class CustomProduct extends ProductImpl {
     protected Boolean isReviewRequired;
 
     @Column(name = "is_approved", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    protected Boolean isApproved;
+    protected Boolean isApproved=false;
 
     @Column(name = "resubmit_comment",columnDefinition = "text")
     protected String resubmitComment;

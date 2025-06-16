@@ -211,6 +211,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.counsellingDate=addProductDto.getCounsellingDate();
         this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
+        this.isApproved=false;
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
         this.sectorRunningField=addProductDto.getSectorRunningField();
@@ -362,7 +363,6 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.domicileRequired = addProductDto.getDomicileRequired();
         this.examDateFrom = addProductDto.getExamDateFrom();
         this.examDateTo = addProductDto.getExamDateTo();
-
         this.lateDateToPayFee = addProductDto.getLastDateToPayFee();
         this.admitCardDateFrom = addProductDto.getAdmitCardDateFrom();
         this.adminCardDateTo = addProductDto.getAdmitCardDateTo();
@@ -392,6 +392,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
+        this.isApproved=customProduct.getIsApproved();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
@@ -470,6 +471,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
         this.sectorRunningField=customProduct.getSectorRunningField();
+        this.isApproved=customProduct.getIsApproved();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
@@ -578,6 +580,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.sectorRunningField=customProduct.getSectorRunningField();
+        this.isApproved=customProduct.getIsApproved();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
@@ -680,6 +683,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
         this.active = product.isActive();
+        this.isApproved=product.getIsApproved();
         this.archived = 'N';
         this.createdDate = product.getCreatedDate();
         this.activeGoLiveDate = product.getGoLiveDate();
