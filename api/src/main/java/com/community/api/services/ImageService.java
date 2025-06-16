@@ -41,15 +41,16 @@ public class ImageService {
     public ImageService(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
-    public static final double DEFAULT_DPI = 300.0;
     @Autowired
     public FileService fileService;
 
     @Autowired
     public HttpServletRequest httpServletRequest;
 
+
     @Transactional
     public Image saveImage(MultipartFile file, Integer randomImageTypeId) throws Exception {
+
         // Early validations - fail fast
         if (file == null || file.isEmpty()) {
             throw new IllegalStateException("File is missing or empty");
@@ -92,6 +93,7 @@ public class ImageService {
     }
 
     private void validatePassportSizeDimensionsUltraFast(MultipartFile file,DocumentType documentType) throws Exception {
+        double DEFAULT_DPI = documentType.getDpi();
         try (ImageInputStream iis = ImageIO.createImageInputStream(file.getInputStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
 
@@ -120,7 +122,7 @@ public class ImageService {
             if (widthMm < PASSPORT_MIN_WIDTH_MM || widthMm > PASSPORT_MAX_WIDTH_MM || heightMm < PASSPORT_MIN_HEIGHT_MM || heightMm > PASSPORT_MAX_HEIGHT_MM || heightMm <= widthMm) {
                 throw new IllegalArgumentException(
                         String.format(
-                                "upload passport size photo, your photo dimensions: %.1f x %.1f mm. Required: %.1f to %.1f mm width, %.1f to %.1f mm height, portrait orientation.Keep DPI = 300",
+                                "upload passport size photo, your photo dimensions: %.1f x %.1f mm. Required: %.1f to %.1f mm width, %.1f to %.1f mm height, portrait orientation.Keep DPI = "+ documentType.getDpi(),
                                 widthMm, heightMm,
                                 PASSPORT_MIN_WIDTH_MM, PASSPORT_MAX_WIDTH_MM,
                                 PASSPORT_MIN_HEIGHT_MM, PASSPORT_MAX_HEIGHT_MM
