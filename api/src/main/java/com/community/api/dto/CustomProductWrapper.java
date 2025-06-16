@@ -220,8 +220,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.additionalComments=addProductDto.getAdditionalComments();
         this.feeComments=addProductDto.getFeeAdditionalComments();
         this.isExamDateFromNa=addProductDto.getIsExamDateFromNa();
+        this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.isAnswerKeyAvailableDateNa=addProductDto.getIsAnswerKeyAvailableDateNa();
         this.isResultDeclarationDateNa=addProductDto.getIsResultDeclarationDateNa();
+        this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
         this.isCounsellingDateNa=addProductDto.getIsCounsellingDateNa();
         this.isTentativeVerificationFromNa=addProductDto.getIsTentativeVerificationFromNa();
         this.isTentativeVerificationToNa=addProductDto.getIsTentativeVerificationToNa();
@@ -365,7 +367,9 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.examDateTo = addProductDto.getExamDateTo();
         this.lateDateToPayFee = addProductDto.getLastDateToPayFee();
         this.admitCardDateFrom = addProductDto.getAdmitCardDateFrom();
+        this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.adminCardDateTo = addProductDto.getAdmitCardDateTo();
+        this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
         this.modificationDateFrom = addProductDto.getModificationDateFrom();
         this.modificationDateTo = addProductDto.getModificationDateTo();
         this.downloadNotificationLink = addProductDto.getDownloadNotificationLink();
@@ -394,11 +398,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.active = customProduct.isActive();
         this.isApproved=customProduct.getIsApproved();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -458,10 +464,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
+        this.counsellingDate=customProduct.getCounsellingDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -578,9 +587,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
+        this.counsellingDate=customProduct.getCounsellingDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.archived = customProduct.getArchived();
         this.sectorRunningField=customProduct.getSectorRunningField();
         this.isApproved=customProduct.getIsApproved();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
@@ -686,6 +698,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.isApproved=product.getIsApproved();
         this.archived = 'N';
         this.createdDate = product.getCreatedDate();
+        this.answerKeyAvailableDate=product.getAnswerKeyAvailableDate();
         this.activeGoLiveDate = product.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
@@ -695,6 +708,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.feeComments=product.getFeeAdditionalComments();
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
+        this.counsellingDate=product.getCounsellingDate();
         this.creatorRoleId = product.getCreatoRole();
         this.modifierUserId = null;
         this.modifierRoleId = null;
