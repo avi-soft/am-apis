@@ -242,8 +242,9 @@ public class CustomAdvertisementProductWrapper extends BaseWrapper implements AP
                     categoryId = 1L;
             }
             if (this.fee == null) {
-                Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
-                        .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+                Double feeValue = reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId);
+                        if(feeValue==null)
+                             feeValue = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L);
 
 
 // Set fee as "N/A" if no fee is found
