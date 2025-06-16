@@ -1648,7 +1648,7 @@ public class CustomerEndpoint {
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
             for (int i = 0; i < files.size(); i++) {
-                Integer fileTypeId = fileTypes.get(i); // here fileType id meaning documentTypeId
+                Integer fileTypeId = fileTypes.get(0); // here fileType id meaning documentTypeId
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
