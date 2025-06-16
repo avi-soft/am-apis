@@ -298,14 +298,14 @@ BEGIN
 --        (4, 'UNFEASIBLE', 'The product is not feasible to exist.');
 --END IF;
 --
---IF (SELECT COUNT(*) FROM custom_gender) = 0 THEN
---    INSERT INTO custom_gender (gender_id, gender_code, gender_name)
---    VALUES
---        (1, 'M', 'MALE'),
---        (2, 'F', 'FEMALE'),
---		(3, 'O', 'OTHERS'),
---        (4, 'N/A', 'N/A');
---END IF;
+IF (SELECT COUNT(*) FROM custom_gender) = 0 THEN
+    INSERT INTO custom_gender (gender_id, gender_code, gender_name)
+    VALUES
+        (1, 'M', 'MALE'),
+        (2, 'F', 'FEMALE'),
+		(3, 'O', 'OTHERS'),
+        (4, 'All', 'All');
+END IF;
 --
 --IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
 --    INSERT INTO custom_sector (sector_id, sector_name, sector_description)
