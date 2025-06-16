@@ -1377,10 +1377,10 @@ public class SharedUtilityService {
             }
         }
         // Calculate max age (from bornBeforeDate)
-        int maxAge = calculateAge(bornBeforeZoned, today);
+        int minAge = calculateAge(bornBeforeZoned, today);
 
         // Calculate min age (from bornAfterDate)
-        int minAge = calculateAge(bornAfterZoned, today);
+        int maxAge = calculateAge(bornAfterZoned, today);
 
         // Return the result as an array [minAge, maxAge]
         return new int[] { minAge, maxAge };
