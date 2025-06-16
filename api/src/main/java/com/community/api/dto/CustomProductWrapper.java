@@ -211,7 +211,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.counsellingDate=addProductDto.getCounsellingDate();
         this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
-
+        this.isApproved=false;
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
         this.sectorRunningField=addProductDto.getSectorRunningField();
