@@ -1213,7 +1213,7 @@ List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProd
 
 
     // Run every one hour
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 0,30 * * * *")
     @PutMapping("/update-product-resources")
     public void updateProductStates() {
         try {
