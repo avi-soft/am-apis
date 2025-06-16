@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.dto.AgeAndFeeDetails;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.PhysicalRequirementDto;
 import com.community.api.dto.PostDetailsDTO;
@@ -44,7 +45,13 @@ public class OrderDTOService {
     @Autowired
     private ProductReserveCategoryFeePostRefService feePostRefService;
     @Autowired
+    private ReserveCategoryService reserveCategoryService;
+    @Autowired
+    private SharedUtilityService sharedUtilityService;
+    @Autowired
     private OrderStateRefService orderStateRefService;
+    @Autowired
+    private GenderService genderService;
 
     @Transactional
     public CombinedOrderDTO wrapOrder(Order order, CustomOrderState orderState, CustomServiceProviderTicket ticket, OrderCustomerDetailsDTO customerDetails)
@@ -170,11 +177,18 @@ public class OrderDTOService {
         OrderItem orderItem = order.getOrderItems().get(0);
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
         CustomProduct customProduct = entityManager.find(CustomProduct.class, productId);
-        CustomProductWrapper customProductWrapper = null;
+        CustomProductWrapper customProductWrapper = new CustomProductWrapper();
+        CustomCustomer customCustomer=entityManager.find(CustomCustomer.class,order.getCustomer().getId());
+        AgeAndFeeDetails ageAndFeeDetails=customProductWrapper.getAgeAndFee(customProduct, null,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
+
         if (customProduct != null) {
             customProductWrapper = new CustomProductWrapper();
             List<Post> postList = customProduct.getPosts();
             customProductWrapper.wrapDetails(customProduct, postList, null, feePostRefService);
+            if(ageAndFeeDetails!=null) {
+                customProductWrapper.setAgeLimit(ageAndFeeDetails.getAgeLimit());
+                customProductWrapper.setFee(ageAndFeeDetails.getFee());
+            }
         }
 
         CombinedOrderDTO combinedOrderDTO = new CombinedOrderDTO();
