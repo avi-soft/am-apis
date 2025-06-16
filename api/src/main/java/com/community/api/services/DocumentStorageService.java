@@ -1180,6 +1180,7 @@ public class DocumentStorageService {
 
                 // Append qualification_detail_id condition if provided
                 if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID) && qualificationDetailId != null) {
+                    System.out.println("hiii");
                     isQualificationDocumentToDelete = true;
                     archiveIdQuery += " AND qualification_detail_id = :qualificationDetailId";
                     archiveQuery += " AND qualification_detail_id = :qualificationDetailId";
@@ -1196,6 +1197,7 @@ public class DocumentStorageService {
                 query.setParameter("userId", customerId);
                 query.setParameter("documentTypeId", fileType);
                 if (isQualificationDocumentToDelete) {
+                    System.out.println("hii");
                     query.setParameter("qualificationDetailId", qualificationDetailId);
                 }
                 if (isOtherDocumentToDelete) {
@@ -1205,8 +1207,9 @@ public class DocumentStorageService {
                 if (resultList.isEmpty()) {
                     throw new IllegalArgumentException("No document found for deletion");
                 }
-
+                System.out.println(resultList);
                 BigInteger id = (BigInteger) resultList.get(0);
+                System.out.println(id);
                 query = entityManager.createNativeQuery(archiveQuery);
                 query.setParameter("userId", customerId);
                 query.setParameter("documentTypeId", fileType);
@@ -1234,6 +1237,7 @@ public class DocumentStorageService {
                                         {
                                             documentToDeleteC.setQualificationDetails(null);
                                         }
+                                        documentToDeleteC.setIsArchived(true);
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(customCustomer);  // merge after modification
                                         break;
@@ -1252,8 +1256,10 @@ public class DocumentStorageService {
                                     if (documentToDelete.getDocumentId().equals(serviceProviderDocument.getDocumentId())) {
                                         if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_MARK_SHEET_ID))
                                         {
+                                            System.out.println("1258");
                                             documentToDelete.setQualificationDetails(null);
                                         }
+                                        documentToDelete.setIsArchived(true);
                                         iterator.remove();  // safely remove the document
                                         entityManager.merge(serviceProvider);  // merge after modification
                                         break;
