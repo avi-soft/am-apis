@@ -3393,7 +3393,7 @@ public class ProductService {
                         nullGenderIdCount++;
                         continue;
                     } else
-                        if (!genderId.add(genderIdValue)){
+                        if (!genderId.add(genderIdValue)&&genderIdValue!=3){
                         throw new IllegalArgumentException("DUPLICATE GENDER ID FOUND: " + genderIdValue);
                 }
 
