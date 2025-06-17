@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.cart;
 import com.broadleafcommerce.rest.api.endpoint.BaseEndpoint;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.EligibilityResult;
 import com.community.api.endpoint.avisoft.controller.Customer.CustomerEndpoint;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
@@ -472,7 +473,9 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId());
+                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
+
                         products.add(productDetails);
                         individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
                         if (individualFee == null)
@@ -894,7 +897,7 @@ public class CartEndPoint extends BaseEndpoint {
                 List<Map<String,Object>>productList=new ArrayList<>();
                 for(Product product:customCustomer.getCartRecoveryLog())
                 {
-                    productList.add(sharedUtilityService.createProductResponseMap(product,null,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId()));
+                    productList.add(sharedUtilityService.createProductResponseMap(product,null,customCustomer,genderService.getGenderByName(customCustomer.getGender()).getGenderId(),null));
                 }
                 return ResponseService.generateSuccessResponse("Cart Recovery Log : ",productList,HttpStatus.OK);
 
