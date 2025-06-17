@@ -259,11 +259,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
 
-                    log.info("-----------------------------------------------------here");
                     existingServiceProvider.setAdminOverridden(true);
                     existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
                     existingServiceProvider.setRanking(serviceProviderRank);
-                    log.info("-----------------------------------------------------till here");
 //                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
@@ -1125,9 +1124,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
-//            if(existingServiceProvider.getAutoScoring()) {
-//                assignRank(existingServiceProvider, totalScore);
-//            }
+            if(existingServiceProvider.getAutoScoring()) {
+                assignRank(existingServiceProvider, totalScore);
+            }
 
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
 
