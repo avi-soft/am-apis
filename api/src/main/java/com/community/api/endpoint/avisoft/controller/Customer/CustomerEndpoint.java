@@ -1712,6 +1712,10 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
 
             }
+            if(customer.getUsername()!=null)
+            {
+                return ResponseService.generateErrorResponse("Username cannot be changed once created",HttpStatus.BAD_REQUEST);
+            }
             Customer existingCustomerByUsername = null;
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
 
@@ -3152,4 +3156,5 @@ public class CustomerEndpoint {
                 : "N/A";
         return ageLimit;
     }
+
 }
