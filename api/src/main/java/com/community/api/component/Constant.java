@@ -224,6 +224,7 @@ public class Constant {
     public static final Long TICKET_STATUS_OTHER = 13L;
 
 
+    public static final Integer OTHERS_QUALIFICATION= 60;
 
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
