@@ -72,7 +72,7 @@ public class CustomStream {
     private Long sortOrder;
 
     @ManyToMany(mappedBy = "streams")
-
+    @JsonIgnore
     private List<Qualification> qualifications = new ArrayList<>();
 
 @JsonIgnore
