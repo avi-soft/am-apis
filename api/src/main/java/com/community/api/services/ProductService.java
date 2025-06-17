@@ -3633,7 +3633,7 @@ public class ProductService {
         Integer qualificationId = qualification.getQualification_id();
 
         // For qualifications 1 and 2, use predefined subjects
-        if (qualificationId == 1 || qualificationId == 2 || qualificationId==54) {
+        if (qualificationId == 1 || qualificationId == 2) {
             if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {
                 // Check if qualification requires subjects
                 if (!qualification.getIs_subjects_required()) {

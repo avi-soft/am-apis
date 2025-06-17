@@ -223,8 +223,14 @@ public class Constant {
     public static final Long TICKET_STATUS_BDWL = 12L;
     public static final Long TICKET_STATUS_OTHER = 13L;
 
+    public static final Long OTHERS_GENDER_ID = 3L;
+    public static final Long OTHERS_CATEGORY_ID = 6L;
+    public static final Integer OTHERS_QUALIFICATION_ID= 60;
+    public static final Integer BACHELORS_QUALIFICATION= 3;
+    public static final Integer MASTERS_QUALIFICATION= 4;
+    public static final Long OTHERS_SUBJECT_ID = 54L;
+    public static final Long OTHERS_STREAM_ID = 215L;
 
-    public static final Integer OTHERS_QUALIFICATION= 60;
 
     public static final CustomOrderState ORDER_STATE_AUTO_ASSIGNED = new CustomOrderState(2);
     public static final CustomOrderState ORDER_STATE_IN_PROGRESS = new CustomOrderState(6);
