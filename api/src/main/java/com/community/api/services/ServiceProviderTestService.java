@@ -895,26 +895,26 @@ public class ServiceProviderTestService {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1a");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1b");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1c");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1d");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
         }
     }
     public ServiceProviderRank assignRankingForIndividual(Integer totalScore) {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2a");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2b");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2c");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2d");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
         }
     }
     public  ServiceProviderRank searchServiceProviderRank(List<ServiceProviderRank> serviceProviderRankList,String rankValue)
