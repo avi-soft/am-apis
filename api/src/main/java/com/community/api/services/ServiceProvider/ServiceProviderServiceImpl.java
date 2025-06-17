@@ -243,8 +243,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 {
                     Object rankIdObj = updates.get("rankId");
                     Long rankId = rankIdObj instanceof Number ? ((Number) rankIdObj).longValue() : null;
-                    ServiceProviderRank serviceProviderRank= entityManager.find(ServiceProviderRank.class,rankId);
-                    if(serviceProviderRank==null)
+                    log.info("Rank id is: {}", rankId);
+                    ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
+
+                    if(serviceProviderRank == null)
                     {
                         return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist",HttpStatus.BAD_REQUEST);
                     }
@@ -256,9 +258,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     {
                         return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
                     }
+
+                    log.info("-----------------------------------------------------here");
                     existingServiceProvider.setAdminOverridden(true);
                     existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setRanking(serviceProviderRank);
+                    log.info("-----------------------------------------------------till here");
 //                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
@@ -450,7 +455,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             entityManager.merge(existingServiceProvider);
-
 
             // running business unit section
             List<String> businessKeys = new ArrayList<>();
@@ -1121,7 +1125,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
-            assignRank(existingServiceProvider, totalScore);
+//            if(existingServiceProvider.getAutoScoring()) {
+//                assignRank(existingServiceProvider, totalScore);
+//            }
 
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
 
