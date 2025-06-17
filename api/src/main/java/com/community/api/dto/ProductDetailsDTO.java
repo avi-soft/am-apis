@@ -20,6 +20,7 @@ public class ProductDetailsDTO {
     @JsonProperty("display_template")
     String displayTemplate;
     Double fee;
+    @JsonProperty("age_limit")
     String ageLimit;
     @JsonProperty("active_end_date")
     Date activeEndDate;
