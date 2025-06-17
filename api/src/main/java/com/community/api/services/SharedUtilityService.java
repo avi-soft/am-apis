@@ -4,6 +4,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.dto.EligibilityResult;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
@@ -104,7 +105,7 @@ public class SharedUtilityService {
         return query.getSingleResult();
     }
 
-    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer,Long genderId) {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer, Long genderId, EligibilityResult eligibilityResult) {
         Map<String, Object> productDetails = new HashMap<>();
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
@@ -121,6 +122,7 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
+        productDetails.put("eligibility_result",eligibilityResult );
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
         if(customProduct.getPosts().size()>=1) {
