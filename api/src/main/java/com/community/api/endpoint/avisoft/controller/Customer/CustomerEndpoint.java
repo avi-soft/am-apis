@@ -3020,23 +3020,26 @@ public class CustomerEndpoint {
 
             if (customCustomer != null) {
                 try {
-                    System.out.println("\nChecking exact age limit (categoryId=" + categoryId + ", genderId=" + genderId + ")");
-                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, genderId);
-                    System.out.println("Exact age limit result: " + ageLimitResult);
-
+                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
                     if (ageLimitResult == null) {
-                        System.out.println("\nChecking category age limit (categoryId=" + categoryId + ", GENDER_ALL)");
-                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, Constant.GENDER_ALL);
-                        System.out.println("Category age limit result: " + ageLimitResult);
+                        System.out.println("\nChecking exact age limit (categoryId=" + categoryId + ", genderId=" + genderId + ")");
+                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, genderId);
+                        System.out.println("Exact age limit result: " + ageLimitResult);
 
                         if (ageLimitResult == null) {
-                            System.out.println("\nChecking gender age limit (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
-                            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
-                                    customProduct, Constant.RESERVED_CATEGORY_ALL, genderId);
-                            System.out.println("Gender age limit result: " + ageLimitResult);
+                            System.out.println("\nChecking category age limit (categoryId=" + categoryId + ", GENDER_ALL)");
+                            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, Constant.GENDER_ALL);
+                            System.out.println("Category age limit result: " + ageLimitResult);
+
+                            if (ageLimitResult == null) {
+                                System.out.println("\nChecking gender age limit (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
+                                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                                        customProduct, Constant.RESERVED_CATEGORY_ALL, genderId);
+                                System.out.println("Gender age limit result: " + ageLimitResult);
+                            }
                         }
                     }
-                } catch (Exception e) {
+                }catch (Exception e) {
                     System.out.println("\nERROR in customer-specific age lookup:");
                     e.printStackTrace();
                 }
@@ -3152,4 +3155,5 @@ public class CustomerEndpoint {
                 : "N/A";
         return ageLimit;
     }
+
 }
