@@ -9,6 +9,7 @@ import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 
+import com.community.api.component.Constant;
 import com.community.api.entity.*;
 
 import com.community.api.services.*;
@@ -38,6 +39,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     private EntityManager entityManager;
     @Autowired
     private ProductReserveCategoryFeePostRefService feeService;
+
 
     @Autowired
     private PostService postService;
@@ -211,6 +213,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.counsellingDate=addProductDto.getCounsellingDate();
         this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.tentativeVerificationFrom=addProductDto.getTentativeVerificationFrom();
+        this.isApproved=false;
         this.tentativeVerificationTo=addProductDto.getTentativeVerificationTo();
         this.displayTemplate = product.getDisplayTemplate();
         this.sectorRunningField=addProductDto.getSectorRunningField();
@@ -219,8 +222,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.additionalComments=addProductDto.getAdditionalComments();
         this.feeComments=addProductDto.getFeeAdditionalComments();
         this.isExamDateFromNa=addProductDto.getIsExamDateFromNa();
+        this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.isAnswerKeyAvailableDateNa=addProductDto.getIsAnswerKeyAvailableDateNa();
         this.isResultDeclarationDateNa=addProductDto.getIsResultDeclarationDateNa();
+        this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
         this.isCounsellingDateNa=addProductDto.getIsCounsellingDateNa();
         this.isTentativeVerificationFromNa=addProductDto.getIsTentativeVerificationFromNa();
         this.isTentativeVerificationToNa=addProductDto.getIsTentativeVerificationToNa();
@@ -362,10 +367,11 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.domicileRequired = addProductDto.getDomicileRequired();
         this.examDateFrom = addProductDto.getExamDateFrom();
         this.examDateTo = addProductDto.getExamDateTo();
-
         this.lateDateToPayFee = addProductDto.getLastDateToPayFee();
         this.admitCardDateFrom = addProductDto.getAdmitCardDateFrom();
+        this.answerKeyAvailableDate=addProductDto.getAnswerKeyAvailableDate();
         this.adminCardDateTo = addProductDto.getAdmitCardDateTo();
+        this.resultDeclarationDate=addProductDto.getResultDeclarationDate();
         this.modificationDateFrom = addProductDto.getModificationDateFrom();
         this.modificationDateTo = addProductDto.getModificationDateTo();
         this.downloadNotificationLink = addProductDto.getDownloadNotificationLink();
@@ -392,12 +398,15 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
+        this.isApproved=customProduct.getIsApproved();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -457,10 +466,13 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
+        this.counsellingDate=customProduct.getCounsellingDate();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
         this.activeStartDate = customProduct.getDefaultSku().getActiveStartDate();
         this.metaDescription = customProduct.getMetaDescription();
@@ -470,6 +482,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.tentativeVerificationTo=customProduct.getTentativeVerificationTo();
         this.platformFee = customProduct.getPlatformFee();
         this.sectorRunningField=customProduct.getSectorRunningField();
+        this.isApproved=customProduct.getIsApproved();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.otherInfo=customProduct.getOtherInfo();
         this.additionalComments=customProduct.getAdditionalComments();
@@ -517,6 +530,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 feeDto.add(reserveCategoryDto);
             }
         }
+
         this.reserveCategoryDtoList = feeDto;
         this.modifiedDate = customProduct.getModifiedDate();
 
@@ -576,8 +590,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
         this.priorityLevel = customProduct.getPriorityLevel();
+        this.counsellingDate=customProduct.getCounsellingDate();
+        this.answerKeyAvailableDate=customProduct.getAnswerKeyAvailableDate();
         this.archived = customProduct.getArchived();
         this.sectorRunningField=customProduct.getSectorRunningField();
+        this.isApproved=customProduct.getIsApproved();
+        this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.feeComments=customProduct.getFeeAdditionalComments();
         this.activeEndDate = customProduct.getDefaultSku().getActiveEndDate();
@@ -680,8 +698,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
         this.active = product.isActive();
+        this.isApproved=product.getIsApproved();
         this.archived = 'N';
         this.createdDate = product.getCreatedDate();
+        this.answerKeyAvailableDate=product.getAnswerKeyAvailableDate();
         this.activeGoLiveDate = product.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
@@ -691,6 +711,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.feeComments=product.getFeeAdditionalComments();
         this.modifiedDate = product.getActiveStartDate();
         this.creatorUserId = product.getUserId();
+        this.counsellingDate=product.getCounsellingDate();
         this.creatorRoleId = product.getCreatoRole();
         this.modifierUserId = null;
         this.modifierRoleId = null;
@@ -712,44 +733,338 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.selectionCriteria = product.getSelectionCriteria();
         this.totalVacanciesInProduct = product.getTotalVacanciesInProduct();
         this.numberOfPosts=  product.getPosts().size();
-        var genderId=0L;
-        var categoryId=0L;
-        try {
-            categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-        }catch (Exception exception)
-        {
-            if(genderId==0L)
-                genderId=1L;
-            if(categoryId==0L)
-                categoryId=1L;
+        Long genderId = 1L;  // Default to 1 (MALE)
+        Long categoryId = 1L; // Default to 1 (GEN)
+        int flag = 0;
+        this.fee = null;
+
+        System.out.println("\n=== FEE CALCULATION DEBUG ===");
+        System.out.println("Initial customer state: " + (customCustomer != null ? "Logged in" : "Not logged in"));
+
+        // === PRIORITIZED FEE CALCULATION ===
+        if (customCustomer != null) {
+            try {
+                System.out.println("\nCustomer details:");
+                System.out.println("Raw category: " + customCustomer.getCategory());
+                System.out.println("Raw gender: " + customCustomer.getGender());
+
+                categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+
+                System.out.println("Resolved categoryId: " + categoryId);
+                System.out.println("Resolved genderId: " + genderId);
+
+                // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
+                System.out.println("\nChecking exact match (categoryId=" + categoryId + ", genderId=" + genderId + ")");
+                this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId);
+                System.out.println("Exact match fee result: " + this.fee);
+
+                if (this.fee != null) {
+                    flag++;
+                    System.out.println("Found exact match fee: " + this.fee);
+                } else {
+                    // 2. Customer's category + ALL genders
+                    System.out.println("\nChecking category match (categoryId=" + categoryId + ", GENDER_ALL)");
+                    this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, Constant.GENDER_ALL);
+                    System.out.println("Category match fee result: " + this.fee);
+
+                    if (this.fee != null) {
+                        flag++;
+                        System.out.println("Found category match fee: " + this.fee);
+                    } else {
+                        // 3. ALL categories + Customer's gender
+                        System.out.println("\nChecking gender match (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
+                        this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), Constant.RESERVED_CATEGORY_ALL, genderId);
+                        System.out.println("Gender match fee result: " + this.fee);
+
+                        if (this.fee != null) {
+                            flag++;
+                            System.out.println("Found gender match fee: " + this.fee);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("\nERROR in customer-specific fee lookup:");
+                e.printStackTrace();
+            }
         }
 
-        Double feeValue = Optional.ofNullable(reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId))
-                .orElse(reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L));
+        // 4. Final fallbacks
+        if (this.fee == null) {
+            System.out.println("\nNo customer-specific fee found, checking fallbacks:");
 
-// Set fee as "N/A" if no fee is found
-        this.fee = (feeValue != null) ? feeValue : 0.0;
+            System.out.println("Checking GEN+MALE (1L, 1L)");
+            this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L);
+            System.out.println("GEN+MALE fee result: " + this.fee);
 
-        var ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+            if (this.fee == null) {
+                System.out.println("Checking ALL+ALL");
+                this.fee = reserveCategoryService.getReserveCategoryFee(
+                        product.getId(), Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+                System.out.println("ALL+ALL fee result: " + this.fee);
+            }
 
-// If age limit is null, fetch with default values (1L, 1L)
+            if (this.fee != null) {
+                flag++;
+            } else {
+                this.fee = 0.0;
+                System.out.println("Using absolute fallback fee: 0.0");
+            }
+        }
+
+        // === AGE LIMIT CALCULATION ===
+        System.out.println("\n=== AGE LIMIT CALCULATION DEBUG ===");
+        CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult = null;
+
+        if (customCustomer != null) {
+            try {
+                System.out.println("\nChecking exact age limit (categoryId=" + categoryId + ", genderId=" + genderId + ")");
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+                System.out.println("Exact age limit result: " + ageLimitResult);
+
+                if (ageLimitResult == null) {
+                    System.out.println("\nChecking category age limit (categoryId=" + categoryId + ", GENDER_ALL)");
+                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, Constant.GENDER_ALL);
+                    System.out.println("Category age limit result: " + ageLimitResult);
+
+                    if (ageLimitResult == null) {
+                        System.out.println("\nChecking gender age limit (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
+                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                                product, Constant.RESERVED_CATEGORY_ALL, genderId);
+                        System.out.println("Gender age limit result: " + ageLimitResult);
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("\nERROR in customer-specific age lookup:");
+                e.printStackTrace();
+            }
+        }
+
+        // Final fallback for age
         if (ageLimitResult == null) {
-            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+            System.out.println("\nNo customer-specific age limit found, checking ALL+ALL");
+            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                    product, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+            System.out.println("ALL+ALL age limit result: " + ageLimitResult);
         }
 
-// Extract age limits
-        int[] ageLimits = null;
-        if (ageLimitResult != null && ageLimitResult.getBornBefore() != null && ageLimitResult.getBornAfter() != null) {
-            ageLimits = sharedUtilityService.calculateAgeRange(ageLimitResult.getBornBefore(), ageLimitResult.getBornAfter(),null);
+        // Set age limit if found
+        if (ageLimitResult != null) {
+            System.out.println("\nSetting age limit with result: " + ageLimitResult);
+            setAgeLimit(ageLimitResult, sharedUtilityService);
+            flag++;
         }
 
-// Set ageLimit value
-        this.ageLimit = (ageLimitResult != null && ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null
-                && ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+        System.out.println("\n=== FINAL CHECKS ===");
+        System.out.println("Flag value: " + flag);
+        System.out.println("Current fee: " + this.fee);
+        System.out.println("Current age limit: " + this.ageLimit);
+
+        // === FALLBACK FOR BOTH FEE AND AGE (if no matches) ===
+        if (flag < 2) {
+            System.out.println("\nInsufficient matches (flag < 2), applying final fallbacks");
+
+            if (this.fee == null) {
+                System.out.println("Rechecking GEN+MALE fee");
+                this.fee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L);
+                if (this.fee == null) {
+                    this.fee = 0.0;
+                    System.out.println("Setting fee to 0.0");
+                }
+            }
+
+            if (this.ageLimit == null) {
+                System.out.println("Rechecking GEN+MALE age limit");
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+                if (ageLimitResult != null) {
+                    setAgeLimit(ageLimitResult, sharedUtilityService);
+                }
+            }
+        }
+
+        System.out.println("\n=== FINAL VALUES ===");
+        System.out.println("Final fee: " + this.fee);
+        System.out.println("Final age limit: " + this.ageLimit);
+        System.out.println("=== PROCESS COMPLETE ===");
+    }
+    private void setAgeLimit(CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult, SharedUtilityService sharedUtilityService) {
+        if (ageLimitResult == null) {
+            this.ageLimit = "N/A";
+            return;
+        }
+        int[] ageLimits=null;
+        if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
+            ageLimits = sharedUtilityService.calculateAgeRange(
+                    ageLimitResult.getBornBefore(),
+                    ageLimitResult.getBornAfter(),
+                    null);
+        }
+
+
+        this.ageLimit = (ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null &&
+                ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
                 ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
                 : (ageLimits != null && ageLimits.length >= 2)
                 ? ageLimits[0] + "-" + ageLimits[1]
                 : "N/A";
+    }
+    public AgeAndFeeDetails getAgeAndFee(CustomProduct product, HttpServletRequest httpServletRequest, ReserveCategoryService reserveCategoryService, ReserveCategoryAgeService reserveCategoryAgeService, GenderService genderService, CustomCustomer customCustomer, SharedUtilityService sharedUtilityService) {
+        AgeAndFeeDetails ageAndFeeDetails=new AgeAndFeeDetails();
+        Long genderId = 1L;  // Default to 1 (MALE)
+        Long categoryId = 1L; // Default to 1 (GEN)
+        int flag = 0;
+        Double fee = null;
+
+        System.out.println("\n=== FEE CALCULATION DEBUG ===");
+        System.out.println("Initial customer state: " + (customCustomer != null ? "Logged in" : "Not logged in"));
+
+        // === PRIORITIZED FEE CALCULATION ===
+        if (customCustomer != null) {
+            try {
+                System.out.println("\nCustomer details:");
+                System.out.println("Raw category: " + customCustomer.getCategory());
+                System.out.println("Raw gender: " + customCustomer.getGender());
+
+                categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+
+                System.out.println("Resolved categoryId: " + categoryId);
+                System.out.println("Resolved genderId: " + genderId);
+
+                // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
+                System.out.println("\nChecking exact match (categoryId=" + categoryId + ", genderId=" + genderId + ")");
+                fee = reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, genderId);
+                System.out.println("Exact match fee result: " + fee);
+
+                if (fee != null) {
+                    flag++;
+                    System.out.println("Found exact match fee: " + fee);
+                } else {
+                    // 2. Customer's category + ALL genders
+                    System.out.println("\nChecking category match (categoryId=" + categoryId + ", GENDER_ALL)");
+                    fee = reserveCategoryService.getReserveCategoryFee(product.getId(), categoryId, Constant.GENDER_ALL);
+                    System.out.println("Category match fee result: " + fee);
+
+                    if (fee != null) {
+                        flag++;
+                        System.out.println("Found category match fee: " + fee);
+                    } else {
+                        // 3. ALL categories + Customer's gender
+                        System.out.println("\nChecking gender match (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
+                        fee = reserveCategoryService.getReserveCategoryFee(product.getId(), Constant.RESERVED_CATEGORY_ALL, genderId);
+                        System.out.println("Gender match fee result: " + fee);
+
+                        if (fee != null) {
+                            flag++;
+                            System.out.println("Found gender match fee: " + fee);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("\nERROR in customer-specific fee lookup:");
+                e.printStackTrace();
+            }
+        }
+
+        // 4. Final fallbacks
+        if (fee == null) {
+            System.out.println("\nNo customer-specific fee found, checking fallbacks:");
+
+            System.out.println("Checking GEN+MALE (1L, 1L)");
+            fee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L);
+            System.out.println("GEN+MALE fee result: " + fee);
+
+            if (fee == null) {
+                System.out.println("Checking ALL+ALL");
+                fee = reserveCategoryService.getReserveCategoryFee(
+                        product.getId(), Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+                System.out.println("ALL+ALL fee result: " + fee);
+            }
+
+            if (fee != null) {
+                flag++;
+            } else {
+                fee = 0.0;
+                System.out.println("Using absolute fallback fee: 0.0");
+            }
+        }
+
+        // === AGE LIMIT CALCULATION ===
+        System.out.println("\n=== AGE LIMIT CALCULATION DEBUG ===");
+        CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult = null;
+
+        if (customCustomer != null) {
+            try {
+                System.out.println("\nChecking exact age limit (categoryId=" + categoryId + ", genderId=" + genderId + ")");
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, genderId);
+                System.out.println("Exact age limit result: " + ageLimitResult);
+
+                if (ageLimitResult == null) {
+                    System.out.println("\nChecking category age limit (categoryId=" + categoryId + ", GENDER_ALL)");
+                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, categoryId, Constant.GENDER_ALL);
+                    System.out.println("Category age limit result: " + ageLimitResult);
+
+                    if (ageLimitResult == null) {
+                        System.out.println("\nChecking gender age limit (RESERVED_CATEGORY_ALL, genderId=" + genderId + ")");
+                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                                product, Constant.RESERVED_CATEGORY_ALL, genderId);
+                        System.out.println("Gender age limit result: " + ageLimitResult);
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("\nERROR in customer-specific age lookup:");
+                e.printStackTrace();
+            }
+        }
+
+        // Final fallback for age
+        if (ageLimitResult == null) {
+            System.out.println("\nNo customer-specific age limit found, checking ALL+ALL");
+            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                    product, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+            System.out.println("ALL+ALL age limit result: " + ageLimitResult);
+        }
+
+        // Set age limit if found
+        if (ageLimitResult != null) {
+            System.out.println("\nSetting age limit with result: " + ageLimitResult);
+            setAgeLimit(ageLimitResult, sharedUtilityService);
+            flag++;
+        }
+
+        System.out.println("\n=== FINAL CHECKS ===");
+        System.out.println("Flag value: " + flag);
+        System.out.println("Current fee: " + fee);
+        System.out.println("Current age limit: " + ageLimit);
+
+        // === FALLBACK FOR BOTH FEE AND AGE (if no matches) ===
+        if (flag < 2) {
+            System.out.println("\nInsufficient matches (flag < 2), applying final fallbacks");
+
+            if (fee == null) {
+                System.out.println("Rechecking GEN+MALE fee");
+                fee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, 1L);
+                if (fee == null) {
+                    fee = 0.0;
+                    System.out.println("Setting fee to 0.0");
+                }
+            }
+
+            if (ageLimit == null) {
+                System.out.println("Rechecking GEN+MALE age limit");
+                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(product, 1L, 1L);
+                if (ageLimitResult != null) {
+                    setAgeLimit(ageLimitResult, sharedUtilityService);
+                }
+            }
+        }
+
+        System.out.println("\n=== FINAL VALUES ===");
+        System.out.println("Final fee: " + fee);
+        System.out.println("Final age limit: " + ageLimit);
+        System.out.println("=== PROCESS COMPLETE ===");
+        ageAndFeeDetails.setAgeLimit(ageLimit);
+        ageAndFeeDetails.setFee(fee);
+        return ageAndFeeDetails;
     }
 }

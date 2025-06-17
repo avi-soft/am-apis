@@ -2,6 +2,7 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.configuration.ImageSizeConfig;
+import com.community.api.dto.ImageResponseDto;
 import com.community.api.entity.Image;
 import com.community.api.entity.RandomImageType;
 import com.community.api.entity.TypingText;
@@ -16,6 +17,7 @@ import javax.imageio.stream.ImageInputStream;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.TypedQuery;
+import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.community.api.services.DocumentStorageService.isValidFileType;
 import static com.community.api.services.ServiceProviderTestService.areImagesVisuallyIdentical;
@@ -38,10 +41,16 @@ public class ImageService {
     public ImageService(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
-    public static final double DEFAULT_DPI = 300.0;
+    @Autowired
+    public FileService fileService;
+
+    @Autowired
+    public HttpServletRequest httpServletRequest;
+
 
     @Transactional
     public Image saveImage(MultipartFile file, Integer randomImageTypeId) throws Exception {
+
         // Early validations - fail fast
         if (file == null || file.isEmpty()) {
             throw new IllegalStateException("File is missing or empty");
@@ -84,6 +93,7 @@ public class ImageService {
     }
 
     private void validatePassportSizeDimensionsUltraFast(MultipartFile file,DocumentType documentType) throws Exception {
+        double DEFAULT_DPI = documentType.getDpi();
         try (ImageInputStream iis = ImageIO.createImageInputStream(file.getInputStream())) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
 
@@ -112,7 +122,7 @@ public class ImageService {
             if (widthMm < PASSPORT_MIN_WIDTH_MM || widthMm > PASSPORT_MAX_WIDTH_MM || heightMm < PASSPORT_MIN_HEIGHT_MM || heightMm > PASSPORT_MAX_HEIGHT_MM || heightMm <= widthMm) {
                 throw new IllegalArgumentException(
                         String.format(
-                                "upload passport size photo, your photo dimensions: %.1f x %.1f mm. Required: %.1f to %.1f mm width, %.1f to %.1f mm height, portrait orientation.",
+                                "upload passport size photo, your photo dimensions: %.1f x %.1f mm. Required: %.1f to %.1f mm width, %.1f to %.1f mm height, portrait orientation.Keep DPI = "+ documentType.getDpi(),
                                 widthMm, heightMm,
                                 PASSPORT_MIN_WIDTH_MM, PASSPORT_MAX_WIDTH_MM,
                                 PASSPORT_MIN_HEIGHT_MM, PASSPORT_MAX_HEIGHT_MM
@@ -262,6 +272,38 @@ public class ImageService {
             typedQuery.setParameter("typeIds", randomImageTypeIds);
         }
         return typedQuery.getResultList();
+    }
+
+    @Transactional
+    public List<ImageResponseDto> getAllRandomImagesDtos(List<Integer> randomImageTypeIds, Boolean archived) {
+        String baseQuery = "SELECT i FROM Image i WHERE i.archived = :archived";
+
+        if (randomImageTypeIds != null && !randomImageTypeIds.isEmpty()) {
+            baseQuery += " AND i.randomImageType.randomImageTypeId IN :typeIds";
+        }
+
+        TypedQuery<Image> typedQuery = entityManager.createQuery(baseQuery, Image.class);
+        typedQuery.setParameter("archived", archived);
+
+        if (randomImageTypeIds != null && !randomImageTypeIds.isEmpty()) {
+            typedQuery.setParameter("typeIds", randomImageTypeIds);
+        }
+        List<Image> imageList = typedQuery.getResultList();
+
+        return imageList.stream().map(image -> {
+            ImageResponseDto dto = new ImageResponseDto();
+            dto.setId(image.getId());
+            dto.setFile_name(image.getFile_name());
+            dto.setFile_type(image.getFile_type());
+            dto.setImage_size(image.getImage_size());
+            dto.setArchived(image.getArchived());
+            dto.setRandomImageType(image.getRandomImageType());
+
+            String fileUrl = fileService.getFileUrl(image.getFile_path(),httpServletRequest);
+            dto.setFileUrl(fileUrl);
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Transactional

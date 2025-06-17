@@ -163,10 +163,10 @@ public class QualificationDetails {
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity service_provider;
 
-    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL)
     private Document qualificationDocument;
 
-    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "qualificationDetails", cascade = CascadeType.ALL)
     private ServiceProviderDocument serviceProviderDocument;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)

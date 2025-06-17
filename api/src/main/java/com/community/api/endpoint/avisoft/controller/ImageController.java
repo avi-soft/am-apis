@@ -1,5 +1,6 @@
 package com.community.api.endpoint.avisoft.controller;
 
+import com.community.api.dto.ImageResponseDto;
 import com.community.api.entity.Image;
 import com.community.api.entity.TypingText;
 import com.community.api.services.ImageService;
@@ -61,7 +62,7 @@ public class ImageController
     @GetMapping("/get-all")
     public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false) List<Integer> randomImageTypeIds,@RequestParam(required = false,defaultValue = "false")Boolean archived)
     {
-       List<Image> randomImages= imageService.getAllRandomImages(randomImageTypeIds,archived);
+       List<ImageResponseDto> randomImages= imageService.getAllRandomImagesDtos(randomImageTypeIds,archived);
        if(randomImages.isEmpty())
        {
            return ResponseService.generateSuccessResponse(archived?"Archived Image list is empty":"Unarchived image list is empty",randomImages,HttpStatus.OK);
