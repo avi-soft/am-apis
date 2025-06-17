@@ -858,46 +858,48 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public void bifurcateAvailableServiceProviders(List<ServiceProviderEntity> availableServiceProviders, PriorityQueue<ServiceProviderEntity> rank1a, PriorityQueue<ServiceProviderEntity> rank1b,
-                                                   PriorityQueue<ServiceProviderEntity> rank1c,
-                                                   PriorityQueue<ServiceProviderEntity> rank1d,
-                                                   PriorityQueue<ServiceProviderEntity> rank2a,
-                                                   PriorityQueue<ServiceProviderEntity> rank2b,
-                                                   PriorityQueue<ServiceProviderEntity> rank2c,
-                                                   PriorityQueue<ServiceProviderEntity> rank2d) throws Exception {
+    public void bifurcateAvailableServiceProviders(List<ServiceProviderEntity> availableServiceProviders,
+                                                   PriorityQueue<ServiceProviderEntity> professionalRank1,
+                                                   PriorityQueue<ServiceProviderEntity> professionalRank2,
+                                                   PriorityQueue<ServiceProviderEntity> professionalRank3,
+                                                   PriorityQueue<ServiceProviderEntity> professionalRank4,
+                                                   PriorityQueue<ServiceProviderEntity> individualRank1,
+                                                   PriorityQueue<ServiceProviderEntity> individualRank2,
+                                                   PriorityQueue<ServiceProviderEntity> individualRank3,
+                                                   PriorityQueue<ServiceProviderEntity> individualRank4) throws Exception {
 
         // Loop through the list of available service providers
         for (ServiceProviderEntity serviceProvider : availableServiceProviders) {
             try {
 
                 // Determine the rank of the service provider (this logic needs to be based on your use case)
-                String rank = serviceProvider.getRanking().getRank_name(); // Assuming 'getRank' returns a rank name like "rank1a", "rank1b", etc.
+                String rank = serviceProvider.getRanking().getRank_id().toString(); // Assuming 'getRank' returns a rank name like "professionalRank1", "professionalRank2", etc.
 
                 // Add the service provider to the corresponding priority queue based on the rank
                 switch (rank) {
-                    case "1a":
-                        rank1a.offer(serviceProvider);
+                    case "1":
+                        professionalRank1.offer(serviceProvider);
                         break;
-                    case "1b":
-                        rank1b.offer(serviceProvider);
+                    case "2":
+                        professionalRank2.offer(serviceProvider);
                         break;
-                    case "1c":
-                        rank1c.offer(serviceProvider);
+                    case "3":
+                        professionalRank3.offer(serviceProvider);
                         break;
-                    case "1d":
-                        rank1d.offer(serviceProvider);
+                    case "4":
+                        professionalRank4.offer(serviceProvider);
                         break;
-                    case "2a":
-                        rank2a.offer(serviceProvider);
+                    case "5":
+                        individualRank1.offer(serviceProvider);
                         break;
-                    case "2b":
-                        rank2b.offer(serviceProvider);
+                    case "6":
+                        individualRank2.offer(serviceProvider);
                         break;
-                    case "2c":
-                        rank2c.offer(serviceProvider);
+                    case "7":
+                        individualRank3.offer(serviceProvider);
                         break;
-                    case "2d":
-                        rank2d.offer(serviceProvider);
+                    case "8":
+                        individualRank4.offer(serviceProvider);
                         break;
                     default:
                         // Handle cases where rank is unrecognized
@@ -1048,31 +1050,31 @@ public class ServiceProviderTicketService {
             Iterator<CustomOrderState> iterator = customOrders.iterator();
 
             // Initialized the service provider with different ranks.
-            PriorityQueue<ServiceProviderEntity> rank1a = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1b = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1c = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1d = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2a = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2b = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2c = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2d = new PriorityQueue<>(new ServiceProviderComparator());
-            bifurcateAvailableServiceProviders(availableServiceProvider, rank1a, rank1b, rank1c, rank1d, rank2a, rank2b, rank2c, rank2d);
+            PriorityQueue<ServiceProviderEntity> professionalRank1 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank2 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank3 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank4 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank1 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank2 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank3 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank4 = new PriorityQueue<>(new ServiceProviderComparator());
+            bifurcateAvailableServiceProviders(availableServiceProvider, professionalRank1, professionalRank2, professionalRank3, professionalRank4, individualRank1, individualRank2, individualRank3, individualRank4);
 
-            log.info("Service Provider in rank1a: {}", rank1a.size());
-            log.info("Service Provider in rank1b: {}", rank1b.size());
-            log.info("Service Provider in rank1c: {}", rank1c.size());
-            log.info("Service Provider in rank1d: {}", rank1d.size());
+            log.info("Service Provider in professionalRank1: {}", professionalRank1.size());
+            log.info("Service Provider in professionalRank2: {}", professionalRank2.size());
+            log.info("Service Provider in professionalRank3: {}", professionalRank3.size());
+            log.info("Service Provider in professionalRank4: {}", professionalRank4.size());
 
-            log.info("Service Provider in rank2a: {}", rank2a.size());
-            log.info("Service Provider in rank2b: {}", rank2b.size());
-            log.info("Service Provider in rank2c: {}", rank2c.size());
-            log.info("Service Provider in rank2d: {}", rank2d.size());
+            log.info("Service Provider in individualRank1: {}", individualRank1.size());
+            log.info("Service Provider in individualRank2: {}", individualRank2.size());
+            log.info("Service Provider in individualRank3: {}", individualRank3.size());
+            log.info("Service Provider in individualRank4: {}", individualRank4.size());
 
 
             /*// For debugging purposes
-            Iterator<ServiceProviderEntity> iterator2 = rank1d.iterator();
-            while (!rank1d.isEmpty()) {
-                ServiceProviderEntity serviceProvider = rank1d.poll();
+            Iterator<ServiceProviderEntity> iterator2 = professionalRank4.iterator();
+            while (!professionalRank4.isEmpty()) {
+                ServiceProviderEntity serviceProvider = professionalRank4.poll();
                 logger.info("service_provider ticket assigned: " + serviceProvider.getTicketAssigned());
                 double bandwidth = (double) (serviceProvider.getTicketAssigned() + serviceProvider.getTicketPending()) / serviceProvider.getRanking().getMaximumTicketSize() * 100;
                 logger.info("BANDWDTH : " + bandwidth );
@@ -1094,42 +1096,42 @@ public class ServiceProviderTicketService {
                 // created a switch statement which will execute in vertical order.
                 switch (1) {
                     case 1:
-                        if (!rank1a.isEmpty() && processRank(rank1a, order, assignedTickets, customOrderState)) {
+                        if (!professionalRank1.isEmpty() && processRank(professionalRank1, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 2:
-                        if (!rank1b.isEmpty() && processRank(rank1b, order, assignedTickets, customOrderState)) {
+                        if (!professionalRank2.isEmpty() && processRank(professionalRank2, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 3:
-                        if (!rank1c.isEmpty() && processRank(rank1c, order, assignedTickets, customOrderState)) {
+                        if (!professionalRank3.isEmpty() && processRank(professionalRank3, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 4:
-                        if (!rank1d.isEmpty() && processRank(rank1d, order, assignedTickets, customOrderState)) {
+                        if (!professionalRank4.isEmpty() && processRank(professionalRank4, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 5:
-                        if (!rank2a.isEmpty() && processRank(rank2a, order, assignedTickets, customOrderState)) {
+                        if (!individualRank1.isEmpty() && processRank(individualRank1, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 6:
-                        if (!rank2b.isEmpty() && processRank(rank2b, order, assignedTickets, customOrderState)) {
+                        if (!individualRank2.isEmpty() && processRank(individualRank2, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 7:
-                        if (!rank2c.isEmpty() && processRank(rank2c, order, assignedTickets, customOrderState)) {
+                        if (!individualRank3.isEmpty() && processRank(individualRank3, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
                     case 8:
-                        if (!rank2d.isEmpty() && processRank(rank2d, order, assignedTickets, customOrderState)) {
+                        if (!individualRank4.isEmpty() && processRank(individualRank4, order, assignedTickets, customOrderState)) {
                             iterator.remove();
                             break;
                         }
@@ -1138,7 +1140,6 @@ public class ServiceProviderTicketService {
                 }
             }
             log.info("Total orders assigned by VDTA method is: {}", assignedTickets.size());
-
 
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
@@ -1156,28 +1157,28 @@ public class ServiceProviderTicketService {
             Iterator<CustomServiceProviderTicket> iterator = tickets.iterator();
 
             // Initialized the service provider with different ranks.
-            PriorityQueue<ServiceProviderEntity> rank1a = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1b = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1c = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank1d = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2a = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2b = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2c = new PriorityQueue<>(new ServiceProviderComparator());
-            PriorityQueue<ServiceProviderEntity> rank2d = new PriorityQueue<>(new ServiceProviderComparator());
-            bifurcateAvailableServiceProviders(availableServiceProvider, rank1a, rank1b, rank1c, rank1d, rank2a, rank2b, rank2c, rank2d);
+            PriorityQueue<ServiceProviderEntity> professionalRank1 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank2 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank3 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> professionalRank4 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank1 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank2 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank3 = new PriorityQueue<>(new ServiceProviderComparator());
+            PriorityQueue<ServiceProviderEntity> individualRank4 = new PriorityQueue<>(new ServiceProviderComparator());
+            bifurcateAvailableServiceProviders(availableServiceProvider, professionalRank1, professionalRank2, professionalRank3, professionalRank4, individualRank1, individualRank2, individualRank3, individualRank4);
 
-            log.info("Service Provider in rank1a: {}", rank1a.size());
-            log.info("Service Provider in rank1b: {}", rank1b.size());
-            for (ServiceProviderEntity serviceProvider : rank1b) {
-                log.info("service_provider in rank 2b: {}", serviceProvider.getService_provider_id());
+            log.info("Service Provider in professional Rank 1: {}", professionalRank1.size());
+            log.info("Service Provider in professional Rank 2: {}", professionalRank2.size());
+            for (ServiceProviderEntity serviceProvider : professionalRank2) {
+                log.info("service_provider in professional Rank 2: {}", serviceProvider.getService_provider_id());
             }
-            log.info("Service Provider in rank1c: {}", rank1c.size());
-            log.info("Service Provider in rank1d: {}", rank1d.size());
+            log.info("Service Provider in professional Rank 3: {}", professionalRank3.size());
+            log.info("Service Provider in professional Rank 4: {}", professionalRank4.size());
 
-            log.info("Service Provider in rank2a: {}", rank2a.size());
-            log.info("Service Provider in rank2b: {}", rank2b.size());
-            log.info("Service Provider in rank2c: {}", rank2c.size());
-            log.info("Service Provider in rank2d: {}", rank2d.size());
+            log.info("Service Provider in individual Rank 1: {}", individualRank1.size());
+            log.info("Service Provider in individual Rank 2: {}", individualRank2.size());
+            log.info("Service Provider in individual Rank 3: {}", individualRank3.size());
+            log.info("Service Provider in individual Rank 4: {}", individualRank4.size());
 
             // Iterator for traversing orders.
             while (iterator.hasNext()) {
@@ -1201,42 +1202,42 @@ public class ServiceProviderTicketService {
                 // created a switch statement which will execute in vertical order.
                 switch (1) {
                     case 1:
-                        if (!rank1a.isEmpty() && processRankForTickets(rank1a, order, assignedTickets, ticket)) {
+                        if (!professionalRank1.isEmpty() && processRankForTickets(professionalRank1, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 2:
-                        if (!rank1b.isEmpty() && processRankForTickets(rank1b, order, assignedTickets, ticket)) {
+                        if (!professionalRank2.isEmpty() && processRankForTickets(professionalRank2, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 3:
-                        if (!rank1c.isEmpty() && processRankForTickets(rank1c, order, assignedTickets, ticket)) {
+                        if (!professionalRank3.isEmpty() && processRankForTickets(professionalRank3, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 4:
-                        if (!rank1d.isEmpty() && processRankForTickets(rank1d, order, assignedTickets, ticket)) {
+                        if (!professionalRank4.isEmpty() && processRankForTickets(professionalRank4, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 5:
-                        if (!rank2a.isEmpty() && processRankForTickets(rank2a, order, assignedTickets, ticket)) {
+                        if (!individualRank1.isEmpty() && processRankForTickets(individualRank1, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 6:
-                        if (!rank2b.isEmpty() && processRankForTickets(rank2b, order, assignedTickets, ticket)) {
+                        if (!individualRank2.isEmpty() && processRankForTickets(individualRank2, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 7:
-                        if (!rank2c.isEmpty() && processRankForTickets(rank2c, order, assignedTickets, ticket)) {
+                        if (!individualRank3.isEmpty() && processRankForTickets(individualRank3, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
                     case 8:
-                        if (!rank2d.isEmpty() && processRankForTickets(rank2d, order, assignedTickets, ticket)) {
+                        if (!individualRank4.isEmpty() && processRankForTickets(individualRank4, order, assignedTickets, ticket)) {
                             iterator.remove();
                             break;
                         }
