@@ -18,6 +18,7 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -90,4 +91,9 @@ public class QualificationEligibility implements Serializable
     @CollectionTable(name = "highest_qualification_subject_names_in_product", joinColumns = @JoinColumn(name = "qualification_detail_id"))
     @Column(name = "subject_name")
     private List<String> highestQualificationSubjectNames;
+
+    @ElementCollection
+    @CollectionTable(name = "other_subject_names_in_product", joinColumns = @JoinColumn(name = "qualification_detail_id"))
+    @Column(name = "other_subject_name")
+    List<String> otherSubjects=new ArrayList<>();
 }

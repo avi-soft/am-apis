@@ -5,6 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -34,5 +35,6 @@ public class QualificationEligibilityDto {
     private String additionalComments;
     private Boolean isAppearing;
     private List<String> highestQualificationSubjectNames;
+    List<String> otherSubjects=new ArrayList<>();
 
 }

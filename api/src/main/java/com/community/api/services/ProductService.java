@@ -3626,8 +3626,6 @@ public class ProductService {
             if (streamIdSet.size() != streamIds.size()) {
                 throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
             }
-        } else if (qualification.getIs_stream_required()) {
-            throw new IllegalArgumentException("Stream is required for qualification: " + qualification.getQualification_name());
         }
     }
 
@@ -3635,7 +3633,7 @@ public class ProductService {
         Integer qualificationId = qualification.getQualification_id();
 
         // For qualifications 1 and 2, use predefined subjects
-        if (qualificationId == 1 || qualificationId == 2) {
+        if (qualificationId == 1 || qualificationId == 2 || qualificationId==54) {
             if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {
                 // Check if qualification requires subjects
                 if (!qualification.getIs_subjects_required()) {
@@ -3674,8 +3672,6 @@ public class ProductService {
                 if (subjectIdsSet.size() != subjectIds.size()) {
                     throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
                 }
-            } else if (qualification.getIs_subjects_required()) {
-                throw new IllegalArgumentException("Subjects are required for qualification: " + qualification.getQualification_name());
             }
 
             // For qualifications 1 and 2, manual subject names should not be used
@@ -3683,7 +3679,29 @@ public class ProductService {
                 throw new IllegalArgumentException("Manual subject names are not allowed for qualification: " + qualification.getQualification_name() +
                         ". Please select from predefined subjects.");
             }
-        } else {
+        }
+        else if(qualificationId.equals(Constant.OTHERS_QUALIFICATION))
+        {
+            if(dto.getOtherSubjects()==null || dto.getOtherSubjects().isEmpty())
+            {
+                throw new IllegalArgumentException("you have to provide the other subject names");
+            }
+                Set<String> subjectNameSet = new HashSet<>();
+            for (String subjectName : dto.getOtherSubjects()) {
+                if (subjectName == null || subjectName.trim().isEmpty()) {
+                    throw new IllegalArgumentException("others subject name cannot be empty");
+                }
+
+                if (!subjectName.matches("^[a-zA-Z0-9 ,.!?';:()&-]*$")) {
+                    throw new IllegalArgumentException("Invalid other subject name format: " + subjectName);
+                }
+
+                if (!subjectNameSet.add(subjectName.trim().toLowerCase())) {
+                    throw new IllegalArgumentException("Duplicate subject name found: " + subjectName);
+                }
+            }
+        }
+        else {
             // For other qualifications, use manual subject names
             if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {
                 throw new IllegalArgumentException("Predefined subjects are not allowed for qualification: " + qualification.getQualification_name() +
@@ -3692,11 +3710,6 @@ public class ProductService {
 
             // Validate manual subject names if qualification requires subjects
             if (qualification.getIs_subjects_required()) {
-                if (dto.getHighestQualificationSubjectNames() == null || dto.getHighestQualificationSubjectNames().isEmpty()) {
-                    throw new IllegalArgumentException("Subject names are required for qualification: " + qualification.getQualification_name());
-                }
-
-                // Validate subject names format and duplicates
                 Set<String> subjectNameSet = new HashSet<>();
                 for (String subjectName : dto.getHighestQualificationSubjectNames()) {
                     if (subjectName == null || subjectName.trim().isEmpty()) {
