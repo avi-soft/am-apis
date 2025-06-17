@@ -3680,27 +3680,6 @@ public class ProductService {
                         ". Please select from predefined subjects.");
             }
         }
-        else if(qualificationId.equals(Constant.OTHERS_QUALIFICATION))
-        {
-            if(dto.getOtherSubjects()==null || dto.getOtherSubjects().isEmpty())
-            {
-                throw new IllegalArgumentException("you have to provide the other subject names");
-            }
-                Set<String> subjectNameSet = new HashSet<>();
-            for (String subjectName : dto.getOtherSubjects()) {
-                if (subjectName == null || subjectName.trim().isEmpty()) {
-                    throw new IllegalArgumentException("others subject name cannot be empty");
-                }
-
-                if (!subjectName.matches("^[a-zA-Z0-9 ,.!?';:()&-]*$")) {
-                    throw new IllegalArgumentException("Invalid other subject name format: " + subjectName);
-                }
-
-                if (!subjectNameSet.add(subjectName.trim().toLowerCase())) {
-                    throw new IllegalArgumentException("Duplicate subject name found: " + subjectName);
-                }
-            }
-        }
         else {
             // For other qualifications, use manual subject names
             if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {

@@ -92,8 +92,4 @@ public class QualificationEligibility implements Serializable
     @Column(name = "subject_name")
     private List<String> highestQualificationSubjectNames;
 
-    @ElementCollection
-    @CollectionTable(name = "other_subject_names_in_product", joinColumns = @JoinColumn(name = "qualification_detail_id"))
-    @Column(name = "other_subject_name")
-    List<String> otherSubjects=new ArrayList<>();
 }

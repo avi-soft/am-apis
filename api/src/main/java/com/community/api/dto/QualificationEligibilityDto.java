@@ -35,6 +35,5 @@ public class QualificationEligibilityDto {
     private String additionalComments;
     private Boolean isAppearing;
     private List<String> highestQualificationSubjectNames;
-    List<String> otherSubjects=new ArrayList<>();
 
 }
