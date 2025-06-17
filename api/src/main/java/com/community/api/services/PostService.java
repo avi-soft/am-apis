@@ -341,6 +341,7 @@ public class PostService {
                     qualificationRequirement.setReserveCatIdRunningField(qualificationEligibilityDto.getReserveCatIdRunningField());
                     qualificationRequirement.setAdditionalComments(qualificationEligibilityDto.getAdditionalComments());
                     qualificationRequirement.setIsAppearing(qualificationEligibilityDto.getIsAppearing());
+                    qualificationRequirement.setHighestQualificationSubjectNames(qualificationEligibilityDto.getHighestQualificationSubjectNames());
                     entityManager.persist(qualificationRequirement);
                 }
                 entityManager.flush();
