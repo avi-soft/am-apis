@@ -1733,7 +1733,11 @@ END IF;
 IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
 
         -- Insert values if the table is empty
-
+INSERT INTO qualification_stream (qualification_id, stream_id)
+-- 10th stream id 1 which is implicit
+        SELECT 1, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (0);
         -- 12th Stream
         INSERT INTO qualification_stream (qualification_id, stream_id)
         SELECT 2, stream_id

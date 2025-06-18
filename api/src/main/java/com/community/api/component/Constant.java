@@ -228,6 +228,8 @@ public class Constant {
     public static final Integer OTHERS_QUALIFICATION_ID= 60;
     public static final Integer BACHELORS_QUALIFICATION= 3;
     public static final Integer MASTERS_QUALIFICATION= 4;
+    public static final Integer MATRICULATION_QUALIFICATION= 1;
+    public static final Long MATRICULATION_IMPLICIT_STREAM_ID= 0L;
     public static final Long OTHERS_SUBJECT_ID = 54L;
     public static final Long OTHERS_STREAM_ID = 215L;
 
