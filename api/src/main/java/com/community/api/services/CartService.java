@@ -881,7 +881,7 @@ public class CartService {
                 if (customerAge < ageRequirement.getMinimumAge()) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("You are too young. Minimum age required is " + ageRequirement.getMinimumAge() +
-                            " years, but you are " + customerAge + " years old");
+                            " years, but You are " + customerAge + " years old");
                     return result;
                 }
             }
@@ -890,7 +890,7 @@ public class CartService {
                 if (customerAge > ageRequirement.getMaximumAge()) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("You are too old. Maximum age allowed is " + ageRequirement.getMaximumAge() +
-                            " years, but you are " + customerAge + " years old");
+                            " years, but You are " + customerAge + " years old");
                     return result;
                 }
             }
