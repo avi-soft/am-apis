@@ -27,6 +27,7 @@ public class Constant {
 
     public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
     public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
+    public static final String FIND_SERVICE_PROVIDER_RANK_BY_SERVICE_PROVIDER_RANK_ID = "SELECT r FROM ServiceProviderRank r WHERE r.rank_id = :serviceProviderRankId";
     public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=false ORDER BY dt.sort_order ASC";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = :archived";
     public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = :archived";
