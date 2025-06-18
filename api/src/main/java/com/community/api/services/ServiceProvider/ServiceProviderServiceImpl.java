@@ -237,26 +237,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             {
                 type= existingServiceProvider.getType();
             }
-            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN))
-            {
-                if(updates.containsKey("rankId"))
-                {
+            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN)) {
+                if (updates.containsKey("rankId")) {
                     Object rankIdObj = updates.get("rankId");
                     Long rankId = rankIdObj instanceof Number ? ((Number) rankIdObj).longValue() : null;
-                    log.info("Rank id is: {}", rankId);
+
                     ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
 
-                    if(serviceProviderRank == null)
-                    {
-                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist",HttpStatus.BAD_REQUEST);
+                    if (serviceProviderRank == null) {
+                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist", HttpStatus.BAD_REQUEST);
                     }
-                    if(type.equalsIgnoreCase("PROFESSIONAL") && rankId >4)
-                    {
-                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d",HttpStatus.BAD_REQUEST);
-                    }
-                    else  if (type.equalsIgnoreCase("INDIVIDUAL" )&& rankId<5)
-                    {
-                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
+                    if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
+                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d", HttpStatus.BAD_REQUEST);
+                    } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
+                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d", HttpStatus.BAD_REQUEST);
                     }
 
                     existingServiceProvider.setAdminOverridden(true);
@@ -266,12 +260,45 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 //                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
+
+                if(updates.containsKey("maximum_ticket_size")) {
+                    Object maximumTicketSizeObj = updates.get("maximum_ticket_size");
+                    Integer maximumTicketSize = maximumTicketSizeObj instanceof Number ? ((Number) maximumTicketSizeObj).intValue() : null;
+
+                    if(maximumTicketSize < 0) {
+                        return ResponseService.generateErrorResponse("The maximum ticket size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                    }
+                    existingServiceProvider.setMaximumTicketSize(maximumTicketSize);
+                    existingServiceProvider.setAdminOverridden(true);
+                    existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
+                }
+                updates.remove("maximum_ticket_size");
+
+                if(updates.containsKey("maximum_binding_size")) {
+                    Object maximumBindingSizeObj = updates.get("maximum_binding_size");
+                    Integer maximumBindingSize = maximumBindingSizeObj instanceof Number ? ((Number) maximumBindingSizeObj).intValue() : null;
+
+                    if(maximumBindingSize < 0) {
+                        return ResponseService.generateErrorResponse("The maximum binding size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                    }
+
+                    existingServiceProvider.setMaximumBindingSize(maximumBindingSize);
+                    existingServiceProvider.setAdminOverridden(true);
+                    existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
+                }
+                updates.remove("maximum_binding_size");
+
             }
             else
             {
                 if(updates.containsKey("rankId") && updates.get("rankId")!=null)
                 {
-                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provier. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                }
+                if(updates.containsKey("maximum_ticket_size") || updates.containsKey("maximum_binding_value")) {
+                    return ResponseService.generateErrorResponse("Not authorized to update the maximum ticket size or maximum binding size of Service Provider. Only Admin or Super Admin can update it.",HttpStatus.BAD_REQUEST);
                 }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
@@ -1124,7 +1151,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
-            if(existingServiceProvider.getAutoScoring()) {
+            if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
                 assignRank(existingServiceProvider, totalScore);
             }
 

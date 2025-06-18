@@ -844,7 +844,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
         serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
-
+        serviceProviderDetails.put("maximum_ticket_size", serviceProvider.getMaximumTicketSize());
+        serviceProviderDetails.put("maximum_binding_size", serviceProvider.getMaximumBindingSize());
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
