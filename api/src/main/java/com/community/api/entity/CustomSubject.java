@@ -72,6 +72,7 @@ public class CustomSubject {
     protected Role creatorRole;
 
     @ManyToMany(mappedBy = "subjects")
+    @JsonIgnore
     private List<CustomStream> streams = new ArrayList<>();
 
 }

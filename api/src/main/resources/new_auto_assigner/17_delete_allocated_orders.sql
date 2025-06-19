@@ -1,7 +1,3 @@
--- PROCEDURE: public.delete_allocated_orders(bigint[], bigint[])
-
--- DROP PROCEDURE IF EXISTS public.delete_allocated_orders(bigint[], bigint[]);
-
 CREATE OR REPLACE PROCEDURE public.delete_allocated_orders(
 	IN allocated_orders bigint[],
 	INOUT order_ids bigint[])
@@ -12,6 +8,8 @@ DECLARE
     temp_order_ids BIGINT[] := '{}';
     order_id BIGINT;
 BEGIN
+	
+	RAISE NOTICE '17. Delete Allocated Orders';
 	IF order_ids IS NOT NULL THEN
     -- Loop through the order_ids array
     FOREACH order_id IN ARRAY order_ids
@@ -30,5 +28,3 @@ BEGIN
     RAISE NOTICE 'Updated order_ids: %', order_ids;
 END;
 $BODY$;
-ALTER PROCEDURE public.delete_allocated_orders(bigint[], bigint[])
-    OWNER TO postgres;

@@ -211,7 +211,7 @@ public class ServiceProviderEntity  {
     private ServiceProviderTestStatus serviceProviderStatus;
     private Long lastStatusId;
 
-    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
+    @OneToOne // Only persist/merge, no REMOVE
     @JoinColumn(name="rank_id", referencedColumnName = "rank_id")
     private ServiceProviderRank ranking;
 

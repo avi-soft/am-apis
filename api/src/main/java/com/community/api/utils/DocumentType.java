@@ -40,6 +40,9 @@ public class DocumentType {
     @Column(name = "is_expiration_date_required",nullable = false,columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean is_expiration_date_required=false;
 
+    @Column(name = "dpi")
+    protected Double dpi;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "document_file_types",

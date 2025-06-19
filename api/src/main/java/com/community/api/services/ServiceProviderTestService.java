@@ -58,11 +58,6 @@ public class ServiceProviderTestService {
     public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
         this.statusChangeEmailService = statusChangeEmailService;
     }
-    private DocumentType resizedImageDocumentType;
-    private DocumentType pdfDocumentType;
-    private DocumentType signatureImageDocumentType;
-    private double targetWidth;
-    private double targetHeight;
 
     @Value("${image.validation.tolerance}")
     private float tolerance;
@@ -72,19 +67,15 @@ public class ServiceProviderTestService {
         this.exceptionHandlingImplement = exceptionHandlingImplement;
     }
 
-    @PostConstruct
-    private void initializeDocumentTypes() {
-        this.resizedImageDocumentType = getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
-        this.pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
-        this.signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
-        this.targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
-        this.targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
-    }
-
     @Transactional
     public Map<String, Object> startTest(Long serviceProviderId,HttpServletRequest request) throws Exception {
         try
         {
+            DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+            DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+            DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+            double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+            double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
             if(serviceProvider==null)
             {
@@ -120,6 +111,7 @@ public class ServiceProviderTestService {
                     response.put("uploadedResizedImage",test.getResized_image());
                     response.put("uploadedSignatureImage",test.getSignature_image());
                     response.put("uploadedPdf",test.getUploadedPdf());
+                    response.put("dpi",signatureImageDocumentType.getDpi());
                     return response;
                 }
                 if(serviceProvider.getServiceProviderStatus().getTest_status_id().equals(testStatus) )
@@ -192,6 +184,7 @@ public class ServiceProviderTestService {
             response.put("uploadedResizedImage",test.getResized_image());
             response.put("uploadedSignatureImage",test.getSignature_image());
             response.put("uploadedPdf",test.getUploadedPdf());
+            response.put("dpi",signatureImageDocumentType.getDpi());
 
             return response;
         }
@@ -220,6 +213,11 @@ public class ServiceProviderTestService {
 
     @Transactional
     public Map<String, Object> uploadResizedImages(Long serviceProviderId, Long testId, MultipartFile resizedFile, HttpServletRequest request) throws Exception {
+        DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
         // Retrieve the service provider entity
         if(resizedFile==null || resizedFile.isEmpty())
         {
@@ -447,6 +445,9 @@ public class ServiceProviderTestService {
 
     @Transactional
     public Map<String,Object> uploadSignatureImage(Long serviceProviderId, Long testId, MultipartFile signatureFile,HttpServletRequest request,String authHeader) throws Exception {
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
         if(signatureFile==null|| signatureFile.isEmpty())
         {
             throw new IllegalArgumentException("Signature file is not uploaded. Upload the signature file also.");
@@ -542,18 +543,19 @@ public class ServiceProviderTestService {
     }
 
     public void validateImageDimension(byte[] signatureImageData, double targetWidth, double targetHeight, float tolerance) {
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(signatureImageData));
             if (image == null) {
                 throw new IllegalArgumentException("Unable to read the image file.");
             }
 
-            float dpiX = 300;
-            float dpiY = 300;
+            double dpiX = signatureImageDocumentType.getDpi();
+            double dpiY = signatureImageDocumentType.getDpi();
 
             // Calculate dimensions in mm
-            float widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
-            float heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
+            double widthInMM = (image.getWidth() / dpiX) * 25.4f; // Convert pixels to mm
+            double heightInMM = (image.getHeight() / dpiY) * 25.4f; // Convert pixels to mm
 
             // Check if width and height are within the acceptable range (target ± tolerance)
             boolean isWidthValid =
@@ -563,7 +565,7 @@ public class ServiceProviderTestService {
 
             if (!isWidthValid || !isHeightValid) {
                 throw new IllegalArgumentException(
-                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm. Keep DPI=300",
+                        String.format("Signature image dimensions must be exactly %.1f mm x %.1f mm with a tolerance of ±%.1f mm. Keep DPI = "+signatureImageDocumentType.getDpi(),
                                 targetWidth, targetHeight, tolerance)
                 );
             }
@@ -599,6 +601,11 @@ public class ServiceProviderTestService {
 
     @Transactional
     public ResponseEntity<?> getCompletedServiceProviderTest(Long serviceProviderId,HttpServletRequest request) throws EntityDoesNotExistsException {
+        DocumentType  resizedImageDocumentType= getDocumentType(Constant.RESIZED_IMAGE_DOCUMENT_TYPE_ID);
+        DocumentType pdfDocumentType = getDocumentType(Constant.UPLOADED_PDF_DOCUMENT_TYPE_ID);
+        DocumentType signatureImageDocumentType = getDocumentType(Constant.SIGNATURE_IMAGE_DOCUMENT_TYPE_ID);
+        double targetWidth = signatureImageDocumentType.getMax_width_dimension_in_mm();
+        double targetHeight = signatureImageDocumentType.getMax_height_dimension_in_mm();
         ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (serviceProvider == null) {
             throw new EntityDoesNotExistsException("Service Provider not found");
@@ -657,6 +664,7 @@ public class ServiceProviderTestService {
         completedTestMap.put("requiredSignatureImageHeight",targetHeight);
         completedTestMap.put("uploadedResizedImage",serviceProviderTestToReturn.getResized_image());
         completedTestMap.put("uploadedSignatureImage",serviceProviderTestToReturn.getSignature_image());
+        completedTestMap.put("dpi",signatureImageDocumentType.getDpi());
         completedTestMap.put("uploadedPdf",serviceProviderTestToReturn.getUploadedPdf());
 
         return ResponseService.generateSuccessResponse("Completed test is found",completedTestMap,HttpStatus.OK);
@@ -785,7 +793,7 @@ public class ServiceProviderTestService {
         int randomIndex = new Random().nextInt(count.intValue());
 
         return (Image) entityManager.createQuery(
-                        "SELECT i FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId")
+                        "SELECT i FROM Image i WHERE i.randomImageType.randomImageTypeId = :typeId AND i.archived = false")
                 .setParameter("typeId", typeId)
                 .setFirstResult(randomIndex)
                 .setMaxResults(1)
@@ -799,7 +807,7 @@ public class ServiceProviderTestService {
             throw new EntityNotFoundException("No typing texts available");
         }
         int randomIndex = new Random().nextInt((int) count);
-        TypingText typingText = (TypingText) entityManager.createQuery("SELECT t FROM TypingText t")
+        TypingText typingText = (TypingText) entityManager.createQuery("SELECT t FROM TypingText t WHERE t.archived = false")
                 .setFirstResult(randomIndex)
                 .setMaxResults(1)
                 .getSingleResult();
@@ -887,26 +895,26 @@ public class ServiceProviderTestService {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1a");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1b");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1c");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"1d");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
         }
     }
     public ServiceProviderRank assignRankingForIndividual(Integer totalScore) {
         List<ServiceProviderRank> professionalServiceProviderRanks= getAllRank();
 
         if (totalScore >= 75) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2a");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"1");
         } else if (totalScore >= 50) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2b");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"2");
         } else if (totalScore >= 25) {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2c");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"3");
         } else {
-            return searchServiceProviderRank(professionalServiceProviderRanks,"2d");
+            return searchServiceProviderRank(professionalServiceProviderRanks,"4");
         }
     }
     public  ServiceProviderRank searchServiceProviderRank(List<ServiceProviderRank> serviceProviderRankList,String rankValue)

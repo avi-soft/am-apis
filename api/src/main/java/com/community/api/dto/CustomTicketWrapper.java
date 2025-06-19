@@ -3,15 +3,12 @@ package com.community.api.dto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CombinedOrderDTO;
 import com.community.api.entity.CustomServiceProviderTicket;
-import com.community.api.entity.CustomTicketHistory;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.entity.CustomWorkQuality;
 import com.community.api.entity.Role;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.community.api.utils.ServiceProviderDocument;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.broadleafcommerce.common.rest.api.wrapper.APIWrapper;
 import org.broadleafcommerce.common.rest.api.wrapper.BaseWrapper;
@@ -19,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
-import javax.persistence.Lob;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +33,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
     @JsonProperty("assignee_name")
     protected String assigneeName;
+
+    @JsonProperty("modifier_name")
+    protected String modifierName;
 
     @JsonProperty("mobile_number")
     protected String mobileNumber;
@@ -100,10 +99,10 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
 
 //    @JsonIgnore
     @JsonProperty("ticket_documents")
-    private Set<ServiceProviderDocument> serviceProviderDocuments;
+    private Set<TicketDocumentWrapper> ticketDocumentWrapperSet;
 
     @JsonProperty("ticket_history")
-    private List<CustomTicketHistory> ticketHistoryList;
+    private List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList;
 
     public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager) {
         this.id = customServiceProviderTicket.getTicketId();
@@ -130,22 +129,22 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
-        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
+//        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
 
-        ServiceProviderEntity serviceProvider = null;
+        ServiceProviderEntity assignee = null;
         try {
             if(customServiceProviderTicket.getAssignee() != null) {
-                serviceProvider = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
-                this.assigneeName = serviceProvider.getFirst_name();
-                if (serviceProvider.getLast_name() != null) {
-                    this.assigneeName += " " + serviceProvider.getLast_name();
+                assignee = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getAssignee());
+                this.assigneeName = assignee.getFirst_name();
+                if (assignee.getLast_name() != null) {
+                    this.assigneeName += " " + assignee.getLast_name();
                 }
             } else {
                 this.assigneeName = "-";
             }
-            if(serviceProvider != null) {
-                this.primaryEmail = serviceProvider.getPrimary_email();
-                this.mobileNumber = serviceProvider.getMobileNumber();
+            if(assignee != null) {
+                this.primaryEmail = assignee.getPrimary_email();
+                this.mobileNumber = assignee.getMobileNumber();
             }
         }
         catch (Exception e)
@@ -155,10 +154,33 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             this.assigneeName = "-";
         }
 
+        ServiceProviderEntity modifier = null;
+        try {
+            if(customServiceProviderTicket.getModifierId() != null) {
+                modifier = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getModifierId());
+                this.modifierName = modifier.getFirst_name();
+                if (modifier.getLast_name() != null) {
+                    this.modifierName += " " + modifier.getLast_name();
+                }
+            } else {
+                this.modifierName = "-";
+            }
+            if(modifier != null) {
+                this.primaryEmail = modifier.getPrimary_email();
+                this.mobileNumber = modifier.getMobileNumber();
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
+            this.modifierName = "-";
+        }
+
         this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
-    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager, List<CustomTicketHistory> customTicketHistoryList) {
+    public void customWrapDetails(CustomServiceProviderTicket customServiceProviderTicket, CombinedOrderDTO combinedOrderDTO, EntityManager entityManager, List<CustomTicketHistoryWrapper> customTicketHistoryWrapperList, Set<TicketDocumentWrapper> ticketDocumentWrappers) {
         this.id = customServiceProviderTicket.getTicketId();
         this.assigneeUserId = customServiceProviderTicket.getAssignee();
         this.assigneeRole = customServiceProviderTicket.getAssigneeRole();
@@ -183,7 +205,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
-        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
+        this.ticketDocumentWrapperSet = ticketDocumentWrappers;
 
         ServiceProviderEntity serviceProvider = null;
         try {
@@ -207,7 +229,30 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
             exceptionHandlingService.handleException(e);
             this.assigneeName = "-";
         }
-        this.ticketHistoryList = customTicketHistoryList;
+
+        ServiceProviderEntity modifier = null;
+        try {
+            if(customServiceProviderTicket.getModifierId() != null) {
+                modifier = entityManager.find(ServiceProviderEntity.class, customServiceProviderTicket.getModifierId());
+                this.modifierName = modifier.getFirst_name();
+                if (modifier.getLast_name() != null) {
+                    this.modifierName += " " + modifier.getLast_name();
+                }
+            } else {
+                this.modifierName = "-";
+            }
+            if(modifier != null) {
+                this.primaryEmail = modifier.getPrimary_email();
+                this.mobileNumber = modifier.getMobileNumber();
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
+            this.modifierName = "-";
+        }
+        this.customTicketHistoryWrapperList = customTicketHistoryWrapperList;
         this.parentTicket = customServiceProviderTicket.getParentTicket();
     }
 
