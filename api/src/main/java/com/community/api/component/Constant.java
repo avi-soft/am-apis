@@ -56,8 +56,10 @@ public class Constant {
     public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d where archived =:archived";
     public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
+    public static String FIND_DISTRICT_ID_BY_NAME = "SELECT d.district_id from Districts d where d.district_name = :district_name";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
     public static String FIND_STATE = "SELECT s.state_name from StateCode s where s.state_id = :state_id";
+    public static String FIND_STATE_ID_BY_NAME = "SELECT s.state_id from StateCode s where s.state_name = :state_name";
     public static String FETCH_ROLE = "SELECT r.role_name FROM Role r WHERE r.role_id = :role_id";
     public static final String roleUser = "CUSTOMER";
     public static final String roleSuperAdmin = "SUPER_ADMIN";
@@ -229,6 +231,8 @@ public class Constant {
     public static final Integer OTHERS_QUALIFICATION_ID= 60;
     public static final Integer BACHELORS_QUALIFICATION= 3;
     public static final Integer MASTERS_QUALIFICATION= 4;
+    public static final Integer MATRICULATION_QUALIFICATION= 1;
+    public static final Long MATRICULATION_IMPLICIT_STREAM_ID= 0L;
     public static final Long OTHERS_SUBJECT_ID = 54L;
     public static final Long OTHERS_STREAM_ID = 215L;
 
