@@ -1312,6 +1312,10 @@ public class ServiceProviderTicketService {
 
             if (dateFrom != null && dateTo != null) {
                 jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom) AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
+            } else if(dateFrom != null) {
+                jpql.append("AND FUNCTION('DATE',c.createdDate) >= FUNCTION('DATE',:dateFrom)");
+            } else if(dateTo != null) {
+                jpql.append("AND FUNCTION('DATE',c.createdDate) <= FUNCTION('DATE',:dateTo) ");
             }
 
             if (userId != null && role != null) {
@@ -1325,19 +1329,12 @@ public class ServiceProviderTicketService {
             if (dueInThreeDays != null) {
                 jpql.append(" AND c.targetCompletionDate BETWEEN :now AND :threeDaysLater ");
                 if (states == null) {
-                    states = new ArrayList<>();
-                    states.add(1L);
-                    states.add(2L);
-                    states.add(3L);
-                    states.add(4L);
-                    for (Long id = 1L; id <= 4; id++) {
-                        CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(id);
-                        if (ticketState == null) {
-                            throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + id);
-                        }
-                        customTicketStates.add(ticketState);
+                    CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_CLOSE);
+                    if (ticketState == null) {
+                        throw new IllegalArgumentException("NO TICKET STATE FOUND WITH THIS ID: " + Constant.TICKET_STATE_CLOSE);
                     }
-                    jpql.append("AND c.ticketState IN :states ");
+                    customTicketStates.add(ticketState);
+                    jpql.append("AND c.ticketState NOT IN :states ");
                 }
             }
 
@@ -1361,8 +1358,12 @@ public class ServiceProviderTicketService {
                 query.setParameter("assigneeUserIds", assigneeUserIds);
             }
 
-            if (dateFrom != null) {
+            if (dateFrom != null && dateTo != null) {
                 query.setParameter("dateFrom", dateFrom);
+                query.setParameter("dateTo", dateTo);
+            } else if(dateFrom != null) {
+                query.setParameter("dateFrom", dateFrom);
+            } else if (dateTo != null) {
                 query.setParameter("dateTo", dateTo);
             }
             if (userId != null && role != null) {
