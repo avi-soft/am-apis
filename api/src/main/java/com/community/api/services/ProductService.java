@@ -3595,7 +3595,13 @@ public class ProductService {
         if (dto.getCustomStreamIds() != null && !dto.getCustomStreamIds().isEmpty()) {
             // Check if qualification requires streams
             if (!qualification.getIs_stream_required()) {
-                throw new IllegalArgumentException("Stream is not required for qualification: " + qualification.getQualification_name());
+                if(qualification.getQualification_id().equals(MATRICULATION_QUALIFICATION))
+                {
+                    dto.setCustomStreamIds(List.of(MATRICULATION_IMPLICIT_STREAM_ID));
+                }
+                else {
+                    throw new IllegalArgumentException("Stream is not required for qualification: " + qualification.getQualification_name());
+                }
             }
 
             // Get valid streams for this qualification

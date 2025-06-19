@@ -18,6 +18,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -2602,6 +2603,61 @@ public class CustomerEndpoint {
         uniqueResults.addAll(resultSet2);
         List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
         System.out.println("count:" + uniqueResultList.size());
+
+        //  Pre-load all state and district mappings
+        Map<String, Integer> stateNameToIdCache = new HashMap<>();
+        Map<String, Integer> districtNameToIdCache = new HashMap<>();
+
+        // Collect all unique state and district names first
+        Set<String> allStateNames = new HashSet<>();
+        Set<String> allDistrictNames = new HashSet<>();
+
+        for (BigInteger id : uniqueResultList) {
+            try {
+                Customer customer = customerService.readCustomerById(id.longValue());
+                if (customer != null && customer.getCustomerAddresses() != null) {
+                    for (CustomerAddress address : customer.getCustomerAddresses()) {
+                        if (address == null || address.getAddress() == null) continue;
+
+                        if ("PERMANENT_ADDRESS".equals(address.getAddressName()) ||
+                                "CURRENT_ADDRESS".equals(address.getAddressName())) {
+
+                            String state = address.getAddress().getStateProvinceRegion();
+                            String district = address.getAddress().getCounty();
+
+                            if (state != null) allStateNames.add(state);
+                            if (district != null) allDistrictNames.add(district);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                continue;
+            }
+        }
+
+        // Batch load all state and district IDs
+        for (String stateNameKey : allStateNames) {
+            try {
+                Integer stateIdValue = districtService.findStateIdByName(stateNameKey);
+                if (stateIdValue != null) {
+                    stateNameToIdCache.put(stateNameKey, stateIdValue);
+                }
+            } catch (Exception e) {
+                System.out.println("Error loading state: " + stateNameKey + " - " + e.getMessage());
+            }
+        }
+
+        for (String districtNameKey : allDistrictNames) {
+            try {
+                Integer districtIdValue = districtService.findDistrictIdByName(districtNameKey);
+                if (districtIdValue != null) {
+                    districtNameToIdCache.put(districtNameKey, districtIdValue);
+                }
+            } catch (Exception e) {
+                System.out.println("Error loading district: " + districtNameKey + " - " + e.getMessage());
+            }
+        }
+
 // Convert the Set back to a List
         List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
         Map<Integer, Integer> Qualificationorder = new HashMap<>();
@@ -2689,6 +2745,64 @@ public class CustomerEndpoint {
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
                     customerBasicDetailsDto.setGender(customCustomer.getGender());
                     customerBasicDetailsDto.setUsername(customer.getUsername());
+                    customerBasicDetailsDto.setProfileComplete(customCustomer.getProfileComplete());
+                    customerBasicDetailsDto.setSuspended(customCustomer.getArchived());
+
+                    List<Long> qualificationDetailIds = new ArrayList<>();
+                    List<Integer> qualificationIds = new ArrayList<>();
+
+                    if(customCustomer.getQualificationDetailsList() != null && !customCustomer.getQualificationDetailsList().isEmpty()) {
+                        for(QualificationDetails qualificationDetails: customCustomer.getQualificationDetailsList()) {
+                            qualificationDetailIds.add(qualificationDetails.getQualification_detail_id());
+                            qualificationIds.add(qualificationDetails.getQualification_id());
+                        }
+                    }
+
+                    if (customer.getCustomerAddresses() != null) {
+                        for (CustomerAddress address : customer.getCustomerAddresses()) {
+                            if (address == null || address.getAddress() == null) continue;
+
+                            if ("PERMANENT_ADDRESS".equals(address.getAddressName())) {
+                                String permanentState = address.getAddress().getStateProvinceRegion();
+                                String permanentDistrict = address.getAddress().getCounty();
+
+                                // Use cache instead of database calls
+                                if (permanentState != null) {
+                                    Integer stateIdValue = stateNameToIdCache.get(permanentState);
+                                    if (stateIdValue != null) {
+                                        customerBasicDetailsDto.setPermanent_state_id(stateIdValue);
+                                    }
+                                }
+                                if (permanentDistrict != null) {
+                                    Integer districtIdValue = districtNameToIdCache.get(permanentDistrict);
+                                    if (districtIdValue != null) {
+                                        customerBasicDetailsDto.setPermanent_district_id(districtIdValue);
+                                    }
+                                }
+                            }
+                            else if("CURRENT_ADDRESS".equals(address.getAddressName())) {
+                                String currentState = address.getAddress().getStateProvinceRegion();
+                                String currentDistrict = address.getAddress().getCounty();
+
+                                // Use cache instead of database calls
+                                if (currentState != null) {
+                                    Integer stateIdValue = stateNameToIdCache.get(currentState);
+                                    if (stateIdValue != null) {
+                                        customerBasicDetailsDto.setCurrent_state_id(stateIdValue);
+                                    }
+                                }
+                                if (currentDistrict != null) {
+                                    Integer districtIdValue = districtNameToIdCache.get(currentDistrict);
+                                    if (districtIdValue != null) {
+                                        customerBasicDetailsDto.setCurrent_district_id(districtIdValue);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    customerBasicDetailsDto.setQualification_detail_ids(qualificationDetailIds);
+                    customerBasicDetailsDto.setQualification_ids(qualificationIds);
 
                         /*if (ref != null) {
                             System.out.println(customCustomer.getId()+","+customCustomer.getPrimaryRef());
