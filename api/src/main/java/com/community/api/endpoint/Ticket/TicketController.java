@@ -319,16 +319,16 @@ public class TicketController {
             if (dateFrom != null) {
                 String formattedDateFrom = dateFormat.format(dateFrom);
                 dateFrom = dateFormat.parse(formattedDateFrom);
-                if (dateTo == null) {
-                    dateTo = dateFrom;
-                }
+//                if (dateTo == null) {
+//                    dateTo = new Date();
+//                }
             }
             if (dateTo != null) {
                 String formattedDateTo = dateFormat.format(dateTo);
                 dateTo = dateFormat.parse(formattedDateTo);
-                if (dateFrom == null) {
-                    dateFrom = dateTo;
-                }
+//                if (dateFrom == null) {
+//                    dateFrom = dateTo;
+//                }
             }
             if (dateFrom != null && dateTo != null && dateTo.before(dateFrom)) {
                 throw new IllegalArgumentException("createdDateFrom must be before createdDateTo");
