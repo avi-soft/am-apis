@@ -31,6 +31,9 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
     @JsonProperty("assignee_user_id")
     protected Long assigneeUserId;
 
+    @JsonProperty("assignee_name")
+    protected String assigneeName;
+
     @JsonProperty("assignee_role")
     protected Role assigneeRole;
 
@@ -81,6 +84,24 @@ public class CustomTicketHistoryWrapper extends BaseWrapper implements APIWrappe
         this.ticketDocumentWrapperList = ticketDocumentWrapperList;
         this.comment = customTicketHistory.getComment();
 
+        ServiceProviderEntity assignee = null;
+        try {
+            if(customTicketHistory.getAssignee() != null) {
+                assignee = entityManager.find(ServiceProviderEntity.class, customTicketHistory.getAssignee());
+                this.assigneeName = assignee.getFirst_name();
+                if (assignee.getLast_name() != null) {
+                    this.assigneeName += " " + assignee.getLast_name();
+                }
+            } else {
+                this.assigneeName = "-";
+            }
+        }
+        catch (Exception e)
+        {
+            ExceptionHandlingService exceptionHandlingService = new ExceptionHandlingService();
+            exceptionHandlingService.handleException(e);
+            this.assigneeName = "-";
+        }
         ServiceProviderEntity modifier = null;
         try {
             if(customTicketHistory.getModifierId() != null) {
