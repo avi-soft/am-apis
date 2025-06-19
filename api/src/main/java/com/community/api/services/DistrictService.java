@@ -164,6 +164,7 @@ public class DistrictService {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a state");
             }
             stateCode.setArchived(false);
+            stateCode.setIsState(true);
             entityManager.persist(stateCode);
             return stateCode;
         } catch (Exception e) {
@@ -235,7 +236,7 @@ public class DistrictService {
             state.setState_code(stateCode.getState_code());
             state.setState_name(stateCode.getState_name());
             state.setArchived(stateCode.getArchived());
-            state.setArchived(false);
+            /*state.setArchived(false);*/
             entityManager.merge(state);
             return state;
         } catch (Exception e) {
