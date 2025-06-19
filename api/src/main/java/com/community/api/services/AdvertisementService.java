@@ -429,7 +429,7 @@ public class AdvertisementService {
                 "a.advertisement_id, " +
                 "a.description, " +
                 "a.title, " +
-                "string_agg(CAST(c.product_id AS TEXT), ',') AS product_ids " +
+                "string_agg(CAST(c.product_id AS TEXT), ',' ORDER BY c.product_id DESC) AS product_ids " +
                 "FROM advertisement a " +
                 "JOIN custom_product c ON c.advertisement_id = a.advertisement_id " +
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
