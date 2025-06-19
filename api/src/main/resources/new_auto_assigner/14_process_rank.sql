@@ -1,7 +1,3 @@
--- PROCEDURE: public.process_rank(bigint[], bigint, bigint[])
-
--- DROP PROCEDURE IF EXISTS public.process_rank(bigint[], bigint, bigint[]);
-
 CREATE OR REPLACE PROCEDURE public.process_rank(
 	IN p_service_provider_ids bigint[],
 	IN p_order_id bigint,
@@ -23,7 +19,7 @@ DECLARE
     unavailable_service_provider_ids bigint[] := '{}';
 BEGIN
 
-	RAISE NOTICE '10. Process Rank';
+	RAISE NOTICE '14. Process Rank';
 
     -- Reverse the service provider IDs array
     SELECT array(
@@ -89,5 +85,3 @@ BEGIN
     END IF;
 END;
 $BODY$;
-ALTER PROCEDURE public.process_rank(bigint[], bigint, bigint[])
-    OWNER TO postgres;

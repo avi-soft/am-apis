@@ -1,18 +1,6 @@
--- PROCEDURE: public.process_rank_for_tickets(bigint[], bigint, bigint, bigint, bigint, boolean, bigint[])
-
--- DROP PROCEDURE IF EXISTS public.process_rank_for_tickets(bigint[], bigint, bigint, bigint, bigint, boolean, bigint[]);
-
-CREATE OR REPLACE PROCEDURE public.process_rank_for_tickets(
-	INOUT ranked_service_provider_ids bigint[],
-	IN v_ticket_id bigint,
-	IN order_id bigint,
-	IN ticket_type_id bigint,
-	IN customer_id bigint,
-	INOUT assigned boolean,
-	INOUT assigned_ticket_ids bigint[])
+CREATE OR REPLACE PROCEDURE public.process_rank_for_tickets(INOUT ranked_service_provider_ids bigint[], IN v_ticket_id bigint, IN order_id bigint, IN ticket_type_id bigint, IN customer_id bigint, INOUT assigned boolean, INOUT assigned_ticket_ids bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
-
 
 DECLARE
 	sp_id BIGINT;
@@ -25,7 +13,7 @@ DECLARE
 	is_review_ticket BOOLEAN := FALSE;
 	is_primary_ticket BOOLEAN := FALSE;
 BEGIN
-	RAISE NOTICE '15. Process Rank For Tickets';
+	RAISE NOTICE '8. Process Rank For Tickets';
 
 	-- Determine if it's a review or primary ticket
 	IF ticket_type_id = 2 THEN
@@ -80,7 +68,7 @@ BEGIN
 		);
 
 		IF assigned THEN
-
+	       
 			-- Check bandwidth again and remove only if full
 			IF bandwidth >= 100.0 THEN
 				ranked_service_provider_ids := array_remove(ranked_service_provider_ids, sp_id);
@@ -96,5 +84,3 @@ BEGIN
 	END LOOP;
 END;
 $BODY$;
-ALTER PROCEDURE public.process_rank_for_tickets(bigint[], bigint, bigint, bigint, bigint, boolean, bigint[])
-    OWNER TO postgres;

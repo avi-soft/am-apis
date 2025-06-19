@@ -1,13 +1,6 @@
--- PROCEDURE: public.get_active_and_approved_service_providers()
-
--- DROP PROCEDURE IF EXISTS public.get_active_and_approved_service_providers();
-
-CREATE OR REPLACE PROCEDURE public.get_active_and_approved_service_providers(
-	OUT available_sp_ids bigint[])
-LANGUAGE 'plpgsql'
+CREATE OR REPLACE PROCEDURE public.get_active_and_approved_service_providers(OUT available_sp_ids bigint[])
+LANGUAGE 'plpgsql' 
 AS $BODY$
-
-
 
 DECLARE
     v_test_status_id CONSTANT BIGINT := 3;
@@ -24,11 +17,11 @@ BEGIN
     IF found_status = 0 THEN
         RAISE EXCEPTION 'No Test Status is found with this id: %', test_status_id;
     END IF;
-    -- Get list of approved and active service providers with role = 4
+    -- Get list of approved and active service providers with role = 4 and 2
     SELECT ARRAY_AGG(service_provider_id)
     INTO available_sp_ids
     FROM service_provider as s
-    WHERE s.test_status_id = v_test_status_id
+    WHERE s.service_provider_status_id = v_test_status_id
       AND s.is_active = TRUE
       AND s.approved = TRUE
       AND s.role IN (2, 4);
@@ -40,5 +33,3 @@ BEGIN
     RAISE NOTICE 'Found % available service providers.', array_length(available_sp_ids, 1);
 END;
 $BODY$;
-ALTER PROCEDURE public.get_active_and_approved_service_providers()
-    OWNER TO postgres;
