@@ -126,36 +126,40 @@ public class SharedUtilityService {
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
         if(customProduct.getPosts().size()>=1) {
-            if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+            if(orderItem!=null)
             {
-            String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
-            if (retrievedPostPreferenceString != null) {
-                if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
-                    preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
-                            .map(Long::parseLong)
-                            .collect(Collectors.toList());
-                }
-                for (Long id : preferenceOrder) {
-                    Post post = entityManager.find(Post.class, id);
-                    if (post != null) {
-                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                        detailsDTO.setPostId(post.getPostId());
-                        detailsDTO.setPostName(post.getPostName());
-                        detailsDTO.setPostCode(post.getPostCode());
-                        postPreferenceOrder.add(detailsDTO);
-                    }
-                }
-                for (Post post : customProduct.getPosts()) {
-                    if (!preferenceOrder.contains(post.getPostId())) {
-                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                        detailsDTO.setPostId(post.getPostId());
-                        detailsDTO.setPostName(post.getPostName());
-                        detailsDTO.setPostCode(post.getPostCode());
-                        availablePosts.add(detailsDTO);
+                if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+                {
+                    String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    if (retrievedPostPreferenceString != null) {
+                        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                                    .map(Long::parseLong)
+                                    .collect(Collectors.toList());
+                        }
+                        for (Long id : preferenceOrder) {
+                            Post post = entityManager.find(Post.class, id);
+                            if (post != null) {
+                                PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                                detailsDTO.setPostId(post.getPostId());
+                                detailsDTO.setPostName(post.getPostName());
+                                detailsDTO.setPostCode(post.getPostCode());
+                                postPreferenceOrder.add(detailsDTO);
+                            }
+                        }
+                        for (Post post : customProduct.getPosts()) {
+                            if (!preferenceOrder.contains(post.getPostId())) {
+                                PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                                detailsDTO.setPostId(post.getPostId());
+                                detailsDTO.setPostName(post.getPostName());
+                                detailsDTO.setPostCode(post.getPostCode());
+                                availablePosts.add(detailsDTO);
+                            }
+                        }
                     }
                 }
             }
-        }
+
         productDetails.put("available_posts",availablePosts);
         productDetails.put("preference_order",postPreferenceOrder);
         }
