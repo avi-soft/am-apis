@@ -298,6 +298,7 @@ public class Constant {
     public static final Integer DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID = 3;
     public static final Integer DOCUMENT_TYPE_MARK_SHEET_ID = 12;
     public static final Integer DOCUMENT_TYPE_TICKET_DOCUMENT_ID = 32;
+    public static final Integer DOCUMENT_TYPE_C_FORM = 14;
     public static final String GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID = "SELECT dt FROM DocumentType dt WHERE dt.document_type_id = :documentTypeId";
 
     public static final String GET_QUALIFICATION_DETAIL_DOCUMENT_DATA_OF_CUSTOMER = "SELECT d FROM Document d WHERE d.custom_customer = :customCustomer AND d.documentType = :documentType AND (d.qualificationDetails.qualification_detail_id = :qualificationDetailId ) AND d.name IS NOT NULL";
