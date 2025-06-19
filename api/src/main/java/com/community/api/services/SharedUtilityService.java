@@ -344,6 +344,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
             customerDetailsForMobile.put("is_password_created",customCustomer.getIsPasswordCreated());
+            customerDetailsForMobile.put("isAcknowledged",customCustomer.getIsAcknowledged());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -634,6 +635,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
             customerDetailsForDesktop.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForDesktop.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
+            customerDetailsForDesktop.put("isAcknowledged",customCustomer.getIsAcknowledged());
 
             Map<String, String> currentAddress = new HashMap<>();
             Map<String, String> permanentAddress = new HashMap<>();
@@ -873,6 +875,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("rejected",serviceProvider.getRejected());
+        serviceProviderDetails.put("isAcknowledged",serviceProvider.getIsAcknowledged());
         List<QualificationDetails> qualificationDetails = serviceProvider.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForServiceProvider(qualificationDetails);
         serviceProviderDetails.put("qualificationDetails", qualificationsWithNames);
