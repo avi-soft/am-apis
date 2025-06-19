@@ -344,6 +344,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
 
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
+                existingServiceProvider.setIsAcknowledged(false);
                 if (validateAddressFields(updates).isEmpty()) {
                     boolean flag=false;
                     Long addId=0L;
@@ -383,6 +384,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         }
                     }
                 } else {
+                    existingServiceProvider.setIsAcknowledged(false);
                     errorMessages.addAll(validateAddressFields(updates));
                 }
             }
@@ -413,6 +415,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (KeysCount > 0 && KeysCount < addresskeys.size())
                 return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
             if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
+                existingServiceProvider.setIsAcknowledged(false);
                 if (validatePAddressFields(updates).isEmpty()) {
                     boolean flag=false;
                     Long addId=0L;
@@ -981,14 +984,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String regex = patternAnnotation.regexp();
                         String message = patternAnnotation.message(); // Get custom message
                         if (!newValue.toString().matches(regex)) {
-                            errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                            errorMessages.add(fieldName + " is invalid"); // Use a placeholder
                             continue;
                         }
+                    }
+
+                    if(fieldName.equalsIgnoreCase("first_name")|| fieldName.equalsIgnoreCase("last_name")|| fieldName.equalsIgnoreCase("father_name")|| fieldName.equalsIgnoreCase("mother_name")|| fieldName.equalsIgnoreCase("mobileNumber")|| fieldName.equalsIgnoreCase("primary_email"))
+                    {
+                        existingServiceProvider.setIsAcknowledged(false);
                     }
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
                             if (dob.isAfter(LocalDate.now())) {
@@ -1163,7 +1172,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
                 assignRank(existingServiceProvider, totalScore);
             }
-
+           if(updates.containsKey("isAcknowledged"))
+           {
+               Boolean value= (Boolean) updates.get("isAcknowledged");
+               existingServiceProvider.setIsAcknowledged(value);
+           }
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
