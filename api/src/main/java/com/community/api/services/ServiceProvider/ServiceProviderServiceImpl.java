@@ -613,6 +613,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setLongitude(null);
                     existingServiceProvider.setBusiness_geo_location(null);
                     existingServiceProvider.setIsCFormAvailable(false);
+                    List<ServiceProviderDocument> serviceProviderDocuments= existingServiceProvider.getDocuments();
+                    for(ServiceProviderDocument serviceProviderDocument: serviceProviderDocuments)
+                    {
+                        if(serviceProviderDocument.getDocumentType().getDocument_type_id().equals(Constant.DOCUMENT_TYPE_C_FORM))
+                        {
+                            serviceProviderDocument.setIsArchived(true );
+                        }
+                    }
                     updates.remove("latitude");
                     updates.remove("longitude");
                     updates.remove("number_of_employees");
