@@ -1336,9 +1336,12 @@ public class CustomerEndpoint {
                 }
 //
             } else if (!details.containsKey("category")) {
-                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
-                    customCustomer.setCategoryIssueDate(null);
-                    customCustomer.setCategoryValidUpto(null);
+                if(customCustomer.getCategory()!=null)
+                {
+                    if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
+                        customCustomer.setCategoryIssueDate(null);
+                        customCustomer.setCategoryValidUpto(null);
+                    }
                 }
             }
             if (details.containsKey("otherCategory")) {
