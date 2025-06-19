@@ -1,25 +1,12 @@
--- PROCEDURE: public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone)
-
--- DROP PROCEDURE IF EXISTS public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone);
-
-CREATE OR REPLACE PROCEDURE public.create_ticket(
-	IN p_ticket_state bigint,
-	IN p_ticket_type bigint,
-	IN p_ticket_status bigint,
-	IN p_assignee bigint,
-	IN p_assignee_role integer,
-	IN p_order_id bigint,
-	OUT v_ticket_id bigint,
-	IN p_task text DEFAULT NULL::text,
-	IN p_target_completion timestamp without time zone DEFAULT NULL::timestamp without time zone)
-LANGUAGE 'plpgsql'
+CREATE OR REPLACE PROCEDURE public.create_ticket(IN p_ticket_state bigint, IN p_ticket_type bigint, IN p_ticket_status bigint, IN p_assignee bigint, IN p_assignee_role integer, IN p_order_id bigint, OUT v_ticket_id bigint, IN p_task text DEFAULT NULL::text, IN p_target_completion timestamp without time zone DEFAULT  NULL::timestamp without time zone)
+LANGUAGE 'plpgsql'  
 AS $BODY$
 DECLARE
     v_created_date TIMESTAMP := now();
     v_target_date TIMESTAMP;
 BEGIN
 
-	RAISE NOTICE '7. create ticket';
+	RAISE NOTICE '12. create ticket';
 
     -- Validate Target Completion Date
     IF p_target_completion IS NOT NULL THEN
@@ -61,7 +48,7 @@ BEGIN
     RETURNING ticket_id INTO v_ticket_id;
 
     -- Increment ticket count if assignee is a service provider
-    IF p_assignee_role = 4 THEN
+    IF p_assignee_role = 4 OR p_assignee_role = 2 THEN
         UPDATE service_provider
         SET ticket_assigned = ticket_assigned + 1
         WHERE service_provider_id = p_assignee;
@@ -71,5 +58,3 @@ BEGIN
 
 END;
 $BODY$;
-ALTER PROCEDURE public.create_ticket(bigint, bigint, bigint, bigint, integer, bigint, text, timestamp without time zone)
-    OWNER TO postgres;

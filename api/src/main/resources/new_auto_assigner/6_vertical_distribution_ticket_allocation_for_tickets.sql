@@ -1,14 +1,6 @@
--- PROCEDURE: public.vertical_distribution_ticket_allocation_for_tickets(bigint[], bigint[], bigint[])
-
--- DROP PROCEDURE IF EXISTS public.vertical_distribution_ticket_allocation_for_tickets(bigint[], bigint[], bigint[]);
-
-CREATE OR REPLACE PROCEDURE public.vertical_distribution_ticket_allocation_for_tickets(
-	INOUT ticket_ids bigint[],
-	IN service_provider_ids bigint[],
-	INOUT assigned_ticket_ids bigint[])
+CREATE OR REPLACE PROCEDURE public.vertical_distribution_ticket_allocation_for_tickets(INOUT ticket_ids bigint[], IN service_provider_ids bigint[], INOUT assigned_ticket_ids bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
-
 
 DECLARE
     v_ticket_id BIGINT;
@@ -29,8 +21,8 @@ DECLARE
     rank2c BIGINT[] := ARRAY[]::BIGINT[];
     rank2d BIGINT[] := ARRAY[]::BIGINT[];
 BEGIN
-
-	RAISE NOTICE '14. Vertical Distribution Ticket Allocation for Tickets';
+	
+	RAISE NOTICE '6. Vertical Distribution Ticket Allocation for Tickets';
 
     RAISE NOTICE 'Vertical Distribution Ticket Allocation for Tickets Started';
     RAISE NOTICE 'Total Tickets: %, Total Providers: %', array_length(ticket_ids, 1), array_length(service_provider_ids, 1);
@@ -45,9 +37,9 @@ BEGIN
     -- Step 2: Process each ticket
     FOREACH v_ticket_id IN ARRAY ticket_ids LOOP
         v_assigned := FALSE;
-
+		
        RAISE NOTICE 'ticket id is: %', v_ticket_id;
-
+      
         -- Fetch ticket type and order information
         SELECT ticket_type_id, parent_ticket_id, order_id
         INTO v_ticket_type_id, v_parent_ticket_id, v_order_id
@@ -121,5 +113,3 @@ BEGIN
         array_length(ticket_ids, 1);
 END;
 $BODY$;
-ALTER PROCEDURE public.vertical_distribution_ticket_allocation_for_tickets(bigint[], bigint[], bigint[])
-    OWNER TO postgres;

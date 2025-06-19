@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class CustomDateDeserializer extends JsonDeserializer<Date> {
     @Override
@@ -24,6 +25,7 @@ public class CustomDateDeserializer extends JsonDeserializer<Date> {
 
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             dateFormat.setLenient(false);
 
             // First check if the format matches yyyy-MM-dd

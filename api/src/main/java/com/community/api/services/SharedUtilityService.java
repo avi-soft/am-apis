@@ -1069,7 +1069,7 @@ public class SharedUtilityService {
                         subjectDetails.add(tempDetail);
                     }
 
-                    qualificationInfo.put("subject_details", subjectDetails);
+                    qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
                     qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
 
                     Map<String, Object> filteredDocument = null;
