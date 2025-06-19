@@ -44,7 +44,6 @@ public class ServiceProviderRankController {
     }
 
     @GetMapping("/get-all-service-provider-rank")
-
     public ResponseEntity<?> getAllServiceProviderRank() {
         try
         {

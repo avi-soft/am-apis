@@ -411,10 +411,6 @@ public class ServiceProviderTicketService {
                 Date newTargetDate = null;
 
                 Product product = findProductFromItemAttribute(order.getOrderItems().get(0));
-                if (!newTargetDate.before(product.getActiveEndDate())) {
-                    log.info("cannot assign ticket at the target completion date is after or equal to application close date.");
-                    return false;
-                }
 
                 if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET)) {
                     calendar.add(Calendar.HOUR_OF_DAY, 2);
@@ -427,6 +423,11 @@ public class ServiceProviderTicketService {
 
                 } else {
                     throw new IllegalArgumentException("Cannot perform action on miscellaneous ticket");
+                }
+
+                if (!newTargetDate.before(product.getActiveEndDate())) {
+                    log.info("cannot assign ticket at the target completion date is after or equal to application close date.");
+                    return false;
                 }
                 ticket.setTargetCompletionDate(newTargetDate);
 

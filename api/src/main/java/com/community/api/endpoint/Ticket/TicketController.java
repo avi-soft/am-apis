@@ -580,6 +580,7 @@ public class TicketController {
             Date createdDate = dateFormat.parse(formattedDate);
 
             customServiceProviderTicket.setCreatedDate(createdDate);
+            customServiceProviderTicket.setModifiedDate(createdDate);
             customServiceProviderTicket.setTicketAssignDate(createdDate);
 
             // Entering Creator details.
