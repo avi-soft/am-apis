@@ -37,7 +37,7 @@ public class CategoryService {
                 "AND p.go_live_date <= CURRENT_DATE " +
                 "AND p.product_state_id NOT IN (7) " +
                 "AND p.is_approved = TRUE " +
-                "ORDER BY p.created_date " +
+                "ORDER BY p.created_date DESC " +
                 "LIMIT :limit OFFSET :offset";
 
         try {
