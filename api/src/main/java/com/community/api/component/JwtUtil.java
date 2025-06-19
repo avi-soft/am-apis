@@ -100,6 +100,29 @@ public class JwtUtil {
             throw new RuntimeException("Error generating JWT token", e);
         }
     }
+    public String generateShortLivedToken(Long id, Integer role, String ipAddress) {
+        try {
+            String uniqueTokenId = UUID.randomUUID().toString();
+
+            JwtBuilder jwtBuilder = Jwts.builder()
+                    .setHeaderParam("typ", "JWT")
+                    .setId(uniqueTokenId)
+                    .claim("id", id)
+                    .claim("role", role)
+                    .claim("ipAddress", ipAddress)
+                    .setIssuedAt(new Date())
+                    .signWith(getSignInKey(), SignatureAlgorithm.HS256);
+
+                jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 *2 ))); // 2 mins
+
+
+            return jwtBuilder.compact();
+
+        } catch (Exception e) {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException("Error generating JWT token", e);
+        }
+    }
 
     private boolean isMobileDevice(String userAgent) {
         String devicePattern = "android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini";
