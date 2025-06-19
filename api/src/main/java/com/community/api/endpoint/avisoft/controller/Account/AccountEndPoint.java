@@ -8,6 +8,7 @@ import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
 
 import com.community.api.entity.Role;
+import com.community.api.entity.ShortAccessToken;
 import com.community.api.services.*;
 import com.community.api.services.Admin.AdminService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
@@ -22,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,11 +35,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.commons.lang.StringUtils.isNumeric;
@@ -750,5 +755,94 @@ public class AccountEndPoint {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse(ApiConstants.SOME_EXCEPTION_OCCURRED + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @Transactional
+    @GetMapping("/genAuth")
+    public ResponseEntity<?>generateShortLivedToken(@RequestHeader(required = true,value = "Authorization")String authHeader, HttpServletRequest request)
+    {
+        Long userId=null;
+        Integer roleId=null;
+        if (authHeader != null) {
+            String jwtToken = authHeader.substring(7);
+             userId = jwtUtil.extractId(jwtToken);
+            roleId = jwtUtil.extractRoleId(jwtToken);
+        }
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        } else {
+            // If multiple IPs are present, take the first one
+            ip = ip.split(",")[0];
+        }
+        String token = jwtUtil.generateShortLivedToken(userId, roleId, ip);
+
+        TypedQuery<ShortAccessToken> query = em.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE s.userId = :uid AND s.role = :role",
+                ShortAccessToken.class
+        );
+        query.setParameter("uid", userId);
+        query.setParameter("role", roleId);
+
+        List<ShortAccessToken> resultList = query.getResultList();
+
+        if (resultList.isEmpty()) {
+            ShortAccessToken shortAccessToken = ShortAccessToken.builder()
+                    .userId(userId)
+                    .token(token)
+                    .role(roleId)
+                    .expired(false)
+                    .build();
+            em.persist(shortAccessToken);
+        } else {
+            ShortAccessToken shortAccessToken = resultList.get(0);
+            shortAccessToken.setToken(token);
+            shortAccessToken.setExpired(false);
+            em.merge(shortAccessToken);
+        }
+
+        return ResponseService.generateSuccessResponse("Token generated",token,HttpStatus.OK);
+    }
+
+    @PostMapping("/fetch-token-details")
+    public ResponseEntity<?>isTokenExpired(@RequestBody String token)
+    {
+        System.out.println("hello");
+       if(token==null)
+           return ResponseService.generateErrorResponse("Token is required",HttpStatus.BAD_REQUEST);
+        TypedQuery<ShortAccessToken> query = em.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE token = :token",
+                ShortAccessToken.class
+        );
+        query.setParameter("token", token);
+
+        List<ShortAccessToken> resultList = query.getResultList();
+
+       if(resultList.isEmpty())
+           return ResponseService.generateErrorResponse("No results found",HttpStatus.BAD_REQUEST);
+        ShortAccessToken shortAccessToken=resultList.get(0);
+       return ResponseService.generateSuccessResponse("Fetched Result",shortAccessToken.getExpired(),HttpStatus.OK);
+    }
+    @Transactional
+    @PostMapping("/alter-token")
+    public ResponseEntity<?>setExpired(@RequestBody String token)
+    {
+        System.out.println("yes");
+        if(token==null)
+            return ResponseService.generateErrorResponse("Token is required",HttpStatus.BAD_REQUEST);
+        TypedQuery<ShortAccessToken> query = em.createQuery(
+                "SELECT s FROM ShortAccessToken s WHERE token = :token",
+                ShortAccessToken.class
+        );
+        query.setParameter("token", token);
+
+        List<ShortAccessToken> resultList = query.getResultList();
+
+        if(resultList.isEmpty())
+            return ResponseService.generateErrorResponse("No results found",HttpStatus.BAD_REQUEST);
+        ShortAccessToken shortAccessToken=resultList.get(0);
+        shortAccessToken.setExpired(true);
+        em.merge(shortAccessToken);
+        return ResponseService.generateErrorResponse("Token expired",HttpStatus.OK);
     }
 }

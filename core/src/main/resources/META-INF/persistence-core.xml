@@ -113,6 +113,7 @@
         <class>com.community.api.entity.RazorpayDetails</class>
         <class>com.community.api.entity.RandomImageType</class>
         <class>com.community.api.entity.ProductEvents</class>
+        <class>com.community.api.entity.ShortAccessToken</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
