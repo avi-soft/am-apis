@@ -612,6 +612,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setLatitude(null);
                     existingServiceProvider.setLongitude(null);
                     existingServiceProvider.setBusiness_geo_location(null);
+                    existingServiceProvider.setIsCFormAvailable(false);
                     updates.remove("latitude");
                     updates.remove("longitude");
                     updates.remove("number_of_employees");
