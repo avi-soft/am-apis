@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -259,6 +260,94 @@ public class TicketStateService {
                     throw new NotAuthorizedException("Service Provider is not authorized to  update ticket type");
             }
 
+            // Assignee change logic
+            if (createTicketDTO.getAssigneeRole() != null) {
+                Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
+                if (role == null)
+                    throw new NotFoundException("Invalid role id");
+                else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)) && (!role.getRole_name().equals(Constant.roleSuperAdmin)))
+                    throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
+                if (createTicketDTO.getAssignee() != null) {
+                    ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
+                    if (serviceProvider == null) {
+                        throw new NotFoundException("Assignee not found");
+                    }
+
+                    if(createTicketDTO.getTargetCompletionDate() == null) {
+                        throw new IllegalArgumentException("target completion date is mandatory when changing the assignee");
+                    }
+
+                    if (ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
+                    } else if (ticket.getAssignee() == null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
+                        throw new IllegalArgumentException("Cannot assign ticket to parent assignee");
+                    }
+
+                    if (ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
+                        throw new IllegalArgumentException("Already is the assignee");
+                    } else if(ticket.getAssignee() != null) {
+                        ServiceProviderEntity existingAssignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+
+                        if(existingAssignee == null) {
+                            throw new IllegalArgumentException("Not able to find the previous assignee");
+                        }
+                        if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            existingAssignee.setTicketAssigned(existingAssignee.getTicketAssigned()-1);
+                            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                        } else if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                            existingAssignee.setTicketCompleted(existingAssignee.getTicketCompleted()-1);
+                            serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted()+1);
+                        } else {
+                            existingAssignee.setTicketPending(existingAssignee.getTicketPending()-1);
+                            serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
+                        }
+                        entityManager.merge(existingAssignee);
+                        entityManager.merge(serviceProvider);
+                    } else {
+                        if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned()+1);
+                        } else if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_CLOSE)) {
+                            serviceProvider.setTicketCompleted(serviceProvider.getTicketCompleted()+1);
+                        } else {
+                            serviceProvider.setTicketPending(serviceProvider.getTicketPending()+1);
+                        }
+                        entityManager.merge(serviceProvider);
+                    }
+
+                    /*if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
+                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
+                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
+                        } else {
+                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
+                            ticket.setTicketState(ticketState);
+                        }
+                    }*/
+
+                    // Allowing super admin or super admin to change the assignee of the ticket at any point of time.
+                    /*if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
+                        throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
+                    }*/
+
+                    if(tokenRole.getRole_name().equals(Constant.roleAdmin) && !role.getRole_name().equals(Constant.roleServiceProvider) && !Objects.equals(tokenUserId, createTicketDTO.getAssignee())) {
+                        throw new IllegalArgumentException("Admin can only assign ticket to service provider");
+                    }
+
+                    List<Long> rejectedBy = ticket.getRejectedBy();
+                    for (Long rejectedUserId : rejectedBy) {
+                        if (rejectedUserId.equals(createTicketDTO.getAssignee())) {
+                            throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
+                        }
+                    }
+                    ticket.setAssignee(createTicketDTO.getAssignee());
+                    ticket.setAssigneeRole(role);
+                } else
+                    throw new IllegalArgumentException("Assignee and role must be provided together.");
+            }
+
+            if (createTicketDTO.getAssigneeRole() == null && createTicketDTO.getAssignee() != null)
+                throw new IllegalArgumentException("Assignee and role must be provided together.");
+
+            // STATE CHANGE LOGIC.
             Query query = null;
             CustomTicketState ticketState = null;
             CustomTicketStatus ticketStatus = null;
@@ -479,65 +568,6 @@ public class TicketStateService {
                 throw new IllegalArgumentException("Ticket State cannot be changed without status.");
             }
 
-            if (createTicketDTO.getAssigneeRole() != null) {
-                Role role = entityManager.find(Role.class, createTicketDTO.getAssigneeRole());
-                if (role == null)
-                    throw new NotFoundException("Invalid role id");
-                else if ((!role.getRole_name().equals(Constant.roleAdmin)) && (!role.getRole_name().equals(Constant.roleServiceProvider)) && (!role.getRole_name().equals(Constant.roleSuperAdmin)))
-                    throw new IllegalArgumentException("Cannot assign ticket to : " + roleService.findRoleName(createTicketDTO.getAssigneeRole()));
-                if (createTicketDTO.getAssignee() != null) {
-                    if (role.getRole_name().equals(Constant.roleServiceProvider)) {
-                        ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
-                        if (serviceProvider == null)
-                            throw new NotFoundException("Assignee not found");
-                    } else if (role.getRole_name().equals(Constant.roleAdmin)) {
-                        ServiceProviderEntity customAdmin = entityManager.find(ServiceProviderEntity.class, createTicketDTO.getAssignee());
-                        if (customAdmin == null)
-                            throw new NotFoundException("Assignee not found");
-                    }
-
-                    if(createTicketDTO.getTargetCompletionDate() == null) {
-                        throw new IllegalArgumentException("target completion date is mandatory when changing the assignee");
-                    }
-
-                    if (ticket.getAssignee() != null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
-                        throw new IllegalArgumentException("Cannot assign ticket to same who is assignee of its parent ticket");
-                    } else if (ticket.getAssignee() == null && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && createTicketDTO.getAssignee().equals(ticket.getParentTicket().getAssignee())) {
-                        throw new IllegalArgumentException("Cannot assign ticket to parent assignee");
-                    }
-
-                    if (ticket.getAssignee() != null && ticket.getAssignee().equals(createTicketDTO.getAssignee())) {
-                        throw new IllegalArgumentException("Already is the assignee");
-                    }
-
-                    if (ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED)) {
-                        if (ticketState != null && !ticketState.getTicketStateId().equals(Constant.TICKET_STATE_TO_DO)) {
-                            throw new IllegalArgumentException("Cannot change the assignee from return state to this new state.");
-                        } else {
-                            ticketState = ticketStateService.getTicketStateByTicketId(Constant.TICKET_STATE_TO_DO);
-                            ticket.setTicketState(ticketState);
-                        }
-                    }
-
-                    if (!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_TO_DO) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && !ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT)) {
-                        throw new IllegalArgumentException("Not allowed to change the assignee of ticket when ticket not in todo, returned and support");
-                    }
-
-                    List<Long> rejectedBy = ticket.getRejectedBy();
-                    for (Long rejectedUserId : rejectedBy) {
-                        if (rejectedUserId.equals(createTicketDTO.getAssignee())) {
-                            throw new IllegalArgumentException("Cannot assignee ticket to someone who already rejected the ticket.");
-                        }
-                    }
-//                    ticket.setAssignee(createTicketDTO.getAssignee());
-                    ticket.setAssigneeRole(role);
-                } else
-                    throw new IllegalArgumentException("Assignee and role must be provided together.");
-            }
-
-            if (createTicketDTO.getAssigneeRole() == null && createTicketDTO.getAssignee() != null)
-                throw new IllegalArgumentException("Assignee and role must be provided together.");
-
             if (createTicketDTO.getTargetCompletionDate() != null) {
                 if (sharedUtilityService.isInValidOrInPast(createTicketDTO.getTargetCompletionDate()) == 1) {
                     throw new IllegalArgumentException("Target Completion date cannot be in past");
@@ -577,11 +607,15 @@ public class TicketStateService {
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(tokenRole);
 
-            if (oldAssigneeId != null || newAssigneeId != null) {
-                updateSpTicketAvailability(ticket, ticketState, oldAssigneeId, newAssigneeId);
-            }
-            if (newAssigneeId != null) {
-                ticket.setAssignee(newAssigneeId);
+//            if (oldAssigneeId != null || newAssigneeId != null) {
+//                updateSpTicketAvailability(ticket, ticketState, oldAssigneeId, newAssigneeId);
+//            }
+//            if (newAssigneeId != null) {
+//                ticket.setAssignee(newAssigneeId);
+//            }
+
+            if(createTicketDTO.getComment() != null && !createTicketDTO.getComment().trim().isEmpty()) {
+                ticket.setComment(createTicketDTO.getComment().trim());
             }
             ticket = entityManager.merge(ticket);
 
@@ -715,11 +749,11 @@ public class TicketStateService {
                 }
             }*/
 
-            // Admin logic
+            /*// Admin logic
             if (roleName.equals(Constant.roleAdmin) || roleName.equals(Constant.roleSuperAdmin)) {
                 // Admin can transition to any state except from close
                 return !customServiceProviderTicket.getTicketState().getTicketState().equals("CLOSE");
-            }
+            }*/
             return true; // Default: No transition allowed
         } catch (NotFoundException notFoundexception) {
             throw new Exception(notFoundexception.getMessage());
