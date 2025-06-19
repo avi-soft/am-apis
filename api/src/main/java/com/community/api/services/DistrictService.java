@@ -45,6 +45,13 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
+    public Integer findDistrictIdByName(String district_name) {
+        return entityManager.createQuery(Constant.FIND_DISTRICT_ID_BY_NAME, Integer.class)
+                .setParameter("district_name", district_name)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
 
     public String findStateById(int state_id) {
 
@@ -54,6 +61,15 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
+    public Integer findStateIdByName(String state_name) {
+
+        return entityManager.createQuery(Constant.FIND_STATE_ID_BY_NAME, Integer.class)
+                .setParameter("state_name", state_name)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
 
     public List<StateCode> findStateList(Boolean archived) {
         TypedQuery<StateCode> query = entityManager.createQuery(Constant.GET_STATES_LIST, StateCode.class);
