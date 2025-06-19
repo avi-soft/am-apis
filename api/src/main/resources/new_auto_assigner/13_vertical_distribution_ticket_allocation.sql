@@ -1,11 +1,4 @@
--- PROCEDURE: public.vertical_distribution_ticket_allocation(bigint[], bigint[], bigint[])
-
--- DROP PROCEDURE IF EXISTS public.vertical_distribution_ticket_allocation(bigint[], bigint[], bigint[]);
-
-CREATE OR REPLACE PROCEDURE public.vertical_distribution_ticket_allocation(
-	IN custom_orders bigint[],
-	INOUT available_service_provider bigint[],
-	INOUT assigned_tickets bigint[])
+CREATE OR REPLACE PROCEDURE public.vertical_distribution_ticket_allocation(IN custom_orders bigint[], INOUT available_service_provider bigint[], INOUT assigned_tickets bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
 
@@ -24,7 +17,7 @@ DECLARE
     v_result BOOLEAN;
 BEGIN
 
-	RAISE NOTICE '8. Vertical Distribution Ticket Allocation';
+	RAISE NOTICE '13. Vertical Distribution Ticket Allocation';
 
     RAISE NOTICE 'Vertical Distribution Ticket Allocation Called';
     RAISE NOTICE 'Total orders received for VDTA: %', array_length(custom_orders, 1);
@@ -125,5 +118,3 @@ BEGIN
     RAISE NOTICE 'Remaining Order IDs after VDTA: %', custom_orders;
 END;
 $BODY$;
-ALTER PROCEDURE public.vertical_distribution_ticket_allocation(bigint[], bigint[], bigint[])
-    OWNER TO postgres;
