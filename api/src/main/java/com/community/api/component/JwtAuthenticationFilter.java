@@ -160,7 +160,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Pattern.compile("^/api/v1/category-custom/get-sub-categories$"),
                 Pattern.compile("^/api/v1/advertisement/get-advertisement-by-id/\\d+$"),
                 Pattern.compile("^/api/v1/product-custom/get-product-by-id$"),
-                Pattern.compile("^/api/v1/cart/order-events$")
+                Pattern.compile("^/api/v1/cart/order-events$"),
+                Pattern.compile("^/api/v1/get-products-by-sector-id$"),
+                Pattern.compile("^/api/v1/get-products-by-sectors$")
         );
 
         boolean isBypassed = bypassPatterns.stream().anyMatch(pattern -> pattern.matcher(path).matches());
@@ -193,7 +195,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || requestURI.matches("^/api/v1/category-custom/get-sub-categories(/.*)?$")
                 || requestURI.startsWith("/api/v1/advertisement/get-all-advertisement-by-categoryId")
                 || requestURI.startsWith("/api/v1/category-custom/get-products-by-category-id")
-                || requestURI.startsWith("/api/v1/cart/order-events");
+                || requestURI.startsWith("/api/v1/cart/order-events")
+                || requestURI.startsWith("/api/v1/get-products-by-sector-id")
+                || requestURI.startsWith("/api/v1/get-products-by-sectors");
     }
 
     @Transactional
