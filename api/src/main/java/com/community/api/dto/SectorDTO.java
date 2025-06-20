@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
@@ -19,5 +20,5 @@ public class SectorDTO {
     private String sectorName;
     @JsonProperty("sector_description")
     private String sectorDescription;
-    List<ProductCompressedDTO>products;
+    List<CompressedProductWrapper>products=new ArrayList<>();
 }
