@@ -30,7 +30,7 @@ public class DivisionCategoryDistribution {
 
     @Column(name = "vacancy_count")
     private Integer vacancyCount;
-    @Column(name = "additional_comment")
+    @Column(name = "additional_comment", columnDefinition = "text")
     private String additionalComment;
     private Long maleVacancy;
     private Long femaleVacancy;

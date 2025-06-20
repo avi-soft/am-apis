@@ -20,6 +20,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.print.attribute.standard.MediaSize;
 import javax.validation.constraints.NotNull;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
@@ -27,7 +28,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CustomProductReserveCategoryBornBeforeAfterRef {
+public class CustomProductReserveCategoryBornBeforeAfterRef implements Serializable {
 
     @Id
     @Column(name = "product_reserve_category_id")
@@ -74,7 +75,7 @@ public class CustomProductReserveCategoryBornBeforeAfterRef {
     private Post post;
 
     @JsonIgnore
-    @Column(name = "additional_comments")
+    @Column(name = "additional_comments", columnDefinition = "text")
     @JsonProperty("additional_comments")
     private String additionalComments;
 

@@ -4,6 +4,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CustomerBasicDetailsDto;
+import com.community.api.dto.EligibilityResult;
 import com.community.api.dto.PostDetailsDTO;
 import com.community.api.dto.ReferrerDTO;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
@@ -104,7 +105,7 @@ public class SharedUtilityService {
         return query.getSingleResult();
     }
 
-    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer,Long genderId) {
+    public Map<String, Object> createProductResponseMap(Product product, OrderItem orderItem, CustomCustomer customer, Long genderId, EligibilityResult eligibilityResult) {
         Map<String, Object> productDetails = new HashMap<>();
         CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
         if (orderItem != null)
@@ -121,39 +122,44 @@ public class SharedUtilityService {
         productDetails.put("sku_description", product.getDefaultSku().getDescription());
         productDetails.put("long_description", product.getDefaultSku().getLongDescription());
         productDetails.put("active_start_date", product.getDefaultSku().getActiveStartDate());
+        productDetails.put("eligibility_result",eligibilityResult );
         List<Long>preferenceOrder=null;
         List<PostDetailsDTO>availablePosts=new ArrayList<>();
         if(customProduct.getPosts().size()>=1) {
-            if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+            if(orderItem!=null)
             {
-            String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
-            if (retrievedPostPreferenceString != null) {
-                if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
-                    preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
-                            .map(Long::parseLong)
-                            .collect(Collectors.toList());
-                }
-                for (Long id : preferenceOrder) {
-                    Post post = entityManager.find(Post.class, id);
-                    if (post != null) {
-                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                        detailsDTO.setPostId(post.getPostId());
-                        detailsDTO.setPostName(post.getPostName());
-                        detailsDTO.setPostCode(post.getPostCode());
-                        postPreferenceOrder.add(detailsDTO);
-                    }
-                }
-                for (Post post : customProduct.getPosts()) {
-                    if (!preferenceOrder.contains(post.getPostId())) {
-                        PostDetailsDTO detailsDTO = new PostDetailsDTO();
-                        detailsDTO.setPostId(post.getPostId());
-                        detailsDTO.setPostName(post.getPostName());
-                        detailsDTO.setPostCode(post.getPostCode());
-                        availablePosts.add(detailsDTO);
+                if(orderItem.getOrderItemAttributes().get("postPreference")!=null)
+                {
+                    String retrievedPostPreferenceString = (String) (orderItem.getOrderItemAttributes().get("postPreference").getValue());
+                    if (retrievedPostPreferenceString != null) {
+                        if (retrievedPostPreferenceString != null && !retrievedPostPreferenceString.isEmpty()) {
+                            preferenceOrder = Arrays.stream(retrievedPostPreferenceString.split(","))
+                                    .map(Long::parseLong)
+                                    .collect(Collectors.toList());
+                        }
+                        for (Long id : preferenceOrder) {
+                            Post post = entityManager.find(Post.class, id);
+                            if (post != null) {
+                                PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                                detailsDTO.setPostId(post.getPostId());
+                                detailsDTO.setPostName(post.getPostName());
+                                detailsDTO.setPostCode(post.getPostCode());
+                                postPreferenceOrder.add(detailsDTO);
+                            }
+                        }
+                        for (Post post : customProduct.getPosts()) {
+                            if (!preferenceOrder.contains(post.getPostId())) {
+                                PostDetailsDTO detailsDTO = new PostDetailsDTO();
+                                detailsDTO.setPostId(post.getPostId());
+                                detailsDTO.setPostName(post.getPostName());
+                                detailsDTO.setPostCode(post.getPostCode());
+                                availablePosts.add(detailsDTO);
+                            }
+                        }
                     }
                 }
             }
-        }
+
         productDetails.put("available_posts",availablePosts);
         productDetails.put("preference_order",postPreferenceOrder);
         }
@@ -338,6 +344,7 @@ public class SharedUtilityService {
             customerDetailsForMobile.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForMobile.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
             customerDetailsForMobile.put("is_password_created",customCustomer.getIsPasswordCreated());
+            customerDetailsForMobile.put("isAcknowledged",customCustomer.getIsAcknowledged());
             for (CustomerAddress customerAddress : customer.getCustomerAddresses()) {
                 if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
                     customerDetailsForMobile.put("addressName",customerAddress.getAddressName());
@@ -628,6 +635,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("suspended_or_activated_by_id",customCustomer.getArchivedById());
             customerDetailsForDesktop.put("profileComplete",customCustomer.getProfileComplete());
             customerDetailsForDesktop.put("permanent_address_is_same_as_current_address",customCustomer.getIsSameAsCurrentAddress());
+            customerDetailsForDesktop.put("isAcknowledged",customCustomer.getIsAcknowledged());
 
             Map<String, String> currentAddress = new HashMap<>();
             Map<String, String> permanentAddress = new HashMap<>();
@@ -842,7 +850,8 @@ public class SharedUtilityService {
         serviceProviderDetails.put("ticket_pending",serviceProvider.getTicketPending());
         serviceProviderDetails.put("ticket_completed",serviceProvider.getTicketPending());
         serviceProviderDetails.put("auto_scoring",serviceProvider.getAutoScoring());
-
+        serviceProviderDetails.put("maximum_ticket_size", serviceProvider.getMaximumTicketSize());
+        serviceProviderDetails.put("maximum_binding_size", serviceProvider.getMaximumBindingSize());
 
         if (serviceProvider.getType() != null) {
             if (serviceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
@@ -866,6 +875,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("rejected",serviceProvider.getRejected());
+        serviceProviderDetails.put("isAcknowledged",serviceProvider.getIsAcknowledged());
         List<QualificationDetails> qualificationDetails = serviceProvider.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForServiceProvider(qualificationDetails);
         serviceProviderDetails.put("qualificationDetails", qualificationsWithNames);
@@ -1066,7 +1076,7 @@ public class SharedUtilityService {
                         subjectDetails.add(tempDetail);
                     }
 
-                    qualificationInfo.put("subject_details", subjectDetails);
+                    qualificationInfo.put("subject_details", qualificationDetail.getSubject_details());
                     qualificationInfo.put("otherSubjects",qualificationDetail.getOtherSubjects());
 
                     Map<String, Object> filteredDocument = null;
@@ -1377,10 +1387,10 @@ public class SharedUtilityService {
             }
         }
         // Calculate max age (from bornBeforeDate)
-        int maxAge = calculateAge(bornBeforeZoned, today);
+        int minAge = calculateAge(bornBeforeZoned, today);
 
         // Calculate min age (from bornAfterDate)
-        int minAge = calculateAge(bornAfterZoned, today);
+        int maxAge = calculateAge(bornAfterZoned, today);
 
         // Return the result as an array [minAge, maxAge]
         return new int[] { minAge, maxAge };

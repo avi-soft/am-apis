@@ -1,15 +1,11 @@
 package com.community.api.endpoint.avisoft.controller.Document;
 
-import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.DocumentTypeDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomCustomer;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.Privileges;
 import com.community.api.entity.Role;
-import com.community.api.entity.SuccessResponse;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.Document;
@@ -25,20 +21,14 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static com.community.api.component.Constant.roleServiceProvider;
 
 @RestController
 @RequestMapping(value = "/document-type")
@@ -124,15 +114,16 @@ public class DocumentEndpoint {
     }
 
     @GetMapping("/get-all-document")
-    public ResponseEntity<?> getAllDocuments(@RequestParam(value = "examination", required = false) String exam) {
+    public ResponseEntity<?> getAllDocuments(@RequestParam(required = false,defaultValue = "false")Boolean archived) {
         try {
             List<DocumentType> documentTypes;
 
-            documentTypes = entityManager.createQuery("SELECT dt FROM DocumentType dt ORDER BY dt.sort_order ASC", DocumentType.class)
-                    .getResultList();
+            TypedQuery<DocumentType> query = entityManager.createQuery("SELECT dt FROM DocumentType dt WHERE dt.archived = :archived ORDER BY dt.sort_order ASC", DocumentType.class);
+            query.setParameter("archived",archived);
+            documentTypes=query.getResultList();
 
             if (documentTypes.isEmpty()) {
-                return responseService.generateErrorResponse("No document found", HttpStatus.OK);
+                return responseService.generateErrorResponse(archived?"No any document-type is archived":"No any document-type is unarchived", HttpStatus.OK);
             }
 
             return responseService.generateSuccessResponse("Document Types retrieved successfully", documentTypes, HttpStatus.OK);
@@ -185,7 +176,7 @@ public class DocumentEndpoint {
                         return responseService.generateErrorResponse("Data not found", HttpStatus.NOT_FOUND);
 
                     }
-                    StringBuilder jpql = new StringBuilder("SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity");
+                    StringBuilder jpql = new StringBuilder("SELECT d FROM ServiceProviderDocument d WHERE d.serviceProviderEntity = :serviceProviderEntity AND isArchived=false");
                     jpql.append(" AND d.filePath != null");
                     TypedQuery<ServiceProviderDocument> query1 = entityManager.createQuery(jpql.toString(), ServiceProviderDocument.class);
                     query1.setParameter("serviceProviderEntity", serviceProviderEntity);
@@ -218,7 +209,7 @@ public class DocumentEndpoint {
                     return responseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
                 }
 
-                StringBuilder jpql = new StringBuilder("SELECT d FROM Document d WHERE d.custom_customer = :customer");
+                StringBuilder jpql = new StringBuilder("SELECT d FROM Document d WHERE d.custom_customer = :customer AND isArchived=false");
                 jpql.append(" AND d.filePath != null");
                 TypedQuery<Document> query = entityManager.createQuery(jpql.toString(), Document.class);
                 query.setParameter("customer", customer);

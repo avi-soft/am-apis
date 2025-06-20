@@ -1,12 +1,4 @@
--- PROCEDURE: public.allocate_ticket(bigint, bigint, boolean, bigint[])
-
--- DROP PROCEDURE IF EXISTS public.allocate_ticket(bigint, bigint, boolean, bigint[]);
-
-CREATE OR REPLACE PROCEDURE public.allocate_ticket(
-	IN p_order_id bigint,
-	IN p_service_provider_id bigint,
-	INOUT p_assigned boolean,
-	INOUT p_assigned_ticket_ids bigint[])
+CREATE OR REPLACE PROCEDURE public.allocate_ticket(IN p_order_id bigint, IN p_service_provider_id bigint, INOUT p_assigned boolean, INOUT p_assigned_ticket_ids bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
 
@@ -18,7 +10,7 @@ DECLARE
     is_active BOOLEAN;
 BEGIN
 
-	RAISE NOTICE '6. allocate ticket';
+	RAISE NOTICE '11. Allocate ticket';
 
     -- Fetch service provider details
     SELECT sp.maximum_ticket_size, sp.ticket_assigned, sp.ticket_pending, sp.is_active
@@ -61,5 +53,3 @@ BEGIN
     END IF;
 END;
 $BODY$;
-ALTER PROCEDURE public.allocate_ticket(bigint, bigint, boolean, bigint[])
-    OWNER TO postgres;

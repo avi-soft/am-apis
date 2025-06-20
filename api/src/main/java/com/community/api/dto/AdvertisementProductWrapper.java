@@ -96,6 +96,23 @@ public class AdvertisementProductWrapper extends BaseWrapper implements APIWrapp
         this.modifiedDate = advertisement.getModifiedDate();
         this.productWrapperList = wrapper;
     }
+    public void wrapDetailsNew(Advertisement advertisement, List<CustomAdvertisementProductWrapper> wrapper, HttpServletRequest httpServletRequest) {
+        this.advertisementId = advertisement.getAdvertisementId();
+        this.title = advertisement.getTitle();
+        this.number = advertisement.getNumber();
+        /*this.description = advertisement.getDescription();
+        this.url = advertisement.getUrl();
+        this.createdDate = advertisement.getCreatedDate();
+        this.notificationStartDate = advertisement.getNotificationStartDate();
+        this.notificationEndDate = advertisement.getNotificationEndDate();
+        this.notifyingAuthority = advertisement.getNotifyingAuthority();
+        this.userId = advertisement.getUserId();
+        this.creatorRole = advertisement.getCreatorRole();
+        this.modifierId = advertisement.getModifierId();
+        this.modifierRole = advertisement.getModifierRole();
+        this.modifiedDate = advertisement.getModifiedDate();*/
+        this.productWrapperList = wrapper;
+    }
 
     @Override
     public void wrapSummary(Advertisement advertisement, HttpServletRequest httpServletRequest) {

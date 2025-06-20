@@ -176,9 +176,11 @@ public class QualificationDetailsService {
                 }
                 QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
                 giveQualificationScore(userId);
+                serviceProviderEntity.setIsAcknowledged(false);
                 return addedQualificationDetails;
             }
             giveQualificationScore(userId);
+            serviceProviderEntity.setIsAcknowledged(false);
             return qualificationDetails;
 
         }
@@ -369,6 +371,7 @@ public class QualificationDetailsService {
                 }
             }
             QualificationDetails addedQualificationDetails=entityManager.merge(qualificationDetails);
+            customCustomer.setIsAcknowledged(false);
             return addedQualificationDetails;
         }
         return qualificationDetails;
@@ -451,6 +454,10 @@ public class QualificationDetailsService {
         if(roleName.equalsIgnoreCase(Constant.SERVICE_PROVIDER))
         {
             giveQualificationScore(userId);
+            serviceProviderEntity.setIsAcknowledged(false);
+        }
+        else {
+            customCustomer.setIsAcknowledged(false);
         }
         return qualificationDetailsToDelete;
     }
@@ -467,8 +474,10 @@ public class QualificationDetailsService {
         if (roleName.equals(Constant.SERVICE_PROVIDER)) {
             ServiceProviderEntity serviceProviderEntity = findServiceProviderById(userId);
             qualificationDetails = serviceProviderEntity.getQualificationDetailsList();
+            serviceProviderEntity.setIsAcknowledged(false);
         } else {
             CustomCustomer customCustomer = findCustomCustomerById(userId);
+            customCustomer.setIsAcknowledged(false);
             qualificationDetails = customCustomer.getQualificationDetailsList();
         }
 

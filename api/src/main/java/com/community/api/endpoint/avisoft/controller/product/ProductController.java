@@ -62,6 +62,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -397,21 +398,45 @@ public class ProductController extends CatalogEndpoint {
 //            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
+            if (addProductDto.getSector() != null) {
+                if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
+                    return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
+                } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
+                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                }
+                CustomSector sector=entityManager.find(CustomSector.class,addProductDto.getSector());
+                if(sector==null)
+                    return ResponseService.generateErrorResponse("Sector not found", HttpStatus.BAD_REQUEST);
+                customProduct.setSector(sector);
+                customProduct.setSectorRunningField(addProductDto.getSectorRunningField());
+            }
             // Validation of getActiveEndDate and getGoLiveDate.
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
             Date currentDate = dateFormat.parse(formattedDate); // Convert formatted date string back to Date
             customProduct.setModifiedDate(currentDate);
+            customProduct.setAdmitCardDateFrom(originalProduct.getAdmitCardDateFrom());
+            System.out.println(originalProduct.getAdmitCardDateFrom());
+            customProduct.setAdmitCardDateTo(originalProduct.getAdmitCardDateTo());
+            customProduct.setModificationDateFrom(originalProduct.getModificationDateFrom());
+            customProduct.setModificationDateTo(originalProduct.getModificationDateTo());
+            if(addProductDto.getAdditionalComments()!=null)
+                customProduct.setAdditionalComments(addProductDto.getAdditionalComments());
+            if(addProductDto.getFeeAdditionalComments()!=null)
+                customProduct.setFeeAdditionalComments(addProductDto.getFeeAdditionalComments());
+            customProduct.setExamDateFrom(originalProduct.getExamDateFrom());
+            customProduct.setExamDateTo(originalProduct.getExamDateTo());
+            if(addProductDto.getProductState()==null){
+                // Validate dates fields.
+                productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetGoLiveDate(addProductDto, customProduct, currentDate);
+                productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
 
-            // Validate dates fields.
-            productService.validateAndSetActiveStartDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetActiveEndDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetGoLiveDate(addProductDto, customProduct, currentDate);
-            productService.validateAndSetLastDateToPayFeeDate(addProductDto, customProduct, currentDate);
-
-            productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
-            productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
-            productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetModifiedDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetAdmitCardDates(addProductDto, customProduct, currentDate);
+                productService.validateAndSetExamDates(addProductDto, customProduct, currentDate);
+            }
 //            productService.validateAndSetExamDateFromAndExamDateToFields(addProductDto, customProduct);
 //            productService.validateExamDateFromAndExamDateTo(addProductDto, customProduct);
 
@@ -532,7 +557,12 @@ public class ProductController extends CatalogEndpoint {
                     customProduct.setProductState(customProductState);
                 }
             }
-
+            System.out.println("product_state id is"+addProductDto.getProductState());
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3)
+            {
+                System.out.println("hello");
+                customProduct.setIsApproved(true);
+            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
@@ -549,62 +579,64 @@ public class ProductController extends CatalogEndpoint {
                     return productService.changeStateProductFromDraftToNew(customProduct, wrapper);
                 }
             }
-List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
+            System.out.println("admit card date is "+customProduct.getAdmitCardDateFrom());
+            List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
             System.out.println(diff);
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
             wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
-            Query query=entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
-            query.setParameter("productId",productId);
-            Boolean communicate=true;
-            Long id = (Long) query.getSingleResult();
-            ProductEvents productEvents=null;
+            if(!customProduct.getPurchasedBy().isEmpty()) {
+                Query query = entityManager.createQuery("Select MAX(eventId) from ProductEvents where productId = :productId");
+                query.setParameter("productId", productId);
+                Boolean communicate = true;
+                Long id = (Long) query.getSingleResult();
+                ProductEvents productEvents = null;
 
 
-            if(id==null) {
-                productEvents = new ProductEvents();
-                productEvents.setLastUpdate(LocalDateTime.now());
-                productEvents.setSummaryOfUpdate(null);
-                productEvents.setProductId(productId);
-
-            }
-            else
-            {
-                productEvents = entityManager.find(ProductEvents.class,id);
-                if(Duration.between(productEvents.getLastUpdate(),LocalDateTime.now()).toMinutes()>=10) {
-                    productEvents=new ProductEvents();
+                if (id == null) {
+                    productEvents = new ProductEvents();
                     productEvents.setLastUpdate(LocalDateTime.now());
                     productEvents.setSummaryOfUpdate(null);
                     productEvents.setProductId(productId);
+
+                } else {
+                    productEvents = entityManager.find(ProductEvents.class, id);
+                    if (Duration.between(productEvents.getLastUpdate(), LocalDateTime.now()).toMinutes() >= 10) {
+                        productEvents = new ProductEvents();
+                        productEvents.setLastUpdate(LocalDateTime.now());
+                        productEvents.setSummaryOfUpdate(null);
+                        productEvents.setProductId(productId);
+                    } else
+                        communicate = false;
                 }
-                else
-                    communicate=false;
+                if (communicate) {
+                    CommunicationRequest communicationRequest = new CommunicationRequest();
+                    CustomProduct customProductSession = getProductWithPurchasers(customProduct.getId());
+                    communicationRequest.setUserIds(customProductSession.getPurchasedBy());
+                    communicationRequest.setSubject("Product Update Notification");
+                    List<Integer> modes = new ArrayList<>();
+                    modes.add(1);
+                    communicationRequest.setModes(modes);
+                    communicationRequest.setContentText(
+                            "Hello,\n\n" +
+                                    "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
+                                    "Changes: " + diff.toString() + "\n\n" +
+                                    "To view the latest changes, please visit:\n" +
+                                    "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
+                                    "Thank you,\n" +
+                                    "System Administrator"
+                    );
+                    entityManager.persist(productEvents);
+                    System.out.println("Calling email trigger");
+                    ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
+                }
             }
-            if(communicate) {
-                CommunicationRequest communicationRequest = new CommunicationRequest();
-                CustomProduct customProductSession=getProductWithPurchasers(customProduct.getId());
-                communicationRequest.setUserIds(customProductSession.getPurchasedBy());
-                communicationRequest.setSubject("Product Update Notification");
-                List<Integer>modes=new ArrayList<>();
-                modes.add(1);
-                communicationRequest.setModes(modes);
-                communicationRequest.setContentText(
-                        "Hello,\n\n" +
-                                "We would like to inform you that an update has been made to a form associated with a product you recently purchased.\n\n" +
-                                "Changes: " +diff.toString()+ "\n\n" +
-                                "To view the latest changes, please visit:\n" +
-                                "https://dev-next-am-public-ui.vercel.app/product-details/" + product.getId() + "\n\n" +
-                                "Thank you,\n" +
-                                "System Administrator"
-                );
-                entityManager.persist(productEvents);
-                System.out.println("Calling email trigger");
-                ResponseEntity<?> response = serviceProviderActionController.communicateWithCustomersDummy(communicationRequest, 5, authHeader, true);
-            }
-            if(customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L) {
+            if((customProduct.getProductState().getProductStateId()==1L||customProduct.getProductState().getProductStateId()==3L)&&(addProductDto.getProductState()!=null&&addProductDto.getProductState()!=3)) {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
+
+            entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {

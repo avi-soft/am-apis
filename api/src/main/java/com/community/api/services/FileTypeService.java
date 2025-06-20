@@ -1,11 +1,7 @@
 package com.community.api.services;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.Image;
-import com.community.api.entity.Qualification;
 import com.community.api.entity.FileType;
-import com.community.api.utils.DocumentType;
-import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,9 +19,10 @@ public class FileTypeService
     private EntityManager entityManager;
 
     @Transactional
-    public List<FileType> getAllRandomFileTypes()
+    public List<FileType> getAllRandomFileTypes(Boolean archived)
     {
         TypedQuery<FileType> typedQuery= entityManager.createQuery(Constant.GET_ALL_FILE_TYPE,FileType.class);
+        typedQuery.setParameter("archived",archived);
         List<FileType> fileTypes = typedQuery.getResultList();
         return fileTypes;
     }
@@ -37,11 +34,11 @@ public class FileTypeService
         for(FileType fileType : fileTypes)
         {
             FileType fileTypeToAdd =new FileType();
-            int id = findCount() + 1;
+            int id = findMax() + 1;
             if (fileType.getFile_type_name() == null || fileType.getFile_type_name().trim().isEmpty()) {
                 throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
             }
-            List<FileType> existingFileType = getAllRandomFileTypes();
+            List<FileType> existingFileType = getAllRandomFileTypes(false);
             for (FileType existingFileType1: existingFileType) {
                 if (existingFileType1.getFile_type_name().equalsIgnoreCase(fileType.getFile_type_name())) {
                     throw new IllegalArgumentException("File Type with name '"+fileType.getFile_type_name()+"' already exists");
@@ -55,10 +52,8 @@ public class FileTypeService
         return fileTypesListToAdd;
     }
 
-    public int findCount() {
-        String queryString = Constant.GET_FILE_TYPE_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
-        return query.getSingleResult().intValue();
+    public int findMax() {
+        return  entityManager.createQuery("SELECT COALESCE(MAX(t.id), 0) FROM FileType t", Integer.class).getSingleResult();
     }
 
     @Transactional
@@ -102,7 +97,7 @@ public class FileTypeService
             if (fileType.getFile_type_name().trim().isEmpty()) {
                 throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
             }
-            List<FileType> existingFileType = getAllRandomFileTypes();
+            List<FileType> existingFileType = getAllRandomFileTypes(false);
             for (FileType existingFileType1: existingFileType) {
                 if (existingFileType1.getFile_type_name().equalsIgnoreCase(fileType.getFile_type_name()) && !existingFileType1.getFile_type_id().equals(fileTypeId)) {
                     throw new IllegalArgumentException("File Type with name '"+fileType.getFile_type_name()+"' already exists");

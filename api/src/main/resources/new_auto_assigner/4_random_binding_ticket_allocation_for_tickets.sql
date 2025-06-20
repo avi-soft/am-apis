@@ -1,10 +1,4 @@
--- PROCEDURE: public.random_binding_ticket_allocation_for_tickets(bigint[], bigint[])
-
--- DROP PROCEDURE IF EXISTS public.random_binding_ticket_allocation_for_tickets(bigint[], bigint[]);
-
-CREATE OR REPLACE PROCEDURE public.random_binding_ticket_allocation_for_tickets(
-	INOUT ticket_ids bigint[],
-	INOUT assigned_ticket_ids bigint[])
+CREATE OR REPLACE PROCEDURE public.random_binding_ticket_allocation_for_tickets(INOUT ticket_ids bigint[], INOUT assigned_ticket_ids bigint[])
 LANGUAGE 'plpgsql'
 AS $BODY$
 DECLARE
@@ -19,21 +13,33 @@ DECLARE
     v_creator_user_id BIGINT;
     v_rejected_by BIGINT[];
     v_assigned BOOLEAN := FALSE;
-    v_unassigned_ticket_ids BIGINT[];
+    v_unassigned_ticket_ids BIGINT[] := ARRAY[]::BIGINT[];
     v_sp_id BIGINT;
 BEGIN
 
-    RAISE NOTICE '12. Starting Random Binding Ticket Allocation (RBTA) for Tickets';
+    RAISE NOTICE '4. Starting Random Binding Ticket Allocation (RBTA) for Tickets';
 
     FOREACH v_ticket_id IN ARRAY ticket_ids LOOP
         v_assigned := FALSE;
-
+		
+       raise notice 'TICKET ID: %', v_ticket_id;
+      
         -- Get basic ticket info (excluding rejected_by)
 		SELECT ticket_type_id, order_id, parent_ticket_id, assignee_user_id
 		INTO v_ticket_type_id, v_order_id, v_parent_ticket_id, v_assignee
 		FROM custom_service_provider_ticket
 		WHERE ticket_id = v_ticket_id;
-
+		
+		IF v_ticket_type_id = 2 THEN
+		    SELECT order_id
+		    INTO v_order_id
+		    FROM custom_service_provider_ticket
+		    WHERE ticket_id = v_parent_ticket_id;
+		
+		    -- Optional: log to confirm updated order ID
+		    RAISE NOTICE 'Updated order_id from parent ticket: %', v_order_id;
+		END IF;
+		
 		-- Get rejected_by from separate table
 		SELECT array_agg(rejected_by_id)
 		INTO v_rejected_by
@@ -65,7 +71,9 @@ BEGIN
                 IF v_ticket_type_id = 2 AND v_assignee = ref.id THEN
                     CONTINUE;
                 END IF;
-
+               
+				RAISE NOTICE 'primary referrer: %', ref.service_provider_id;
+				raise notice 'ticket type id is %', v_ticket_type_id;
                 CALL reallocate_ticket(
                     p_order_id           => v_order_id,
                     p_service_provider_id => ref.service_provider_id,
@@ -122,7 +130,7 @@ BEGIN
         SELECT creator_user_id INTO v_creator_user_id
         FROM custom_product
         WHERE product_id = v_product_id;
-
+       
         SELECT service_provider_id
 		INTO v_sp_id
 		FROM service_provider
@@ -130,15 +138,18 @@ BEGIN
 		  AND role IN (2, 4)
 		  AND is_active = TRUE
 		  AND approved = TRUE;
-
-	    IF v_sp_id IS NULL THEN
+		
+	    IF v_sp_id IS NULL then
+	    	v_unassigned_ticket_ids := array_append(v_unassigned_ticket_ids, v_ticket_id);
 		    CONTINUE;
 		END IF;
-        IF v_rejected_by IS NULL OR NOT v_creator_user_id = ANY(v_rejected_by) THEN
-            IF v_ticket_type_id = 2 AND v_assignee = v_creator_user_id THEN
+        IF v_rejected_by IS NULL OR NOT v_creator_user_id = ANY(v_rejected_by) then
+        	raise notice 'this is where i am getting as of now';
+            IF v_ticket_type_id = 2 AND v_assignee = v_creator_user_id then
+            	v_unassigned_ticket_ids := array_append(v_unassigned_ticket_ids, v_ticket_id);
                 CONTINUE;
             END IF;
-
+			
             CALL reallocate_ticket(
                 p_order_id           => v_order_id,
                 p_service_provider_id => v_creator_user_id,

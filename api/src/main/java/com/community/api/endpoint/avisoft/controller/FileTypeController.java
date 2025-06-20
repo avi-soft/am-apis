@@ -24,14 +24,14 @@ public class FileTypeController
     }
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages()
+    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false,defaultValue = "false")Boolean archived)
     {
-        List<FileType> randomFileTypes= fileTypeService.getAllRandomFileTypes();
+        List<FileType> randomFileTypes= fileTypeService.getAllRandomFileTypes(archived);
         if(randomFileTypes.isEmpty())
         {
-            return ResponseService.generateSuccessResponse("Typing Text list is empty",randomFileTypes, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse(archived?"archived File type list is empty":"Unarchived File type list is empty",randomFileTypes, HttpStatus.OK);
         }
-        return ResponseService.generateSuccessResponse("Typing Text list is found",randomFileTypes,HttpStatus.OK);
+        return ResponseService.generateSuccessResponse(archived?"Archived File type list is found":"Unarchived file type list is found",randomFileTypes,HttpStatus.OK);
     }
 
     @PostMapping("/add-all")
@@ -40,7 +40,7 @@ public class FileTypeController
         try
         {
             List<?> randomFileTypes= fileTypeService.addAllRandomFileTypes(fileTypes);
-            return ResponseService.generateSuccessResponse("The Typing Texts are added successfully",randomFileTypes, HttpStatus.CREATED);
+            return ResponseService.generateSuccessResponse("The File Types are added successfully",randomFileTypes, HttpStatus.CREATED);
         }
         catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
@@ -57,7 +57,7 @@ public class FileTypeController
     {
         try {
             FileType fileTypeToDelete = fileTypeService.archiveOrUnarchiveFileType(fileTypeId, archive);
-            String message = archive ? "Typing text is archived successfully" : "Typing text is unarchived successfully";
+            String message = archive ? "File Type is archived successfully" : "File Type is unarchived successfully";
             return ResponseService.generateSuccessResponse(message, fileTypeToDelete,HttpStatus.OK);
         }
         catch (IllegalArgumentException e)
@@ -77,7 +77,7 @@ public class FileTypeController
         try
         {
             FileType fileTypeToUpdate= fileTypeService.updateFileType(fileType,fileTypeId);
-            return ResponseService.generateSuccessResponse("Typing text is updated successfully", fileTypeToUpdate,HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("File Type is updated successfully", fileTypeToUpdate,HttpStatus.OK);
         }
         catch (IllegalArgumentException illegalArgumentException)
         {

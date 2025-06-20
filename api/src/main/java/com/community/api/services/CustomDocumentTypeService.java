@@ -4,11 +4,9 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.DocumentTypeDto;
-import com.community.api.entity.CustomSubject;
 import com.community.api.entity.FileType;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.utils.DocumentType;
-import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,8 +14,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +40,7 @@ public class CustomDocumentTypeService
         String role = roleService.getRoleByRoleId(roleId).getRole_name();
 
         DocumentType documentTypeToBeSaved = new DocumentType();
-        int id = findCount() + 1;
+        int id = findMax() + 1;
         int secondHighestSortOrder = getSecondHighestSortOrder();
         int sortOrderToBeInserted = secondHighestSortOrder + 1;
 
@@ -113,6 +109,14 @@ public class CustomDocumentTypeService
                 throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
             }
         }
+
+        if(documentTypesToBeSaved.getMin_width_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_width_dimension_in_mm() !=null || documentTypesToBeSaved.getMin_height_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_height_dimension_in_mm()!=null )
+        {
+            if(documentTypesToBeSaved.getDpi()==null)
+            {
+                throw new IllegalArgumentException("Dpi cannot be null if you are giving dimensions");
+            }
+        }
         documentTypeToBeSaved.setDocument_type_id(id);
         documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name());
         documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription());
@@ -121,6 +125,7 @@ public class CustomDocumentTypeService
         documentTypeToBeSaved.setMin_document_size(documentTypesToBeSaved.getMin_document_size().toUpperCase());
         documentTypeToBeSaved.setSort_order(sortOrderToBeInserted);
         documentTypeToBeSaved.setRequired_document_types(validFileTypes);
+        documentTypeToBeSaved.setDpi(documentTypesToBeSaved.getDpi());
         entityManager.persist(documentTypeToBeSaved);
 
         return documentTypeToBeSaved;
@@ -134,7 +139,7 @@ public class CustomDocumentTypeService
         String trimmedSize = size.trim().toUpperCase();
 
         // Regular expression to match size format: number followed by MB, KB, or GB
-        String sizePattern = "^\\d+(\\.\\d+)?(MB|KB|GB)$";
+        String sizePattern = "^\\d+(\\.\\d+)?(B|KB|MB|GB|TB|PB|EB)$";
 
         if (!trimmedSize.matches(sizePattern)) {
             throw new IllegalArgumentException(sizeType + " size must be in format like '3MB', '500KB', or '1.5GB'");
@@ -148,11 +153,35 @@ public class CustomDocumentTypeService
             if (sizeValue <= 0) {
                 throw new IllegalArgumentException(sizeType + " size must be greater than 0");
             }
-            if (unit.equals("GB") && sizeValue > 10) {
-                throw new IllegalArgumentException(sizeType + " size cannot exceed 10GB");
-            } else if (unit.equals("MB") && sizeValue > 10240) {
-                throw new IllegalArgumentException(sizeType + " size cannot exceed 10GB");
-            } else if (unit.equals("KB") && sizeValue > 10485760) {
+
+            // Convert input size to bytes
+            long bytes = 0;
+            switch (unit) {
+                case "B":
+                    bytes = (long) sizeValue;
+                    break;
+                case "KB":
+                    bytes = (long) (sizeValue * 1024);
+                    break;
+                case "MB":
+                    bytes = (long) (sizeValue * 1024 * 1024);
+                    break;
+                case "GB":
+                    bytes = (long) (sizeValue * 1024 * 1024 * 1024);
+                    break;
+                case "TB":
+                    bytes = (long) (sizeValue * 1024 * 1024 * 1024 * 1024);
+                    break;
+                case "PB":
+                    bytes = (long) (sizeValue * 1024 * 1024 * 1024 * 1024 * 1024);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported unit: " + unit);
+            }
+
+            long maxBytes = 10L * 1024 * 1024 * 1024;
+
+            if (bytes > maxBytes) {
                 throw new IllegalArgumentException(sizeType + " size cannot exceed 10GB");
             }
 
@@ -162,16 +191,12 @@ public class CustomDocumentTypeService
     }
 
     private void validateSizeComparison(String minSize, String maxSize) {
-        try {
             long minSizeInBytes = ImageSizeConfig.convertToBytes(minSize.trim().toUpperCase());
             long maxSizeInBytes =ImageSizeConfig.convertToBytes(maxSize.trim().toUpperCase());
 
             if (minSizeInBytes >= maxSizeInBytes) {
                 throw new IllegalArgumentException("Maximum size must be greater than minimum size");
             }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Error comparing sizes: " + e.getMessage());
-        }
     }
 
     public List<DocumentType> getAllDocumentTypes() {
@@ -181,10 +206,8 @@ public class CustomDocumentTypeService
         return documentTypeList;
     }
 
-    public int findCount() {
-        String queryString = Constant.GET_DOCUMENT_TYPE_COUNT;
-        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
-        return query.getSingleResult().intValue();
+    public int findMax() {
+        return  entityManager.createQuery("SELECT COALESCE(MAX(t.id), 0) FROM DocumentType t", Integer.class).getSingleResult();
     }
 
     @Transactional
@@ -302,6 +325,11 @@ public class CustomDocumentTypeService
             {
                 throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
             }
+        }
+
+        if(documentType.getDpi()!=null)
+        {
+            documentTypeToUpdate.setDpi(documentType.getDpi());
         }
 
         // Validate and fetch file types

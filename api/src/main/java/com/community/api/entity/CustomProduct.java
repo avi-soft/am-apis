@@ -182,7 +182,7 @@ public class CustomProduct extends ProductImpl {
     protected Boolean isReviewRequired;
 
     @Column(name = "is_approved", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    protected Boolean isApproved;
+    protected Boolean isApproved=false;
 
     @Column(name = "resubmit_comment",columnDefinition = "text")
     protected String resubmitComment;
@@ -205,11 +205,11 @@ public class CustomProduct extends ProductImpl {
     @OneToMany(mappedBy = "customProduct", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OtherItem> otherItems = new ArrayList<>();
 
-    @Column(name = "additional_comments")
+    @Column(name = "additional_comments", columnDefinition = "text")
     @JsonProperty("additional_comments")
     private String additionalComments;
 
-    @Column(name = "fee_additional_comments")
+    @Column(name = "fee_additional_comments", columnDefinition = "text")
     private String feeAdditionalComments;
 
     @Column(name = "views", columnDefinition = "BIGINT DEFAULT 0")

@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.component.Constant;
 import com.community.api.dto.EligibilityResult;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
@@ -28,11 +29,6 @@ public class CartService {
     private EntityManager entityManager;
 
     // Others IDs
-    private static final Integer OTHERS_QUALIFICATION_ID = 60;
-    private static final Long OTHERS_SUBJECT_ID = 54L;
-    private static final Long OTHERS_STREAM_ID = 215L;
-    private static final Long OTHERS_CATEGORY_ID = 6L;
-    private static final Long OTHERS_GENDER_ID = 3L;
 
     public CartService(EntityManager entityManager) {
         this.entityManager = entityManager;
@@ -227,7 +223,7 @@ public class CartService {
             if (qualification.getQualification_id().equals(requiredQualification.getQualification_id())) {
                 qualificationMatches = true;
                 break;
-            } else if (qualification.getQualification_id().equals(3) || qualification.getQualification_id().equals(4)) {
+            } else if (qualification.getQualification_id().equals(Constant.BACHELORS_QUALIFICATION) || qualification.getQualification_id().equals(Constant.MASTERS_QUALIFICATION)) {
                 Qualification qualificationToFind = entityManager.find(Qualification.class, qualification.getQualification_id());
                 Qualification requiredQualificationToFind = entityManager.find(Qualification.class, requiredQualification.getQualification_id());
                 if (qualificationToFind != null && requiredQualificationToFind != null &&
@@ -282,7 +278,7 @@ public class CartService {
         // If qualification doesn't match, check for "Others" scenarios for warnings
         // Check if any required qualification has "Others" ID
         boolean hasOthersInProduct = eligibility.getQualifications().stream()
-                .anyMatch(q -> OTHERS_QUALIFICATION_ID.equals(q.getQualification_id()));
+                .anyMatch(q -> Constant.OTHERS_QUALIFICATION_ID.equals(q.getQualification_id()));
 
         if (hasOthersInProduct) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
@@ -291,11 +287,11 @@ public class CartService {
         }
 
         // Check if customer has "Others" qualification
-        if (OTHERS_QUALIFICATION_ID.equals(qualification.getQualification_id())) {
+        if (Constant.OTHERS_QUALIFICATION_ID.equals(qualification.getQualification_id())) {
             // Check if any specific qualification matches first
             boolean hasSpecificMatch = false;
             for (Qualification requiredQual : eligibility.getQualifications()) {
-                if (!OTHERS_QUALIFICATION_ID.equals(requiredQual.getQualification_id())) {
+                if (!Constant.OTHERS_QUALIFICATION_ID.equals(requiredQual.getQualification_id())) {
                     hasSpecificMatch = true;
                     break;
                 }
@@ -322,7 +318,6 @@ public class CartService {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
-        System.out.println("323");
 
         // Standard stream matching only (no "Others" warnings since qualification already matched)
         boolean streamMatches = false;
@@ -389,10 +384,9 @@ public class CartService {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
-        System.out.println("337");
         // Check if product requires "Others" stream
         boolean hasOthersInProduct = eligibility.getCustomStreams().stream()
-                .anyMatch(s -> OTHERS_STREAM_ID.equals(s.getStreamId()));
+                .anyMatch(s -> Constant.OTHERS_STREAM_ID.equals(s.getStreamId()));
 
         if (hasOthersInProduct) {
             System.out.println("means others product ");
@@ -402,7 +396,7 @@ public class CartService {
         }
 
         // Check if customer has "Others" stream
-        if (OTHERS_STREAM_ID.equals(qualification.getStream_id())) {
+        if (Constant.OTHERS_STREAM_ID.equals(qualification.getStream_id())) {
             System.out.println("yes others");
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
             result.addWarning("You have 'Others' stream. Please verify manually if it matches the specific streams required for this product");
@@ -446,7 +440,7 @@ public class CartService {
 
         // Check if product requires "Others" subject
         boolean hasOthersInProduct = eligibility.getCustomSubjects().stream()
-                .anyMatch(s -> OTHERS_SUBJECT_ID.equals(s.getSubjectId()));
+                .anyMatch(s -> Constant.OTHERS_SUBJECT_ID.equals(s.getSubjectId()));
 
         if (hasOthersInProduct) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
@@ -455,7 +449,7 @@ public class CartService {
         }
 
         // Check if customer has "Others" subject
-        if (qualification.getSubject_ids().contains(OTHERS_SUBJECT_ID)) {
+        if (qualification.getSubject_ids().contains(Constant.OTHERS_SUBJECT_ID)) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
             result.addWarning("You have 'Others' subject. Please verify manually if it matches the specific subjects required for this product");
             return result;
@@ -483,7 +477,7 @@ public class CartService {
     private EligibilityResult checkCategoryEligibility(CustomCustomer customer, QualificationEligibility eligibility) {
         EligibilityResult result = new EligibilityResult();
 
-        if (eligibility.getCustomReserveCategory() == null) {
+        if (eligibility.getCustomReserveCategory() == null || eligibility.getCustomReserveCategory().getReserveCategoryId().equals(Constant.RESERVED_CATEGORY_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -494,8 +488,14 @@ public class CartService {
             return result;
         }
 
+        if(customer.getCategory().trim().equalsIgnoreCase("All"))
+        {
+            result.setStatus(EligibilityStatus.ELIGIBLE);
+            return result;
+        }
+
         // Check if product requires "Others" category
-        if (OTHERS_CATEGORY_ID.equals(eligibility.getCustomReserveCategory().getReserveCategoryId())) {
+        if (Constant.OTHERS_CATEGORY_ID.equals(eligibility.getCustomReserveCategory().getReserveCategoryId())) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
             result.addWarning("Product requires 'Others' category. Please verify manually if your category matches the product requirements");
             return result;
@@ -756,7 +756,7 @@ public class CartService {
     private EligibilityResult checkGenderEligibilityForAge(CustomCustomer customer, CustomProductReserveCategoryBornBeforeAfterRef ageRequirement) {
         EligibilityResult result = new EligibilityResult();
 
-        if (ageRequirement.getGender() == null) {
+        if (ageRequirement.getGender() == null || ageRequirement.getGender().getGenderId().equals(Constant.GENDER_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -765,7 +765,7 @@ public class CartService {
         String requiredGenderName = ageRequirement.getGender().getGenderName().toLowerCase().trim();
 
         // Handle "Others" gender case
-        if (OTHERS_GENDER_ID.equals(ageRequirement.getGender().getGenderId())) {
+        if (Constant.OTHERS_GENDER_ID.equals(ageRequirement.getGender().getGenderId())) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
             result.addWarning("Product has 'Others' gender requirement. Please verify manually if your gender matches the product requirements");
             return result;
@@ -779,8 +779,8 @@ public class CartService {
 
         // Standard gender matching
         if (customerGender.equals(requiredGenderName) ||
-                requiredGenderName.equals("no gender") ||
-                requiredGenderName.equals("all")) {
+                requiredGenderName.equalsIgnoreCase("no gender") ||
+                requiredGenderName.equalsIgnoreCase("all")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -794,7 +794,7 @@ public class CartService {
     private EligibilityResult checkCategoryEligibilityForAge(CustomCustomer customer, CustomProductReserveCategoryBornBeforeAfterRef ageRequirement) {
         EligibilityResult result = new EligibilityResult();
 
-        if (ageRequirement.getCustomReserveCategory() == null) {
+        if (ageRequirement.getCustomReserveCategory() == null || ageRequirement.getCustomReserveCategory().getReserveCategoryId().equals(Constant.RESERVED_CATEGORY_ALL)) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
             return result;
         }
@@ -803,7 +803,7 @@ public class CartService {
         String requiredCategoryName = ageRequirement.getCustomReserveCategory().getReserveCategoryName().toLowerCase().trim();
 
         // Handle "Others" category case
-        if (OTHERS_CATEGORY_ID.equals(ageRequirement.getCustomReserveCategory().getReserveCategoryId())) {
+        if (Constant.OTHERS_CATEGORY_ID.equals(ageRequirement.getCustomReserveCategory().getReserveCategoryId())) {
             result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
             result.addWarning("Product has 'Others' category requirement for age eligibility. Please verify manually if your category matches the product requirements");
             return result;
@@ -816,9 +816,8 @@ public class CartService {
         }
 
         // Standard category matching
-        if (customerCategory.equals(requiredCategoryName) ||
-                requiredCategoryName.equals("no category") ||
-                requiredCategoryName.equals("all")) {
+        if (customerCategory.equalsIgnoreCase(requiredCategoryName) ||
+                requiredCategoryName.equalsIgnoreCase("all")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
@@ -882,7 +881,7 @@ public class CartService {
                 if (customerAge < ageRequirement.getMinimumAge()) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("You are too young. Minimum age required is " + ageRequirement.getMinimumAge() +
-                            " years, but you are " + customerAge + " years old");
+                            " years, but You are " + customerAge + " years old");
                     return result;
                 }
             }
@@ -891,7 +890,7 @@ public class CartService {
                 if (customerAge > ageRequirement.getMaximumAge()) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("You are too old. Maximum age allowed is " + ageRequirement.getMaximumAge() +
-                            " years, but you are " + customerAge + " years old");
+                            " years, but You are " + customerAge + " years old");
                     return result;
                 }
             }
@@ -970,7 +969,7 @@ public class CartService {
             return result;
         }
 
-        if (customerGender.equalsIgnoreCase(requirement.getCustomGender().getGenderName())) {
+        if (customerGender.equalsIgnoreCase(requirement.getCustomGender().getGenderName()) || customerGender.equalsIgnoreCase("All")) {
             result.setStatus(EligibilityStatus.ELIGIBLE);
         } else {
             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
