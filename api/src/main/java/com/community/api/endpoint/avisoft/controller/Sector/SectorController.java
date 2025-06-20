@@ -1,7 +1,11 @@
 package com.community.api.endpoint.avisoft.controller.Sector;
 
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.AddSectorDto;
+import com.community.api.dto.AdvertisementCompressedDTO;
+import com.community.api.dto.CompressedProductWrapper;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomSector;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SectorService;
@@ -10,6 +14,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,9 +24,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityManager;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.community.api.component.Constant.request;
 
 @RestController
 public class SectorController {
@@ -119,5 +129,59 @@ public class SectorController {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    @Autowired
+    EntityManager entityManager;
+    @GetMapping("/get-products-by-sector-id/{sectorId}")
+    public ResponseEntity<?>getProductsByAdvertisementId(@PathVariable Long sectorId)
+    {
+        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
+        if(customSector==null)
+            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
+        List<Object[]> rows =sectorService.getCompressedProductsBySector(longList,offset,limit);
+        System.out.println("res"+rows);
+        BigInteger count=advertisementService.getAdvCompressedCount(longList);
+        List<AdvertisementCompressedDTO>adv=new ArrayList<>();
+        for (Object[] row : rows) {
+            AdvertisementCompressedDTO dto=new AdvertisementCompressedDTO();
+            dto.setAdvertisement_id(((BigInteger) row[0]).longValue());
+            dto.setAdvertisementDesc((String) row[1]);
+            dto.setAdvertisementTitle((String) row[2]);
+            adv.add(dto);
+            String productIdsStr = row[3].toString(); // row[3] contains comma-separated product IDs
+            String[] productIdStrings = productIdsStr.split(",");
+
+            for (String idStr : productIdStrings) {
+                try {
+                    Long id = Long.parseLong(idStr.trim());
+                    CustomProduct product = entityManager.find(CustomProduct.class, id);
+                    if (product != null) {
+                        CompressedProductWrapper compressedProductWrapper=new CompressedProductWrapper();
+                        compressedProductWrapper.wrapDetails(product,request,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
+                        dto.getProductList().add(compressedProductWrapper);
+                    }
+                } catch (NumberFormatException e) {
+                    // Skip invalid ID strings
+                    System.err.println("Invalid product ID: " + idStr);
+                }
+            }
+            /* activeCategories.add(dto);*/
+        }
+        int totalItems = count.intValue();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+        int fromIndex = offset * limit;
+        int toIndex = Math.min(fromIndex + limit, totalItems);
+
+        if (fromIndex >= totalItems && offset != 0) {
+            return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+        }
+        // Construct paginated response
+        Map<String, Object> response = new HashMap<>();
+        response.put("advertisements", adv);
+        response.put("totalItems", totalItems);
+        response.put("totalPages", totalPages);
+        response.put("currentPage", offset);
+        return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+    }
     }
 }
