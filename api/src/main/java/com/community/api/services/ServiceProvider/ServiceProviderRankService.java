@@ -1,21 +1,26 @@
 package com.community.api.services.ServiceProvider;
 
 import com.community.api.component.Constant;
+import com.community.api.dto.ServiceProviderRankDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.ServiceProviderRank;
 import com.community.api.services.QualificationService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.broadleafcommerce.common.util.sql.importsql.DemoSqlServerSingleLineSqlCommandExtractor.CURRENT_TIMESTAMP;
 
 @Service
 public class ServiceProviderRankService {
@@ -29,7 +34,7 @@ public class ServiceProviderRankService {
     @Autowired
     private ResponseService responseService;
 
-    public  List<ServiceProviderRank> getAllRank()
+    public List<ServiceProviderRank> getAllRank()
     {
         try
         {
@@ -73,5 +78,69 @@ public class ServiceProviderRankService {
         scoreCard.put("totalScore",serviceProviderEntity.getTotalScore());
         return scoreCard;
     }
+
+    @Transactional
+    public ServiceProviderRank getServiceProviderRankByRankId(Long serviceProviderRankByRankId) throws Exception {
+        try
+        {
+            TypedQuery<ServiceProviderRank> query = entityManager.createQuery(Constant.FIND_SERVICE_PROVIDER_RANK_BY_SERVICE_PROVIDER_RANK_ID, ServiceProviderRank.class);
+            query.setParameter("serviceProviderRankId", serviceProviderRankByRankId);
+
+            List<ServiceProviderRank> serviceProviderRankList = query.getResultList();
+            if(serviceProviderRankList.isEmpty()) {
+                throw new IllegalArgumentException("No Rank is found with this Service Provider Rank Id.");
+            }
+
+            return serviceProviderRankList.get(0);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
+    @Transactional
+    public ServiceProviderRank updateServiceProviderRank(ServiceProviderRankDto serviceProviderRankDto, ServiceProviderRank serviceProviderRank) throws Exception {
+        try
+        {
+            if(serviceProviderRankDto.getRankDescription() != null) {
+                if(!serviceProviderRankDto.getRankDescription().trim().isEmpty()) {
+                    serviceProviderRank.setRank_description(serviceProviderRankDto.getRankDescription().trim());
+                } else {
+                    throw new IllegalArgumentException("Service provider description cannot be empty.");
+                }
+            }
+
+            if(serviceProviderRankDto.getMaximumTicketSize() != null) {
+                if(serviceProviderRankDto.getMaximumTicketSize() >= 0) {
+                    serviceProviderRank.setMaximumTicketSize(serviceProviderRankDto.getMaximumTicketSize());
+                } else {
+                    throw new IllegalArgumentException("Service Provider Rank Maximum Ticket Size value cannot be negative.");
+                }
+            }
+
+            if(serviceProviderRankDto.getMaximumBindingSize() != null) {
+                if(serviceProviderRankDto.getMaximumBindingSize() >= 0) {
+                    serviceProviderRank.setMaximumBindingSize(serviceProviderRankDto.getMaximumBindingSize());
+                } else {
+                    throw new IllegalArgumentException("Service Provider Rank Maximum Binding value cannot be negative.");
+                }
+            }
+
+            LocalDateTime now = LocalDateTime.now(); // Removes nanoseconds
+            serviceProviderRank.setUpdated_at(Timestamp.valueOf(now).toString());
+            return entityManager.merge(serviceProviderRank);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException);
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            throw new Exception(exception);
+        }
+    }
+
 }
 

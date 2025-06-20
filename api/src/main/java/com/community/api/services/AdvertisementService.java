@@ -23,6 +23,8 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
+import java.math.BigInteger;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -418,10 +420,70 @@ public class AdvertisementService {
     }
 
     private boolean isValidUrl(String url) {
-        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*(\\?[\\w=&]+(&[\\w=&]+)*)?$";
-        Pattern pattern = Pattern.compile(urlRegex);
-        Matcher matcher = pattern.matcher(url);
-        return matcher.matches();
+        try {
+            new URL(url).toURI();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
+    public List<Object[]> getAdvCompressed(List<Long> categoryIds, Integer offset, Integer limit) {
+        String sql = "SELECT " +
+                "a.advertisement_id, " +
+                "a.description, " +
+                "a.title, " +
+                "string_agg(CAST(c.product_id AS TEXT), ',' ORDER BY c.product_id DESC) AS product_ids " +
+                "FROM advertisement a " +
+                "JOIN custom_product c ON c.advertisement_id = a.advertisement_id " +
+                "JOIN blc_product bp ON c.product_id = bp.product_id " +
+                "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
+                "WHERE a.category_id IN (?1) " +
+                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_DATE) " +
+                "AND a.archived = 'N' " +
+                "AND bp.archived = 'N' " +
+                "AND c.product_state_id NOT IN (7) " +
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
+                "AND c.go_live_date <= CURRENT_DATE " +
+                "GROUP BY a.advertisement_id, a.description, a.title " +
+                "ORDER BY a.advertisement_id " +
+                "LIMIT ?2 OFFSET ?3";
 
+        try {
+            List<Object[]> rows = entityManager.createNativeQuery(sql)
+                    .setParameter(1, categoryIds)
+                    .setParameter(2, limit)
+                    .setParameter(3, offset)
+                    .getResultList();
+
+            return rows;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch compressed advertisements: " + e.getMessage(), e);
+        }
+    }
+    public BigInteger getAdvCompressedCount(List<Long> categoryIds) {
+        String sql = "SELECT " +
+                " COUNT(DISTINCT a.advertisement_id) "+
+                "FROM advertisement a " +
+                "JOIN custom_product c ON c.advertisement_id = a.advertisement_id " +
+                "JOIN blc_product bp ON c.product_id = bp.product_id " +
+                "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
+                "WHERE a.category_id IN (:categoryIds) " +
+                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_DATE) " +
+                "AND a.archived = 'N' " +
+                "AND bp.archived = 'N' " +
+                "AND c.product_state_id NOT IN (7) " +
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
+                "AND c.go_live_date <= CURRENT_DATE ";
+
+        try {
+            BigInteger count = (BigInteger) entityManager.createNativeQuery(sql)
+                    .setParameter("categoryIds", categoryIds)
+                    .getSingleResult();
+
+            return count;
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to fetch compressed advertisements: " + e.getMessage(), e);
+        }
+    }
 }

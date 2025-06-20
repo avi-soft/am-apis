@@ -18,6 +18,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 import com.community.api.utils.Document;
 import com.community.api.utils.ServiceProviderDocument;
 import io.micrometer.core.lang.Nullable;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
@@ -306,27 +307,24 @@ public class CustomerEndpoint {
                 Boolean value = (Boolean) details.get("interestedInDefence");
                 customCustomer.setInterestedInDefence(value);
             }
-            if(details.containsKey("has_state_category")) {
-                  String categoryStateName=(String)details.get("category_state_name");
-                  Boolean hasStateCategory = (Boolean)details.get("has_state_category");
-                  String  stateCategoryName=(String)details.get("state_category");
-                  if(hasStateCategory)
-                  {
-                      if(!details.containsKey("category_state_name")||categoryStateName==null||categoryStateName.trim().isEmpty())
-                          return ResponseService.generateErrorResponse("Need to provide state for state level category",HttpStatus.BAD_REQUEST);
-                      if(!details.containsKey("state_category")||stateCategoryName==null||stateCategoryName.trim().isEmpty())
-                          return ResponseService.generateErrorResponse("State level category name required",HttpStatus.BAD_REQUEST);
-                      customCustomer.setHasStateCategory(true);
-                      customCustomer.setStateCategory(stateCategoryName);
-                      customCustomer.setCategoryStateName(categoryStateName);
-                      customCustomer.setCategory(null);
-                  }
-                  else
-                  {
-                      if((stateCategoryName!=null&&!stateCategoryName.trim().isEmpty())||(categoryStateName!=null&&categoryStateName.trim().isEmpty()))
-                          return ResponseService.generateErrorResponse("State level category cannot be provided",HttpStatus.BAD_REQUEST);
-                      customCustomer.setHasStateCategory(false);
-                  }
+            if (details.containsKey("has_state_category")) {
+                String categoryStateName = (String) details.get("category_state_name");
+                Boolean hasStateCategory = (Boolean) details.get("has_state_category");
+                String stateCategoryName = (String) details.get("state_category");
+                if (hasStateCategory) {
+                    if (!details.containsKey("category_state_name") || categoryStateName == null || categoryStateName.trim().isEmpty())
+                        return ResponseService.generateErrorResponse("Need to provide state for state level category", HttpStatus.BAD_REQUEST);
+                    if (!details.containsKey("state_category") || stateCategoryName == null || stateCategoryName.trim().isEmpty())
+                        return ResponseService.generateErrorResponse("State level category name required", HttpStatus.BAD_REQUEST);
+                    customCustomer.setHasStateCategory(true);
+                    customCustomer.setStateCategory(stateCategoryName);
+                    customCustomer.setCategoryStateName(categoryStateName);
+                    customCustomer.setCategory(null);
+                } else {
+                    if ((stateCategoryName != null && !stateCategoryName.trim().isEmpty()) || (categoryStateName != null && categoryStateName.trim().isEmpty()))
+                        return ResponseService.generateErrorResponse("State level category cannot be provided", HttpStatus.BAD_REQUEST);
+                    customCustomer.setHasStateCategory(false);
+                }
             }
           /*  else
             {
@@ -608,18 +606,22 @@ public class CustomerEndpoint {
             // Update customer fields
             customCustomer.setId(customerId);
             customCustomer.setMobileNumber(customCustomer.getMobileNumber());
+            customCustomer.setIsAcknowledged(false);
             customCustomer.setQualificationDetailsList(customCustomer.getQualificationDetailsList());
             customCustomer.setCountryCode(customCustomer.getCountryCode());
 
             if (details.containsKey("firstName") && !details.get("firstName").toString().isEmpty()) {
                 customCustomer.setFirstName((String) details.get("firstName"));
+                customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("firstName") && details.get("firstName").toString().isEmpty()) {
                 errorMessages.add("First name cannot be null");
             } else if (details.containsKey("firstName") && !sharedUtilityService.isAlphabetic((String) details.get("firstName"))) {
                 errorMessages.add("Invalid First name");
             }
-            if (details.containsKey("lastName") && !details.get("lastName").toString().isEmpty())
+            if (details.containsKey("lastName") && !details.get("lastName").toString().isEmpty()){
                 customCustomer.setLastName((String) details.get("lastName"));
+                customCustomer.setIsAcknowledged(false);
+            }
             else if (details.containsKey("lastName") && details.get("lastName").toString().isEmpty()) {
                 errorMessages.add("Last name cannot be null");
             } else if (details.containsKey("lastName") && !sharedUtilityService.isAlphabetic((String) details.get("lastName"))) {
@@ -628,10 +630,31 @@ public class CustomerEndpoint {
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
             if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty())
+                customCustomer.setIsAcknowledged(false);
                 customCustomer.setEmailAddress(emailAddress);
+
+            if (details.containsKey("fathersName") && !details.get("fathersName").toString().isEmpty()) {
+                customCustomer.setFirstName((String) details.get("fathersName"));
+                customCustomer.setIsAcknowledged(false);
+            } else if (details.containsKey("fathersName") && details.get("fathersName").toString().isEmpty()) {
+                errorMessages.add("Father's name cannot be null");
+            } else if (details.containsKey("fathersName") && !sharedUtilityService.isAlphabetic((String) details.get("fathersName"))) {
+                errorMessages.add("You entered invalid Father's name");
+            }
+
+            if (details.containsKey("mothersName") && !details.get("mothersName").toString().isEmpty()) {
+                customCustomer.setFirstName((String) details.get("mothersName"));
+                customCustomer.setIsAcknowledged(false);
+            } else if (details.containsKey("mothersName") && details.get("mothersName").toString().isEmpty()) {
+                errorMessages.add("Mother's name cannot be null");
+            } else if (details.containsKey("mothersName") && !sharedUtilityService.isAlphabetic((String) details.get("mothersName"))) {
+                errorMessages.add("You entered invalid Mother's name");
+            }
             // Handle dynamic fields
             details.remove("firstName");
             details.remove("lastName");
+            details.remove("fathersName");
+            details.remove("mothersName");
             details.remove("emailAddress");
 
             String state = (String) details.get("currentState");
@@ -656,6 +679,7 @@ public class CustomerEndpoint {
                 boolean updated = false;
                 for (CustomerAddress customerAddress : customCustomer.getCustomerAddresses()) {
                     if (customerAddress.getAddressName().equals("CURRENT_ADDRESS")) {
+                        customCustomer.setIsAcknowledged(false);
                         customerAddress.getAddress().setAddressLine1(addressLine);
                         String stateName = districtService.findStateById(Integer.parseInt(state));
                         if (stateName == null)
@@ -722,6 +746,7 @@ public class CustomerEndpoint {
 
                     if (customerAddress.getAddressName().equals("PERMANENT_ADDRESS")) {
                         customerAddress.getAddress().setAddressLine1(addressLine);
+                        customCustomer.setIsAcknowledged(false);
                         String stateName = districtService.findStateById(Integer.parseInt(state));
                         if (stateName == null)
                             return ResponseService.generateErrorResponse("Invalid State", HttpStatus.BAD_REQUEST);
@@ -840,6 +865,7 @@ public class CustomerEndpoint {
 //                    errorMessages.add("Your age should be greater than equal to 8");
                 else
                     customCustomer.setDob(dob);
+                    customCustomer.setIsAcknowledged(false);
             }
             if (details.containsKey("isLivePhotoNa")) {
                 Boolean isLivePhotoNa = (Boolean) details.get("isLivePhotoNa");
@@ -1271,6 +1297,7 @@ public class CustomerEndpoint {
                 }
                 OtherItem categoryOtherItemToAdd = null;
                 customCustomer.setCategory(details.get("category").toString());
+                customCustomer.setIsAcknowledged(false);
 
                 if (details.get("category").toString().equalsIgnoreCase("Others")) {
                     isOtherCategory = true;
@@ -1335,9 +1362,12 @@ public class CustomerEndpoint {
                 }
 //
             } else if (!details.containsKey("category")) {
-                if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
-                    customCustomer.setCategoryIssueDate(null);
-                    customCustomer.setCategoryValidUpto(null);
+                if(customCustomer.getCategory()!=null)
+                {
+                    if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
+                        customCustomer.setCategoryIssueDate(null);
+                        customCustomer.setCategoryValidUpto(null);
+                    }
                 }
             }
             if (details.containsKey("otherCategory")) {
@@ -1473,7 +1503,11 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
-
+            if(details.containsKey("isAcknowledged"))
+            {
+                Boolean value= (Boolean) details.get("isAcknowledged");
+                customCustomer.setIsAcknowledged(value);
+            }
             if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null) {
                 customCustomer.setEmailActive(true);
                 em.merge(customCustomer);
@@ -1648,7 +1682,7 @@ public class CustomerEndpoint {
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
             for (int i = 0; i < files.size(); i++) {
-                Integer fileTypeId = fileTypes.get(i); // here fileType id meaning documentTypeId
+                Integer fileTypeId = fileTypes.get(0); // here fileType id meaning documentTypeId
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }
@@ -1711,6 +1745,10 @@ public class CustomerEndpoint {
             if (customer == null) {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
 
+            }
+            if(customer.getUsername()!=null)
+            {
+                return ResponseService.generateErrorResponse("Username cannot be changed once created",HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
@@ -1866,6 +1904,7 @@ public class CustomerEndpoint {
                     return ResponseService.generateErrorResponse("Error saving address", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
                 addressDTO.setPhoneNumber(customCustomer.getMobileNumber());
+                customCustomer.setIsAcknowledged(false);
                 return ResponseService.generateSuccessResponse("Address added successfully : ", addressDTO, HttpStatus.OK);
 
 
@@ -2598,6 +2637,61 @@ public class CustomerEndpoint {
         uniqueResults.addAll(resultSet2);
         List<BigInteger> uniqueResultList = new ArrayList<>(uniqueResults);
         System.out.println("count:" + uniqueResultList.size());
+
+        //  Pre-load all state and district mappings
+        Map<String, Integer> stateNameToIdCache = new HashMap<>();
+        Map<String, Integer> districtNameToIdCache = new HashMap<>();
+
+        // Collect all unique state and district names first
+        Set<String> allStateNames = new HashSet<>();
+        Set<String> allDistrictNames = new HashSet<>();
+
+        for (BigInteger id : uniqueResultList) {
+            try {
+                Customer customer = customerService.readCustomerById(id.longValue());
+                if (customer != null && customer.getCustomerAddresses() != null) {
+                    for (CustomerAddress address : customer.getCustomerAddresses()) {
+                        if (address == null || address.getAddress() == null) continue;
+
+                        if ("PERMANENT_ADDRESS".equals(address.getAddressName()) ||
+                                "CURRENT_ADDRESS".equals(address.getAddressName())) {
+
+                            String state = address.getAddress().getStateProvinceRegion();
+                            String district = address.getAddress().getCounty();
+
+                            if (state != null) allStateNames.add(state);
+                            if (district != null) allDistrictNames.add(district);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                continue;
+            }
+        }
+
+        // Batch load all state and district IDs
+        for (String stateNameKey : allStateNames) {
+            try {
+                Integer stateIdValue = districtService.findStateIdByName(stateNameKey);
+                if (stateIdValue != null) {
+                    stateNameToIdCache.put(stateNameKey, stateIdValue);
+                }
+            } catch (Exception e) {
+                System.out.println("Error loading state: " + stateNameKey + " - " + e.getMessage());
+            }
+        }
+
+        for (String districtNameKey : allDistrictNames) {
+            try {
+                Integer districtIdValue = districtService.findDistrictIdByName(districtNameKey);
+                if (districtIdValue != null) {
+                    districtNameToIdCache.put(districtNameKey, districtIdValue);
+                }
+            } catch (Exception e) {
+                System.out.println("Error loading district: " + districtNameKey + " - " + e.getMessage());
+            }
+        }
+
 // Convert the Set back to a List
         List<CustomerBasicDetailsDto> customerList = new ArrayList<>();
         Map<Integer, Integer> Qualificationorder = new HashMap<>();
@@ -2685,6 +2779,64 @@ public class CustomerEndpoint {
                     customerBasicDetailsDto.setFullName(customer.getFirstName() + " " + customer.getLastName());
                     customerBasicDetailsDto.setGender(customCustomer.getGender());
                     customerBasicDetailsDto.setUsername(customer.getUsername());
+                    customerBasicDetailsDto.setProfileComplete(customCustomer.getProfileComplete());
+                    customerBasicDetailsDto.setSuspended(customCustomer.getArchived());
+
+                    List<Long> qualificationDetailIds = new ArrayList<>();
+                    List<Integer> qualificationIds = new ArrayList<>();
+
+                    if(customCustomer.getQualificationDetailsList() != null && !customCustomer.getQualificationDetailsList().isEmpty()) {
+                        for(QualificationDetails qualificationDetails: customCustomer.getQualificationDetailsList()) {
+                            qualificationDetailIds.add(qualificationDetails.getQualification_detail_id());
+                            qualificationIds.add(qualificationDetails.getQualification_id());
+                        }
+                    }
+
+                    if (customer.getCustomerAddresses() != null) {
+                        for (CustomerAddress address : customer.getCustomerAddresses()) {
+                            if (address == null || address.getAddress() == null) continue;
+
+                            if ("PERMANENT_ADDRESS".equals(address.getAddressName())) {
+                                String permanentState = address.getAddress().getStateProvinceRegion();
+                                String permanentDistrict = address.getAddress().getCounty();
+
+                                // Use cache instead of database calls
+                                if (permanentState != null) {
+                                    Integer stateIdValue = stateNameToIdCache.get(permanentState);
+                                    if (stateIdValue != null) {
+                                        customerBasicDetailsDto.setPermanent_state_id(stateIdValue);
+                                    }
+                                }
+                                if (permanentDistrict != null) {
+                                    Integer districtIdValue = districtNameToIdCache.get(permanentDistrict);
+                                    if (districtIdValue != null) {
+                                        customerBasicDetailsDto.setPermanent_district_id(districtIdValue);
+                                    }
+                                }
+                            }
+                            else if("CURRENT_ADDRESS".equals(address.getAddressName())) {
+                                String currentState = address.getAddress().getStateProvinceRegion();
+                                String currentDistrict = address.getAddress().getCounty();
+
+                                // Use cache instead of database calls
+                                if (currentState != null) {
+                                    Integer stateIdValue = stateNameToIdCache.get(currentState);
+                                    if (stateIdValue != null) {
+                                        customerBasicDetailsDto.setCurrent_state_id(stateIdValue);
+                                    }
+                                }
+                                if (currentDistrict != null) {
+                                    Integer districtIdValue = districtNameToIdCache.get(currentDistrict);
+                                    if (districtIdValue != null) {
+                                        customerBasicDetailsDto.setCurrent_district_id(districtIdValue);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    customerBasicDetailsDto.setQualification_detail_ids(qualificationDetailIds);
+                    customerBasicDetailsDto.setQualification_ids(qualificationIds);
 
                         /*if (ref != null) {
                             System.out.println(customCustomer.getId()+","+customCustomer.getPrimaryRef());

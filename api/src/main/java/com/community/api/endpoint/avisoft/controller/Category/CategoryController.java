@@ -5,13 +5,18 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddCategoryDto;
 import com.community.api.dto.CategoryDto;
+import com.community.api.dto.CategoryExtDTO;
+import com.community.api.dto.CategoryProductDTO;
 import com.community.api.dto.CustomCategoryWrapper;
+import com.community.api.dto.ProductCompressedDTO;
 import com.community.api.entity.CustomProduct;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.services.CategoryService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import com.google.gson.JsonObject;
+import io.swagger.models.auth.In;
 import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Category;
 import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
@@ -34,6 +39,7 @@ import com.community.api.dto.CategoryDto;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
@@ -287,17 +293,19 @@ public class CategoryController extends CatalogEndpoint {
             @PathVariable String id,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(value = "ext",required = false,defaultValue = "false") Boolean ext,
             @RequestHeader(value = "Authorization",required = false) String authHeader) {
         try {
-            Integer roleId=5;
-            String role=Constant.roleUser;
-            if(authHeader!=null) {
+            Integer roleId = 5;
+            String role = Constant.roleUser;
+            if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
                 Long userId = jwtTokenUtil.extractId(jwtToken);
 
-               roleId = jwtTokenUtil.extractRoleId(jwtToken);
-                role= roleService.findRoleName(roleId);
+                roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role = roleService.findRoleName(roleId);
             }
+
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
             }
@@ -313,7 +321,34 @@ public class CategoryController extends CatalogEndpoint {
             } else if (((Status) category).getArchived() == 'Y') {
                 return ResponseService.generateErrorResponse("CATEGORY IS ARCHIVED", HttpStatus.NOT_FOUND);
             }
-
+            if (ext)
+            {
+                List<Object[]> rows =categoryService.getAllProductsByCategoryIdCompressed(categoryId,offset,limit);
+                System.out.println("res"+rows);
+                BigInteger count=categoryService.getAllProductsByCategoryIdCount(categoryId);
+                List<ProductCompressedDTO>products=new ArrayList<>();
+                for (Object[] row : rows) {
+                    System.out.println("inside loop");
+                    ProductCompressedDTO dto = new ProductCompressedDTO();
+                    dto.setProductId(((BigInteger) row[0]).longValue());
+                    dto.setMetaTitle((String) row[1]);
+                    products.add(dto);
+                    /* activeCategories.add(dto);*/
+                }
+                CategoryProductDTO categoryProductDTO=new CategoryProductDTO();
+                categoryProductDTO.setCategoryId(categoryId);
+                categoryProductDTO.setCategoryName(category.getName());
+                categoryProductDTO.setProducts(products);
+                int totalItems = count.intValue();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int fromIndex = offset * limit;
+                Map<String, Object> response = new HashMap<>();
+                response.put("category", categoryProductDTO);
+                response.put("totalItems", totalItems);
+                response.put("totalPages", totalPages);
+                response.put("currentPage", offset);
+                return ResponseService.generateSuccessResponse("CATEGORY DATA FOUND",response, HttpStatus.OK);
+            }
             List<BigInteger> productIdList = categoryService.getAllProductsByCategoryId(categoryId);
             List<CustomProductWrapper> products = new ArrayList<>();
 
@@ -493,8 +528,56 @@ public class CategoryController extends CatalogEndpoint {
     public ResponseEntity<?> getCategoriesInfo(
             HttpServletRequest request,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "ext",defaultValue ="false",required = false)Boolean ext) {
         try {
+            if(ext)
+            {
+                List<CategoryExtDTO> activeCategories = new ArrayList<>();
+                Query query = entityManager.createNativeQuery(
+                        "SELECT category_id, name FROM blc_category " +
+                                "WHERE archived = 'N' " +
+                                "AND default_parent_category_id IS NULL " +
+                                "AND (active_end_date IS NULL OR active_end_date > CURRENT_DATE) " +
+                                "ORDER BY category_id ASC " +
+                                "LIMIT :limit OFFSET :offset");
+                Query queryToCount = entityManager.createNativeQuery(
+                        "SELECT COUNT(category_id) FROM blc_category " +
+                                "WHERE archived = 'N' " +
+                                "AND default_parent_category_id IS NULL " +
+                                "AND (active_end_date IS NULL OR active_end_date > CURRENT_DATE) " );
+
+                query.setParameter("limit",limit);
+                query.setParameter("offset",offset);
+                List<Object[]> rows = query.getResultList();
+                for (Object[] row : rows) {
+                    CategoryExtDTO dto = new CategoryExtDTO();
+                    dto.setId(((BigInteger) row[0]).longValue());
+                    dto.setName((String) row[1]);
+                    activeCategories.add(dto);
+                }
+                int totalItems = ((BigInteger) queryToCount.getSingleResult()).intValue();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int fromIndex = offset * limit;
+
+
+                if (fromIndex >= totalItems && offset != 0) {
+                    return ResponseService.generateErrorResponse("PAGE INDEX OUT OF RANGE", HttpStatus.BAD_REQUEST);
+                }
+
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("categories", activeCategories);
+                response.put("totalItems", totalItems);
+                response.put("totalPages", totalPages);
+                response.put("currentPage", offset);
+
+                String message = totalItems > 0 ? "CATEGORIES INFO FOUND SUCCESSFULLY" : "CATEGORIES INFO IS EMPTY";
+
+                return ResponseService.generateSuccessResponse(message, response, HttpStatus.OK);
+            }
+            //NEW LOGIC ⤴️
+            //OLD LOGIC ⤵️
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse("CATALOG SERVICE IS NULL", HttpStatus.INTERNAL_SERVER_ERROR);
             }

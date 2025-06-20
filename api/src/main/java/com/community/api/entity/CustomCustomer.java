@@ -403,4 +403,7 @@ public class CustomCustomer extends CustomerImpl {
     private String stateCategory;
     @Column(name = "category_state_name")
     private String categoryStateName;
+
+    @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isAcknowledged=false;
 }

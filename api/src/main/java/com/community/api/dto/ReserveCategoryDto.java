@@ -30,6 +30,7 @@ public class ReserveCategoryDto {
     String genderRunningField;
     @JsonProperty("gender_name")
     String genderName;
+    @JsonIgnore
     @JsonProperty("fee_additional_comments")
     String additionalComments;
     @JsonProperty("is_other_or_state_category")

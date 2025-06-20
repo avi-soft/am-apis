@@ -52,6 +52,12 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("assignee_role")
     protected Role assigneeRole;
 
+    @JsonProperty("assignee_mobile_number")
+    protected String assigneeMobileNumber;
+
+    @JsonProperty("assignee_primary_email")
+    protected String assigneePrimaryEmail;
+
     @JsonProperty("modifier_user_id")
     protected Long modifierUserId;
 
@@ -139,8 +145,12 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
                 if (assignee.getLast_name() != null) {
                     this.assigneeName += " " + assignee.getLast_name();
                 }
+                this.assigneeMobileNumber = assignee.getMobileNumber();
+                this.assigneePrimaryEmail = assignee.getPrimary_email();
             } else {
                 this.assigneeName = "-";
+                this.assigneeMobileNumber = "-";
+                this.assigneePrimaryEmail = "-";
             }
             if(assignee != null) {
                 this.primaryEmail = assignee.getPrimary_email();
@@ -215,8 +225,12 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
                 if (serviceProvider.getLast_name() != null) {
                     this.assigneeName += " " + serviceProvider.getLast_name();
                 }
+                this.assigneeMobileNumber = serviceProvider.getMobileNumber();
+                this.assigneePrimaryEmail = serviceProvider.getPrimary_email();
             } else {
                 this.assigneeName = "-";
+                this.assigneeMobileNumber = "-";
+                this.assigneePrimaryEmail = "-";
             }
             if(serviceProvider != null) {
                 this.primaryEmail = serviceProvider.getPrimary_email();

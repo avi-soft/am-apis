@@ -54,7 +54,7 @@ import java.util.List;
         private List<CategoryDistribution> categoryDistributions = new ArrayList<>();
 
         @JsonIgnore
-        @Column(name = "additional_comments")
+        @Column(name = "additional_comments", columnDefinition = "text")
         @JsonProperty("additional_comments")
         private String additionalComments;
 

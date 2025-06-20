@@ -45,6 +45,13 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
+    public Integer findDistrictIdByName(String district_name) {
+        return entityManager.createQuery(Constant.FIND_DISTRICT_ID_BY_NAME, Integer.class)
+                .setParameter("district_name", district_name)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
 
     public String findStateById(int state_id) {
 
@@ -54,6 +61,15 @@ public class DistrictService {
                 .findFirst()
                 .orElse(null);
     }
+    public Integer findStateIdByName(String state_name) {
+
+        return entityManager.createQuery(Constant.FIND_STATE_ID_BY_NAME, Integer.class)
+                .setParameter("state_name", state_name)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
 
     public List<StateCode> findStateList(Boolean archived) {
         TypedQuery<StateCode> query = entityManager.createQuery(Constant.GET_STATES_LIST, StateCode.class);
@@ -164,6 +180,7 @@ public class DistrictService {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a state");
             }
             stateCode.setArchived(false);
+            stateCode.setIsState(true);
             entityManager.persist(stateCode);
             return stateCode;
         } catch (Exception e) {
@@ -235,7 +252,7 @@ public class DistrictService {
             state.setState_code(stateCode.getState_code());
             state.setState_name(stateCode.getState_name());
             state.setArchived(stateCode.getArchived());
-            state.setArchived(false);
+            /*state.setArchived(false);*/
             entityManager.merge(state);
             return state;
         } catch (Exception e) {

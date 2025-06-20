@@ -106,6 +106,39 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         }
 
     }
+    /*public void wrapDetailsCategoryNew(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
+
+        this.id = category.getId();
+        this.name = category.getName();
+        this.products = products;
+        if (products == null) {
+            this.totalProducts = null;
+        } else {
+            this.totalProducts = products.size();
+        }
+
+        Integer productLimit = (Integer) request.getAttribute("productLimit");
+        Integer productOffset = (Integer) request.getAttribute("productOffset");
+        Integer subcategoryLimit = (Integer) request.getAttribute("subcategoryLimit");
+        Integer subcategoryOffset = (Integer) request.getAttribute("subcategoryOffset");
+        if (productLimit != null && productOffset == null) {
+            productOffset = 1;
+        }
+
+        if (productLimit != null && productOffset != null) {
+            SearchService searchService = this.getSearchService();
+            SearchCriteria searchCriteria = new SearchCriteria();
+            searchCriteria.setPage(productOffset);
+            searchCriteria.setPageSize(productLimit);
+            searchCriteria.setFilterCriteria(new HashMap());
+
+        }
+
+        if (category instanceof Status) {
+            this.archived = ((Status) category).getArchived();
+        }
+
+    }*/
     @Override
     public void wrapDetails(Category category, HttpServletRequest httpServletRequest) {
 

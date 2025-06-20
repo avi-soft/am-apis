@@ -211,7 +211,7 @@ public class ServiceProviderEntity  {
     private ServiceProviderTestStatus serviceProviderStatus;
     private Long lastStatusId;
 
-    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
+    @OneToOne // Only persist/merge, no REMOVE
     @JoinColumn(name="rank_id", referencedColumnName = "rank_id")
     private ServiceProviderRank ranking;
 
@@ -321,6 +321,9 @@ public class ServiceProviderEntity  {
 
     @Column(name = "time_completion_score")
     private Long timeCompletionScore = 0L;
+
+    @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isAcknowledged=false;
 
 }
 
