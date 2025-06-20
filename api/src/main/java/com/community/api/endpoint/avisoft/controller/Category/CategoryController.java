@@ -539,7 +539,7 @@ public class CategoryController extends CatalogEndpoint {
                                 "WHERE archived = 'N' " +
                                 "AND default_parent_category_id IS NULL " +
                                 "AND (active_end_date IS NULL OR active_end_date > CURRENT_DATE) " +
-                                "ORDER BY category_id DESC " +
+                                "ORDER BY category_id ASC " +
                                 "LIMIT :limit OFFSET :offset");
                 Query queryToCount = entityManager.createNativeQuery(
                         "SELECT COUNT(category_id) FROM blc_category " +
