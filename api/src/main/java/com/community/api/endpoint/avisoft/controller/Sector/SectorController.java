@@ -2,13 +2,21 @@ package com.community.api.endpoint.avisoft.controller.Sector;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddSectorDto;
 import com.community.api.dto.AdvertisementCompressedDTO;
 import com.community.api.dto.CompressedProductWrapper;
+import com.community.api.dto.SectorDTO;
+import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomSector;
+import com.community.api.services.GenderService;
+import com.community.api.services.ReserveCategoryAgeService;
+import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.SectorService;
+import com.community.api.services.SharedUtilityService;
 import com.community.api.services.StaticDataService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +35,11 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.persistence.EntityManager;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.request;
 
@@ -130,25 +140,59 @@ public class SectorController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-   /* @Autowired
+    @Autowired
     EntityManager entityManager;
-    @GetMapping("/get-products-by-sector-id/{sectorId}")
-    public ResponseEntity<?>getProductsByAdvertisementId(@PathVariable Long sectorId)
+    @Autowired
+    ReserveCategoryService reserveCategoryService;
+    @Autowired
+    GenderService genderService;
+    @Autowired
+    JwtUtil jwtTokenUtil;
+    @Autowired
+    RoleService roleService;
+    @Autowired
+    ReserveCategoryAgeService reserveCategoryAgeService;
+    @Autowired
+    SharedUtilityService sharedUtilityService;
+    @GetMapping("/get-products-by-sectors")
+    public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectors", required = false) String sectors
+            ,@RequestParam(value = "limit",required = false,defaultValue = "10")Integer limit
+            ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
+            ,@RequestHeader(value = "Authorization", required = false) String authHeader
+            ,@RequestParam(value = "name-only",required = false,defaultValue = "true") Boolean nameOnly)
     {
-        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
+        CustomCustomer customCustomer = null;
+        String role=Constant.roleUser;
+        if (authHeader != null) {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            role  = roleService.findRoleName(roleId);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if (roleId == 5)
+                customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+        }
+        List<Long> longList=new ArrayList<>();
+        if(sectors!=null) {
+             longList= Arrays.stream(sectors.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+        }
+       /* CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
         if(customSector==null)
-            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);*/
         List<Object[]> rows =sectorService.getCompressedProductsBySector(longList,offset,limit);
         System.out.println("res"+rows);
-        BigInteger count=advertisementService.getAdvCompressedCount(longList);
-        List<AdvertisementCompressedDTO>adv=new ArrayList<>();
+        BigInteger count=sectorService.getCompressedProductsBySectorCount(longList);
+        List<SectorDTO>adv=new ArrayList<>();
         for (Object[] row : rows) {
-            AdvertisementCompressedDTO dto=new AdvertisementCompressedDTO();
-            dto.setAdvertisement_id(((BigInteger) row[0]).longValue());
-            dto.setAdvertisementDesc((String) row[1]);
-            dto.setAdvertisementTitle((String) row[2]);
+            SectorDTO dto=new SectorDTO();
+            dto.setSectorId(((BigInteger) row[0]).longValue());
+            dto.setSectorDescription((String) row[1]);
+            dto.setSectorName((String)row[2]);
             adv.add(dto);
-            String productIdsStr = row[3].toString(); // row[3] contains comma-separated product IDs
+            if(!nameOnly)
+            {
+            String productIdsStr = row[3].toString(); // row[2] contains comma-separated product IDs
             String[] productIdStrings = productIdsStr.split(",");
 
             for (String idStr : productIdStrings) {
@@ -156,16 +200,16 @@ public class SectorController {
                     Long id = Long.parseLong(idStr.trim());
                     CustomProduct product = entityManager.find(CustomProduct.class, id);
                     if (product != null) {
-                        CompressedProductWrapper compressedProductWrapper=new CompressedProductWrapper();
-                        compressedProductWrapper.wrapDetails(product,request,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
-                        dto.getProductList().add(compressedProductWrapper);
+                        CompressedProductWrapper compressedProductWrapper = new CompressedProductWrapper();
+                        compressedProductWrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                        dto.getProducts().add(compressedProductWrapper);
                     }
                 } catch (NumberFormatException e) {
                     // Skip invalid ID strings
                     System.err.println("Invalid product ID: " + idStr);
                 }
             }
-            *//* activeCategories.add(dto);*//*
+            }
         }
         int totalItems = count.intValue();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -177,11 +221,63 @@ public class SectorController {
         }
         // Construct paginated response
         Map<String, Object> response = new HashMap<>();
-        response.put("advertisements", adv);
+        response.put("sectors", adv);
         response.put("totalItems", totalItems);
         response.put("totalPages", totalPages);
         response.put("currentPage", offset);
-        return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+        return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
-    }*/
+    @GetMapping("/get-products-by-sector-id")
+    public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
+            ,@RequestParam(value = "limit",required = false,defaultValue = "10")Integer limit
+            ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
+            ,@RequestHeader(value = "Authorization", required = false) String authHeader)
+    {
+        CustomCustomer customCustomer = null;
+        String role=Constant.roleUser;
+        if (authHeader != null) {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            role  = roleService.findRoleName(roleId);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            if (roleId == 5)
+                customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+        }
+
+
+       CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
+        if(customSector==null)
+            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
+        BigInteger count=sectorService.getCompressedProductsCount(sectorId);
+        SectorDTO sectorDTO=new SectorDTO();
+        sectorDTO.setSectorName(customSector.getSectorName());
+        sectorDTO.setSectorDescription(customSector.getSectorDescription());
+        sectorDTO.setSectorId(customSector.getSectorId());
+        List<BigInteger> productIds = sectorService.getCompressedProductBySector(sectorId, offset, limit);
+        List<CompressedProductWrapper> products = new ArrayList<>();
+        for (BigInteger productId : productIds) {
+            CustomProduct product = entityManager.find(CustomProduct.class, productId.longValue());
+            if (product != null) {
+                CompressedProductWrapper wrapper = new CompressedProductWrapper();
+                wrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                products.add(wrapper);
+            }
+        }
+        sectorDTO.setProducts(products);
+        int totalItems = count.intValue();
+        int totalPages = (int) Math.ceil((double) totalItems / limit);
+        int fromIndex = offset * limit;
+        int toIndex = Math.min(fromIndex + limit, totalItems);
+
+        if (fromIndex >= totalItems && offset != 0) {
+            return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+        }
+        // Construct paginated response
+        Map<String, Object> response = new HashMap<>();
+        response.put("sectors", sectorDTO);
+        response.put("totalItems", totalItems);
+        response.put("totalPages", totalPages);
+        response.put("currentPage", offset);
+        return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+    }
 }

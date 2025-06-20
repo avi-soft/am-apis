@@ -213,7 +213,7 @@ public class TicketStateService {
             if (createTicketDTO == null) {
                 log.info("CREATE TICKET DTO IS NULL");
             }
-            log.info("dto state is {}:" ,createTicketDTO.getTicketState().toString());
+//            log.info("dto state is {}:" ,createTicketDTO.getTicketState().toString());
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
                 throw new IllegalArgumentException("At least one parameter is required to update the ticket");
             }
