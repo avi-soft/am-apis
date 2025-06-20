@@ -322,6 +322,9 @@ public class ServiceProviderEntity  {
     @Column(name = "time_completion_score")
     private Long timeCompletionScore = 0L;
 
+    @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isAcknowledged=false;
+
 }
 
 
