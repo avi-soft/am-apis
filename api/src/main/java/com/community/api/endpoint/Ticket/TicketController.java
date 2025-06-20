@@ -581,11 +581,15 @@ public class TicketController {
 
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setModifiedDate(createdDate);
-            customServiceProviderTicket.setTicketAssignDate(createdDate);
+            if(createTicketDto.getAssignee() != null) {
+                customServiceProviderTicket.setTicketAssignDate(createdDate);
+            }
 
             // Entering Creator details.
             customServiceProviderTicket.setUserId(userId);
             customServiceProviderTicket.setCreatorRole(role);
+            customServiceProviderTicket.setModifierId(userId);
+            customServiceProviderTicket.setModifierRole(role);
 
             // validation of title and task
             if (createTicketDto.getTitle() == null || createTicketDto.getTitle().trim().isEmpty() || createTicketDto.getTask() == null || createTicketDto.getTask().trim().isEmpty()) {
