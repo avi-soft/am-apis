@@ -130,7 +130,7 @@ public class SectorController {
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    @Autowired
+   /* @Autowired
     EntityManager entityManager;
     @GetMapping("/get-products-by-sector-id/{sectorId}")
     public ResponseEntity<?>getProductsByAdvertisementId(@PathVariable Long sectorId)
@@ -165,7 +165,7 @@ public class SectorController {
                     System.err.println("Invalid product ID: " + idStr);
                 }
             }
-            /* activeCategories.add(dto);*/
+            *//* activeCategories.add(dto);*//*
         }
         int totalItems = count.intValue();
         int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -183,5 +183,5 @@ public class SectorController {
         response.put("currentPage", offset);
         return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
-    }
+    }*/
 }
