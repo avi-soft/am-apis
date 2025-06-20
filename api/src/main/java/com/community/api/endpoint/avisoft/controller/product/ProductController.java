@@ -398,6 +398,18 @@ public class ProductController extends CatalogEndpoint {
 //            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
+            if (addProductDto.getSector() != null) {
+                if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
+                    return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
+                } else if (addProductDto.getSector() == 1000 && (addProductDto.getSectorRunningField() == null || addProductDto.getSectorRunningField().trim().isEmpty())) {
+                    return ResponseService.generateErrorResponse("Running field requried when selecting sector : OTHERS", HttpStatus.BAD_REQUEST);
+                }
+                CustomSector sector=entityManager.find(CustomSector.class,addProductDto.getSector());
+                if(sector==null)
+                    return ResponseService.generateErrorResponse("Sector not found", HttpStatus.BAD_REQUEST);
+                customProduct.setSector(sector);
+                customProduct.setSectorRunningField(addProductDto.getSectorRunningField());
+            }
             // Validation of getActiveEndDate and getGoLiveDate.
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Set active start date to current date and time in "yyyy-MM-dd HH:mm:ss" format
             String formattedDate = dateFormat.format(new Date());
@@ -408,6 +420,10 @@ public class ProductController extends CatalogEndpoint {
             customProduct.setAdmitCardDateTo(originalProduct.getAdmitCardDateTo());
             customProduct.setModificationDateFrom(originalProduct.getModificationDateFrom());
             customProduct.setModificationDateTo(originalProduct.getModificationDateTo());
+            if(addProductDto.getAdditionalComments()!=null)
+                customProduct.setAdditionalComments(addProductDto.getAdditionalComments());
+            if(addProductDto.getFeeAdditionalComments()!=null)
+                customProduct.setFeeAdditionalComments(addProductDto.getFeeAdditionalComments());
             customProduct.setExamDateFrom(originalProduct.getExamDateFrom());
             customProduct.setExamDateTo(originalProduct.getExamDateTo());
             if(addProductDto.getProductState()==null){
@@ -564,7 +580,7 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
             System.out.println("admit card date is "+customProduct.getAdmitCardDateFrom());
-List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
+            List<String>diff= sharedUtilityService.getDifferences(customProduct,originalProduct);
             System.out.println(diff);
             entityManager.merge(customProduct);
             List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);

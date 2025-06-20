@@ -12,6 +12,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 
@@ -126,5 +127,63 @@ public class SectorService {
 
         entityManager.merge(customSector);
         return customSector;
+    }
+    public List<Object[]> getCompressedProductsBySector(List<Long> sectorIds, Integer offset, Integer limit) {
+        String sql = """
+        SELECT 
+            c.sector_id,
+            STRING_AGG(CAST(c.product_id AS TEXT), ',' ORDER BY c.product_id DESC) AS product_ids
+        FROM 
+            custom_product c
+        JOIN custom_sector cs ON cs.sector_id = c.sector_id
+        JOIN blc_product bp ON c.product_id = bp.product_id
+        JOIN blc_sku s ON s.sku_id = bp.default_sku_id
+        WHERE 
+            c.sector_id IN (?1)
+            AND bp.archived = 'N'
+            AND c.product_state_id NOT IN (7)
+            AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE)
+            AND c.go_live_date <= CURRENT_DATE
+        GROUP BY 
+            c.sector_id
+        ORDER BY 
+            c.sector_id
+        LIMIT ?2 OFFSET ?3
+    """;
+
+        try {
+            return entityManager.createNativeQuery(sql)
+                    .setParameter(1, sectorIds)
+                    .setParameter(2, limit)
+                    .setParameter(3, offset)
+                    .getResultList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch compressed products by sector: " + e.getMessage(), e);
+        }
+    }
+    public BigInteger getCompressedProductsBySectorCount(List<Long> sectorIds) {
+        String sql = """
+        SELECT 
+            COUNT(DISTINCT c.sector_id)
+        FROM 
+            custom_product c
+        JOIN custom_sector cs ON cs.sector_id = c.sector_id
+        JOIN blc_product bp ON c.product_id = bp.product_id
+        JOIN blc_sku s ON s.sku_id = bp.default_sku_id
+        WHERE 
+            c.sector_id IN (:sectorIds)
+            AND bp.archived = 'N'
+            AND c.product_state_id NOT IN (7)
+            AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE)
+            AND c.go_live_date <= CURRENT_DATE
+    """;
+
+        try {
+            return (BigInteger) entityManager.createNativeQuery(sql)
+                    .setParameter("sectorIds", sectorIds)
+                    .getSingleResult();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to count sectors: " + e.getMessage(), e);
+        }
     }
 }
