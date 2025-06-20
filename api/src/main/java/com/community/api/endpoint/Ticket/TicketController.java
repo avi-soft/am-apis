@@ -581,11 +581,15 @@ public class TicketController {
 
             customServiceProviderTicket.setCreatedDate(createdDate);
             customServiceProviderTicket.setModifiedDate(createdDate);
-            customServiceProviderTicket.setTicketAssignDate(createdDate);
+            if(createTicketDto.getAssignee() != null) {
+                customServiceProviderTicket.setTicketAssignDate(createdDate);
+            }
 
             // Entering Creator details.
             customServiceProviderTicket.setUserId(userId);
             customServiceProviderTicket.setCreatorRole(role);
+            customServiceProviderTicket.setModifierId(userId);
+            customServiceProviderTicket.setModifierRole(role);
 
             // validation of title and task
             if (createTicketDto.getTitle() == null || createTicketDto.getTitle().trim().isEmpty() || createTicketDto.getTask() == null || createTicketDto.getTask().trim().isEmpty()) {
@@ -672,6 +676,29 @@ public class TicketController {
                 Set<ServiceProviderDocument> serviceProviderDocument = ticketStateService.updateTicketDocument(files, customServiceProviderTicket, userId, role);
                 customServiceProviderTicket.setServiceProviderDocuments(serviceProviderDocument);
                 entityManager.merge(customServiceProviderTicket);
+
+                // get the latest entry from the ticket history table.
+                CustomTicketHistory ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(customServiceProviderTicket.getTicketId()).get(0);
+
+                List<Long> previousTicketDocumentIds = new ArrayList<>();
+                for (ServiceProviderDocument serviceProviderDocumentClone : customServiceProviderTicket.getServiceProviderDocuments()) {
+                    previousTicketDocumentIds.add(serviceProviderDocumentClone.getDocumentId());
+                }
+
+                log.info("old ticket file size is: {}", previousTicketDocumentIds.size());
+                log.info("ticket history is: {}", ticketHistory.getTicketHistoryId());
+
+                Set<ServiceProviderDocument> clonedDocuments = new HashSet<>();
+                for (Long previousDocumentId : previousTicketDocumentIds) {
+                    ServiceProviderDocument oldDocument = entityManager.find(ServiceProviderDocument.class, previousDocumentId);
+                    oldDocument.setTicketHistory(ticketHistory);
+                    oldDocument.setServiceProviderTicket(null);
+                    clonedDocuments.add(oldDocument);
+                    entityManager.persist(oldDocument); // or merge if needed
+                }
+                ticketHistory.setServiceProviderDocuments(clonedDocuments);
+                entityManager.merge(ticketHistory);
+
             }
 
             CustomTicketWrapper wrapper = new CustomTicketWrapper();
