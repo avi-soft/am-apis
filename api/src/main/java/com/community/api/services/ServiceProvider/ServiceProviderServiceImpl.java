@@ -239,37 +239,68 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             {
                 type= existingServiceProvider.getType();
             }
-            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN))
-            {
-                if(updates.containsKey("rankId"))
-                {
+            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN)) {
+                if (updates.containsKey("rankId")) {
                     Object rankIdObj = updates.get("rankId");
                     Long rankId = rankIdObj instanceof Number ? ((Number) rankIdObj).longValue() : null;
-                    ServiceProviderRank serviceProviderRank= entityManager.find(ServiceProviderRank.class,rankId);
-                    if(serviceProviderRank==null)
-                    {
-                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist",HttpStatus.BAD_REQUEST);
+
+                    ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
+
+                    if (serviceProviderRank == null) {
+                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist", HttpStatus.BAD_REQUEST);
                     }
-                    if(type.equalsIgnoreCase("PROFESSIONAL") && rankId >4)
-                    {
-                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d",HttpStatus.BAD_REQUEST);
+                    if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
+                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d", HttpStatus.BAD_REQUEST);
+                    } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
+                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d", HttpStatus.BAD_REQUEST);
                     }
-                    else  if (type.equalsIgnoreCase("INDIVIDUAL" )&& rankId<5)
-                    {
-                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d",HttpStatus.BAD_REQUEST);
-                    }
+
                     existingServiceProvider.setAdminOverridden(true);
                     existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
                     existingServiceProvider.setRanking(serviceProviderRank);
 //                    existingServiceProvider.setAutoScoring(false);
                 }
                 updates.remove("rankId");
+
+                if(updates.containsKey("maximum_ticket_size")) {
+                    Object maximumTicketSizeObj = updates.get("maximum_ticket_size");
+                    Integer maximumTicketSize = maximumTicketSizeObj instanceof Number ? ((Number) maximumTicketSizeObj).intValue() : null;
+
+                    if(maximumTicketSize < 0) {
+                        return ResponseService.generateErrorResponse("The maximum ticket size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                    }
+                    existingServiceProvider.setMaximumTicketSize(maximumTicketSize);
+                    existingServiceProvider.setAdminOverridden(true);
+                    existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
+                }
+                updates.remove("maximum_ticket_size");
+
+                if(updates.containsKey("maximum_binding_size")) {
+                    Object maximumBindingSizeObj = updates.get("maximum_binding_size");
+                    Integer maximumBindingSize = maximumBindingSizeObj instanceof Number ? ((Number) maximumBindingSizeObj).intValue() : null;
+
+                    if(maximumBindingSize < 0) {
+                        return ResponseService.generateErrorResponse("The maximum binding size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                    }
+
+                    existingServiceProvider.setMaximumBindingSize(maximumBindingSize);
+                    existingServiceProvider.setAdminOverridden(true);
+                    existingServiceProvider.setEligibleForReRanking(null);
+                    existingServiceProvider.setAutoScoring(false);
+                }
+                updates.remove("maximum_binding_size");
+
             }
             else
             {
                 if(updates.containsKey("rankId") && updates.get("rankId")!=null)
                 {
-                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provier. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                }
+                if(updates.containsKey("maximum_ticket_size") || updates.containsKey("maximum_binding_value")) {
+                    return ResponseService.generateErrorResponse("Not authorized to update the maximum ticket size or maximum binding size of Service Provider. Only Admin or Super Admin can update it.",HttpStatus.BAD_REQUEST);
                 }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
@@ -315,6 +346,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
 
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
+                existingServiceProvider.setIsAcknowledged(false);
                 if (validateAddressFields(updates).isEmpty()) {
                     boolean flag=false;
                     Long addId=0L;
@@ -354,6 +386,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         }
                     }
                 } else {
+                    existingServiceProvider.setIsAcknowledged(false);
                     errorMessages.addAll(validateAddressFields(updates));
                 }
             }
@@ -384,6 +417,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (KeysCount > 0 && KeysCount < addresskeys.size())
                 return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
             if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
+                existingServiceProvider.setIsAcknowledged(false);
                 if (validatePAddressFields(updates).isEmpty()) {
                     boolean flag=false;
                     Long addId=0L;
@@ -452,7 +486,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             entityManager.merge(existingServiceProvider);
-
 
             // running business unit section
             List<String> businessKeys = new ArrayList<>();
@@ -584,6 +617,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setLatitude(null);
                     existingServiceProvider.setLongitude(null);
                     existingServiceProvider.setBusiness_geo_location(null);
+                    existingServiceProvider.setIsCFormAvailable(false);
+                    List<ServiceProviderDocument> serviceProviderDocuments= existingServiceProvider.getDocuments();
+                    for(ServiceProviderDocument serviceProviderDocument: serviceProviderDocuments)
+                    {
+                        if(serviceProviderDocument.getDocumentType().getDocument_type_id().equals(Constant.DOCUMENT_TYPE_C_FORM))
+                        {
+                            serviceProviderDocument.setIsArchived(true );
+                        }
+                    }
                     updates.remove("latitude");
                     updates.remove("longitude");
                     updates.remove("number_of_employees");
@@ -944,14 +986,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String regex = patternAnnotation.regexp();
                         String message = patternAnnotation.message(); // Get custom message
                         if (!newValue.toString().matches(regex)) {
-                            errorMessages.add(fieldName + "is invalid"); // Use a placeholder
+                            errorMessages.add(fieldName + " is invalid"); // Use a placeholder
                             continue;
                         }
+                    }
+
+                    if(fieldName.equalsIgnoreCase("first_name")|| fieldName.equalsIgnoreCase("last_name")|| fieldName.equalsIgnoreCase("father_name")|| fieldName.equalsIgnoreCase("mother_name")|| fieldName.equalsIgnoreCase("mobileNumber")|| fieldName.equalsIgnoreCase("primary_email"))
+                    {
+                        existingServiceProvider.setIsAcknowledged(false);
                     }
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
                             if (dob.isAfter(LocalDate.now())) {
@@ -1123,8 +1171,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
-            assignRank(existingServiceProvider, totalScore);
-
+            if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
+                assignRank(existingServiceProvider, totalScore);
+            }
+           if(updates.containsKey("isAcknowledged"))
+           {
+               Boolean value= (Boolean) updates.get("isAcknowledged");
+               existingServiceProvider.setIsAcknowledged(value);
+           }
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);

@@ -307,20 +307,30 @@ IF (SELECT COUNT(*) FROM custom_gender) = 0 THEN
         (4, 'All', 'All');
 END IF;
 --
---IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
---    INSERT INTO custom_sector (sector_id, sector_name, sector_description)
---    VALUES
---        (1, 'HEALTHCARE', 'Forms related to patient care and medical services.'),
---        (2, 'EDUCATION', 'Forms for student enrollment and academic records.'),
---        (3, 'FINANCE', 'Forms for loans, taxes, and financial services.'),
---        (4, 'GOVERNMENT', 'Forms for taxes and civic registration.'),
---        (5, 'HUMAN_RESOURCES', 'Forms for job applications and employee management.'),
---        (6, 'REAL_ESTATE', 'Forms for property transactions and leases.'),
---        (7, 'INSURANCE', 'Forms for claims and policy management.'),
---        (8, 'RETAIL', 'Forms for customer feedback and warranties.'),
---        (9, 'TRANSPORTATION', 'Forms for shipping and travel documentation.'),
---        (10, 'LEGAL', 'Forms for legal processes and documentation.');
---END IF;
+IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
+    INSERT INTO custom_sector (sector_id, sector_name, sector_description)
+    VALUES
+        (1, 'HEALTHCARE', 'Forms related to patient care and medical services.'),
+        (2, 'EDUCATION', 'Forms for student enrollment and academic records.'),
+        (3, 'FINANCE', 'Forms for loans, taxes, and financial services.'),
+        (4, 'GOVERNMENT', 'Forms for taxes and civic registration.'),
+        (5, 'HUMAN_RESOURCES', 'Forms for job applications and employee management.'),
+        (6, 'REAL_ESTATE', 'Forms for property transactions and leases.'),
+        (7, 'INSURANCE', 'Forms for claims and policy management.'),
+        (8, 'RETAIL', 'Forms for customer feedback and warranties.'),
+        (9, 'TRANSPORTATION', 'Forms for shipping and travel documentation.'),
+        (10, 'LEGAL', 'Forms for legal processes and documentation.'),
+        (11, 'ALL_INDIA_GOVT_JOBS', 'Government jobs across India.'),
+        (12, 'STATE_GOVT_JOBS', 'Jobs under various state governments.'),
+        (13, 'BANKING_JOBS', 'Jobs in the banking and financial sector.'),
+        (14, 'RAILWAY_JOBS', 'Employment opportunities in Indian Railways.'),
+        (15, 'POLICE_DEFENCE_JOBS', 'Police, paramilitary, and defense sector jobs.'),
+        (16, 'TEACHING_JOBS', 'Teaching and academic faculty jobs.'),
+        (17, 'ENGINEERING_JOBS', 'Engineering job opportunities in various fields.'),
+        (18, 'MEDICAL_JOBS', 'Medical and healthcare job positions.'),
+        (1000,'OTHERS','Other Sectors');
+
+END IF;
 ---- Insert into custom_stream table if empty
 IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
     INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, created_by, creator_role,sort_order)
@@ -723,7 +733,8 @@ IF (SELECT COUNT(*) FROM custom_subject) = 0 THEN
                    (51, 'N', 'Entrepreneurship', 'Description of Entrepreneurship', NOW(), NULL, NULL, 51),
                    (52, 'N', 'Arabic', 'Description of Arabic', NOW(), NULL, NULL, 52),
                    (53, 'N', 'Accounts', 'Description of Accounts', NOW(), NULL, NULL, 53),
-                   (54, 'N', 'Others', 'Others', NOW(), NULL, NULL, 1000000);
+                   (54, 'N', 'Others', 'Others', NOW(), NULL, NULL, 1000000),
+                   (55, 'N', 'NA', 'NA', NOW(), NULL, NULL,999999 );
 
 
 END IF;
@@ -1733,12 +1744,16 @@ END IF;
 IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
 
         -- Insert values if the table is empty
-
+INSERT INTO qualification_stream (qualification_id, stream_id)
+-- 10th stream id 1 which is implicit
+        SELECT 1, stream_id
+        FROM custom_stream
+        WHERE stream_id IN (0);
         -- 12th Stream
         INSERT INTO qualification_stream (qualification_id, stream_id)
         SELECT 2, stream_id
         FROM custom_stream
-        WHERE stream_id IN (1, 2, 3, 4);
+        WHERE stream_id IN (1, 2, 3);
 
         -- Bachelor of Arts and BA Honours (qualification_id = 8, 21)
         INSERT INTO qualification_stream (qualification_id, stream_id)
@@ -1894,19 +1909,18 @@ IF NOT EXISTS (SELECT 1 FROM qualification_stream) THEN
                 FROM custom_stream
                 WHERE stream_id BETWEEN 262 AND 288;
 
---        INSERT INTO qualification_stream (qualification_id, stream_id)
---        SELECT q.qualification_id, cs.stream_id
---        FROM qualification q
---        CROSS JOIN custom_stream cs
---        WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
---        AND q.qualification_id BETWEEN 1 AND 60;
-
+INSERT INTO qualification_stream (qualification_id, stream_id)
+        SELECT q.qualification_id, cs.stream_id
+        FROM qualification q
+        CROSS JOIN custom_stream cs
+        WHERE cs.stream_id IN (215)
+        AND q.qualification_id =1;
 INSERT INTO qualification_stream (qualification_id, stream_id)
         SELECT q.qualification_id, cs.stream_id
         FROM qualification q
         CROSS JOIN custom_stream cs
         WHERE cs.stream_id IN (215)  -- 215 for 'NA' and 216 for 'Others'
-        AND q.qualification_id BETWEEN 1 AND 60;
+        AND q.qualification_id BETWEEN 3 AND 60;
 
         INSERT INTO qualification_stream (qualification_id, stream_id)
                 SELECT q.qualification_id, cs.stream_id
@@ -1942,7 +1956,7 @@ INSERT INTO qualification_stream (qualification_id, stream_id)
           (215,1),(215,2),(215,3),(215,4),(215,5),(215,6),(215,7),(215,8),(215,9),(215,10),(215,11),(215,12),(215,13),(215,14),(215,15),
           (215,16),(215,17),(215,18),(215,19),(215,20),(215,21),(215,22),(215,23),(215,24),(215,25),(215,26),(215,27),(215,28),(215,29),(215,30),(215,31)
           ,(215,32),(215,33),(215,34),(215,35),(215,36),(215,37),(215,38),(215,39),(215,40),(215,41),(215,42),(215,43),(215,44),(215,45),(215,46)
-          ,(215,47),(215,48),(215,49),(215,50),(215,51),(215,52),(215,53),
+          ,(215,47),(215,48),(215,49),(215,50),(215,51),(215,52),(215,53),(215,55),
           -- Others with all
           (0, 54), (1, 54), (2, 54), (3, 54),(215,54)
 

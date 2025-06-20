@@ -33,7 +33,7 @@ public class OtherDistribution implements Serializable {
     private Post post;
 
     @JsonIgnore
-    @Column(name = "additional_comments")
+    @Column(name = "additional_comments", columnDefinition = "text")
     @JsonProperty("additional_comments")
     private String additionalComments;
 }

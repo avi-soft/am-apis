@@ -4,10 +4,13 @@ import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddAdvertisementDto;
+import com.community.api.dto.AdvertisementCompressedDTO;
 import com.community.api.dto.AdvertisementProductWrapper;
 import com.community.api.dto.AdvertisementWrapper;
+import com.community.api.dto.CompressedProductWrapper;
 import com.community.api.dto.CustomAdvertisementProductWrapper;
 import com.community.api.dto.CustomProductWrapper;
+import com.community.api.dto.ProductCompressedDTO;
 import com.community.api.entity.*;
 import com.community.api.services.AdvertisementService;
 import com.community.api.services.GenderService;
@@ -44,6 +47,7 @@ import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -321,7 +325,8 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "false",required = false)Boolean ext) {
 
         try {
             CustomCustomer customCustomer = null;
@@ -340,7 +345,53 @@ public class AdvertisementController {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
+            if(ext)
+            {
+                List<Object[]> rows =advertisementService.getAdvCompressed(longList,offset,limit);
+                System.out.println("res"+rows);
+                BigInteger count=advertisementService.getAdvCompressedCount(longList);
+                List<AdvertisementCompressedDTO>adv=new ArrayList<>();
+                for (Object[] row : rows) {
+                    AdvertisementCompressedDTO dto=new AdvertisementCompressedDTO();
+                    dto.setAdvertisement_id(((BigInteger) row[0]).longValue());
+                    dto.setAdvertisementDesc((String) row[1]);
+                    dto.setAdvertisementTitle((String) row[2]);
+                    adv.add(dto);
+                    String productIdsStr = row[3].toString(); // row[3] contains comma-separated product IDs
+                    String[] productIdStrings = productIdsStr.split(",");
 
+                    for (String idStr : productIdStrings) {
+                        try {
+                            Long id = Long.parseLong(idStr.trim());
+                            CustomProduct product = entityManager.find(CustomProduct.class, id);
+                            if (product != null) {
+                                CompressedProductWrapper compressedProductWrapper=new CompressedProductWrapper();
+                                compressedProductWrapper.wrapDetails(product,request,reserveCategoryService,reserveCategoryAgeService,genderService,customCustomer,sharedUtilityService);
+                                dto.getProductList().add(compressedProductWrapper);
+                            }
+                        } catch (NumberFormatException e) {
+                            // Skip invalid ID strings
+                            System.err.println("Invalid product ID: " + idStr);
+                        }
+                    }
+                    /* activeCategories.add(dto);*/
+                }
+                int totalItems = count.intValue();
+                int totalPages = (int) Math.ceil((double) totalItems / limit);
+                int fromIndex = offset * limit;
+                int toIndex = Math.min(fromIndex + limit, totalItems);
+
+                if (fromIndex >= totalItems && offset != 0) {
+                    return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+                }
+                // Construct paginated response
+                Map<String, Object> response = new HashMap<>();
+                response.put("advertisements", adv);
+                response.put("totalItems", totalItems);
+                response.put("totalPages", totalPages);
+                response.put("currentPage", offset);
+                return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+            }
             List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
@@ -500,5 +551,144 @@ public class AdvertisementController {
             return ResponseService.generateErrorResponse(SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @GetMapping("/get-new-all-advertisement-by-categoryId")
+    public ResponseEntity<?> getFilterAdvertisementNew(
+            @RequestParam(value = "summarize",required = false)Boolean summarise,
+            @RequestParam(value = "category", required = false) String categories,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int limit) {
 
+        try {
+            CustomCustomer customCustomer = null;
+            String role=Constant.roleUser;
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role  = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 5)
+                    customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
+            }
+            List<Long> longList = Arrays.stream(categories.split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+            if (catalogService == null) {
+                return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null);
+            if (advertisements.isEmpty()) {
+                return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
+            }
+
+            List<AdvertisementProductWrapper> responses = new ArrayList<>();
+            for (Advertisement advertisement : advertisements) {
+                if (advertisement == null) {
+                    return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
+                }
+
+                if (advertisement.getArchived() != 'Y' &&
+                        ((advertisement.getNotificationEndDate() == null) ||
+                                (advertisement.getNotificationEndDate().after(new Date())))) {
+
+                    List<CustomAdvertisementProductWrapper> products = new ArrayList<>();
+                    List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisement);
+                    List<CustomProduct> activeProducts = new ArrayList<>();
+                    if (Constant.roleUser.equalsIgnoreCase(role)) {
+                        Date today = stripTime(new Date());
+                        List<CustomProduct> filteredProducts = customProducts.stream()
+                                .filter(customProduct -> customProduct != null)
+                                .filter(customProduct -> ((Status) customProduct).getArchived() != 'Y')
+                                .filter(customProduct -> customProduct.getIsApproved())
+                                .filter(customProduct -> !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT))
+                                .filter(customProduct -> !customProduct.getGoLiveDate().after(new Date()))
+                                .filter(customProduct -> {
+                                    // If active end date is null, product is considered active indefinitely
+                                    if (customProduct.getActiveEndDate() == null) {
+                                        return true;
+                                    }
+
+                                    Date activeEndDate = stripTime(customProduct.getActiveEndDate());
+                                    // Product is active if end date is today or in the future
+                                    return !activeEndDate.before(today);
+                                })
+                                // Sorting
+                                .sorted((p1, p2) -> {
+                                    if (p1.getCreatedDate() == null && p2.getCreatedDate() == null) return 0;
+                                    if (p1.getCreatedDate() == null) return 1;
+                                    if (p2.getCreatedDate() == null) return -1;
+                                    return p2.getCreatedDate().compareTo(p1.getCreatedDate()); // DESC order
+                                })
+                                .collect(Collectors.toList());
+
+                        activeProducts = filteredProducts;
+                    } else {
+
+                        // Filter products: Keep only active products
+                        activeProducts = customProducts.stream()
+                                .filter(customProduct -> customProduct != null &&
+                                        (((Status) customProduct).getArchived() != 'Y' &&
+                                                !customProduct.getProductState().getProductState().equalsIgnoreCase(Constant.PRODUCT_STATE_DRAFT)&&
+                                                customProduct.getDefaultSku().getActiveEndDate().after(new Date()))
+                                        && customProduct.getGoLiveDate().before(new Date()))
+                                .collect(Collectors.toList());
+
+                    }
+// Clear products list before adding new ones to prevent duplicates
+                    products.clear();
+                    if (activeProducts.isEmpty()) {
+                        continue; // Skip this advertisement
+                    }
+
+                    // Wrap active products
+                    for (CustomProduct customProduct : activeProducts) {
+                        CustomAdvertisementProductWrapper wrapper = new CustomAdvertisementProductWrapper();
+                        if (authHeader == null) {
+                            wrapper.wrapDetailsSimplified(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, null, sharedUtilityService);
+                        }
+                        else
+                            wrapper.wrapDetailsSimplified(customProduct, null, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                        products.add(wrapper);
+                    }
+
+                    // Wrap advertisement with valid products
+                    AdvertisementProductWrapper wrapper = new AdvertisementProductWrapper();
+                    wrapper.wrapDetailsNew(advertisement, products, null);
+                    responses.add(wrapper);
+                }
+            }
+
+            // Manual Pagination
+            int totalItems = responses.size();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            List<AdvertisementProductWrapper> paginatedResponses = responses.subList(fromIndex, toIndex);
+
+            // Construct paginated response
+            Map<String, Object> response = new HashMap<>();
+            response.put("advertisements", paginatedResponses);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandlingService.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse(numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
 }
