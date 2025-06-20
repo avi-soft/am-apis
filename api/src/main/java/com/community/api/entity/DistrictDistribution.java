@@ -40,7 +40,7 @@ public class DistrictDistribution {
     @Column(name = "total_vacancy")
     private Integer totalVacancy;
 
-    @Column(name = "additional_comment")
+    @Column(name = "additional_comment", columnDefinition = "text")
     private String additionalComment;
 
     @OneToMany(mappedBy = "districtDistribution", cascade = CascadeType.ALL, orphanRemoval = true)

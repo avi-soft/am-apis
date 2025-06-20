@@ -307,20 +307,30 @@ IF (SELECT COUNT(*) FROM custom_gender) = 0 THEN
         (4, 'All', 'All');
 END IF;
 --
---IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
---    INSERT INTO custom_sector (sector_id, sector_name, sector_description)
---    VALUES
---        (1, 'HEALTHCARE', 'Forms related to patient care and medical services.'),
---        (2, 'EDUCATION', 'Forms for student enrollment and academic records.'),
---        (3, 'FINANCE', 'Forms for loans, taxes, and financial services.'),
---        (4, 'GOVERNMENT', 'Forms for taxes and civic registration.'),
---        (5, 'HUMAN_RESOURCES', 'Forms for job applications and employee management.'),
---        (6, 'REAL_ESTATE', 'Forms for property transactions and leases.'),
---        (7, 'INSURANCE', 'Forms for claims and policy management.'),
---        (8, 'RETAIL', 'Forms for customer feedback and warranties.'),
---        (9, 'TRANSPORTATION', 'Forms for shipping and travel documentation.'),
---        (10, 'LEGAL', 'Forms for legal processes and documentation.');
---END IF;
+IF (SELECT COUNT(*) FROM custom_sector) = 0 THEN
+    INSERT INTO custom_sector (sector_id, sector_name, sector_description)
+    VALUES
+        (1, 'HEALTHCARE', 'Forms related to patient care and medical services.'),
+        (2, 'EDUCATION', 'Forms for student enrollment and academic records.'),
+        (3, 'FINANCE', 'Forms for loans, taxes, and financial services.'),
+        (4, 'GOVERNMENT', 'Forms for taxes and civic registration.'),
+        (5, 'HUMAN_RESOURCES', 'Forms for job applications and employee management.'),
+        (6, 'REAL_ESTATE', 'Forms for property transactions and leases.'),
+        (7, 'INSURANCE', 'Forms for claims and policy management.'),
+        (8, 'RETAIL', 'Forms for customer feedback and warranties.'),
+        (9, 'TRANSPORTATION', 'Forms for shipping and travel documentation.'),
+        (10, 'LEGAL', 'Forms for legal processes and documentation.'),
+        (11, 'ALL_INDIA_GOVT_JOBS', 'Government jobs across India.'),
+        (12, 'STATE_GOVT_JOBS', 'Jobs under various state governments.'),
+        (13, 'BANKING_JOBS', 'Jobs in the banking and financial sector.'),
+        (14, 'RAILWAY_JOBS', 'Employment opportunities in Indian Railways.'),
+        (15, 'POLICE_DEFENCE_JOBS', 'Police, paramilitary, and defense sector jobs.'),
+        (16, 'TEACHING_JOBS', 'Teaching and academic faculty jobs.'),
+        (17, 'ENGINEERING_JOBS', 'Engineering job opportunities in various fields.'),
+        (18, 'MEDICAL_JOBS', 'Medical and healthcare job positions.'),
+        (1000,'OTHERS','Other Sectors');
+
+END IF;
 ---- Insert into custom_stream table if empty
 IF (SELECT COUNT(*) FROM custom_stream) = 0 THEN
     INSERT INTO custom_stream (stream_id, archived, stream_name, stream_description, created_at, created_by, creator_role,sort_order)

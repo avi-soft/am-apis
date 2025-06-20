@@ -291,8 +291,10 @@ public class ProductController extends CatalogEndpoint {
             productService.validateLastDateToPayFee(addProductDto);
 
             if (!saveDraft) {
+                System.out.println("validating links");
                 productService.validateLinks(addProductDto);
             } else if (saveDraft) {
+                System.out.println("validating links");
                 if (addProductDto.getDownloadNotificationLink() != null) {
                     addProductDto.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink().trim());
                 }
