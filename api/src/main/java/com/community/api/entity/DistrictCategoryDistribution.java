@@ -32,7 +32,7 @@ public class DistrictCategoryDistribution {
     @Column(name = "vacancy_count")
     private Integer vacancyCount;
 
-    @Column(name = "additional_comment")
+    @Column(name = "additional_comment",columnDefinition = "text")
     private String additionalComment;
 
     @Column(name = "male_vacancy", columnDefinition = "BIGINT DEFAULT 0")

@@ -24,6 +24,7 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -419,10 +420,12 @@ public class AdvertisementService {
     }
 
     private boolean isValidUrl(String url) {
-        String urlRegex = "^(https?:\\/\\/)?(www\\.)?([\\w.-]+)\\.([a-zA-Z]{2,})([\\/\\w .-]*)*(\\?[\\w=&]+(&[\\w=&]+)*)?$";
-        Pattern pattern = Pattern.compile(urlRegex);
-        Matcher matcher = pattern.matcher(url);
-        return matcher.matches();
+        try {
+            new URL(url).toURI();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
     public List<Object[]> getAdvCompressed(List<Long> categoryIds, Integer offset, Integer limit) {
         String sql = "SELECT " +
