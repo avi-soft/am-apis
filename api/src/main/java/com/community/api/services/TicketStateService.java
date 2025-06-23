@@ -235,11 +235,6 @@ public class TicketStateService {
 
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
 
-            List<Long> previousTicketDocumentIds = new ArrayList<>();
-            for (ServiceProviderDocument serviceProviderDocument : ticket.getServiceProviderDocuments()) {
-                previousTicketDocumentIds.add(serviceProviderDocument.getDocumentId());
-            }
-
             if (ticket == null)
                 throw new NotFoundException("Ticket not found");
 
@@ -617,7 +612,6 @@ public class TicketStateService {
             if(createTicketDTO.getComment() != null && !createTicketDTO.getComment().trim().isEmpty()) {
                 ticket.setComment(createTicketDTO.getComment().trim());
             }
-            ticket = entityManager.merge(ticket);
 
             log.info("HERE file size is: {}", files);
             // If there exists some files then upload them as well.
@@ -626,10 +620,15 @@ public class TicketStateService {
                 log.info("INSIDE FILES IS NOT EMPTY");
                 Set<ServiceProviderDocument> serviceProviderDocument = updateTicketDocument(files, ticket, tokenUserId, tokenRole);
                 ticket.setServiceProviderDocuments(serviceProviderDocument);
-                entityManager.merge(ticket);
+                ticket = entityManager.merge(ticket);
 
                 // get the latest entry from the ticket history table.
                 CustomTicketHistory ticketHistory = ticketHistoryService.fetchTicketHistoryByTicketId(ticket.getTicketId()).get(0);
+
+                List<Long> previousTicketDocumentIds = new ArrayList<>();
+                for (ServiceProviderDocument serviceProviderDocumentCopy : ticket.getServiceProviderDocuments()) {
+                    previousTicketDocumentIds.add(serviceProviderDocumentCopy.getDocumentId());
+                }
 
                 log.info("old ticket file size is: {}", previousTicketDocumentIds.size());
                 log.info("ticket history is: {}", ticketHistory.getTicketHistoryId());
@@ -644,6 +643,8 @@ public class TicketStateService {
                 }
                 ticketHistory.setServiceProviderDocuments(clonedDocuments);
                 entityManager.merge(ticketHistory);
+            } else {
+                ticket = entityManager.merge(ticket);
             }
             return ticket;
 
