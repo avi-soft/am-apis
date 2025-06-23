@@ -48,7 +48,7 @@ public class CustomProductReserveCategoryFeePostRef {
     Integer post;
 
     @JsonIgnore
-    @Column(name = "fee_additional_comments")
+    @Column(name = "fee_additional_comments", columnDefinition = "text")
     String additionalComments;
 
     @Column(name = "is_other_or_state_category")

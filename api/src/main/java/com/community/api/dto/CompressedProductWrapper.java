@@ -19,6 +19,7 @@ import com.community.api.services.ReserveCategoryService;
 import com.community.api.services.SharedUtilityService;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.models.auth.In;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -63,6 +64,8 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
     protected String metaTitle;
     @JsonProperty("display_template")
     protected String displayTemplate;
+    @JsonProperty("number_of_posts")
+    protected Long numberOfPosts;
     @JsonProperty("total_vacancies_in_product")
     Long totalVacanciesInProduct;
     @JsonProperty("active_start_date")
@@ -90,6 +93,7 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
         this.metaTitle = product.getMetaTitle();
         this.displayTemplate = product.getDisplayTemplate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
+        this.numberOfPosts=product.getNumberOfPosts();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
         Long genderId = 1L;  // Default to 1 (MALE)
         Long categoryId = 1L; // Default to 1 (GEN)

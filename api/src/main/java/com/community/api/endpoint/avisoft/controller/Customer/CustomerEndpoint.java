@@ -864,9 +864,10 @@ public class CustomerEndpoint {
                     errorMessages.put("dob","Invalid date of birth");
 //                else if (age < 8)
 //                    errorMessages.add("Your age should be greater than equal to 8");
-                else
+                else {
                     customCustomer.setDob(dob);
                     customCustomer.setIsAcknowledged(false);
+                }
             }
             if (details.containsKey("isLivePhotoNa")) {
                 Boolean isLivePhotoNa = (Boolean) details.get("isLivePhotoNa");
@@ -1694,7 +1695,7 @@ public class CustomerEndpoint {
             // Grouping of list of files w.r.t document type here (document_type is file_type which is naming convention issue).
             Map<Integer, List<MultipartFile>> groupedFiles = new HashMap<>();
             for (int i = 0; i < files.size(); i++) {
-                Integer fileTypeId = fileTypes.get(i); // here fileType id meaning documentTypeId
+                Integer fileTypeId = fileTypes.get(0); // here fileType id meaning documentTypeId
                 MultipartFile file = files.get(i);
                 groupedFiles.computeIfAbsent(fileTypeId, k -> new ArrayList<>()).add(file);
             }

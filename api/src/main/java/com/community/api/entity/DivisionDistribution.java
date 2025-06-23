@@ -43,6 +43,6 @@ public class DivisionDistribution {
     @OneToMany(mappedBy = "divisionDistribution", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DivisionCategoryDistribution> categoryDistributions = new ArrayList<>();
 
-    @Column(name = "additional_comment")
+    @Column(name = "additional_comment", columnDefinition = "text")
     private String additionalComment;
 }
