@@ -629,9 +629,9 @@ public class CustomerEndpoint {
             }
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
                 errorMessages.add("email Address cannot be null");
-            if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty())
+            if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty()){
                 customCustomer.setIsAcknowledged(false);
-                customCustomer.setEmailAddress(emailAddress);
+                customCustomer.setEmailAddress(emailAddress);}
 
             if (details.containsKey("fathersName") && !details.get("fathersName").toString().isEmpty()) {
                 customCustomer.setFirstName((String) details.get("fathersName"));
@@ -863,9 +863,10 @@ public class CustomerEndpoint {
                     errorMessages.add("Invalid date of birth");
 //                else if (age < 8)
 //                    errorMessages.add("Your age should be greater than equal to 8");
-                else
+                else {
                     customCustomer.setDob(dob);
                     customCustomer.setIsAcknowledged(false);
+                }
             }
             if (details.containsKey("isLivePhotoNa")) {
                 Boolean isLivePhotoNa = (Boolean) details.get("isLivePhotoNa");
