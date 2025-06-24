@@ -77,6 +77,6 @@ public class CategoryDistribution {
     @JoinColumn(name = "gender_wise_distribution")
     private GenderWiseDistribution genderWiseDistribution;
 
-    @Column(name = "additional_comment")
+    @Column(name = "additional_comment",columnDefinition = "text")
     private String additionalComment;
 }

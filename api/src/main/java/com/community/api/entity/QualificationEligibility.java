@@ -78,7 +78,7 @@ public class QualificationEligibility implements Serializable
     private Boolean isAppearing;
 
     @JsonIgnore
-    @Column(name = "additional_comments")
+    @Column(name = "additional_comments", columnDefinition = "text")
     @JsonProperty("additionalComments")
     private String additionalComments;
 

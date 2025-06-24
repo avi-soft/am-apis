@@ -93,28 +93,49 @@ public class Post implements Serializable {
     private List<OtherDistribution> otherDistributions = new ArrayList<>();
 
     @JsonProperty("additional_comments")
+    @Column(columnDefinition = "text")
     private String additionalComments;
 
     @JsonProperty("state_distribution_additional_comments")
+    @Column(columnDefinition = "text")
     private String stateDistributionAdditionalComments;
+
     @JsonProperty("zone_distribution_additional_comments")
+    @Column(columnDefinition = "text")
     private String zoneDistributionAdditionalComments;
+
     @JsonProperty("gender_distribution_additional_comments")
+    @Column(columnDefinition = "text")
     private String genderDistributionAdditionalComments;
+
     @JsonProperty("reserve_category_age_additional_comments")
+    @Column(columnDefinition = "text")
     private String reserveCatAgeAdditionalComments;
+
     @JsonProperty("qualification_additional_comments")
+    @Column(columnDefinition = "text")
     private String qualificationAdditionalComments;
+
     @JsonProperty("physical_additional_comments")
+    @Column(columnDefinition = "text")
     private String physicalAdditionalComments;
+
     @JsonProperty("other_distribution_additional_comments")
+    @Column(columnDefinition = "text")
     private String otherDistributionAdditionalComments;
+
     @JsonProperty("religion_additional_comments")
+    @Column(columnDefinition = "text")
     private String ReligionAdditionalComments;
+
     @JsonProperty("income_additional_comments")
+    @Column(columnDefinition = "text")
     private String incomeAdditionalComments;
+
     @JsonProperty("additional_eligibility")
+    @Column(columnDefinition = "text")
     private String additionalEligibility;
+
     @JsonProperty("total_seats_visible")
     private Boolean totalSeatsVisible;
     @Column(name = "income_threshold")
