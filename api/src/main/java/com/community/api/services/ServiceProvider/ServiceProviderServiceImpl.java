@@ -210,13 +210,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             String role= roleService.findRoleName(roleId);
 
             updates = sharedUtilityService.trimStringValues(updates);
-            List<String> errorMessages = new ArrayList<>();
+            Map<String,String> errorMessages = new HashMap<>();
 
 
             // Find existing ServiceProviderEntity
             ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (existingServiceProvider == null) {
-                errorMessages.add("ServiceProvider with ID " + userId + " not found");
+                errorMessages.put("service_provider_id","ServiceProvider with ID " + userId + " not found");
             }
             String type= null;
             if (updates.containsKey("type")) {
@@ -224,10 +224,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (typeStr == null || typeStr.trim().isEmpty()) {
-                    return ResponseService.generateErrorResponse("Service Provider type cannot be null or empty", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Service Provider type cannot be null or empty", "type",HttpStatus.BAD_REQUEST);
                 }
                 if (!typeStr.equalsIgnoreCase("PROFESSIONAL") && !typeStr.equalsIgnoreCase("INDIVIDUAL")) {
-                    return ResponseService.generateErrorResponse("Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.", "type",HttpStatus.BAD_REQUEST);
                 }
                 existingServiceProvider.setType(typeStr.toUpperCase());
                 type= typeStr.toUpperCase();
@@ -245,12 +245,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
 
                     if (serviceProviderRank == null) {
-                        return ResponseService.generateErrorResponse("Rank with id " + rankId + " does not exist", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("Rank with id " + rankId + " does not exist","rankId", HttpStatus.BAD_REQUEST);
                     }
                     if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
-                        return ResponseService.generateErrorResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d", "rankId",HttpStatus.BAD_REQUEST);
                     } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
-                        return ResponseService.generateErrorResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d", "rankId",HttpStatus.BAD_REQUEST);
                     }
 
                     existingServiceProvider.setAdminOverridden(true);
@@ -266,7 +266,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Integer maximumTicketSize = maximumTicketSizeObj instanceof Number ? ((Number) maximumTicketSizeObj).intValue() : null;
 
                     if(maximumTicketSize < 0) {
-                        return ResponseService.generateErrorResponse("The maximum ticket size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("The maximum ticket size cannot be a negative number.","maximum_ticket_size", HttpStatus.BAD_REQUEST);
                     }
                     existingServiceProvider.setMaximumTicketSize(maximumTicketSize);
                     existingServiceProvider.setAdminOverridden(true);
@@ -280,7 +280,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Integer maximumBindingSize = maximumBindingSizeObj instanceof Number ? ((Number) maximumBindingSizeObj).intValue() : null;
 
                     if(maximumBindingSize < 0) {
-                        return ResponseService.generateErrorResponse("The maximum binding size cannot be a negative number.", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("The maximum binding size cannot be a negative number.", "maximum_binding_size",HttpStatus.BAD_REQUEST);
                     }
 
                     existingServiceProvider.setMaximumBindingSize(maximumBindingSize);
@@ -295,10 +295,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             {
                 if(updates.containsKey("rankId") && updates.get("rankId")!=null)
                 {
-                   return ResponseService.generateErrorResponse("Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank",HttpStatus.BAD_REQUEST);
+                   return ResponseService.generateSuccessResponse("Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank","rankId",HttpStatus.BAD_REQUEST);
                 }
                 if(updates.containsKey("maximum_ticket_size") || updates.containsKey("maximum_binding_value")) {
-                    return ResponseService.generateErrorResponse("Not authorized to update the maximum ticket size or maximum binding size of Service Provider. Only Admin or Super Admin can update it.",HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Not authorized to update the maximum ticket size or maximum binding size of Service Provider. Only Admin or Super Admin can update it.","maximum_ticket_size",HttpStatus.BAD_REQUEST);
                 }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
@@ -307,10 +307,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (partTimeOrFullTimeStr == null || partTimeOrFullTimeStr.trim().isEmpty()) {
-                    return ResponseService.generateErrorResponse("Service Provider partTime or FullTime field cannot be null or empty", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Service Provider partTime or FullTime field cannot be null or empty","partTimeOrFullTime", HttpStatus.BAD_REQUEST);
                 }
                 if (!partTimeOrFullTimeStr.equalsIgnoreCase("PART TIME") && !partTimeOrFullTimeStr.equalsIgnoreCase("FULL TIME")) {
-                    return ResponseService.generateErrorResponse("Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.", "partTimeOrFullTime",HttpStatus.BAD_REQUEST);
                 }
                 existingServiceProvider.setPartTimeOrFullTime(partTimeOrFullTimeStr.toUpperCase());
             }
@@ -320,14 +320,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if (mobileNumber != null && secondaryMobileNumber != null) {
                 if (mobileNumber.equalsIgnoreCase(secondaryMobileNumber)) {
-                    errorMessages.add("Primary and Secondary Mobile Numbers cannot be the same");
+                    errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
                 }
             }
             if (mobileNumber != null && secondaryMobileNumber == null && mobileNumber.equalsIgnoreCase(existingServiceProvider.getSecondary_mobile_number())) {
-                return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Primary and Secondary Mobile Numbers cannot be the same","mobileNumber", HttpStatus.BAD_REQUEST);
             }
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
-                return ResponseService.generateErrorResponse("Primary and Secondary Mobile Numbers cannot be the same", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Primary and Secondary Mobile Numbers cannot be the same", "mobileNumber",HttpStatus.BAD_REQUEST);
             }
             List<String> addresskeys = new ArrayList<>();
             addresskeys.add("district");
@@ -341,7 +341,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     count++;
             }
             if (count > 0 && count < addresskeys.size())
-                return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Need all address fields to add or update address","residential_address", HttpStatus.BAD_REQUEST);
 
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
@@ -379,13 +379,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderAddressDTO.setPincode((String) updates.get("pincode"));
                         serviceProviderAddressDTO.setServiceProviderEntity(existingServiceProvider);
                         serviceProviderAddressDTO.setCity((String) updates.get("city"));
-                        for (String error : updateAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress, serviceProviderAddressDTO)) {
-                            errorMessages.add(error);
-                        }
+                        Map<String, String> addressErrors = updateAddress(
+                                existingServiceProvider.getService_provider_id(),
+                                serviceProviderAddress,
+                                serviceProviderAddressDTO
+                        );
+                        errorMessages.putAll(addressErrors);
+
                     }
                 } else {
                     existingServiceProvider.setIsAcknowledged(false);
-                    errorMessages.addAll(validateAddressFields(updates));
+                    errorMessages.putAll(validateAddressFields(updates));
                 }
             }
 
@@ -413,7 +417,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     KeysCount++;
             }
             if (KeysCount > 0 && KeysCount < addresskeys.size())
-                return ResponseService.generateErrorResponse("Need all address fields to add or update address", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Need all address fields to add or update address","permanent_residential_address", HttpStatus.BAD_REQUEST);
             if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
                 if (validatePAddressFields(updates).isEmpty()) {
@@ -451,12 +455,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         serviceProviderAddressDTO.setPincode((String) updates.get("permanent_pincode"));
                         serviceProviderAddressDTO.setServiceProviderEntity(existingServiceProvider);
                         serviceProviderAddressDTO.setCity((String) updates.get("permanent_city"));
-                        for (String error : updateAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress, serviceProviderAddressDTO)) {
-                            errorMessages.add(error);
-                        }
+                        Map<String, String> addressErrors = updateAddress(
+                                existingServiceProvider.getService_provider_id(),
+                                serviceProviderAddress,
+                                serviceProviderAddressDTO
+                        );
+
+                        errorMessages.putAll(addressErrors);
+
                     }
                 } else {
-                    errorMessages.addAll(validatePAddressFields(updates));
+                    errorMessages.putAll(validatePAddressFields(updates));
                 }
             }
 
@@ -512,8 +521,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 if (isRunning) {
                     if (keysPresent > 0 && keysPresent < businessKeys.size()) {
-                        return ResponseService.generateErrorResponse(
-                                "Need all business fields to add or update business profile", HttpStatus.BAD_REQUEST
+                        return ResponseService.generateSuccessResponse(
+                                "Need all business fields to add or update business profile", "is_running_business_unit",HttpStatus.BAD_REQUEST
                         );
                     }
 
@@ -523,9 +532,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         if(key.equals("registration_number"))
                             continue;
                         if (value == null || value.toString().trim().isEmpty()) {
-                            return ResponseService.generateErrorResponse(
+                            return ResponseService.generateSuccessResponse(
                                     "Field '" + key + "' cannot be null or empty when is_running_business_unit is true",
-                                    HttpStatus.BAD_REQUEST
+                                   key, HttpStatus.BAD_REQUEST
                             );
                         }
                     }
@@ -540,7 +549,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
                             }
                             else
-                                return ResponseService.generateErrorResponse("Registration Number can not be empty or null", HttpStatus.BAD_REQUEST);
+                                return ResponseService.generateSuccessResponse("Registration Number can not be empty or null", "registration_number",HttpStatus.BAD_REQUEST);
 
 
                         }
@@ -560,15 +569,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             try {
                                 latitude = Double.parseDouble((String) latObj);
                             } catch (NumberFormatException e) {
-                                errorMessages.add("Latitude must be a valid number");
+                                errorMessages.put("latitude","Latitude must be a valid number");
                             }
                         } else {
-                            errorMessages.add("Latitude must be a valid number");
+                            errorMessages.put("latitude","Latitude must be a valid number");
                         }
 
                         if (latitude != null) {
                             if (latitude > 90 || latitude < -90) {
-                                errorMessages.add("Invalid latitude: must be between -90 and 90");
+                                errorMessages.put("latitude","Invalid latitude: must be between -90 and 90");
                             } else {
                                 existingServiceProvider.setLatitude(latitude);
                             }
@@ -585,15 +594,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             try {
                                 longitude = Double.parseDouble((String) longObj);
                             } catch (NumberFormatException e) {
-                                errorMessages.add("Longitude must be a valid number");
+                                errorMessages.put("longitude","Longitude must be a valid number");
                             }
                         } else {
-                            errorMessages.add("Longitude must be a valid number");
+                            errorMessages.put("longitude","Longitude must be a valid number");
                         }
 
                         if (longitude != null) {
                             if (longitude > 180 || longitude < -180) {
-                                errorMessages.add("Invalid longitude: must be between -180 and 180");
+                                errorMessages.put("longitude","Invalid longitude: must be between -180 and 180");
                             } else {
                                 existingServiceProvider.setLongitude(longitude);
                             }
@@ -645,7 +654,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     try {
                         months = Integer.parseInt(workExpMonths.toString().trim());
                     } catch (NumberFormatException e) {
-                        return ResponseService.generateErrorResponse("Invalid value for work_experience_in_months", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("Invalid value for work_experience_in_months","work_experience_in_months", HttpStatus.BAD_REQUEST);
                     }
                 }
 
@@ -654,7 +663,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (months != 0) {
 
                     if (workExp == null || workExp.toString().trim().isEmpty()) {
-                        return ResponseService.generateErrorResponse("Work Experience description is required ", HttpStatus.BAD_REQUEST);
+                        return ResponseService.generateSuccessResponse("Work Experience description is required ","work_experience_in", HttpStatus.BAD_REQUEST);
                     }
                 } else {
 
@@ -681,10 +690,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if ((existingSPByUsername != null) || existingSPByEmail != null) {
                 if (existingSPByUsername != null && !existingSPByUsername.getService_provider_id().equals(userId)) {
-                    return responseService.generateErrorResponse("Username is not available", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Username is not available","user_name", HttpStatus.BAD_REQUEST);
                 }
                 if (existingSPByEmail != null && !existingSPByEmail.getService_provider_id().equals(userId)) {
-                    return responseService.generateErrorResponse("Email already in use", HttpStatus.BAD_REQUEST);
+                    return ResponseService.generateSuccessResponse("Email already in use", "primary_email",HttpStatus.BAD_REQUEST);
                 }
             }
             List<Skill> serviceProviderSkills = new ArrayList<>();
@@ -703,13 +712,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             {
                                 if(!updates.containsKey("other_skill"))
                                 {
-                                    return ResponseService.generateErrorResponse("You have to enter the other skill",HttpStatus.BAD_REQUEST);
+                                    return ResponseService.generateSuccessResponse("You have to enter the other skill","other_skill",HttpStatus.BAD_REQUEST);
                                 }
                                 else {
                                     String otherSkill = (String)updates.get("other_skill");
                                     if(otherSkill==null || otherSkill.trim().isEmpty())
                                     {
-                                        return ResponseService.generateErrorResponse("other skill text field cannot be null or empty",HttpStatus.BAD_REQUEST);
+                                        return ResponseService.generateSuccessResponse("other skill text field cannot be null or empty","other_skill",HttpStatus.BAD_REQUEST);
                                     }
                                     assert existingServiceProvider != null;
                                     existingServiceProvider.setOtherSkill(otherSkill);
@@ -873,7 +882,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (updates.containsKey("date_of_birth")) {
                 String dob = (String) updates.get("date_of_birth");
                 if (sharedUtilityService.isFutureDate(dob))
-                    errorMessages.add("DOB cannot be in future");
+                    errorMessages.put("date_of_birth","DOB cannot be in future");
             }
 
             if (updates.containsKey("secondary_email") && "".equals(updates.get("secondary_email"))) {
@@ -886,7 +895,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String newAadhaarNumber = (String) updates.get("aadhaar_number");
 
                 if (newAadhaarNumber == null || newAadhaarNumber.trim().isEmpty()) {
-                    errorMessages.add("Aadhaar number cannot be empty");
+                    errorMessages.put("aadhaar_number","Aadhaar number cannot be empty");
                 } else {
                     String existingAadhaarNumber = (String) entityManager.createQuery(
                                         "SELECT sp.aadhaar_number FROM ServiceProviderEntity sp WHERE sp.service_provider_id = :id", String.class)
@@ -901,7 +910,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                     .getSingleResult();
 
                             if (aadhaarCount > 0) {
-                                return ResponseService.generateErrorResponse("Aadhaar number already exists", HttpStatus.BAD_REQUEST);
+                                return ResponseService.generateSuccessResponse("Aadhaar number already exists","aadhaar_number", HttpStatus.BAD_REQUEST);
                             }
                         }
 
@@ -912,7 +921,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String newPanNumber = (String) updates.get("pan_number");
 
                 if (newPanNumber == null || newPanNumber.trim().isEmpty()) {
-                    errorMessages.add("PAN number cannot be empty");
+                    errorMessages.put("pan_number","PAN number cannot be empty");
                 } else {
                     // Fetch existing PAN number from DB for current record
                     String existingPanNumber = (String) entityManager.createQuery(
@@ -929,7 +938,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 .getSingleResult();
 
                         if (panCount > 0) {
-                            return ResponseService.generateErrorResponse("PAN number already exists", HttpStatus.BAD_REQUEST);
+                            return ResponseService.generateSuccessResponse("PAN number already exists", "pan_number",HttpStatus.BAD_REQUEST);
                         }
                     }
                 }
@@ -948,7 +957,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 boolean isNullable = field.isAnnotationPresent(Nullable.class);
                 field.setAccessible(true);
                 if (newValue.toString().isEmpty() && !isNullable)
-                    errorMessages.add(fieldName + " cannot be null");
+                    errorMessages.put(fieldName,fieldName + " cannot be null");
                 if (newValue.toString().isEmpty() && isNullable)
                     continue;
                 if (newValue != null) {
@@ -958,9 +967,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         int max = sizeAnnotation.max();
                         if (newValue.toString().length() > max || newValue.toString().length() < min) {
                             if (max == min)
-                                errorMessages.add(fieldName + " size should be of size " + max);
+                                errorMessages.put(fieldName,fieldName + " size should be of size " + max);
                             else
-                                errorMessages.add(fieldName + " size should be in between " + min + " " + max);
+                                errorMessages.put(fieldName,fieldName + " size should be in between " + min + " " + max);
                             continue;
                         }
                     }
@@ -969,13 +978,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String message = emailAnnotation.message();
                         if (fieldName.equals("primary_email")) {
                             if (newValue.equals((String) updates.get("secondary_email")) || (existingServiceProvider.getSecondary_email() != null && newValue.equals(existingServiceProvider.getSecondary_email())))
-                                errorMessages.add("primary and secondary email cannot be same");
+                                errorMessages.put("primary_email","primary and secondary email cannot be same");
                         } else if (fieldName.equals("secondary_email")) {
                             if (newValue.equals((String) updates.get("primary_email")) || (existingServiceProvider.getPrimary_email() != null && newValue.equals(existingServiceProvider.getPrimary_email())))
-                                errorMessages.add("primary and secondary email cannot be same");
+                                errorMessages.put("secondary_email","primary and secondary email cannot be same");
                         }
                         if (!sharedUtilityService.isValidEmail((String) newValue)) {
-                            errorMessages.add(message.replace("{field}", fieldName));
+                            errorMessages.put(fieldName,message.replace("{field}", fieldName));
                             continue;
                         }
                     }
@@ -984,7 +993,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String regex = patternAnnotation.regexp();
                         String message = patternAnnotation.message(); // Get custom message
                         if (!newValue.toString().matches(regex)) {
-                            errorMessages.add(fieldName + " is invalid"); // Use a placeholder
+                            errorMessages.put(fieldName,fieldName + " is invalid"); // Use a placeholder
                             continue;
                         }
                     }
@@ -1001,10 +1010,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
                             if (dob.isAfter(LocalDate.now())) {
-                                errorMessages.add("Date of birth cannot be in the future");
+                                errorMessages.put("date_of_birth","Date of birth cannot be in the future");
                             }
                         } catch (DateTimeParseException e) {
-                            errorMessages.add("Invalid date format for " + fieldName + ". Expected format is DD-MM-YYYY.");
+                            errorMessages.put("date_of_birth","Invalid date format for " + fieldName + ". Expected format is DD-MM-YYYY.");
                         }
                     }
                 }
@@ -1015,14 +1024,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
             if (!errorMessages.isEmpty()) {
-                StringBuilder response= new StringBuilder();
-                for(String error:errorMessages)
-                {
-                    response.append(error).append(",");
-                }
-                response = new StringBuilder(response.substring(0, response.length() - 1));
-                return ResponseService.generateErrorResponse(response.toString(), HttpStatus.BAD_REQUEST);
+                String message = String.join(", ", errorMessages.values());
+                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
             }
+
             // Merge the updated entity
             entityManager.merge(existingServiceProvider);
             if (existingServiceProvider.getUser_name() == null && !existingServiceProvider.getSpAddresses().isEmpty()) {
@@ -1217,8 +1222,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
     }
 
-    public List<String> validateAddressFields(Map<String, Object> updates) {
-        List<String> errorMessages = new ArrayList<>();
+    public Map<String,String> validateAddressFields(Map<String, Object> updates) {
+        Map<String,String> errorMessages = new HashMap<>();
         String state = (String) updates.get("state");
         String district = (String) updates.get("district");
         String pincode = (String) updates.get("pincode");
@@ -1230,20 +1235,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
-                errorMessages.add(fieldNames[i] + " cannot be empty");
+                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
             }
         }
 
         // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
         if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
-            errorMessages.add("Pincode should contain only numbers and should be of length 6");
+            errorMessages.put("pincode","Pincode should contain only numbers and should be of length 6");
         }
 
         // Validate city format
         pattern = Constant.CITY_REGEXP;
         if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
-            errorMessages.add("Field city should only contain letters");
+            errorMessages.put("city","Field city should only contain letters");
         }
 
         // Only parse and validate state/district if they're non-empty
@@ -1251,10 +1256,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String stateName = districtService.findStateById(Integer.parseInt(state));
                 if (stateName == null) {
-                    errorMessages.add("Invalid State");
+                    errorMessages.put("state","Invalid State");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.add("Invalid Current State ID format");
+                errorMessages.put("state","Invalid Current State ID format");
             }
         }
 
@@ -1262,18 +1267,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String districtName = districtService.findDistrictById(Integer.parseInt(district));
                 if (districtName == null) {
-                    errorMessages.add("Invalid District");
+                    errorMessages.put("district","Invalid District");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.add("Invalid Current District ID format");
+                errorMessages.put("district","Invalid Current District ID format");
             }
         }
 
         return errorMessages;
     }
 
-    public List<String> validatePAddressFields(Map<String, Object> updates) {
-        List<String> errorMessages = new ArrayList<>();
+    public Map<String,String> validatePAddressFields(Map<String, Object> updates) {
+        Map<String,String> errorMessages = new HashMap<>();
         String state = (String) updates.get("permanent_state");
         String district = (String) updates.get("permanent_district");
         String pincode = (String) updates.get("permanent_pincode");
@@ -1291,20 +1296,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
-                errorMessages.add(fieldNames[i] + " cannot be empty");
+                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
             }
         }
 
         // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
         if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
-            errorMessages.add("Pincode should contain only numbers and should be of length 6");
+            errorMessages.put("permanent_pincode","Pincode should contain only numbers and should be of length 6");
         }
 
         // Validate city format
         pattern = Constant.CITY_REGEXP;
         if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
-            errorMessages.add("Field city should only contain letters");
+            errorMessages.put("permanent_city","Field city should only contain letters");
         }
 
         // Validate permanent_state
@@ -1312,10 +1317,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String stateName = districtService.findStateById(Integer.parseInt(state));
                 if (stateName == null) {
-                    errorMessages.add("Invalid State");
+                    errorMessages.put("permanent_state","Invalid State");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.add("Invalid Permanent State ID format");
+                errorMessages.put("permanent_state","Invalid Permanent State ID format");
             }
         }
 
@@ -1324,10 +1329,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String districtName = districtService.findDistrictById(Integer.parseInt(district));
                 if (districtName == null) {
-                    errorMessages.add("Invalid District");
+                    errorMessages.put("permanent_district","Invalid District");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.add("Invalid Permanent District ID format");
+                errorMessages.put("permanent_district","Invalid Permanent District ID format");
             }
         }
 
@@ -1784,14 +1789,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public List<String> updateAddress(long serviceProviderId, ServiceProviderAddress serviceProviderAddress, ServiceProviderAddress dto) throws Exception {
-        List<String> errorList = new ArrayList<>();
+    public Map<String,String> updateAddress(long serviceProviderId, ServiceProviderAddress serviceProviderAddress, ServiceProviderAddress dto) throws Exception {
+        Map<String,String> errorList = new HashMap<>();
         if (serviceProviderAddress == null) {
-            errorList.add("Incomplete Details");
+            errorList.put("residential_address","Incomplete Details");
         }
         ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (existingServiceProvider == null) {
-            errorList.add("Incomplete Details");
+            errorList.put("service_provider_id","Service Provider not found");
         }
         ServiceProviderAddress addressToupdate = null;
         List<ServiceProviderAddress> addresses = existingServiceProvider.getSpAddresses();
