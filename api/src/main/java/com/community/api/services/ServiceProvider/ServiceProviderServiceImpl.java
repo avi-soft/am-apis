@@ -1847,7 +1847,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Boolean rejected,
             String userName,
             List<Integer> qualificationType,
-            Integer rank) {
+            Integer rank_id) {
 
         try {
             CustomServiceProviderTicket customServiceProviderTicket = null;
@@ -1862,7 +1862,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     mobileNumber == null &&
                     userName == null &&
                     test_status_id == null &&
-                    role == null && completed == null && rank==null&&
+                    role == null && completed == null && rank_id==null&&
                     archived == null && approved == null && rejected == null &&
                     (qualificationType == null || qualificationType.isEmpty())) {
 
@@ -1968,7 +1968,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected","rank_id"};
-            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected,rank};
+            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected,rank_id};
 
             // Add fields dynamically
             for (int i = 0; i < fieldValues.length; i++) {
@@ -2021,7 +2021,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (qualificationType != null && !qualificationType.isEmpty()) {
                 finalQuery.setParameter("qualificationType", qualificationType);
             }
-            System.out.println(finalQuery.toString());
+            System.out.println(queryString);
             // Execute query
             List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
 

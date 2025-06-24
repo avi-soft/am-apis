@@ -132,10 +132,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             logger.error("ExpiredJwtException caught: {}", e.getMessage());
         } catch (MalformedJwtException e) {
             System.out.println("hi");
-            handleException(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
-            exceptionHandling.handleException(e);
+
+            handleException(response, HttpStatus.UNAUTHORIZED.value(), "Invalid JWT token");
             System.out.println("MalformedJwtException caught: {}"+e.getMessage());
         } catch (Exception e) {
+            System.out.println("yes");
             handleException(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             exceptionHandling.handleException(e);
 
