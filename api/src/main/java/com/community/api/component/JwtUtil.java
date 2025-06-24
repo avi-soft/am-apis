@@ -2,6 +2,7 @@ package com.community.api.component;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomAdmin;
+import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import io.jsonwebtoken.*;
@@ -9,8 +10,12 @@ import io.jsonwebtoken.security.Keys;
 import org.broadleafcommerce.profile.core.domain.Customer;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
+import org.springframework.social.NotAuthorizedException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -212,9 +217,11 @@ public class JwtUtil {
             logoutUser(token);
             throw e;
         } catch (Exception e) {
-            exceptionHandling.handleException(e);
+            System.out.println("p1");
+          /*  exceptionHandling.handleException(e);*/
             System.out.println("1111");
-            throw new RuntimeException("Invalid JWT token", e);
+            throw new MalformedJwtException("Invalid JWT Token");
+
         }
     }
 
@@ -237,7 +244,7 @@ public class JwtUtil {
             throw new ExpiredJwtException(null, null, "Token is expired");
         } catch (Exception e) {
             System.out.println("2111");
-            throw new RuntimeException("Invalid JWT token", e);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid JWT token", e);
         }
     }
 
@@ -331,7 +338,8 @@ public class JwtUtil {
         } catch (MalformedJwtException | SignatureException e) {
             exceptionHandling.handleException(e);
             System.out.println("3111");
-            throw new RuntimeException("Invalid JWT token", e);
+            System.out.println("p2");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid JWT token", e);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
             throw new RuntimeException("Error checking token expiration", e);
