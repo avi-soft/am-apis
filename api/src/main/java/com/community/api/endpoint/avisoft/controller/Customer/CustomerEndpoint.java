@@ -634,16 +634,16 @@ public class CustomerEndpoint {
                 customCustomer.setEmailAddress(emailAddress);}
 
             if (details.containsKey("fathersName") && !details.get("fathersName").toString().isEmpty()) {
-                customCustomer.setFirstName((String) details.get("fathersName"));
+                customCustomer.setFathersName((String) details.get("fathersName"));
                 customCustomer.setIsAcknowledged(false);
-            } else if (details.containsKey("fathersName") && details.get("fathersName").toString().isEmpty()) {
+            }  else if (details.containsKey("fathersName") && details.get("fathersName").toString().isEmpty()) {
                 errorMessages.add("Father's name cannot be null");
             } else if (details.containsKey("fathersName") && !sharedUtilityService.isAlphabetic((String) details.get("fathersName"))) {
                 errorMessages.add("You entered invalid Father's name");
             }
 
             if (details.containsKey("mothersName") && !details.get("mothersName").toString().isEmpty()) {
-                customCustomer.setFirstName((String) details.get("mothersName"));
+                customCustomer.setMothersName((String) details.get("mothersName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("mothersName") && details.get("mothersName").toString().isEmpty()) {
                 errorMessages.add("Mother's name cannot be null");
