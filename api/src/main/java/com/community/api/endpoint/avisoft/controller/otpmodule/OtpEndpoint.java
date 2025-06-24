@@ -32,6 +32,7 @@ import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -308,6 +309,7 @@ public class OtpEndpoint {
                 serviceProviderEntity.setMobileNumber(mobileNumber);
                 serviceProviderEntity.setOtp(otp);
                 serviceProviderEntity.setApproved(false);
+                serviceProviderEntity.setDateJoined(LocalDate.now());
                 ServiceProviderStatus serviceProviderStatus = em.find(ServiceProviderStatus.class, Constant.INITIAL_STATUS);
                 serviceProviderEntity.setStatus(serviceProviderStatus);
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
