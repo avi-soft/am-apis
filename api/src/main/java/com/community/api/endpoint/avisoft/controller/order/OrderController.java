@@ -312,8 +312,13 @@ public class OrderController {
             int offset1 = offset * limit;
             sort = sort.toLowerCase();
 
+            if(orderStateIds!=null&&orderStateIds.contains(9))
+            {
+                orderStateIds.clear();
+                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8,0,999));
+            }
             // Validate order state IDs
-            if (orderStateIds != null && !orderStateIds.isEmpty()) {
+            else if(orderStateIds != null && !orderStateIds.isEmpty()) {
                 for (Integer id : orderStateIds) {
                     OrderStateRef ref = entityManager.find(OrderStateRef.class, id);
                     if (ref == null) {
