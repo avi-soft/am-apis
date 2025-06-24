@@ -57,7 +57,6 @@ public class CartService {
         return false;
     }
 
-
     public EligibilityResult checkCustomerEligibilityDetailed(CustomCustomer customer, CustomProduct product, boolean includeAllReasons) {
         EligibilityResult result = new EligibilityResult();
 
@@ -524,37 +523,27 @@ public class CartService {
         EligibilityResult result = new EligibilityResult();
 
         try {
-            // Handle appearing qualification logic
-            Boolean isAppearing = false;
-            if (eligibility.getIsAppearing() != null && eligibility.getIsAppearing().equals(false)) {
-                if (qualification.getQualificationIsOngoing() != null && qualification.getQualificationIsOngoing().equals(true)) {
-                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("This product requires completed qualification, but your qualification is ongoing");
-                    return result;
-                }
+            Boolean isAppearing = (eligibility.getIsAppearing() != null) ? eligibility.getIsAppearing() : false;
+            Boolean isQualificationOngoing = (qualification.getQualificationIsOngoing() != null) ? qualification.getQualificationIsOngoing() : false;
 
-                if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentage(qualification, eligibility,isAppearing);
-                }
-                else if(eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(false))
-                {
-                    return checkCGPA(qualification,eligibility,isAppearing);
-                }
-            } else if (eligibility.getIsAppearing() != null && eligibility.getIsAppearing().equals(true)) {
-                isAppearing=true;
-                if (qualification.getQualificationIsOngoing() != null && qualification.getQualificationIsOngoing().equals(false)) {
-                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("This product requires appearing/ongoing qualification, but your qualification is completed");
-                    return result;
-                }
+            // Check appearing/ongoing status compatibility
+            if (!isAppearing && isQualificationOngoing) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.addReason("This product requires completed qualification, but your qualification is ongoing");
+                return result;
+            } else if (isAppearing && !isQualificationOngoing) {
+                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                result.addReason("This product requires appearing/ongoing qualification, but your qualification is completed");
+                return result;
+            }
 
-                if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(true)) {
-                    return checkPercentage(qualification, eligibility,isAppearing);
-                }
-                else if(eligibility.getIsPercentage() != null && eligibility.getIsPercentage().equals(false))
-                {
-                    return checkCGPA(qualification,eligibility,isAppearing);
-                }
+            // Check percentage requirements
+            if (eligibility.getIsPercentage() != null && eligibility.getIsPercentage()) {
+                return checkPercentage(qualification, eligibility, isAppearing);
+            }
+            else if(eligibility.getIsPercentage()!=null && !eligibility.getIsPercentage())
+            {
+                return checkCGPA(qualification,eligibility,isAppearing);
             }
 
             result.setStatus(EligibilityStatus.ELIGIBLE);
@@ -570,8 +559,11 @@ public class CartService {
     private EligibilityResult checkPercentage(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
         EligibilityResult result = new EligibilityResult();
 
+        // Check percentage requirement
         if (eligibility.getPercentage() != null) {
-            if (isAppearing.equals(false) || (isAppearing.equals(true) && qualification.getCumulative_percentage_value() != null)) {
+
+            if (!isAppearing) {
+                // For completed qualifications, percentage is required
                 if (qualification.getCumulative_percentage_value() == null) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("Percentage marks are required but not provided by customer");
@@ -584,8 +576,21 @@ public class CartService {
                             "%) is below the required minimum (" + eligibility.getPercentage() + "%)");
                     return result;
                 }
-            }
+            } else {
+                // For appearing qualifications, if percentage is null, return warning
+                if (qualification.getCumulative_percentage_value() == null) {
+                    result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                    result.addWarning("Percentage information not provided for appearing qualification. Please verify eligibility manually");
+                    return result;
+                }
 
+                if (eligibility.getPercentage() > qualification.getCumulative_percentage_value()) {
+                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                    result.addReason("Your percentage (" + qualification.getCumulative_percentage_value() +
+                            "%) is below the required minimum (" + eligibility.getPercentage() + "%)");
+                    return result;
+                }
+            }
         }
         result.setStatus(EligibilityStatus.ELIGIBLE);
         return result;
@@ -593,46 +598,91 @@ public class CartService {
 
     private EligibilityResult checkCGPA(QualificationDetails qualification, QualificationEligibility eligibility, Boolean isAppearing) {
         EligibilityResult result = new EligibilityResult();
-
+        // Check CGPA requirement
         if (eligibility.getCgpa() != null) {
-            if(isAppearing.equals(false))
-            {
+            if (!isAppearing) {
+                // For completed qualifications
                 if (qualification.getTotal_marks_type() == null) {
                     result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
                     result.addReason("Marks type information is required but not provided");
                     return result;
                 }
-            }
 
-            if(isAppearing.equals(false) ||(isAppearing.equals(true) && qualification.getTotal_marks_type()!=null))
-            {
                 if (qualification.getTotal_marks_type().equalsIgnoreCase("cgpa")) {
-                    if (isAppearing.equals(false) || (isAppearing.equals(true) && qualification.getMarks_obtained() != null)) {
-                        if (qualification.getMarks_obtained() == null) {
-                            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                            result.addReason("CGPA details are required but not provided by customer");
-                            return result;
-                        }
+                    if (qualification.getMarks_obtained() == null) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.addReason("CGPA details are required but not provided by customer");
+                        return result;
+                    }
 
-                        try {
-                            double customerCGPA = Double.parseDouble(qualification.getMarks_obtained());
-                            if (eligibility.getCgpa() > customerCGPA) {
-                                result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                                result.addReason("Your CGPA (" + customerCGPA +
-                                        ") is below the required minimum (" + eligibility.getCgpa() + ")");
-                                return result;
-                            }
-                        } catch (NumberFormatException e) {
+                    try {
+                        double customerCGPA = Double.parseDouble(qualification.getMarks_obtained());
+                        if (eligibility.getCgpa() > customerCGPA) {
                             result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                            result.addReason("Invalid CGPA format provided");
+                            result.addReason("Your CGPA (" + customerCGPA +
+                                    ") is below the required minimum (" + eligibility.getCgpa() + ")");
                             return result;
                         }
+                    } catch (NumberFormatException e) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.addReason("Invalid CGPA format provided");
+                        return result;
+                    }
+                } else if (qualification.getTotal_marks_type().equalsIgnoreCase("percentage")) {
+                    if (qualification.getCumulative_cgpa_value() == null) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.addReason("CGPA details are required but not provided by customer");
+                        return result;
+                    }
+
+                    if (eligibility.getCgpa() > qualification.getCumulative_cgpa_value()) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.addReason("Your CGPA (" + qualification.getCumulative_cgpa_value() +
+                                ") is below the required minimum (" + eligibility.getCgpa() + ")");
+                        return result;
                     }
                 }
-                else if (qualification.getTotal_marks_type().equalsIgnoreCase("percentage")) {
-                    result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
-                    result.addReason("Product requires CGPA but you have provided marks in percentage format");
+            } else {
+                // For appearing qualifications
+                if (qualification.getTotal_marks_type() == null) {
+                    result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                    result.addWarning("Marks type information not provided for appearing qualification. Please verify CGPA eligibility manually");
                     return result;
+                }
+
+                if (qualification.getTotal_marks_type().equalsIgnoreCase("cgpa")) {
+                    if (qualification.getMarks_obtained() == null) {
+                        result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                        result.addWarning("CGPA details not provided for appearing qualification. Please verify eligibility manually");
+                        return result;
+                    }
+
+                    try {
+                        double customerCGPA = Double.parseDouble(qualification.getMarks_obtained());
+                        if (eligibility.getCgpa() > customerCGPA) {
+                            result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                            result.addReason("Your CGPA (" + customerCGPA +
+                                    ") is below the required minimum (" + eligibility.getCgpa() + ")");
+                            return result;
+                        }
+                    } catch (NumberFormatException e) {
+                        result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                        result.addWarning("Invalid CGPA format provided for appearing qualification. Please verify eligibility manually");
+                        return result;
+                    }
+                } else if (qualification.getTotal_marks_type().equalsIgnoreCase("percentage")) {
+                    if (qualification.getCumulative_cgpa_value() == null) {
+                        result.setStatus(EligibilityStatus.ELIGIBLE_WITH_WARNINGS);
+                        result.addWarning("CGPA details not provided for appearing qualification. Please verify eligibility manually");
+                        return result;
+                    }
+
+                    if (eligibility.getCgpa() > qualification.getCumulative_cgpa_value()) {
+                        result.setStatus(EligibilityStatus.NOT_ELIGIBLE);
+                        result.addReason("Your CGPA (" + qualification.getCumulative_cgpa_value() +
+                                ") is below the required minimum (" + eligibility.getCgpa() + ")");
+                        return result;
+                    }
                 }
             }
         }
