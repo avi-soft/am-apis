@@ -58,6 +58,8 @@ import java.util.List;
         @JsonProperty("additional_comments")
         private String additionalComments;
 
+
+        @JsonProperty("zone_running_field")
         private String zoneRunningField;
 }
 
