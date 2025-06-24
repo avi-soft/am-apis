@@ -74,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
@@ -260,7 +261,7 @@ public class CustomerEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Map<String,String> errorMessages = new HashMap<>();
+            Map<String,String> errorMessages = new LinkedHashMap<>();
 
             details = sanitizerService.sanitizeInputMap(details);
 
@@ -1495,10 +1496,26 @@ public class CustomerEndpoint {
             }
 
             if (isValidDate != null && isValidDate.equals(true)) {
-                errorMessages.remove(errorMessages.size() - 1);
+                if (!errorMessages.isEmpty()) {
+                    String lastKey = null;
+                    for (String key : errorMessages.keySet()) {
+                        lastKey = key; // the last one in iteration will be the most recently added
+                    }
+                    if (lastKey != null) {
+                        errorMessages.remove(lastKey);
+                    }
+                }
             }
             if (isValidDateDomicile != null && isValidDateDomicile.equals(true)) {
-                errorMessages.remove(errorMessages.size() - 1);
+                if (!errorMessages.isEmpty()) {
+                    String lastKey = null;
+                    for (String key : errorMessages.keySet()) {
+                        lastKey = key;
+                    }
+                    if (lastKey != null) {
+                        errorMessages.remove(lastKey);
+                    }
+                }
             }
          /*   if (!errorMessages.isEmpty()) {
                 Map.Entry<String, String> firstError = errorMessages.entrySet().iterator().next();
