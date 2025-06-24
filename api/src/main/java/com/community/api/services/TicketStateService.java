@@ -460,6 +460,7 @@ public class TicketStateService {
                                     parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                                 }
                             }
+                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {

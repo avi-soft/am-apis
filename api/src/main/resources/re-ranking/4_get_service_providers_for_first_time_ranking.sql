@@ -16,7 +16,8 @@ BEGIN
         WHERE is_admin_overridden = false
           AND (is_eligible_for_re_ranking = false)
           AND role = 4
-          and approved = true
+          AND approved = true
+          AND archived = false
         ORDER BY COALESCE(writtentestscore, 0) + COALESCE(imageuploadscore, 0) desc,
         date_joined ASC  -- or DESC based on your preference
     LOOP
