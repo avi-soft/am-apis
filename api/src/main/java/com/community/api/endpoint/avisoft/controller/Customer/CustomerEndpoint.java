@@ -635,7 +635,7 @@ public class CustomerEndpoint {
                 customCustomer.setEmailAddress(emailAddress);}
 
             if (details.containsKey("fathersName") && !details.get("fathersName").toString().isEmpty()) {
-                customCustomer.setFirstName((String) details.get("fathersName"));
+                customCustomer.setFathersName((String) details.get("fathersName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("fathersName") && details.get("fathersName").toString().isEmpty()) {
                 errorMessages.put("fathersName","Father's name cannot be null");
@@ -644,7 +644,7 @@ public class CustomerEndpoint {
             }
 
             if (details.containsKey("mothersName") && !details.get("mothersName").toString().isEmpty()) {
-                customCustomer.setFirstName((String) details.get("mothersName"));
+                customCustomer.setMothersName((String) details.get("mothersName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("mothersName") && details.get("mothersName").toString().isEmpty()) {
                 errorMessages.put("mothersName","Mother's name cannot be null");
