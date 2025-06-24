@@ -839,6 +839,7 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
+                removeCartItems(customerId,order.getOrderItems().get(0).getId(),authHeader);
                 entityManager.merge(customCustomer);
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
@@ -874,7 +875,7 @@ public class CartEndPoint extends BaseEndpoint {
         }
 
         if (!isFailed) {
-            emptyTheCart(customerId,authHeader);
+            /*emptyTheCart(customerId,authHeader);*/
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
 
