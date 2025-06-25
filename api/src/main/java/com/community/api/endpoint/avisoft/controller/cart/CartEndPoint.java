@@ -664,10 +664,61 @@ public class CartEndPoint extends BaseEndpoint {
                     Product product = findProductFromItemAttribute(orderItem);
                     if (product != null)
                         customProduct = entityManager.find(CustomProduct.class, product.getId());
-                    Double individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
+                    Double   individualFee = null;
+
+
+
+// 1. Check for ALL category and ALL gender
+                    individualFee = reserveCategoryService.getReserveCategoryFee(
+                            product.getId(),
+                            reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                            genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                    );
+
+// 2. Check for ALL category and actual gender
+                    if (individualFee == null) {
+                        individualFee = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 3. Check for actual category and ALL gender
+                    if (individualFee == null) {
+                        individualFee = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                        );
+                    }
+
+// 4. Check for actual category and actual gender
+                    if (individualFee == null) {
+                        individualFee = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 5. Fallback to General category (1L) with actual gender
+                    if (individualFee == null) {
+                        individualFee = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                1L, // hardcoded general category
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 6. Final fallback to 0.0 if still null
+                    if (individualFee == null) {
+                        individualFee = 0.0;
+                    }
                     if (individualFee == null)
                         individualFee = 0.0;
                     totalAmt+=customProduct.getPlatformFee()+individualFee;
+                    System.out.println("total price is "+totalAmt);
                 }
             }
             options.put("amount", (totalAmt* 100));
@@ -707,13 +758,52 @@ public class CartEndPoint extends BaseEndpoint {
                     individualOrder.setSubTotal(subTotal);
                     individualOrder.setOrderNumber("O-" + customer.getId() + "-B-" + batchNumber);
                     //Checking for cost according to the category and gender of the customer
-                    Double totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());
-                    if (totalCost == null) {
-                        //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
-                        totalCost = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                        if (totalCost == null)
-                            totalCost = 0.0;
+                    Double totalCost =null;
+                    totalCost = reserveCategoryService.getReserveCategoryFee(
+                                    product.getId(),
+                                    reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                                    genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                            );
 
+// 2. Check for ALL category and actual gender
+                    if (totalCost == null) {
+                        totalCost = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 3. Check for actual category and ALL gender
+                    if (totalCost == null) {
+                        totalCost = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                        );
+                    }
+
+// 4. Check for actual category and actual gender
+                    if (totalCost == null) {
+                        totalCost = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 5. Fallback to General category (1L) with actual gender
+                    if (totalCost == null) {
+                        totalCost = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                1L, // hardcoded general category
+                                genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                        );
+                    }
+
+// 6. Final fallback to 0.0 if still null
+                    if (totalCost == null) {
+                        totalCost = 0.0;
                     }
                     totalCost = totalCost + platformFee;
                     Money total = new Money(totalCost);
@@ -880,7 +970,11 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-                removeCartItems(customerId,order.getOrderItems().get(0).getId(),authHeader);
+                System.out.println("calling removal");
+                Order cart=orderService.findCartForCustomer(customer);
+                cart.getOrderItems().remove(orderItem);
+                entityManager.merge(cart);
+                System.out.println("removal done");
                 entityManager.merge(customCustomer);
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
