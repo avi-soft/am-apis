@@ -562,6 +562,13 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
+                    System.out.println("yes");
+                    CustomProductState productState=entityManager.find(CustomProductState.class,5L);
+                    if(addProductDto.getProductState()==3L||customProduct.getIsApproved()) {
+                        customProduct.setProductState(productState);
+                    }
+                }
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
