@@ -62,6 +62,10 @@ public class CustomTicketHistory {
     @JsonProperty("modified_date")
     private Date modifiedDate;
 
+    @Column(name = "created_date")
+    @JsonProperty("created_date")
+    private Date createdDate;
+
     @Column(name = "modifier_user_id")
     @JsonProperty("modifier_user_id")
     private Long modifierId;

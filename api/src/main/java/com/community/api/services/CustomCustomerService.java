@@ -135,22 +135,22 @@ public class CustomCustomerService {
                 .orElse(null);
     }
 
-    public List<String> validateAddress(String addressLine, String city, String pincode) {
-        List<String> errorMessages = new ArrayList<>();
+    public Map<String,String> validateAddress(String addressLine, String city, String pincode) {
+        Map<String,String> errorMessages = new HashMap<>();
 
         // Validate Address Line: It should not be empty or null
         if (addressLine == null || addressLine.trim().isEmpty()) {
-            errorMessages.add("Address Line cannot be empty.");
+            errorMessages.put("currentAddress","Address Line cannot be empty.");
         }
 
         // Validate City: It should only contain alphabets and possibly spaces
         if (city == null || !Pattern.matches("^[a-zA-Z\\s]+$", city)) {
-            errorMessages.add("City name should only contain alphabets and spaces.");
+            errorMessages.put("currentCity","City name should only contain alphabets and spaces.");
         }
 
         // Validate Pincode: It should be a 6-digit number where the first digit is not zero
         if (pincode == null || !Pattern.matches("^[1-9][0-9]{5}$", pincode)) {
-            errorMessages.add("Pincode should be a 6-digit number starting with a digit from 1 to 9.");
+            errorMessages.put("currentPincode","Pincode should be a 6-digit number starting with a digit from 1 to 9.");
         }
 
         // Return the list of error messages (if any)

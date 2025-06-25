@@ -29,7 +29,7 @@ public class ReserveCategoryService {
                 archived=false;
             List<CustomReserveCategory> reserveCategories = entityManager
                     .createNativeQuery(Constant.GET_ALL_RESERVED_CATEGORY, CustomReserveCategory.class)
-                    .setParameter("archive",archived)
+                    .setParameter("archived",archived)
                     .getResultList();
 
             // Filter out entries with ID 0

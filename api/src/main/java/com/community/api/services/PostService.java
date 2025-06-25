@@ -662,6 +662,7 @@ public class PostService {
             zoneDistribution.setIsDivisionDistribution(zoneDto.getIsDivisionDistribution());
             zoneDistribution.setIsGenderWise(zoneDto.getIsGenderWise());
             zoneDistribution.setAdditionalComments(zoneDto.getAdditionalComments());
+            zoneDistribution.setZoneRunningField(zoneDto.getZoneRunningField());
             if (Boolean.TRUE.equals(zoneDto.getIsDivisionDistribution())) {
                 // Calculate total vacancies in the zone based on divisions
                 Integer totalZoneVacancies = calculateDivisionBasedZoneVacancies(zoneDto);
