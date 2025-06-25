@@ -477,14 +477,55 @@ public class CartEndPoint extends BaseEndpoint {
                         Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
                         products.add(productDetails);
-                        individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(), genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                        if (individualFee == null)
+                        individualFee = null;
+
+// 1. Check for ALL category and ALL gender
+                        individualFee = reserveCategoryService.getReserveCategoryFee(
+                                product.getId(),
+                                reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                                genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                        );
+
+// 2. Check for ALL category and actual gender
+                        if (individualFee == null) {
+                            individualFee = reserveCategoryService.getReserveCategoryFee(
+                                    product.getId(),
+                                    reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                                    genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                            );
+                        }
+
+// 3. Check for actual category and ALL gender
+                        if (individualFee == null) {
+                            individualFee = reserveCategoryService.getReserveCategoryFee(
+                                    product.getId(),
+                                    reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                    genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+                            );
+                        }
+
+// 4. Check for actual category and actual gender
+                        if (individualFee == null) {
+                            individualFee = reserveCategoryService.getReserveCategoryFee(
+                                    product.getId(),
+                                    reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId(),
+                                    genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                            );
+                        }
+
+// 5. Fallback to General category (1L) with actual gender
+                        if (individualFee == null) {
+                            individualFee = reserveCategoryService.getReserveCategoryFee(
+                                    product.getId(),
+                                    1L, // hardcoded general category
+                                    genderService.getGenderByName(customCustomer.getGender()).getGenderId()
+                            );
+                        }
+
+// 6. Final fallback to 0.0 if still null
+                        if (individualFee == null) {
                             individualFee = 0.0;
-                        if (individualFee == null)
-                            //return ResponseService.generateErrorResponse("Cannot add product to cart :Fee not specified for your category", HttpStatus.UNPROCESSABLE_ENTITY);
-                            individualFee = reserveCategoryService.getReserveCategoryFee(product.getId(), 1L, genderService.getGenderByName(customCustomer.getGender()).getGenderId());//1 for general
-                        if (individualFee == null)
-                            individualFee = 0.0;
+                        }
                     }
                     productFee = productFee + individualFee;
 

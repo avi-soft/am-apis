@@ -3263,9 +3263,9 @@ public class ProductService {
 
                 if(addProductDto.getModificationDateFrom()!=null)
                 {
-                    if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                    /*if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
-                    }
+                    }*/
 
                 }
 
@@ -3300,9 +3300,9 @@ public class ProductService {
             }
 
             if (addProductDto.getModificationDateFrom() != null) {
-                if (addProductDto.getLastDateToPayFee().after(addProductDto.getModificationDateFrom())) {
+                /*if (addProductDto.getLastDateToPayFee().after(addProductDto.getModificationDateFrom())) {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to modifying date from.");
-                }
+                }*/
             } else if (addProductDto.getAdmitCardDateFrom() != null) {
                 if (addProductDto.getLastDateToPayFee().after(addProductDto.getAdmitCardDateFrom())) {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to admit card date from.");
