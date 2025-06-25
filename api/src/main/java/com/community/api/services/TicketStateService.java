@@ -460,7 +460,8 @@ public class TicketStateService {
                                     parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                                 }
                             }
-                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
+//                            handled by trigger.
+//                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {
@@ -509,6 +510,7 @@ public class TicketStateService {
                         } else {
                             assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                         }
+//                        assignee.setTicketCompleted(assignee.getTicketCompleted()+1);
                         entityManager.merge(assignee);
                     }
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
