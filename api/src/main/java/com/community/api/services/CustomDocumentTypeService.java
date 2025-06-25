@@ -75,9 +75,9 @@ public class CustomDocumentTypeService
         validateSizeComparison(documentTypesToBeSaved.getMin_document_size(), documentTypesToBeSaved.getMax_document_size());
 
         // Check for duplicate document names
-        List<DocumentType> documentTypes = getAllDocumentTypes();
+        List<DocumentType> documentTypes = getAllArchiveUnarchiveDocumentTypes();
         for (DocumentType existingDocumentType : documentTypes) {
-            if (existingDocumentType.getDocument_type_name().equalsIgnoreCase(documentTypesToBeSaved.getDocument_type_name())) {
+            if (existingDocumentType.getDocument_type_name().trim().equalsIgnoreCase(documentTypesToBeSaved.getDocument_type_name().trim())) {
                 throw new IllegalArgumentException("Duplicate document name not allowed");
             }
         }
@@ -118,8 +118,8 @@ public class CustomDocumentTypeService
             }
         }
         documentTypeToBeSaved.setDocument_type_id(id);
-        documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name());
-        documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription());
+        documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name().trim());
+        documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription().trim());
         documentTypeToBeSaved.setIs_qualification_document(documentTypesToBeSaved.getIs_qualification_document());
         documentTypeToBeSaved.setMax_document_size(documentTypesToBeSaved.getMax_document_size().toUpperCase());
         documentTypeToBeSaved.setMin_document_size(documentTypesToBeSaved.getMin_document_size().toUpperCase());
@@ -199,10 +199,17 @@ public class CustomDocumentTypeService
             }
     }
 
-    public List<DocumentType> getAllDocumentTypes() {
+    public List<DocumentType> getAllDocumentTypes(Boolean archived) {
         TypedQuery<DocumentType> query = entityManager.createQuery(
                 Constant.GET_ALL_DOCUMENT_TYPES, DocumentType.class);
+        query.setParameter("archived",archived);
         List<DocumentType> documentTypeList = query.getResultList(); // then execute
+        return documentTypeList;
+    }
+    public List<DocumentType> getAllArchiveUnarchiveDocumentTypes() {
+        TypedQuery<DocumentType> query = entityManager.createQuery(
+                Constant.GET_ALL_ARCHIVE_UNARCHIVE_DOCUMENT_TYPES, DocumentType.class);
+        List<DocumentType> documentTypeList = query.getResultList();
         return documentTypeList;
     }
 
@@ -222,21 +229,21 @@ public class CustomDocumentTypeService
         {
             throw new IllegalArgumentException("DocumentType with id "+ documentTypeId+" not found");
         }
-        List<DocumentType> documentTypes = getAllDocumentTypes();
+        List<DocumentType> documentTypes = getAllArchiveUnarchiveDocumentTypes();
         if (Objects.nonNull(documentType.getDocument_type_name())) {
             for (DocumentType existingDocumentType : documentTypes) {
-                if (existingDocumentType.getDocument_type_name().equalsIgnoreCase(documentType.getDocument_type_name()) && !existingDocumentType.getDocument_type_id().equals(documentTypeId)) {
+                if (existingDocumentType.getDocument_type_name().trim().equalsIgnoreCase(documentType.getDocument_type_name().trim()) && !existingDocumentType.getDocument_type_id().equals(documentTypeId)) {
                     throw new IllegalArgumentException("Duplicate document type name not allowed");
                 }
             }
-            documentTypeToUpdate.setDocument_type_name(documentType.getDocument_type_name());
+            documentTypeToUpdate.setDocument_type_name(documentType.getDocument_type_name().trim());
         }
         if (Objects.nonNull(documentType.getDescription())) {
             if(documentType.getDescription().trim().isEmpty())
             {
                 throw new IllegalArgumentException("DocumentType description cannot be empty or consist only of whitespace");
             }
-            documentTypeToUpdate.setDescription(documentType.getDescription());
+            documentTypeToUpdate.setDescription(documentType.getDescription().trim());
         }
         if (Objects.nonNull(documentType.getIs_qualification_document())) {
             documentTypeToUpdate.setIs_qualification_document(documentType.getIs_qualification_document());

@@ -32,6 +32,12 @@ public class DistrictService {
         return query.getResultList();
     }
 
+    public List<Districts> findALLDistrictsByStateCode(String state_code) {
+        TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_QUERY_ALL, Districts.class);
+        query.setParameter("state_code", state_code);
+        return query.getResultList();
+    }
+
     public List<Districts> findAllDistricts(Boolean archived) {
         TypedQuery<Districts> query = entityManager.createQuery(Constant.DISTRICT_ALL_QUERY, Districts.class);
         query.setParameter("archived",archived);
@@ -77,6 +83,11 @@ public class DistrictService {
         return query.getResultList();
     }
 
+    public List<StateCode> findAllStateList() {
+        TypedQuery<StateCode> query = entityManager.createQuery(Constant.GET_STATES_LIST_ALL, StateCode.class);
+        return query.getResultList();
+    }
+
     public StateCode getStateByStateId(int stateId) throws Exception {
         try {
             Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_ID, StateCode.class);
@@ -101,7 +112,7 @@ public class DistrictService {
 
     public StateCode getStateByStateName(String state) throws Exception {
         try {
-            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
+            Query query = entityManager.createQuery(Constant. GET_STATE_BY_STATE_NAME, StateCode.class);
             query.setParameter("state", state);
 
             List<StateCode> stateCode = query.getResultList();
@@ -159,22 +170,26 @@ public class DistrictService {
     @Transactional
     public StateCode addState(StateCode stateCode) throws IllegalArgumentException, Exception {
         try {
-            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
-            query.setParameter("state", stateCode.getState_name());
-            List<StateCode> stateCodes = query.getResultList();
             if(stateCode.getState_id()!=null)
                 throw new IllegalArgumentException("Cannot give state id when adding");
             stateCode.setState_id(getCount()+1);
-            if(!stateCodes.isEmpty())
-                throw new IllegalArgumentException("State already exists");
-            if(stateCode.getState_name()==null)
-                throw new IllegalArgumentException("State name is required");
-            if(stateCode.getState_code()==null)
-                throw new IllegalArgumentException("State code is required");
-        /*    if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
-                throw new IllegalArgumentException("State name should contain only alphabets");*/
+            if(stateCode.getState_name()==null || stateCode.getState_name().trim().isEmpty())
+                throw new IllegalArgumentException("State name cannot be null or empty");
+            if(stateCode.getState_code()==null|| stateCode.getState_code().trim().isEmpty())
+                throw new IllegalArgumentException("State code cannot be null or empty");
+            if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
+                throw new IllegalArgumentException("State name should contain only alphabets");
             if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
                 throw new IllegalArgumentException("State code should contain only alphabets");
+            List<StateCode> existingState = findAllStateList();
+            for (StateCode stateCode1: existingState) {
+                if (stateCode1.getState_name().equalsIgnoreCase(stateCode.getState_name())) {
+                    throw new IllegalArgumentException("State with this state name already exists");
+                }
+                if (stateCode1.getState_code().equalsIgnoreCase(stateCode.getState_code())) {
+                    throw new IllegalArgumentException("State with this state code already exists");
+                }
+            }
             if(stateCode.getArchived()!=null)
             {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a state");
@@ -183,36 +198,40 @@ public class DistrictService {
             stateCode.setIsState(true);
             entityManager.persist(stateCode);
             return stateCode;
-        } catch (Exception e) {
+        }catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
     @Transactional
     public Districts addDistrict(Districts district,Integer stateId) throws IllegalArgumentException, Exception {
         try {
-            if(district.getState_code()==null)
-                throw new IllegalArgumentException("State code is required");
+            if(district.getState_code()==null || district.getState_code().trim().isEmpty())
+                throw new IllegalArgumentException("State code cannot be null or empty");
             StateCode stateCode=entityManager.find(StateCode.class,stateId);
             if (stateCode==null)
                 throw new IllegalArgumentException("Invalid state id ,State not found");
-            Query query = entityManager.createQuery(Constant.GET_DISTRICT_BY_DISTRICT_NAME, Districts.class);
             if(!stateCode.getState_code().equals(district.getState_code()))
                 throw new IllegalArgumentException("State code "+district.getState_code()+" does not belong to state "+stateCode.getState_name());
-            query.setParameter("state", stateCode.getState_code());
-            query.setParameter("district",district.getDistrict_name());
-            List<Districts> districts = query.getResultList();
             if(district.getDistrict_id()!=null)
                 throw new IllegalArgumentException("Cannot give district id when adding");
             district.setDistrict_id(getCountDistrict()+1);
-            if(!districts.isEmpty())
-                throw new IllegalArgumentException("District already exists in this state");
-            if(district.getDistrict_name()==null)
-                throw new IllegalArgumentException("District name is required");
 
-            /*if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
-                throw new IllegalArgumentException("District name should contain only alphabets");*/
+            if(district.getDistrict_name()==null || district.getDistrict_name().trim().isEmpty())
+                throw new IllegalArgumentException("District name cannot be null or empty");
+
+            if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                throw new IllegalArgumentException("District name should contain only alphabets");
             if (!sharedUtilityService.isAlphabetic(district.getState_code()))
-                throw new IllegalArgumentException("District code should contain only alphabets");
+                throw new IllegalArgumentException("State code should contain only alphabets");
+            List<Districts> existingDistricts = findALLDistrictsByStateCode(stateCode.getState_code());
+            for (Districts districts: existingDistricts) {
+                if (districts.getDistrict_name().equalsIgnoreCase(district.getDistrict_name())) {
+                    throw new IllegalArgumentException("District with this district name already exists in this state");
+                }
+            }
             if(district.getArchived()!=null)
             {
                 throw new IllegalArgumentException("Cannot provide archive status when adding a district");
@@ -231,31 +250,50 @@ public class DistrictService {
 
             if(stateCode.getState_id()!=null)
                 throw new IllegalArgumentException("Cannot give state id when editing");
-            Query query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_NAME, StateCode.class);
-            query.setParameter("state", stateCode.getState_name());
-            List<StateCode> stateCodes = query.getResultList();
-            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=state.getState_id())
-                throw new IllegalArgumentException("State with this name already exists");
-            query = entityManager.createQuery(Constant.GET_STATE_BY_STATE_CODE, StateCode.class);
-            query.setParameter("code", stateCode.getState_code());
-            stateCodes = query.getResultList();
-            if(!stateCodes.isEmpty()&&stateCodes.get(0).getState_id()!=state.getState_id())
-                throw new IllegalArgumentException("State with this state code already exists");
-           /* if (!sharedUtilityService.isAlphabetic(stateCode.getState_name()))
-                throw new IllegalArgumentException("State name should contain only alphabets");*/
-            if (!sharedUtilityService.isAlphabetic(stateCode.getState_code()))
-                throw new IllegalArgumentException("State code should contain only alphabets");
+            if(stateCode.getState_name()!=null)
+            {
+                if( stateCode.getState_name().trim().isEmpty()){
+                    throw new IllegalArgumentException("State name cannot be empty");}
+
+                if (!sharedUtilityService.isAlphabetic(stateCode.getState_name())){
+                    throw new IllegalArgumentException("State name should contain only alphabets");}
+
+                List<StateCode> existingState = findAllStateList();
+                for (StateCode stateCode1: existingState) {
+                    if (stateCode1.getState_name().equalsIgnoreCase(stateCode.getState_name()) && !stateCode1.getState_id().equals(stateId)) {
+                        throw new IllegalArgumentException("State with this state name already exists");
+                    }
+                }
+                state.setState_name(stateCode.getState_name());
+            }
+
+            if(stateCode.getState_code()!=null)
+            {
+                if( stateCode.getState_code().trim().isEmpty()){
+                    throw new IllegalArgumentException("State code cannot be empty");}
+                if (!sharedUtilityService.isAlphabetic(stateCode.getState_code())){
+                    throw new IllegalArgumentException("State code should contain only alphabets");}
+                List<StateCode> existingStateCodes = findStateList(false);
+                for (StateCode stateCode1: existingStateCodes) {
+                    if (stateCode1.getState_code().equalsIgnoreCase(stateCode.getState_code())&& !stateCode1.getState_id().equals(stateId)) {
+                        throw new IllegalArgumentException("State with this state code already exists");
+                    }
+                }
+                state.setState_code(stateCode.getState_code());
+            }
             if(stateCode.getArchived()!=null)
             {
                 throw new IllegalArgumentException("Cannot provide archive status when updating a state");
             }
-            state.setState_code(stateCode.getState_code());
-            state.setState_name(stateCode.getState_name());
-            state.setArchived(stateCode.getArchived());
             /*state.setArchived(false);*/
             entityManager.merge(state);
             return state;
-        } catch (Exception e) {
+        }
+        catch (IllegalArgumentException e)
+        {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
@@ -266,23 +304,39 @@ public class DistrictService {
 
             if(district.getDistrict_id()!=null)
                 throw new IllegalArgumentException("Cannot give district id when editing");
-            Query query = entityManager.createQuery(Constant.GET_DISTRICT_BY_DISTRICT_NAME, Districts.class);
-            query.setParameter("state", district.getState_code());
-            query.setParameter("district",district.getDistrict_name());
-            List<Districts> districts = query.getResultList();
-            if(!districts.isEmpty()&&districtToEdit.getDistrict_id()!=districts.get(0).getDistrict_id())
-                throw new IllegalArgumentException("District already exists in state "+districts.get(0).getDistrict_name());
-           /* if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
-                throw new IllegalArgumentException("District name should contain only alphabets");*/
-            if (!sharedUtilityService.isAlphabetic(district.getState_code()))
-                throw new IllegalArgumentException("State code should contain only alphabets");
+            String stateCode=null;
+            if(district.getState_code()!=null)
+            {
+                if( district.getState_code().trim().isEmpty())
+                    throw new IllegalArgumentException("State code cannot be null or empty");
+                if (!sharedUtilityService.isAlphabetic(district.getState_code()))
+                    throw new IllegalArgumentException("State code should contain only alphabets");
+
+                districtToEdit.setState_code(district.getState_code());
+                stateCode=district.getState_code();
+            }
+            else {
+                stateCode=districtToEdit.getState_code();
+            }
+            if(district.getDistrict_name()!=null)
+            {
+                if(district.getDistrict_name().trim().isEmpty())
+                    throw new IllegalArgumentException("District name cannot be null or empty");
+                if (!sharedUtilityService.isAlphabetic(district.getDistrict_name()))
+                    throw new IllegalArgumentException("District name should contain only alphabets");
+                List<Districts> existingDistricts = findALLDistrictsByStateCode(stateCode);
+                for (Districts districts: existingDistricts) {
+                    if (districts.getDistrict_name().equalsIgnoreCase(district.getDistrict_name()) && !districts.getDistrict_id().equals(districtId)) {
+                        throw new IllegalArgumentException("District with this district name already exists in this state");
+                    }
+                }
+                districtToEdit.setDistrict_name(district.getDistrict_name());
+            }
+
             if(district.getArchived()!=null)
             {
                 throw new IllegalArgumentException("Cannot provide archive status when updating a state");
             }
-            districtToEdit.setState_code(district.getState_code());
-            districtToEdit.setDistrict_name(district.getDistrict_name());
-            districtToEdit.setArchived(false);
             entityManager.merge(districtToEdit);
             return districtToEdit;
         } catch (Exception e) {
