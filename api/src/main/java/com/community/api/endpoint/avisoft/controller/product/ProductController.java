@@ -82,6 +82,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -703,7 +704,9 @@ public class ProductController extends CatalogEndpoint {
             }
 
             boolean isArchived = ((Status) customProduct).getArchived() == 'Y';
-            boolean isExpired = customProduct.getDefaultSku().getActiveEndDate().before(new Date());
+            Instant now = Instant.now();
+            Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
+            boolean isExpired = expiry.isBefore(now);
 
             if ((!isArchived && !isExpired) || allowExpiredAccess) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
