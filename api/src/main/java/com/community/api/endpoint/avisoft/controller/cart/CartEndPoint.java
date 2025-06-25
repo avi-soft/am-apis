@@ -971,7 +971,9 @@ public class CartEndPoint extends BaseEndpoint {
                     }
                 }
                 System.out.println("calling removal");
-                removeCartItems(customerId,order.getOrderItems().get(0).getId(),authHeader);
+                Order cart=orderService.findCartForCustomer(customer);
+                cart.getOrderItems().remove(orderItem);
+                entityManager.merge(cart);
                 System.out.println("removal done");
                 entityManager.merge(customCustomer);
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
