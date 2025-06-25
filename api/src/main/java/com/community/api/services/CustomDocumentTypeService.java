@@ -32,103 +32,106 @@ public class CustomDocumentTypeService
     @Autowired
     RoleService roleService;
     @Transactional
-    public DocumentType addDocumentTypes(DocumentTypeDto documentTypesToBeSaved, String authHeader) {
-        String jwtToken = authHeader.substring(7);
+    public DocumentType addDocumentTypes(DocumentTypeDto documentTypesToBeSaved, String authHeader) throws Exception {
+        try {
+            String jwtToken = authHeader.substring(7);
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
 
-        DocumentType documentTypeToBeSaved = new DocumentType();
-        int id = findMax() + 1;
-        int secondHighestSortOrder = getSecondHighestSortOrder();
-        int sortOrderToBeInserted = secondHighestSortOrder + 1;
+            DocumentType documentTypeToBeSaved = new DocumentType();
+            int id = findMax() + 1;
+            int secondHighestSortOrder = getSecondHighestSortOrder();
+            int sortOrderToBeInserted = secondHighestSortOrder + 1;
 
-        // Validate document type name
-        if (documentTypesToBeSaved.getDocument_type_name() == null || documentTypesToBeSaved.getDocument_type_name().trim().isEmpty()) {
-            throw new IllegalArgumentException("DocumentType name cannot be empty or consist only of whitespace");
-        }
-
-        // Validate description
-        if (documentTypesToBeSaved.getDescription() == null || documentTypesToBeSaved.getDescription().trim().isEmpty()) {
-            throw new IllegalArgumentException("DocumentType description cannot be empty or consist only of whitespace");
-        }
-
-        // Validate qualification document flag
-        if (documentTypesToBeSaved.getIs_qualification_document() == null) {
-            throw new IllegalArgumentException("You have to select whether the document type is qualification document or not");
-        }
-
-        // Validate and format max document size
-        if (documentTypesToBeSaved.getMax_document_size() == null || documentTypesToBeSaved.getMax_document_size().trim().isEmpty()) {
-            throw new IllegalArgumentException("DocumentType maximum size cannot be empty or consist only of whitespace");
-        }
-        validateAndFormatSize(documentTypesToBeSaved.getMax_document_size(), "Maximum");
-
-        // Validate and format min document size
-        if (documentTypesToBeSaved.getMin_document_size() == null || documentTypesToBeSaved.getMin_document_size().trim().isEmpty()) {
-            throw new IllegalArgumentException("DocumentType minimum size cannot be empty or consist only of whitespace");
-        }
-        validateAndFormatSize(documentTypesToBeSaved.getMin_document_size(), "Minimum");
-
-        // Validate that max size is greater than min size
-        validateSizeComparison(documentTypesToBeSaved.getMin_document_size(), documentTypesToBeSaved.getMax_document_size());
-
-        // Check for duplicate document names
-        List<DocumentType> documentTypes = getAllDocumentTypes();
-        for (DocumentType existingDocumentType : documentTypes) {
-            if (existingDocumentType.getDocument_type_name().equalsIgnoreCase(documentTypesToBeSaved.getDocument_type_name())) {
-                throw new IllegalArgumentException("Duplicate document name not allowed");
+            // Validate document type name
+            if (documentTypesToBeSaved.getDocument_type_name() == null || documentTypesToBeSaved.getDocument_type_name().trim().isEmpty()) {
+                throw new IllegalArgumentException("DocumentType name cannot be empty or consist only of whitespace");
             }
-        }
 
-        // Validate and fetch file types
-        List<FileType> validFileTypes = new ArrayList<>();
-        if (documentTypesToBeSaved.getRequired_document_type_ids() != null && !documentTypesToBeSaved.getRequired_document_type_ids().isEmpty()) {
-            for (Integer fileTypeId : documentTypesToBeSaved.getRequired_document_type_ids()) {
-                FileType existingFileType = entityManager.find(FileType.class,fileTypeId);
-                if(existingFileType==null)
-                {
-                    throw new IllegalArgumentException("File type with ID " + fileTypeId + " does not exist");
+            // Validate description
+            if (documentTypesToBeSaved.getDescription() == null || documentTypesToBeSaved.getDescription().trim().isEmpty()) {
+                throw new IllegalArgumentException("DocumentType description cannot be empty or consist only of whitespace");
+            }
+
+            // Validate qualification document flag
+            if (documentTypesToBeSaved.getIs_qualification_document() == null) {
+                throw new IllegalArgumentException("You have to select whether the document type is qualification document or not");
+            }
+
+            // Validate and format max document size
+            if (documentTypesToBeSaved.getMax_document_size() == null || documentTypesToBeSaved.getMax_document_size().trim().isEmpty()) {
+                throw new IllegalArgumentException("DocumentType maximum size cannot be empty or consist only of whitespace");
+            }
+            validateAndFormatSize(documentTypesToBeSaved.getMax_document_size(), "Maximum");
+
+            // Validate and format min document size
+            if (documentTypesToBeSaved.getMin_document_size() == null || documentTypesToBeSaved.getMin_document_size().trim().isEmpty()) {
+                throw new IllegalArgumentException("DocumentType minimum size cannot be empty or consist only of whitespace");
+            }
+            validateAndFormatSize(documentTypesToBeSaved.getMin_document_size(), "Minimum");
+
+            // Validate that max size is greater than min size
+            validateSizeComparison(documentTypesToBeSaved.getMin_document_size(), documentTypesToBeSaved.getMax_document_size());
+
+            // Check for duplicate document names
+            List<DocumentType> documentTypes = getAllArchiveUnarchiveDocumentTypes();
+            for (DocumentType existingDocumentType : documentTypes) {
+                if (existingDocumentType.getDocument_type_name().trim().equalsIgnoreCase(documentTypesToBeSaved.getDocument_type_name().trim())) {
+                    throw new IllegalArgumentException("Duplicate document name not allowed");
                 }
-                validFileTypes.add(existingFileType);
             }
-        }
 
-        if(documentTypesToBeSaved.getMin_width_dimension_in_mm()!=null && documentTypesToBeSaved.getMax_width_dimension_in_mm()!=null)
-        {
-            if(documentTypesToBeSaved.getMin_width_dimension_in_mm()>documentTypesToBeSaved.getMax_width_dimension_in_mm())
-            {
-                throw new IllegalArgumentException("Min width dimension cannot be larger than the max width dimension");
+            // Validate and fetch file types
+            List<FileType> validFileTypes = new ArrayList<>();
+            if (documentTypesToBeSaved.getRequired_document_type_ids() != null && !documentTypesToBeSaved.getRequired_document_type_ids().isEmpty()) {
+                for (Integer fileTypeId : documentTypesToBeSaved.getRequired_document_type_ids()) {
+                    FileType existingFileType = entityManager.find(FileType.class, fileTypeId);
+                    if (existingFileType == null) {
+                        throw new IllegalArgumentException("File type with ID " + fileTypeId + " does not exist");
+                    }
+                    validFileTypes.add(existingFileType);
+                }
             }
-        }
-        if(documentTypesToBeSaved.getMin_height_dimension_in_mm()!=null && documentTypesToBeSaved.getMax_height_dimension_in_mm()!=null)
-        {
-            if(documentTypesToBeSaved.getMin_height_dimension_in_mm()>documentTypesToBeSaved.getMax_height_dimension_in_mm())
-            {
-                throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
-            }
-        }
 
-        if(documentTypesToBeSaved.getMin_width_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_width_dimension_in_mm() !=null || documentTypesToBeSaved.getMin_height_dimension_in_mm()!=null || documentTypesToBeSaved.getMax_height_dimension_in_mm()!=null )
-        {
-            if(documentTypesToBeSaved.getDpi()==null)
-            {
-                throw new IllegalArgumentException("Dpi cannot be null if you are giving dimensions");
+            if (documentTypesToBeSaved.getMin_width_dimension_in_mm() != null && documentTypesToBeSaved.getMax_width_dimension_in_mm() != null) {
+                if (documentTypesToBeSaved.getMin_width_dimension_in_mm() > documentTypesToBeSaved.getMax_width_dimension_in_mm()) {
+                    throw new IllegalArgumentException("Min width dimension cannot be larger than the max width dimension");
+                }
             }
-        }
-        documentTypeToBeSaved.setDocument_type_id(id);
-        documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name());
-        documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription());
-        documentTypeToBeSaved.setIs_qualification_document(documentTypesToBeSaved.getIs_qualification_document());
-        documentTypeToBeSaved.setMax_document_size(documentTypesToBeSaved.getMax_document_size().toUpperCase());
-        documentTypeToBeSaved.setMin_document_size(documentTypesToBeSaved.getMin_document_size().toUpperCase());
-        documentTypeToBeSaved.setSort_order(sortOrderToBeInserted);
-        documentTypeToBeSaved.setRequired_document_types(validFileTypes);
-        documentTypeToBeSaved.setDpi(documentTypesToBeSaved.getDpi());
-        entityManager.persist(documentTypeToBeSaved);
+            if (documentTypesToBeSaved.getMin_height_dimension_in_mm() != null && documentTypesToBeSaved.getMax_height_dimension_in_mm() != null) {
+                if (documentTypesToBeSaved.getMin_height_dimension_in_mm() > documentTypesToBeSaved.getMax_height_dimension_in_mm()) {
+                    throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
+                }
+            }
 
-        return documentTypeToBeSaved;
+            if (documentTypesToBeSaved.getMin_width_dimension_in_mm() != null || documentTypesToBeSaved.getMax_width_dimension_in_mm() != null || documentTypesToBeSaved.getMin_height_dimension_in_mm() != null || documentTypesToBeSaved.getMax_height_dimension_in_mm() != null) {
+                if (documentTypesToBeSaved.getDpi() == null) {
+                    throw new IllegalArgumentException("Dpi cannot be null if you are giving dimensions");
+                }
+            }
+            documentTypeToBeSaved.setDocument_type_id(id);
+            documentTypeToBeSaved.setDocument_type_name(documentTypesToBeSaved.getDocument_type_name().trim());
+            documentTypeToBeSaved.setDescription(documentTypesToBeSaved.getDescription().trim());
+            documentTypeToBeSaved.setIs_qualification_document(documentTypesToBeSaved.getIs_qualification_document());
+            documentTypeToBeSaved.setMax_document_size(documentTypesToBeSaved.getMax_document_size().toUpperCase());
+            documentTypeToBeSaved.setMin_document_size(documentTypesToBeSaved.getMin_document_size().toUpperCase());
+            documentTypeToBeSaved.setSort_order(sortOrderToBeInserted);
+            documentTypeToBeSaved.setRequired_document_types(validFileTypes);
+            documentTypeToBeSaved.setDpi(documentTypesToBeSaved.getDpi());
+            entityManager.persist(documentTypeToBeSaved);
+
+            return documentTypeToBeSaved;
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+        }
+        catch (Exception e)
+        {
+            throw new Exception(e.getMessage());
+        }
     }
 
     private void validateAndFormatSize(String size, String sizeType) {
@@ -199,10 +202,17 @@ public class CustomDocumentTypeService
             }
     }
 
-    public List<DocumentType> getAllDocumentTypes() {
+    public List<DocumentType> getAllDocumentTypes(Boolean archived) {
         TypedQuery<DocumentType> query = entityManager.createQuery(
                 Constant.GET_ALL_DOCUMENT_TYPES, DocumentType.class);
+        query.setParameter("archived",archived);
         List<DocumentType> documentTypeList = query.getResultList(); // then execute
+        return documentTypeList;
+    }
+    public List<DocumentType> getAllArchiveUnarchiveDocumentTypes() {
+        TypedQuery<DocumentType> query = entityManager.createQuery(
+                Constant.GET_ALL_ARCHIVE_UNARCHIVE_DOCUMENT_TYPES, DocumentType.class);
+        List<DocumentType> documentTypeList = query.getResultList();
         return documentTypeList;
     }
 
@@ -211,146 +221,131 @@ public class CustomDocumentTypeService
     }
 
     @Transactional
-    public DocumentType updateDocumentType(Integer documentTypeId, DocumentTypeDto documentType,String authHeader){
-        String jwtToken = authHeader.substring(7);
+    public DocumentType updateDocumentType(Integer documentTypeId, DocumentTypeDto documentType,String authHeader) throws Exception {
+        try {
+            String jwtToken = authHeader.substring(7);
 
-        Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
 
-        String role = roleService.getRoleByRoleId(roleId).getRole_name();
-        DocumentType documentTypeToUpdate= entityManager.find(DocumentType.class,documentTypeId);
-        if(documentTypeToUpdate==null)
-        {
-            throw new IllegalArgumentException("DocumentType with id "+ documentTypeId+" not found");
-        }
-        List<DocumentType> documentTypes = getAllDocumentTypes();
-        if (Objects.nonNull(documentType.getDocument_type_name())) {
-            for (DocumentType existingDocumentType : documentTypes) {
-                if (existingDocumentType.getDocument_type_name().equalsIgnoreCase(documentType.getDocument_type_name()) && !existingDocumentType.getDocument_type_id().equals(documentTypeId)) {
-                    throw new IllegalArgumentException("Duplicate document type name not allowed");
+            String role = roleService.getRoleByRoleId(roleId).getRole_name();
+            DocumentType documentTypeToUpdate = entityManager.find(DocumentType.class, documentTypeId);
+            if (documentTypeToUpdate == null) {
+                throw new IllegalArgumentException("DocumentType with id " + documentTypeId + " not found");
+            }
+            List<DocumentType> documentTypes = getAllArchiveUnarchiveDocumentTypes();
+            if (Objects.nonNull(documentType.getDocument_type_name())) {
+                for (DocumentType existingDocumentType : documentTypes) {
+                    if (existingDocumentType.getDocument_type_name().trim().equalsIgnoreCase(documentType.getDocument_type_name().trim()) && !existingDocumentType.getDocument_type_id().equals(documentTypeId)) {
+                        throw new IllegalArgumentException("Duplicate document type name not allowed");
+                    }
+                }
+                documentTypeToUpdate.setDocument_type_name(documentType.getDocument_type_name().trim());
+            }
+            if (Objects.nonNull(documentType.getDescription())) {
+                if (documentType.getDescription().trim().isEmpty()) {
+                    throw new IllegalArgumentException("DocumentType description cannot be empty or consist only of whitespace");
+                }
+                documentTypeToUpdate.setDescription(documentType.getDescription().trim());
+            }
+            if (Objects.nonNull(documentType.getIs_qualification_document())) {
+                documentTypeToUpdate.setIs_qualification_document(documentType.getIs_qualification_document());
+            }
+            if (Objects.nonNull(documentType.getMax_document_size())) {
+                if (documentType.getMax_document_size().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Maximum document size cannot be empty");
+                }
+                validateAndFormatSize(documentType.getMax_document_size(), "Maximum");
+                documentTypeToUpdate.setMax_document_size(documentType.getMax_document_size());
+            }
+            if (Objects.nonNull(documentType.getMin_document_size())) {
+                if (documentType.getMin_document_size().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Minimum document size cannot be empty");
+                }
+                validateAndFormatSize(documentType.getMin_document_size(), "Minimum");
+                documentTypeToUpdate.setMin_document_size(documentType.getMin_document_size());
+            }
+
+            if (documentType.getMax_document_size() != null && documentType.getMin_document_size() != null) {
+                validateSizeComparison(documentType.getMin_document_size(), documentType.getMax_document_size());
+            } else if (documentType.getMax_document_size() != null) {
+                validateSizeComparison(documentTypeToUpdate.getMin_document_size(), documentType.getMax_document_size());
+            } else if (documentType.getMin_document_size() != null) {
+                validateSizeComparison(documentType.getMin_document_size(), documentTypeToUpdate.getMin_document_size());
+            }
+            Double minWidth = 0.0;
+            Double maxWidth = 0.0;
+            Double minHeight = 0.0;
+            Double maxHeight = 0.0;
+            if (documentType.getMin_width_dimension_in_mm() != null) {
+                minWidth = documentType.getMin_width_dimension_in_mm();
+                documentTypeToUpdate.setMin_width_dimension_in_mm(minWidth);
+            } else {
+
+                minWidth = documentTypeToUpdate.getMin_width_dimension_in_mm() != null ? documentTypeToUpdate.getMin_width_dimension_in_mm() : null;
+            }
+
+            if (documentType.getMax_width_dimension_in_mm() != null) {
+                maxWidth = documentType.getMax_width_dimension_in_mm();
+                documentTypeToUpdate.setMax_width_dimension_in_mm(maxWidth);
+            } else {
+                maxWidth = documentTypeToUpdate.getMax_width_dimension_in_mm() != null ? documentTypeToUpdate.getMax_width_dimension_in_mm() : null;
+            }
+
+            if (documentType.getMin_height_dimension_in_mm() != null) {
+                minHeight = documentType.getMin_height_dimension_in_mm();
+                documentTypeToUpdate.setMin_height_dimension_in_mm(minHeight);
+            } else {
+                minHeight = documentTypeToUpdate.getMin_height_dimension_in_mm() != null ? documentTypeToUpdate.getMin_height_dimension_in_mm() : null;
+            }
+
+            if (documentType.getMax_height_dimension_in_mm() != null) {
+                maxHeight = documentType.getMax_height_dimension_in_mm();
+                documentTypeToUpdate.setMax_height_dimension_in_mm(maxHeight);
+            } else {
+                maxHeight = documentTypeToUpdate.getMax_height_dimension_in_mm() != null ? documentTypeToUpdate.getMax_height_dimension_in_mm() : null;
+            }
+
+            if (minWidth != null && maxWidth != null) {
+                if (minWidth > maxWidth) {
+                    throw new IllegalArgumentException("Min width dimension cannot be larger than the max width dimension");
                 }
             }
-            documentTypeToUpdate.setDocument_type_name(documentType.getDocument_type_name());
-        }
-        if (Objects.nonNull(documentType.getDescription())) {
-            if(documentType.getDescription().trim().isEmpty())
-            {
-                throw new IllegalArgumentException("DocumentType description cannot be empty or consist only of whitespace");
-            }
-            documentTypeToUpdate.setDescription(documentType.getDescription());
-        }
-        if (Objects.nonNull(documentType.getIs_qualification_document())) {
-            documentTypeToUpdate.setIs_qualification_document(documentType.getIs_qualification_document());
-        }
-        if (Objects.nonNull(documentType.getMax_document_size())) {
-            if(documentType.getMax_document_size().trim().isEmpty())
-            {
-                throw new IllegalArgumentException("Maximum document size cannot be empty");
-            }
-            validateAndFormatSize(documentType.getMax_document_size(), "Maximum");
-            documentTypeToUpdate.setMax_document_size(documentType.getMax_document_size());
-        }
-        if(Objects.nonNull(documentType.getMin_document_size()))
-        {
-            if(documentType.getMin_document_size().trim().isEmpty())
-            {
-                throw new IllegalArgumentException("Minimum document size cannot be empty");
-            }
-            validateAndFormatSize(documentType.getMin_document_size(), "Minimum");
-            documentTypeToUpdate.setMin_document_size(documentType.getMin_document_size());
-        }
-
-        if(documentType.getMax_document_size()!=null && documentType.getMin_document_size()!=null)
-        {
-            validateSizeComparison(documentType.getMin_document_size(), documentType.getMax_document_size());
-        }
-        else if(documentType.getMax_document_size() != null)
-        {
-            validateSizeComparison(documentTypeToUpdate.getMin_document_size(), documentType.getMax_document_size());
-        }
-        else if(documentType.getMin_document_size() != null)
-        {
-            validateSizeComparison(documentType.getMin_document_size(), documentTypeToUpdate.getMin_document_size());
-        }
-        Double minWidth=0.0;
-        Double maxWidth=0.0;
-        Double minHeight=0.0;
-        Double maxHeight=0.0;
-        if(documentType.getMin_width_dimension_in_mm()!=null)
-        {
-            minWidth=documentType.getMin_width_dimension_in_mm();
-            documentTypeToUpdate.setMin_width_dimension_in_mm(minWidth);
-        }
-        else {
-
-            minWidth= documentTypeToUpdate.getMin_width_dimension_in_mm()!=null ?documentTypeToUpdate.getMin_width_dimension_in_mm(): null;
-        }
-
-        if(documentType.getMax_width_dimension_in_mm()!=null)
-        {
-            maxWidth=documentType.getMax_width_dimension_in_mm();
-            documentTypeToUpdate.setMax_width_dimension_in_mm(maxWidth);
-        }
-        else {
-            maxWidth= documentTypeToUpdate.getMax_width_dimension_in_mm()!=null ?documentTypeToUpdate.getMax_width_dimension_in_mm(): null;
-        }
-
-        if(documentType.getMin_height_dimension_in_mm()!=null)
-        {
-            minHeight=documentType.getMin_height_dimension_in_mm();
-            documentTypeToUpdate.setMin_height_dimension_in_mm(minHeight);
-        }
-        else {
-            minHeight= documentTypeToUpdate.getMin_height_dimension_in_mm()!=null ?documentTypeToUpdate.getMin_height_dimension_in_mm(): null;
-        }
-
-        if(documentType.getMax_height_dimension_in_mm()!=null)
-        {
-            maxHeight=documentType.getMax_height_dimension_in_mm();
-            documentTypeToUpdate.setMax_height_dimension_in_mm(maxHeight);
-        }
-        else {
-            maxHeight= documentTypeToUpdate.getMax_height_dimension_in_mm()!=null ?documentTypeToUpdate.getMax_height_dimension_in_mm(): null;
-        }
-
-        if(minWidth!=null && maxWidth!=null)
-        {
-            if(minWidth>maxWidth)
-            {
-                throw new IllegalArgumentException("Min width dimension cannot be larger than the max width dimension");
-            }
-        }
-        if(minHeight!=null && maxHeight!=null)
-        {
-            if(minHeight>maxHeight)
-            {
-                throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
-            }
-        }
-
-        if(documentType.getDpi()!=null)
-        {
-            documentTypeToUpdate.setDpi(documentType.getDpi());
-        }
-
-        // Validate and fetch file types
-        List<FileType> validFileTypes = new ArrayList<>();
-        if (documentType.getRequired_document_type_ids() != null && documentType.getRequired_document_type_ids().isEmpty()) {
-            documentTypeToUpdate.getRequired_document_types().clear();
-            documentTypeToUpdate.setRequired_document_types(new ArrayList<>());
-        }
-        if (documentType.getRequired_document_type_ids() != null && !documentType.getRequired_document_type_ids().isEmpty()) {
-            documentTypeToUpdate.getRequired_document_types().clear();
-            for (Integer fileTypeId : documentType.getRequired_document_type_ids()) {
-                FileType existingFileType = entityManager.find(FileType.class,fileTypeId);
-                if(existingFileType==null)
-                {
-                    throw new IllegalArgumentException("File type with ID " + fileTypeId + " does not exist");
+            if (minHeight != null && maxHeight != null) {
+                if (minHeight > maxHeight) {
+                    throw new IllegalArgumentException("Min height dimension cannot be larger than the max height dimension");
                 }
-                validFileTypes.add(existingFileType);
             }
-            documentTypeToUpdate.setRequired_document_types(validFileTypes);
+
+            if (documentType.getDpi() != null) {
+                documentTypeToUpdate.setDpi(documentType.getDpi());
+            }
+
+            // Validate and fetch file types
+            List<FileType> validFileTypes = new ArrayList<>();
+            if (documentType.getRequired_document_type_ids() != null && documentType.getRequired_document_type_ids().isEmpty()) {
+                documentTypeToUpdate.getRequired_document_types().clear();
+                documentTypeToUpdate.setRequired_document_types(new ArrayList<>());
+            }
+            if (documentType.getRequired_document_type_ids() != null && !documentType.getRequired_document_type_ids().isEmpty()) {
+                documentTypeToUpdate.getRequired_document_types().clear();
+                for (Integer fileTypeId : documentType.getRequired_document_type_ids()) {
+                    FileType existingFileType = entityManager.find(FileType.class, fileTypeId);
+                    if (existingFileType == null) {
+                        throw new IllegalArgumentException("File type with ID " + fileTypeId + " does not exist");
+                    }
+                    validFileTypes.add(existingFileType);
+                }
+                documentTypeToUpdate.setRequired_document_types(validFileTypes);
+            }
+            return entityManager.merge(documentTypeToUpdate);
+        }catch (IllegalArgumentException illegalArgumentException)
+        {
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         }
-        return entityManager.merge(documentTypeToUpdate);
+        catch (Exception e)
+        {
+            throw new Exception(e.getMessage());
+        }
     }
     @Transactional
     public DocumentType manageDocumentType(Integer documentTypeId, Boolean active) throws Exception {
