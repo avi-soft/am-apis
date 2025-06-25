@@ -630,7 +630,6 @@ public class CartEndPoint extends BaseEndpoint {
                 }
             }
             options.put("amount", (totalAmt* 100));
-            System.out.println("total amt izzzzzzzzzzzzzzzzzzzzzzzzzzzz"+totalAmt);// amount in paise
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
