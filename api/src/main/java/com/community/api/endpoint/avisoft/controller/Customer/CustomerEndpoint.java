@@ -1613,18 +1613,44 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser, Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest,@RequestParam(required = false)Long ticketId) {
         try {
+            System.out.println("checkpoint1");
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
-
+            System.out.println("checkpoint2");
             //checking for super admin and admin
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customerId))/*||role.getRole_name().equals(roleServiceProvider)*/)
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
+            System.out.println("checkpoint3");
+            if(role.getRole_name().equals(roleServiceProvider)&&ticketId!=null)
+            {
+                CustomServiceProviderTicket ticket=em.find(CustomServiceProviderTicket.class,ticketId);
+                if(ticket==null)
+                    return ResponseService.generateErrorResponse("Invalid ticket",HttpStatus.BAD_REQUEST);
+                Order order=orderService.findOrderById(ticket.getOrder().getId());
+                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId))
+                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+            }
+
+            else if(role.getRole_name().equals(roleServiceProvider))
+            {
+                System.out.println("checkpoint4");
+                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,tokenUserId);
+                if(serviceProvider==null)
+                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                System.out.println("here");
+                Query query=entityManager.createNativeQuery("Select count(customer_id) from customer_referrer where customer_id = :cid and service_provider_id =:sid");
+                query.setParameter("cid",customCustomer.getId());
+                query.setParameter("sid",serviceProvider.getService_provider_id());
+                if(((BigInteger)query.getSingleResult()).intValue()==0)
+                    return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
+                System.out.println(((BigInteger)query.getSingleResult()).intValue());
+            }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
             }
