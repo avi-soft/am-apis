@@ -138,8 +138,8 @@ public class SectorService {
                     "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                     "WHERE bp.archived = 'N' " +
                     "AND c.product_state_id NOT IN (7) " +
-                    "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                    "AND c.go_live_date <= CURRENT_DATE ");
+                    "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                    "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
             if (sectorIds != null && !sectorIds.isEmpty()) {
                 sql.append("AND c.sector_id IN :sectorIds ");
@@ -169,8 +169,8 @@ public class SectorService {
                     "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                     "WHERE bp.archived = 'N' " +
                     "AND c.product_state_id NOT IN (7) " +
-                    "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                    "AND c.go_live_date <= CURRENT_DATE " +
+                    "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                    "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                     "AND c.sector_id = :sectorId " +
                     "ORDER BY c.product_id DESC " +
                     "LIMIT :limit OFFSET :offset");
@@ -193,8 +193,8 @@ public class SectorService {
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +
-                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                "AND c.go_live_date <= CURRENT_DATE ");
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
         if (sectorIds != null && !sectorIds.isEmpty()) {
             sql.append("AND c.sector_id IN :sectorIds ");
@@ -218,8 +218,8 @@ public class SectorService {
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +
-                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                "AND c.go_live_date <= CURRENT_DATE " +
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "AND c.sector_id = :sectorId");
 
         try {

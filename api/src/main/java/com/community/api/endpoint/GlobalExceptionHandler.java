@@ -1,5 +1,6 @@
 package com.community.api.endpoint;
 
+import com.community.api.services.ResponseService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.social.NotAuthorizedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -23,12 +25,14 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @ControllerAdvice
@@ -48,10 +52,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, status);
     }
 
+
+    @ExceptionHandler(NotAuthorizedException.class)
+    public ResponseEntity<Object> handleNotAuthorizedException(NotAuthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "status", "ERROR",
+                "status_code", 403,
+                "message", ex.getMessage()
+        ));
+    }
+
+
     @ExceptionHandler(value = {HttpRequestMethodNotSupportedException.class})
     public ResponseEntity<ErrorResponse> handleNotFoundRequests(Exception ex, WebRequest request) {
         return generateErrorResponse("Invalid request method", HttpStatus.BAD_REQUEST, ex.getMessage());
     }
+
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {

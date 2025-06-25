@@ -630,7 +630,7 @@ public class CartEndPoint extends BaseEndpoint {
                     totalAmt+=customProduct.getPlatformFee()+individualFee;
                 }
             }
-            options.put("amount", (totalAmt* 100)); // amount in paise
+            options.put("amount", (totalAmt* 100));
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
@@ -840,6 +840,7 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
+                removeCartItems(customerId,order.getOrderItems().get(0).getId(),authHeader);
                 entityManager.merge(customCustomer);
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
@@ -875,7 +876,7 @@ public class CartEndPoint extends BaseEndpoint {
         }
 
         if (!isFailed) {
-            emptyTheCart(customerId,authHeader);
+            /*emptyTheCart(customerId,authHeader);*/
             return ResponseService.generateSuccessResponse("Order placed successfully", orderDTOS, HttpStatus.OK);
         } else {
 

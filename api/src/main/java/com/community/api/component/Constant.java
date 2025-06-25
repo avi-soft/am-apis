@@ -26,7 +26,7 @@ public class Constant {
     public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY = "SELECT q FROM BoardUniversity q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
 
     public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
-    public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
+    public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q ORDER BY q.rank_id";
     public static final String FIND_SERVICE_PROVIDER_RANK_BY_SERVICE_PROVIDER_RANK_ID = "SELECT r FROM ServiceProviderRank r WHERE r.rank_id = :serviceProviderRankId";
     public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=false ORDER BY dt.sort_order ASC";
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = :archived";
@@ -102,7 +102,7 @@ public class Constant {
     public static String PASSWORD_CONSTRAINT_IN_CUSTOM_ADMIN="ALTER TABLE custom_admin "+ "ADD CONSTRAINT chk_password_length "+ "CHECK (char_length(password) = 60)";
     public static String GET_ALL_APPLICATION_SCOPE = "SELECT * FROM custom_application_scope";
     public static String GET_ALL_STATES = "SELECT * FROM state_codes";
-    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category where archived =:archive ORDER BY sort_order ASC";
+    public static String GET_ALL_RESERVED_CATEGORY = "SELECT * FROM custom_reserve_category where archived =:archived ORDER BY sort_order ASC";
     public static String GET_COUNT_OF_JOB_ROLE = "SELECT COUNT(c) FROM CustomJobGroup c";
     public static String GET_ALL_JOB_GROUP = "SELECT s FROM CustomJobGroup s";
     public static String GET_APPLICATION_SCOPE_BY_ID = "SELECT c FROM CustomApplicationScope c WHERE c.applicationScopeId = :applicationScopeId";
@@ -370,7 +370,7 @@ public class Constant {
                     "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
                     "    LEFT JOIN customer_qualifications cq " +
                     "        ON qd.qualification_id = cq.qualification_id " +
-                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND (" +
                     "        (qd.qualification_id IS NULL) " +
@@ -407,7 +407,7 @@ public class Constant {
                     "    JOIN custom_product_reserve_category_fee_post_reference fee " +
                     "        ON p.product_id = fee.product_id " +
                     "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND NOT EXISTS (" +
                     "        SELECT 1 FROM post_details pd " +
@@ -463,7 +463,7 @@ public class Constant {
             "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
             "    LEFT JOIN customer_qualifications cq " +
             "        ON qd.qualification_id = cq.qualification_id " +
-            "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+            "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
             "    AND p.soft_delete = 'N' " +
             "    AND (" +
             "        (qd.qualification_id IS NULL) " +
@@ -500,7 +500,7 @@ public class Constant {
             "    JOIN custom_product_reserve_category_fee_post_reference fee " +
             "        ON p.product_id = fee.product_id " +
             "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-            "    WHERE sku.active_end_date >= CURRENT_DATE " +
+            "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
             "    AND p.soft_delete = 'N' " +
             "    AND NOT EXISTS (" +
             "        SELECT 1 FROM post_details pd " +

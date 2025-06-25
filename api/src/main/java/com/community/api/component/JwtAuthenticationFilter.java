@@ -26,12 +26,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -130,10 +132,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             logger.error("ExpiredJwtException caught: {}", e.getMessage());
         } catch (MalformedJwtException e) {
             System.out.println("hi");
-            handleException(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
-            exceptionHandling.handleException(e);
+
+            handleException(response, HttpStatus.UNAUTHORIZED.value(), "Invalid JWT token");
             System.out.println("MalformedJwtException caught: {}"+e.getMessage());
         } catch (Exception e) {
+            System.out.println("yes");
             handleException(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
             exceptionHandling.handleException(e);
 
@@ -217,10 +220,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = authorizationHeader.substring(BEARER_PREFIX_LENGTH);
         Long id = jwtUtil.extractId(jwt);
 
+        /*Query query=entityManager.createNativeQuery("select count(blacklisttoken) from black_listed_token where blacklisttoken = :token");
+        query.setParameter("token",jwt);
+        if(query.getSingleResult()!=null&&((BigInteger)query.getSingleResult()).intValue()==1)
+        {
+            respondWithSuspended(response, "Your account has been suspended.Please contact the administrator.");
+            return true;
+        }*/
+
         if (tokenBlacklist.isTokenBlacklisted(jwt)) {
             respondWithUnauthorized(response, "Token has been blacklisted");
             return true;
         }
+
 
         if (id == null) {
             respondWithUnauthorized(response, "Invalid details in token");
@@ -296,6 +308,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void respondWithUnauthorized(HttpServletResponse response, String message) throws IOException {
+        if (!response.isCommitted()) {
+
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":\"UNAUTHORIZED\",\"status_code\":401,\"message\":\"" + message + "\"}");
+            response.getWriter().flush();
+        }
+    }
+    private void respondWithSuspended(HttpServletResponse response, String message) throws IOException {
         if (!response.isCommitted()) {
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

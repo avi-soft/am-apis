@@ -16,7 +16,8 @@ BEGIN
         WHERE is_admin_overridden = false
           AND (is_eligible_for_re_ranking = true)
           AND role = 4
-          and approved = true
+          AND approved = true
+          AND archived = false
         ORDER BY COALESCE(review_ticket_status_score, 0) + COALESCE(review_ticket_feedback_score, 0) + COALESCE(time_completion_score, 0) desc,
         date_joined ASC  -- or DESC based on your preference
     LOOP

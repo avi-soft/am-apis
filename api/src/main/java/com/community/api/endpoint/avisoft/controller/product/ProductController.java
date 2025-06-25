@@ -82,6 +82,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -563,6 +564,13 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
+                    System.out.println("yes");
+                    CustomProductState productState=entityManager.find(CustomProductState.class,5L);
+                    if(addProductDto.getProductState()==3L||customProduct.getIsApproved()) {
+                        customProduct.setProductState(productState);
+                    }
+                }
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
@@ -697,7 +705,9 @@ public class ProductController extends CatalogEndpoint {
             }
 
             boolean isArchived = ((Status) customProduct).getArchived() == 'Y';
-            boolean isExpired = customProduct.getDefaultSku().getActiveEndDate().before(new Date());
+            Instant now = Instant.now();
+            Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
+            boolean isExpired = expiry.isBefore(now);
 
             if ((!isArchived && !isExpired) || allowExpiredAccess) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();

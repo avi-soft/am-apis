@@ -71,17 +71,16 @@ public class CustomStream {
     @Column(name = "sort_order", nullable = false)
     private Long sortOrder;
 
-    @ManyToMany(mappedBy = "streams")
-    @JsonIgnore
-    private List<Qualification> qualifications = new ArrayList<>();
-
-@JsonIgnore
     @ManyToMany
     @JoinTable(
-            name = "stream_subject",
+            name = "qualification_stream",
             joinColumns = @JoinColumn(name = "stream_id"),
-            inverseJoinColumns = @JoinColumn(name = "subject_id")
+            inverseJoinColumns = @JoinColumn(name = "qualification_id")
     )
+    private List<Qualification> qualifications = new ArrayList<>();
+
+    @JsonIgnore
+    @ManyToMany(mappedBy = "streams")
     private List<CustomSubject> subjects = new ArrayList<>();
 
 }

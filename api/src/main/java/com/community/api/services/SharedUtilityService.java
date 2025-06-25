@@ -1209,7 +1209,7 @@ public class SharedUtilityService {
         }
     }
 
-    public boolean validateCategoryIssueAndValidUptoDates(String categoryIssueDate, String categoryUptoDate, List<String> errorMessages) {
+    public boolean validateCategoryIssueAndValidUptoDates(String categoryIssueDate, String categoryUptoDate,Map<String,String> errorMessages) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
@@ -1219,12 +1219,12 @@ public class SharedUtilityService {
 
             if(issueDate.after(uptoDate)) {
                 cond = false;
-                errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                errorMessages.put("categoryIssueDate","category Issue date cannot be future of category valid upto date.");
             }
 
             if(issueDate.after(new Date())) {
                 cond = false;
-                errorMessages.add("category Issue date cannot be future of current date");
+                errorMessages.put("categoryIssueDate","category Issue date cannot be future of current date");
             }
             return cond;
         } catch (Exception e) {
@@ -1233,7 +1233,7 @@ public class SharedUtilityService {
         }
     }
 
-    public boolean validateCategoryIssueDate(String categoryIssueDate, CustomCustomer customer, List<String> errorMessages) {
+    public boolean validateCategoryIssueDate(String categoryIssueDate, CustomCustomer customer, Map<String,String> errorMessages) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
@@ -1242,13 +1242,13 @@ public class SharedUtilityService {
 
             if(issueDate.after(new Date())) {
                 cond = false;
-                errorMessages.add("Category issue date has to past or current date");
+                errorMessages.put("categoryIssueDate","Category issue date has to past or current date");
             }
             if(customer.getCategoryValidUpto() != null) {
                 Date uptoDate = sdf.parse(customer.getCategoryValidUpto());
                 if(issueDate.after(uptoDate)) {
                     cond = false;
-                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                    errorMessages.put("categoryIssueDate","category Issue date cannot be future of category valid upto date.");
                 }
             }
 
@@ -1259,7 +1259,7 @@ public class SharedUtilityService {
         }
     }
 
-    public boolean validateCategoryUptoDate(String categoryUptoDate, CustomCustomer customer, List<String> errorMessages) {
+    public boolean validateCategoryUptoDate(String categoryUptoDate, CustomCustomer customer, Map<String,String> errorMessages) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         sdf.setLenient(false);
         try {
@@ -1268,16 +1268,16 @@ public class SharedUtilityService {
 
             if(!uptoDate.after(new Date())) {
                 cond = false;
-                errorMessages.add("Category upto date has to future date");
+                errorMessages.put("categoryValidUpto","Category upto date has to future date");
             }
             if(customer.getCategoryIssueDate() == null) {
                 cond = false;
-                errorMessages.add("There is no entry of categoryIssueDate cannot");
+                errorMessages.put("categoryValidUpto","There is no entry of categoryIssueDate cannot");
             }else {
                 Date issueDate = sdf.parse(customer.getCategoryIssueDate());
                 if(issueDate.after(uptoDate)) {
                     cond = false;
-                    errorMessages.add("category Issue date cannot be future of category valid upto date.");
+                    errorMessages.put("categoryValidUpto","category Issue date cannot be future of category valid upto date.");
                 }
             }
 
