@@ -364,7 +364,7 @@ public class Constant {
                     "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
                     "    LEFT JOIN customer_qualifications cq " +
                     "        ON qd.qualification_id = cq.qualification_id " +
-                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND (" +
                     "        (qd.qualification_id IS NULL) " +
@@ -401,7 +401,7 @@ public class Constant {
                     "    JOIN custom_product_reserve_category_fee_post_reference fee " +
                     "        ON p.product_id = fee.product_id " +
                     "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND NOT EXISTS (" +
                     "        SELECT 1 FROM post_details pd " +
@@ -457,7 +457,7 @@ public class Constant {
             "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
             "    LEFT JOIN customer_qualifications cq " +
             "        ON qd.qualification_id = cq.qualification_id " +
-            "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+            "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
             "    AND p.soft_delete = 'N' " +
             "    AND (" +
             "        (qd.qualification_id IS NULL) " +
@@ -494,7 +494,7 @@ public class Constant {
             "    JOIN custom_product_reserve_category_fee_post_reference fee " +
             "        ON p.product_id = fee.product_id " +
             "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-            "    WHERE sku.active_end_date >= CURRENT_DATE " +
+            "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
             "    AND p.soft_delete = 'N' " +
             "    AND NOT EXISTS (" +
             "        SELECT 1 FROM post_details pd " +

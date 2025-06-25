@@ -629,7 +629,7 @@ public class CartEndPoint extends BaseEndpoint {
                     totalAmt+=customProduct.getPlatformFee()+individualFee;
                 }
             }
-            options.put("amount", (totalAmt* 100)); // amount in paise
+            options.put("amount", (totalAmt* 100));
             options.put("currency", "INR");
             options.put("receipt", customer.getEmailAddress());
             com.razorpay.Order razorpayOrder = razorpayCLient.orders.create(options);
