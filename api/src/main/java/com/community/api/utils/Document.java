@@ -43,6 +43,7 @@ public class Document {
     private DocumentType documentType;
 
     @OneToOne
+    @JsonIgnore
     @JoinColumn(name = "qualification_detail_id", referencedColumnName = "qualification_detail_id")
     private QualificationDetails qualificationDetails;
 

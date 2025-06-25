@@ -12,6 +12,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
@@ -71,8 +72,12 @@ public class CustomSubject {
     @JsonProperty("creator_role")
     protected Role creatorRole;
 
-    @ManyToMany(mappedBy = "subjects")
-    @JsonIgnore
+    @ManyToMany
+    @JoinTable(
+            name = "stream_subject",
+            joinColumns = @JoinColumn(name = "subject_id"),
+            inverseJoinColumns = @JoinColumn(name = "stream_id")
+    )
     private List<CustomStream> streams = new ArrayList<>();
 
 }

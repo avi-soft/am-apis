@@ -32,6 +32,7 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -324,6 +325,9 @@ public class ServiceProviderEntity  {
 
     @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isAcknowledged=false;
+
+    @Column(name = "date_joined")
+    private LocalDate dateJoined;
 
 }
 
