@@ -338,10 +338,6 @@ public class ImageService {
         {
             throw new IllegalArgumentException("Image not found");
         }
-        if(imageToUpdate.getArchived().equals(true))
-        {
-            throw new IllegalArgumentException("Image is archived");
-        }
 
         if(randomImageTypeId!=null)
         {
