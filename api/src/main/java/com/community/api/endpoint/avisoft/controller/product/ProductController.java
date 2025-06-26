@@ -708,7 +708,7 @@ public class ProductController extends CatalogEndpoint {
             Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
             boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired) || allowExpiredAccess) {
+            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);

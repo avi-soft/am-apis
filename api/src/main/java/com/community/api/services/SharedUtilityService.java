@@ -51,6 +51,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.community.api.component.Constant.GENDER_ALL;
+import static com.community.api.component.Constant.RESERVED_CATEGORY_ALL;
+
 @Service
 public class SharedUtilityService {
     public ReserveCategoryService reserveCategoryService;
@@ -66,6 +69,8 @@ public class SharedUtilityService {
     RoleService roleService;
     @Autowired
     DistrictService districtService;
+    @Autowired
+    GenderService genderService;
     @Autowired
     DocumentStorageService documentStorageService;
     @Autowired
@@ -164,11 +169,56 @@ public class SharedUtilityService {
         productDetails.put("preference_order",postPreferenceOrder);
         }
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
+        fee = null;
+
+// 1. Check for ALL category and ALL gender
+        fee = reserveCategoryService.getReserveCategoryFee(
+                product.getId(),
+                reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+        );
+
+// 2. Check for ALL category and actual gender
         if (fee == null) {
-            fee =  reserveCategoryService.getReserveCategoryFee(product.getId(), 1L,genderId);
-            if(fee==null)
-                fee=0.0;
+            fee = reserveCategoryService.getReserveCategoryFee(
+                    product.getId(),
+                    reserveCategoryService.getReserveCategoryById(RESERVED_CATEGORY_ALL).getReserveCategoryId(),
+                    genderService.getGenderByName(customer.getGender()).getGenderId()
+            );
         }
+
+// 3. Check for actual category and ALL gender
+        if (fee == null) {
+            fee = reserveCategoryService.getReserveCategoryFee(
+                    product.getId(),
+                    reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),
+                    genderService.getGenderByGenderId(GENDER_ALL).getGenderId()
+            );
+        }
+
+// 4. Check for actual category and actual gender
+        if (fee == null) {
+            fee = reserveCategoryService.getReserveCategoryFee(
+                    product.getId(),
+                    reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),
+                    genderService.getGenderByName(customer.getGender()).getGenderId()
+            );
+        }
+
+// 5. Fallback to General category (1L) with actual gender
+        if (fee == null) {
+            fee = reserveCategoryService.getReserveCategoryFee(
+                    product.getId(),
+                    1L, // hardcoded general category
+                    genderService.getGenderByName(customer.getGender()).getGenderId()
+            );
+        }
+
+// 6. Final fallback to 0.0 if still null
+        if (fee == null) {
+            fee = 0.0;
+        }
+
         //@TODO-Fee is dependent on category
         productDetails.put("fee", fee);//this is dummy data
         productDetails.put("category_id", product.getDefaultCategory().getId());
@@ -1349,7 +1399,7 @@ public class SharedUtilityService {
         }
 
         // Use regular expression to check if the string contains only alphabets
-        return input.matches("[a-zA-Z]+");
+        return input.matches("[a-zA-Z ]+");
     }public long parseToLong(Object value) {
         if (value instanceof String) {
             try {
