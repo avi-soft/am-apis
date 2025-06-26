@@ -103,10 +103,7 @@ public class TypingTextService
         {
             throw new IllegalArgumentException("Typing text not found");
         }
-        if(typingTextToUpdate.getArchived().equals(true))
-        {
-            throw new IllegalArgumentException("Typing text is archived");
-        }
+
         if(typingText.getText()!=null)
         {
             if (typingText.getText().trim().isEmpty()) {
