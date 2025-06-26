@@ -282,7 +282,7 @@ public class AdvertisementService {
             }
 
                 if (title != null && !title.isEmpty()) {
-                    jpql.append("AND a.title LIKE :title ");
+                    jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
                 }
 
                 // Create the query with the final JPQL string
