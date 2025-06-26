@@ -1406,7 +1406,7 @@ public class SharedUtilityService {
         }
 
         // Use regular expression to check if the string contains only alphabets
-        return input.matches("[a-zA-Z]+");
+        return input.matches("[a-zA-Z ]+");
     }public long parseToLong(Object value) {
         if (value instanceof String) {
             try {

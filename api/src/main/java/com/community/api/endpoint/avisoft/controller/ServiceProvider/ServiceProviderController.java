@@ -10,6 +10,7 @@ import com.community.api.endpoint.avisoft.controller.ServiceProviderActionContro
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.*;
 import com.community.api.services.*;
+import com.community.api.services.ServiceProvider.ServiceProviderRankService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.community.api.services.exception.ExceptionHandlingService;
@@ -48,8 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.community.api.component.Constant.CURRENT_ADDRESS_ID;
-import static com.community.api.component.Constant.PERMANENT_ADDRESS_ID;
+import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
@@ -106,6 +106,8 @@ public class ServiceProviderController {
     @Autowired
     private PrivilegeService privilegeService;
     private StatusChangeEmailService statusChangeEmailService;
+    @Autowired
+    private ServiceProviderRankService serviceProviderRankService;
 
     @Autowired
     public void setStatusChangeEmailService(StatusChangeEmailService statusChangeEmailService) {
@@ -596,7 +598,8 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean approved,
             @RequestParam(required = false) Boolean rejected,
             @RequestParam(required = false) Integer role,
-            @RequestParam(required = false)Integer rank,
+            @RequestParam(required = false) List<Long> rank,
+            @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "10") int limit,
             @RequestParam(required = false) Long ticketId,
@@ -619,7 +622,8 @@ public class ServiceProviderController {
                     (uri.containsKey("district") && district == null) ||
                     (uri.containsKey("userName") && user_name == null) ||
                     (uri.containsKey("qualificationType") && qualificationType == null) ||
-                    (uri.containsKey("mobileNumber") && mobileNumber == null)) {
+                    (uri.containsKey("mobileNumber") && mobileNumber == null) ||
+                    (uri.containsKey("type") && type == null) ) {
                 return ResponseService.generateErrorResponse("Empty fields are not accepted", HttpStatus.BAD_REQUEST);
             }
             if (role != null && role == 2 && (!roleName.getRole_name().equals(Constant.roleSuperAdmin))) {
@@ -641,25 +645,23 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Mobile number must contain digits only", HttpStatus.BAD_REQUEST);
             }
 
+            if (type != null && !type.matches("[A-Z]+$")) {
+                return ResponseService.generateErrorResponse("Service Provider Type must contains Uppercase letter only and nothing else.", HttpStatus.BAD_REQUEST);
+            }
 
             String first_name = null;
             String last_name = null;
 
-            System.out.println("hello 1");
-
-
             List<Long> qualificationNames = new ArrayList<>();
             List<String> qualificationStrings = new ArrayList<>();
 
-
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
                 }
-
 
                 int totalItems = resultList.size();
                 int totalPages = (int) Math.ceil((double) totalItems / limit);
@@ -678,9 +680,8 @@ public class ServiceProviderController {
                 return ResponseService.generateSuccessResponse(message, finalResponse, HttpStatus.OK);
             }
 
-
             if (user_name != null && !user_name.isEmpty()) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -721,13 +722,20 @@ public class ServiceProviderController {
                 }
             }
 
+            if (rank != null) {
+                for (Long id : rank) {
+                    if (serviceProviderRankService.getServiceProviderRankByRankId(id) == null)
+                        return ResponseService.generateErrorResponse("Invalid rank Id", HttpStatus.BAD_REQUEST);
+                }
+            }
+
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType,rank);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
 
             // Merge results and remove duplicates
             Set<Map<String, Object>> mergedResults = new HashSet<>();

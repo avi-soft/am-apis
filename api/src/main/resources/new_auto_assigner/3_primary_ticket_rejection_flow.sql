@@ -10,13 +10,25 @@ BEGIN
 
 	RAISE NOTICE '3. Primary Ticket Rejection Flow';
      
-     -- Step 1: Fetch unassigned tickets in specific states and types
-	SELECT ARRAY_AGG(c.ticket_id)
-	INTO tickets_to_process
-	FROM custom_service_provider_ticket c
-	WHERE c.assignee_user_id IS NULL
-	  AND c.ticket_state_id IN (ticket_state_returned)
-	  AND c.ticket_type_id IN (ticket_type_primary);
+     -- Step 1: Fetch unassigned primary tickets in returned state
+         SELECT ARRAY_AGG(ticket_id ORDER BY active_end_date ASC NULLS LAST)
+         INTO tickets_to_process
+         FROM (
+             SELECT DISTINCT ON (c.ticket_id)
+                    c.ticket_id,
+                    sku.active_end_date
+             FROM custom_service_provider_ticket c
+             JOIN blc_order o ON c.order_id = o.order_id
+             JOIN blc_order_item oi ON oi.order_id = o.order_id
+             JOIN blc_order_item_attribute oia
+                 ON oia.order_item_id = oi.order_item_id AND oia.name = 'productId'
+             JOIN blc_product p ON p.product_id = oia.value::BIGINT
+             JOIN blc_sku sku ON sku.sku_id = p.default_sku_id
+             WHERE c.assignee_user_id IS NULL
+               AND c.ticket_state_id = ticket_state_returned
+               AND c.ticket_type_id = ticket_type_primary
+             ORDER BY c.ticket_id, sku.active_end_date DESC
+         ) ordered_tickets;
 
     RAISE NOTICE 'Tickets received for auto-assignment(REJECTED PRIMARY TICKETS): %', array_length(tickets_to_process, 1);
 	raise notice 'tickets for rejection flow: %', tickets_to_process;
@@ -28,7 +40,7 @@ BEGIN
 	        assigned_tickets
 	    );
 	
-		RAISE NOTICE 'Tickets recieved for VDTA(REJCTED PRIMARY TICKETS): %', array_length(tickets_to_process, 1);
+		RAISE NOTICE 'Tickets received for VDTA(REJECTED PRIMARY TICKETS): %', array_length(tickets_to_process, 1);
 	
 		-- Step 3: Vertical Distribution Ticket Allocation
 	    CALL public.vertical_distribution_ticket_allocation_for_tickets(
