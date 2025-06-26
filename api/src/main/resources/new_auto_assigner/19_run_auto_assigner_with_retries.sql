@@ -4,7 +4,7 @@ AS $$
 DECLARE
     max_retries INT := 3;
     retry_count INT := 0;
-    delay_seconds INT := 3;
+    delay_seconds INT := 300;
     success BOOLEAN := FALSE;
    v_total_assigned_tickets BIGINT[];
 BEGIN
