@@ -95,6 +95,7 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.numberOfPosts=product.getNumberOfPosts();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
+        this.totalVacanciesInProduct=product.getTotalVacanciesInProduct();
         Long genderId = 1L;  // Default to 1 (MALE)
         Long categoryId = 1L; // Default to 1 (GEN)
         int flag = 0;
