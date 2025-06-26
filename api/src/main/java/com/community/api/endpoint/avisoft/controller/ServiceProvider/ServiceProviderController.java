@@ -276,7 +276,7 @@ public class ServiceProviderController {
         serviceProvider.setCompleted(true);
         serviceProvider.setRejected(false);
         entityManager.merge(serviceProvider);
-        return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
+        return ResponseService.generateSuccessResponse("Details validated Successfully", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
     }
 
     @Transactional
@@ -493,7 +493,7 @@ public class ServiceProviderController {
             List<ServiceProviderEntity> results = dataQuery.getResultList();
             List<Map<String, Object>> resultOfSp = new ArrayList<>();
             for (ServiceProviderEntity serviceProvider : results) {
-                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                resultOfSp.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
             }
 
             // Create success message
@@ -539,7 +539,7 @@ public class ServiceProviderController {
                 return ResponseService.generateErrorResponse("Service provider does not found", HttpStatus.NOT_FOUND);
             }
 
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false);
             return ResponseService.generateSuccessResponse("Service Provider details retrieved successfully", serviceProviderMap, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -1025,6 +1025,7 @@ public class ServiceProviderController {
                     continue;
                 }
                 serviceProvider.setApproved(true);
+                serviceProvider.setLoginMessage("Profile has been approved by the Administrator");
                 ServiceProviderTestStatus serviceProviderTestStatus = entityManager.find(ServiceProviderTestStatus.class, Constant.APPROVED_SP);
                 if (serviceProviderTestStatus == null) {
                     return ResponseService.generateErrorResponse("Test Status id " + Constant.APPROVED_SP + " Not found", HttpStatus.NOT_FOUND);
@@ -1047,8 +1048,8 @@ public class ServiceProviderController {
                         privilegeService.assignPrivilege(privilege.getPrivilege_id(), id, role_id);
                     }
                 }
-
                 serviceProvider.setRejected(false);
+
             } else if (Constant.ACTION_REJECT.equals(action)) {
                 Role role = roleService.getRoleByRoleId(roleId);
                 if (!Constant.roleSuperAdmin.equals(role.getRole_name()) && !Constant.roleAdmin.equals(role.getRole_name())) {
@@ -1071,6 +1072,7 @@ public class ServiceProviderController {
                 }
                 serviceProvider.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProvider.setApproved(false);
+                serviceProvider.setLoginMessage("Profile has been Rejected by the Administrator");
             }
             //checking valid permissions
             else if (action.equals(Constant.ACTION_SUSPEND)) {
@@ -1145,7 +1147,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Profile already completed", HttpStatus.BAD_REQUEST);
         serviceProvider.setCompleted(true);
         try {
-            return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Profile moved to completed", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
         } catch (Exception exception) {
             return ResponseService.generateErrorResponse("Could not complete profile due to an error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -1167,7 +1169,7 @@ public class ServiceProviderController {
         TypedQuery<ServiceProviderEntity> query = entityManager.createQuery(cq);
         List<Map<String, Object>> res = new ArrayList<>();
         for (ServiceProviderEntity serviceProvider : query.getResultList()) {
-            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+            res.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
         }
         int totalItems = query.getResultList().size();
         int totalPages = (int) Math.ceil((double) totalItems / limit);

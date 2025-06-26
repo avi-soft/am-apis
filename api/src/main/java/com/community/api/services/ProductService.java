@@ -2185,15 +2185,15 @@ public class ProductService {
             }
 
             // Additional validation checks remain the same
-            if (addProductDto.getModificationDateFrom() != null) {
+            /*if (addProductDto.getModificationDateFrom() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
                 if (!addProductDto.getLastDateToPayFee().before(addProductDto.getModificationDateFrom())) {
                     throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
                 }
-            } else if (customProduct.getModificationDateFrom() != null) {
-                if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
+            } */else if (customProduct.getModificationDateFrom() != null) {
+                /*if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
                     throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
-                }
+                }*/
             }
 
             if (addProductDto.getAdmitCardDateFrom() != null) {
@@ -2306,24 +2306,24 @@ public class ProductService {
     private void validateModificationDateFrom(AddProductDto addProductDto, CustomProduct customProduct) {
         // Check against LastDateToPayFee
         if (addProductDto.getLastDateToPayFee() != null) {
-            if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+            /*if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                 throw new IllegalArgumentException("Modified date from must be after last date to pay fee.");
-            }
+            }*/
         } else if (customProduct.getLateDateToPayFee() != null) {
-            if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
+            /*if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
                 throw new IllegalArgumentException("Modified date from must be after last date to pay fee.");
-            }
+            }*/
         }
 
         // Check against ActiveEndDate
         if (addProductDto.getActiveEndDate() != null) {
-            if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
+           /* if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Modified date from must be after active end date.");
-            }
+            }*/
         } else if (customProduct.getActiveEndDate() != null) {
-            if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
+           /* if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
                 throw new IllegalArgumentException("Modified date from must be after active end date.");
-            }
+            }*/
         }
     }
 
