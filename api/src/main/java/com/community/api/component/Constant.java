@@ -224,6 +224,9 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final CustomOrderState ORDER_STATE_CANCELLED = new CustomOrderState(9);
+    public static final CustomOrderState ORDER_STATE_REFUND_SUCCESS = new CustomOrderState(10);
+    public static final CustomOrderState ORDER_STATE_REFUND_FAIL = new CustomOrderState(11);
     public static final Long TICKET_STATE_RETURNED = 6L;
     public static final Long TICKET_STATE_ON_HOLD = 3L;
     public static final Long TICKET_STATE_CLOSE = 5L;
@@ -253,6 +256,7 @@ public class Constant {
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
     public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+    public static final String GET_ORDERS_BY_ORDER_ID = "SELECT c FROM CustomOrderState c WHERE c.orderId = :orderId";
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";

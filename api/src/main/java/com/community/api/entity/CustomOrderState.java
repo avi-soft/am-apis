@@ -8,7 +8,10 @@ import lombok.Setter;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import java.util.Date;
 
 @Entity
 @Table(name = "ORDER_STATE")
@@ -27,6 +30,16 @@ public class CustomOrderState {
     @Id
     @Column(name = "order_id")
     private Long orderId;
+
+    @Column(name = "modifier_user_id")
+    private Long modifierUserId;
+
+    @ManyToOne
+    @JoinColumn(name = "modifier_role_id")
+    private Role modifierRole;
+
+    @Column(name = "modified_date")
+    private Date modifiedDate;
 
     public CustomOrderState(Integer orderStateId) {
         this.orderStateId=orderStateId;

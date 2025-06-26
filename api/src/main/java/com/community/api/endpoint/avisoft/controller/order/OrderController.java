@@ -21,8 +21,21 @@ import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.OrderStateRef;
 import com.community.api.entity.Role;
-import com.community.api.services.*;
+import com.community.api.services.CustomOrderService;
+import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.OrderDTOService;
+import com.community.api.services.OrderStateRefService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ReserveCategoryDtoService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProvider.ServiceProviderServiceImpl;
+import com.community.api.services.ServiceProviderTicketService;
+import com.community.api.services.SharedUtilityService;
+import com.community.api.services.TicketStateService;
+import com.community.api.services.TicketStatusService;
+import com.community.api.services.TicketTypeService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 
 import javassist.NotFoundException;
@@ -791,14 +804,47 @@ public class OrderController {
     }
 
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
-    @PutMapping("cancel-order/{orderId}")
-    public ResponseEntity<?> cancelOrder(@PathVariable Integer orderStatusId, @RequestHeader(value = "Authorization") String authHeader) {
+    @PutMapping("cancel-order/{orderIdString}")
+    public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+            Role role = roleService.getRoleByRoleId(roleId);
 
+            ServiceProviderEntity serviceProvider = serviceProviderService.getServiceProviderById(tokenUserId);
+            if(serviceProvider == null) {
+                throw new IllegalArgumentException("Token user id is not found.");
+            }
 
+            Long orderId = Long.parseLong(orderIdString);
+
+            Order order = orderService.findOrderById(orderId);
+            if (order == null) {
+                throw new IllegalArgumentException("No order found with this id.");
+            }
+
+            List<CustomOrderState> orderStateList = customOrderService.getCustomOrderStateByOrderId(orderId);
+            if (orderStateList.isEmpty()) {
+                throw new IllegalArgumentException("No order state found with this order.");
+            } else if (orderStateList.size() > 1) {
+                throw new IllegalArgumentException("Multiple order state found with this order.");
+            }
+
+            CustomOrderState customOrderState = orderStateList.get(0);
+            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_CANCELLED.getOrderStateId())) {
+                throw new IllegalArgumentException("Order state is already been cancelled.");
+            }
+
+            customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, tokenUserId, role);
+            return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
+
+        } catch (NumberFormatException numberFormatException) {
+            exceptionHandling.handleException(numberFormatException);
+            return ResponseService.generateErrorResponse("Number format exception: " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
+        }  catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse("Illegal Argument Exception: " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
             return ResponseService.generateErrorResponse("Something Went Wrong: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

@@ -120,7 +120,12 @@ BEGIN
 --        (5, 'RETURNED', 'Order returned.'),
 --        (6, 'IN_PROGRESS', 'Order is in progress.'),
 --        (7, 'COMPLETED', 'Order completed.'),
---        (8, 'IN_REVIEW', 'Order is in review.');
+--        (8, 'IN_REVIEW', 'Order is in review.'),
+--        (9, 'CANCELLED', 'Order is Cancelled.'),
+--        (10, 'REFUND_SUCCESS', 'Refund is successfully initiated.'),
+--        (11, 'REFUND_FAIL', 'Refund is failed.')
+--        (0, 'CREATED', 'Order is Created but awaits payment status'),
+--        (999, 'PAYMENT_FAILED', 'Order failed due to payment failure'),
 --END IF;
 --
 --IF (SELECT COUNT(*) FROM order_ticket_linkage) = 0 THEN
@@ -241,7 +246,12 @@ BEGIN
 --            (29, 3, 3, 5, 2),
 --            (30, 3, 7, 5, 2),
 --            (31, 3, 7, 2, 2),
---            (32, 3, 6, 1, 2);
+--            (32, 3, 6, 1, 2),
+
+--        (CLOSE TO TO-DO STATE CONVERSION LINKAGE)
+--            (33, 2, 5, 1, 1),
+--            (34, 2, 5, 1, 2),
+--            (35, 2, 5, 1, 3);
 --END IF;
 --
 --IF (SELECT COUNT(*) FROM custom_order_status) = 0 THEN
