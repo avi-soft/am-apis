@@ -43,6 +43,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -789,4 +790,18 @@ public class OrderController {
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
 
+    @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
+    @PutMapping("cancel-order/{orderId}")
+    public ResponseEntity<?> cancelOrder(@PathVariable Integer orderStatusId, @RequestHeader(value = "Authorization") String authHeader) {
+        try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
+
+        } catch (Exception exception) {
+            exceptionHandling.handleException(exception);
+            return ResponseService.generateErrorResponse("Something Went Wrong: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
