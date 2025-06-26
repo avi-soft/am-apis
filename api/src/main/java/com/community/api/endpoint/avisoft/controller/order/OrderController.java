@@ -60,14 +60,21 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequestMapping(value = "/orders", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 @RestController
 public class OrderController {
 
+    @Autowired
+    protected CatalogService catalogService;
     @Autowired
     private EntityManager entityManager;
     @Autowired
@@ -92,8 +99,6 @@ public class OrderController {
     private RoleService roleService;
     @Autowired
     private PhysicalRequirementDtoService physicalRequirementDtoService;
-    @Autowired
-    protected CatalogService catalogService;
     @Autowired
     private TicketTypeService ticketTypeService;
     @Autowired
@@ -166,16 +171,7 @@ public class OrderController {
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(
-            @RequestHeader(value = "Authorization") String authHeader,
-            @PathVariable Long customerId,
-            @RequestParam(defaultValue = "oldest-to-latest") String sort,
-            @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
-            @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
-            @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds,
-            @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
 
@@ -185,11 +181,10 @@ public class OrderController {
 
             // Validate customer
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
-            if (customCustomer == null)
-                throw new NotFoundException("Customer with the provided Id not found");
+            if (customCustomer == null) throw new NotFoundException("Customer with the provided Id not found");
 
             if (!tokenUserId.equals(customerId)) {
-                return ResponseService.generateErrorResponse("Unauthorized" , HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("Unauthorized", HttpStatus.UNAUTHORIZED);
             }
 
             if (customCustomer.getNumberOfOrders() == 0)
@@ -207,10 +202,7 @@ public class OrderController {
             }
 
             // Build base query with joins and dynamic conditions
-            String baseQuery =
-                    "FROM blc_order o " +
-                            "JOIN order_state os ON o.order_id = os.order_id " +
-                            "WHERE o.customer_id = :customerId AND o.tax_override IS NULL";
+            String baseQuery = "FROM blc_order o " + "JOIN order_state os ON o.order_id = os.order_id " + "WHERE o.customer_id = :customerId AND o.tax_override IS NULL";
 
             if (orderStateIds != null && !orderStateIds.isEmpty()) {
                 baseQuery += " AND os.order_state_id IN (:orderStateIds)";
@@ -296,14 +288,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
-    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader,
-                                         @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds,
-                                         @RequestParam(defaultValue = "oldest-to-latest") String sort,
-                                         @RequestParam(defaultValue = "0") int offset,
-                                         @RequestParam(defaultValue = "10") int limit,
-                                         @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
-                                         @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
-                                         @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
         try {
             if (offset < 0 || limit <= 0) {
                 throw new IllegalArgumentException("Offset or Limit invalid");
@@ -312,13 +297,12 @@ public class OrderController {
             int offset1 = offset * limit;
             sort = sort.toLowerCase();
 
-            if(orderStateIds!=null&&orderStateIds.contains(9))
-            {
+            if (orderStateIds != null && orderStateIds.contains(9)) {
                 orderStateIds.clear();
-                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8,0,999));
+                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 0, 999));
             }
             // Validate order state IDs
-            else if(orderStateIds != null && !orderStateIds.isEmpty()) {
+            else if (orderStateIds != null && !orderStateIds.isEmpty()) {
                 for (Integer id : orderStateIds) {
                     OrderStateRef ref = entityManager.find(OrderStateRef.class, id);
                     if (ref == null) {
@@ -391,8 +375,7 @@ public class OrderController {
                 query.setParameter("productName", "%" + productName.trim() + "%");
             }
 
-            @SuppressWarnings("unchecked")
-            List<BigInteger> orderIds = query.getResultList();
+            @SuppressWarnings("unchecked") List<BigInteger> orderIds = query.getResultList();
 
             // Generate DTO and build response
             List<CombinedOrderDTO> orderDetails = generateCombinedDTOForOrders(authHeader, orderIds, sort);
@@ -414,7 +397,6 @@ public class OrderController {
         }
     }
 
-
     @Transactional
     @GetMapping("/details/{orderId}")
     public ResponseEntity<?> getOrderByOrderId(@PathVariable Long orderId, @RequestHeader(value = "Authorization") String authHeader) {
@@ -422,21 +404,13 @@ public class OrderController {
             if (orderId == null)
                 return ResponseService.generateErrorResponse("Order id is required", HttpStatus.BAD_REQUEST);
             Order order = orderService.findOrderById(orderId);
-            if (order == null)
-                return ResponseService.generateErrorResponse("Order Not found", HttpStatus.NOT_FOUND);
-            log.info("check1");
+            if (order == null) return ResponseService.generateErrorResponse("Order Not found", HttpStatus.NOT_FOUND);
+
             CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
             Customer customer = customerService.readCustomerById(order.getCustomer().getId());
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
 
-            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
-                    customer.getId(),
-                    customer.getFirstName() + " " + customer.getLastName(),
-                    customer.getEmailAddress(),
-                    customCustomer != null ? customCustomer.getMobileNumber() : null,
-                    addressFetcher.fetch(customer),
-                    customer.getUsername()
-            );
+            OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer != null ? customCustomer.getMobileNumber() : null, addressFetcher.fetch(customer), customer.getUsername());
 
             CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
@@ -475,14 +449,7 @@ public class OrderController {
 
                 CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
 
-                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(
-                        customer.getId(),
-                        customer.getFirstName() + " " + customer.getLastName(),
-                        customer.getEmailAddress(),
-                        customCustomer != null ? customCustomer.getMobileNumber() : null,
-                        addressFetcher.fetch(customer),
-                        customer.getUsername()
-                );
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer != null ? customCustomer.getMobileNumber() : null, addressFetcher.fetch(customer), customer.getUsername());
 
                 CustomServiceProviderTicket customServiceProviderTicket = getServiceProviderTicket(order.getId());
 
@@ -512,8 +479,7 @@ public class OrderController {
             Query query = entityManager.createNativeQuery(Constant.GET_PRIMARY_TICKET);
             query.setParameter("orderId", orderId);
 
-            @SuppressWarnings("unchecked")
-            List<BigInteger> ticketIds = query.getResultList();
+            @SuppressWarnings("unchecked") List<BigInteger> ticketIds = query.getResultList();
             if (!ticketIds.isEmpty()) {
                 return entityManager.find(CustomServiceProviderTicket.class, ticketIds.get(0).longValue());
             }
@@ -524,7 +490,6 @@ public class OrderController {
         }
         return null;
     }
-
 
     @Transactional
     public ResponseEntity<?> generateCombinedDTO(String authHeader, List<BigInteger> orders, String sort, long totalItems, long totalPages, long offset) {
@@ -584,8 +549,7 @@ public class OrderController {
     public ResponseEntity<?> getEligibleSp(@RequestParam(required = false) Long ticketId) {
         try {
             CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
-            if (ticket == null)
-                return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
+            if (ticket == null) return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.NOT_FOUND);
             List<Long> rejectedBy = ticket.getRejectedBy();
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
             CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
@@ -621,8 +585,7 @@ public class OrderController {
                 return ResponseService.generateErrorResponse("Cannot assign ticket to Super admin", HttpStatus.BAD_REQUEST);
             if (ticket.getRejectedBy().contains(id))
                 return ResponseService.generateErrorResponse("Cannot assign : Ticket has been already returned by selected SP", HttpStatus.BAD_REQUEST);
-            else
-                ticket.setAssignee(id);
+            else ticket.setAssignee(id);
             entityManager.merge(ticket);
             return ResponseService.generateSuccessResponse("Ticket assigned", ticket, HttpStatus.OK);
         } catch (Exception e) {
@@ -765,8 +728,7 @@ public class OrderController {
             if (orderStateRef == null)
                 return ResponseService.generateErrorResponse("Order State Id is invalid", HttpStatus.BAD_REQUEST);
             List<CustomOrderStatus> result = orderStatusByStateService.getOrderStatusByOrderStateId(orderStateId);
-            if (result.isEmpty())
-                return ResponseService.generateErrorResponse("No Results Found", HttpStatus.OK);
+            if (result.isEmpty()) return ResponseService.generateErrorResponse("No Results Found", HttpStatus.OK);
             return ResponseService.generateSuccessResponse("Order Statuses", result, HttpStatus.OK);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -807,7 +769,6 @@ public class OrderController {
         }
     }
 
-
     private boolean isOrderStateIdValid(Integer orderStateId) {
         String sql = "SELECT COUNT(*) FROM order_state_ref WHERE order_state_id = :id";
         Query query = entityManager.createNativeQuery(sql);
@@ -827,6 +788,5 @@ public class OrderController {
 
         return ResponseService.generateSuccessResponse("Order States :", groupedStates, HttpStatus.OK);
     }
-
 
 }
