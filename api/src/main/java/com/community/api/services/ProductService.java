@@ -667,17 +667,9 @@ public class ProductService {
             }
 
             if (title != null && !title.isEmpty()) {
-                String[] words = title.split("\\s+");
-                if (words.length > 0) {
-                    jpql.append("AND (");
-                    for (int i = 0; i < words.length; i++) {
-                        if (i > 0) {
-                            jpql.append(" AND ");
-                        }
-                        jpql.append("LOWER(p.metaTitle) LIKE LOWER(:titleWord").append(i).append(") ");
-                    }
-                    jpql.append(") ");
-                }
+                String trimmedTitle = title.trim();
+                // Search for the exact phrase (with spaces preserved) as a substring
+                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:titlePhrase) ");
             }
 
             if (fee != null) {
@@ -738,11 +730,10 @@ public class ProductService {
                 queryToCount.setParameter("productIds", customProductIds);
             }
             if (title != null && !title.isEmpty()) {
-                String[] words = title.split("\\s+");
-                for (int i = 0; i < words.length; i++) {
-                    query.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
-                    queryToCount.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
-                }
+                String trimmedTitle = title.trim();
+                // Add wildcards before and after to allow the phrase to be part of a larger title
+                query.setParameter("titlePhrase", "%" + trimmedTitle + "%");
+                queryToCount.setParameter("titlePhrase", "%" + trimmedTitle + "%");
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
