@@ -7,30 +7,24 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
-public class DivisionRequest {
-    @NotBlank
+public class DivisionResponse {
+    @JsonProperty("division_code")
+    private String divisionCode;
+
     @JsonProperty("division_name")
     private String divisionName;
 
-    @NotBlank
-    @JsonProperty("division_code")
-    @Pattern(regexp = "^[a-zA-Z]+$")
-    private String divisionCode;
+    @JsonProperty("division_id")
+    private Integer divisionId;
 
-    @NotNull
     @JsonProperty("zone_id")
     private Integer zoneId;
 
-    @NotNull
     @JsonProperty("zoneName")
     private String zoneName;
 }
