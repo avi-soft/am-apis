@@ -19,7 +19,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class CustomSector implements Serializable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "sector_id")
     protected Long sectorId;
 
