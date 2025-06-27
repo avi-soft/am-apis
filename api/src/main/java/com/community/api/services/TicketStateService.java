@@ -335,6 +335,16 @@ public class TicketStateService {
                     }
                     ticket.setAssignee(createTicketDTO.getAssignee());
                     ticket.setAssigneeRole(role);
+                    if(ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && createTicketDTO.getTargetCompletionDate()!=null && createTicketDTO.getAssignee()!=null && createTicketDTO.getAssigneeRole()!=null)
+                    {
+                        CustomTicketState customTicketState= entityManager.find(CustomTicketState.class,Constant.TICKET_STATE_TO_DO);
+                        if(customTicketState==null)
+                        {
+                            throw new IllegalArgumentException("Ticket state with id "+ Constant.TICKET_STATE_TO_DO+ "not found");
+                        }
+                        ticket.setTicketState(customTicketState);
+                    }
+
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
             }
