@@ -70,40 +70,84 @@ public class SectorService {
     }
 
     @Transactional
-    public void saveSector(AddSectorDto addSectorDto) throws Exception {
+    public CustomSector addSector(AddSectorDto addSectorDto) throws IllegalArgumentException, Exception {
         try {
-            Query query = entityManager.createNativeQuery(
-                    "INSERT INTO custom_sector (sector_name, sector_description) VALUES (:sectorName, :sectorDescription)"
-            );
-            query.setParameter("sectorName", addSectorDto.getSectorName());
-            query.setParameter("sectorDescription", addSectorDto.getSectorDescription());
-
-            int affectedRow = query.executeUpdate();
-            if (affectedRow <= 0) {
-                throw new IllegalArgumentException("ENTRY NOT ADDED IN THE DB");
+            // Check if sector name is provided
+            if (addSectorDto.getSectorName() == null || addSectorDto.getSectorName().trim().isEmpty()) {
+                throw new IllegalArgumentException("Sector name is required");
             }
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
+
+            // Check for duplicate sector name (case insensitive)
+            Query query = entityManager.createQuery(
+                    "SELECT s FROM CustomSector s WHERE LOWER(s.sectorName) = LOWER(:sectorName)",
+                    CustomSector.class);
+            query.setParameter("sectorName", addSectorDto.getSectorName());
+            List<CustomSector> sectors = query.getResultList();
+
+            if (!sectors.isEmpty()) {
+                throw new IllegalArgumentException("Sector with this name already exists");
+            }
+
+            // Create new sector entity
+            CustomSector newSector = new CustomSector();
+            newSector.setSectorName(addSectorDto.getSectorName());
+            newSector.setSectorDescription(addSectorDto.getSectorDescription());
+            newSector.setArchived(false); // Default to not archived
+
+            // Persist the new sector
+            entityManager.persist(newSector);
+            return newSector;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
+        } catch (Exception e) {
+            throw new Exception("Failed to add sector: " + e.getMessage());
         }
     }
     @Transactional
-    public void edit(Long sectorId, AddSectorDto addSectorDto) throws Exception {
-        try {
-            Query query = entityManager.createNativeQuery(
-                    "UPDATE custom_sector SET sector_name = :sectorName, sector_description = :sectorDescription WHERE sector_id = :sectorId"
-            );
-            query.setParameter("sectorName", addSectorDto.getSectorName());
-            query.setParameter("sectorDescription", addSectorDto.getSectorDescription());
-            query.setParameter("sectorId", sectorId);
+    public CustomSector editSector(Long sectorId, AddSectorDto addSectorDto)
+            throws IllegalArgumentException, Exception {
 
-            int affectedRow = query.executeUpdate();
-            if (affectedRow <= 0) {
-                throw new IllegalArgumentException("ENTRY NOT UPDATED IN THE DB");
+        try {
+            // Find existing sector
+            CustomSector existingSector = entityManager.find(CustomSector.class, sectorId);
+            if (existingSector == null) {
+                throw new IllegalArgumentException("Sector not found with id: " + sectorId);
             }
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: " + exception.getMessage());
+
+            // Validate sector name
+            if (addSectorDto.getSectorName() == null || addSectorDto.getSectorName().trim().isEmpty()) {
+                throw new IllegalArgumentException("Sector name is required");
+            }
+
+            // Check for duplicate sector name (excluding current sector)
+            Query query = entityManager.createQuery(
+                    "SELECT s FROM CustomSector s WHERE LOWER(s.sectorName) = LOWER(:sectorName) AND s.sectorId != :sectorId",
+                    CustomSector.class);
+            query.setParameter("sectorName", addSectorDto.getSectorName());
+            query.setParameter("sectorId", sectorId);
+            List<CustomSector> sectors = query.getResultList();
+
+            if (!sectors.isEmpty()) {
+                throw new IllegalArgumentException("Sector with this name already exists");
+            }
+
+            // Update the sector
+            existingSector.setSectorName(addSectorDto.getSectorName());
+
+            // Description can be null, so only set if provided
+            if (addSectorDto.getSectorDescription() != null) {
+                existingSector.setSectorDescription(addSectorDto.getSectorDescription());
+            }
+
+            // Merge changes
+            entityManager.merge(existingSector);
+            return existingSector;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
+        } catch (Exception e) {
+            throw new Exception("Failed to update sector: " + e.getMessage());
         }
     }
     @Transactional

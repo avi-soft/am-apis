@@ -65,7 +65,7 @@ public class SectorController {
             }
 
             sectorService.validateAddSubjectDto(addSectorDto);
-            sectorService.saveSector(addSectorDto);
+            sectorService.addSector(addSectorDto);
 
             return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", addSectorDto, HttpStatus.OK);
         }  catch (IllegalArgumentException e) {
@@ -83,7 +83,7 @@ public class SectorController {
                 return ResponseService.generateErrorResponse("NOT AUTHORIZED TO Edit A SECTOR", HttpStatus.UNAUTHORIZED);
             }
             sectorService.validateAddSubjectDto(addSectorDto);
-            sectorService.edit(sectorId,addSectorDto);
+            sectorService.editSector(sectorId,addSectorDto);
             Map<String,Object>details=new HashMap<>();
             details.put("sector_id",sectorId);
             details.put("sector_name",addSectorDto.getSectorName());
