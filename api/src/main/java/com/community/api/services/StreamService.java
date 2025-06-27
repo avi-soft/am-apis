@@ -22,7 +22,9 @@ import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
@@ -280,52 +282,86 @@ public class StreamService {
                 .getResultList();
     }
     @Transactional
-    public CustomStream editStream(Long streamId,List<Integer>qualificationIds,CustomStream stream) throws IllegalArgumentException, Exception {
+    public CustomStream editStream(Long streamId, List<Integer> qualificationIds, CustomStream stream)
+            throws IllegalArgumentException, Exception {
+
         try {
+            // 1. Validate existing stream
             CustomStream streamToEdit = entityManager.find(CustomStream.class, streamId);
             if (streamToEdit == null) {
-                throw new IllegalArgumentException("Stream not found");
+                throw new IllegalArgumentException("Stream not found with ID: " + streamId);
             }
 
-            if (stream.getStreamId() != null) {
-                throw new IllegalArgumentException("Cannot give stream id when editing");
+            // 2. Validate stream ID consistency
+            if (stream.getStreamId() != null && !stream.getStreamId().equals(streamId)) {
+                throw new IllegalArgumentException("Cannot change stream ID during update");
             }
 
-            Query query = entityManager.createQuery(
-                    "SELECT s FROM CustomStream s WHERE s.streamName = :streamName AND s.streamId != :streamId",
-                    CustomStream.class);
-            query.setParameter("streamName", stream.getStreamName());
-            query.setParameter("streamId", streamId);
+            // 3. Validate and process stream name
+            if (stream.getStreamName() != null) {
+                // Case-insensitive duplicate check
+                Query query = entityManager.createQuery(
+                        "SELECT s FROM CustomStream s WHERE LOWER(s.streamName) = LOWER(:streamName) " +
+                                "AND s.streamId != :streamId",
+                        CustomStream.class);
+                query.setParameter("streamName", stream.getStreamName());
+                query.setParameter("streamId", streamId);
 
-            List<CustomStream> existingStreams = query.getResultList();
-            if (!existingStreams.isEmpty()) {
-                throw new IllegalArgumentException("Stream with this name already exists");
-            }
-
-            if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
-                throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
-            }
-            List<Qualification>newQf=new ArrayList<>();
-            if(qualificationIds!=null&&!qualificationIds.isEmpty())
-            {
-                for(Integer id:qualificationIds)
-                {
-                    System.out.println("id"+id);
-                    Qualification qualification=entityManager.find(Qualification.class,id);
-                    if(qualification!=null)
-                    {
-                        newQf.add(qualification);
-                    }
+                if (!query.getResultList().isEmpty()) {
+                    throw new IllegalArgumentException("Stream with this name already exists");
                 }
-                streamToEdit.setQualifications(newQf);
-            }
-            streamToEdit.setStreamName(stream.getStreamName());
-            streamToEdit.setStreamDescription(stream.getStreamDescription());
-            entityManager.merge(streamToEdit);
 
+                // Validate name format
+                if (!sharedUtilityService.isAlphabeticWithHyphen(stream.getStreamName())) {
+                    throw new IllegalArgumentException(
+                            "Stream name should contain only alphabets and hyphens");
+                }
+                streamToEdit.setStreamName(stream.getStreamName());
+            }
+
+            // 4. Process description update if provided
+            if (stream.getStreamDescription() != null) {
+                streamToEdit.setStreamDescription(stream.getStreamDescription());
+            }
+
+            // 5. Process qualifications update if provided
+            if (qualificationIds != null && !qualificationIds.isEmpty()) {
+                List<Qualification> newQualifications = new ArrayList<>();
+                Set<Integer> processedIds = new HashSet<>(); // To prevent duplicates
+
+                for (Integer id : qualificationIds) {
+                    if (id == null) {
+                        continue; // Skip null IDs
+                    }
+
+                    if (!processedIds.add(id)) {
+                        continue; // Skip duplicate IDs
+                    }
+
+                    Qualification qualification = entityManager.find(Qualification.class, id);
+                    if (qualification == null) {
+                        throw new IllegalArgumentException(
+                                "Qualification not found with ID: " + id);
+                    }
+                    newQualifications.add(qualification);
+                }
+
+                if (newQualifications.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "At least one valid qualification must be provided");
+                }
+
+                streamToEdit.setQualifications(newQualifications);
+            }
+
+            // 6. Save changes
+            entityManager.merge(streamToEdit);
             return streamToEdit;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
-            throw new Exception(e.getMessage());
+            throw new Exception("Failed to update stream: " + e.getMessage());
         }
     }
 }
