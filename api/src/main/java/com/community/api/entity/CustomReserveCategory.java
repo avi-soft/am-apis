@@ -45,5 +45,5 @@ public class CustomReserveCategory {
 
     @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
     @JsonProperty("archived")
-    protected Boolean archived;
+    protected Boolean archived=false;
 }

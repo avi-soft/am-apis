@@ -74,63 +74,113 @@ public class ZoneDivisionController {
     @PostMapping("/add")
     public ResponseEntity<?> addResponse(@RequestBody Zone zone) {
         try {
+            // Validate zone name
             if (zone.getZoneName() == null || zone.getZoneName().trim().isEmpty()) {
                 return ResponseService.generateErrorResponse("Zone name is required", HttpStatus.BAD_REQUEST);
             }
 
-            // Check for existing zone name using CriteriaBuilder
+            // Case-insensitive duplicate check using CriteriaBuilder
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
             CriteriaQuery<Zone> query = cb.createQuery(Zone.class);
             Root<Zone> root = query.from(Zone.class);
-            query.select(root).where(cb.equal(root.get("zoneName"), zone.getZoneName()));
+
+            // Case-insensitive comparison using LOWER()
+            Predicate namePredicate = cb.equal(
+                    cb.lower(root.get("zoneName")),
+                    zone.getZoneName().toLowerCase()
+            );
+            query.select(root).where(namePredicate);
 
             List<Zone> existingZones = entityManager.createQuery(query).getResultList();
 
             if (!existingZones.isEmpty()) {
-                return ResponseService.generateErrorResponse("Cannot add duplicate Zone", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("Zone with this name already exists", HttpStatus.CONFLICT);
+            }
+
+            // Additional validation
+            if (zone.getZoneName().length() > 100) {
+                return ResponseService.generateErrorResponse("Zone name must be 100 characters or less", HttpStatus.BAD_REQUEST);
+            }
+
+            // Set default values if needed
+            if (zone.getArchived() == null) {
+                zone.setArchived(false);
             }
 
             // Save the new zone
             entityManager.persist(zone);
-            return ResponseService.generateSuccessResponse("Zone added successfully", zone, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Zone added successfully", zone, HttpStatus.CREATED);
 
         } catch (Exception e) {
-            e.printStackTrace(); // For debugging; replace with logger in prod
-            return ResponseService.generateErrorResponse("Cannot add zone: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Failed to add zone: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @Transactional
-    @PostMapping("/{zoneId}/edit")
-    public ResponseEntity<?> edit(@PathVariable Integer zoneId, @RequestBody Zone zone) {
+    @PutMapping("/{zoneId}")  // Changed to PUT as it's more semantically correct for updates
+    public ResponseEntity<?> editZone(
+            @PathVariable Integer zoneId,
+            @RequestBody  Zone zoneUpdateRequest) {  // Added @Valid for validation
+
         try {
-            Zone zoneToBeEdited = entityManager.find(Zone.class, zoneId);
-            if (zoneToBeEdited == null) {
+            // 1. Find existing zone
+            Zone existingZone = entityManager.find(Zone.class, zoneId);
+            if (existingZone == null) {
                 return ResponseService.generateErrorResponse("Zone not found", HttpStatus.NOT_FOUND);
             }
 
-            if (zone.getZoneName() == null || zone.getZoneName().trim().isEmpty()) {
+            // 2. Validate input
+            if (zoneUpdateRequest.getZoneName() == null || zoneUpdateRequest.getZoneName().trim().isEmpty()) {
                 return ResponseService.generateErrorResponse("Zone name is required", HttpStatus.BAD_REQUEST);
             }
 
-            // Check if another zone with the same name exists
+            // 3. Case-insensitive duplicate check (excluding current zone)
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
             CriteriaQuery<Zone> query = cb.createQuery(Zone.class);
             Root<Zone> root = query.from(Zone.class);
-            query.select(root).where(cb.equal(root.get("zoneName"), zone.getZoneName()));
-            List<Zone> existingZones = entityManager.createQuery(query).getResultList();
 
-            if (!existingZones.isEmpty() && !existingZones.get(0).getZoneId().equals(zoneId)) {
-                return ResponseService.generateErrorResponse("Cannot edit: Zone with this name already exists", HttpStatus.BAD_REQUEST);
+            Predicate namePredicate = cb.equal(
+                    cb.lower(root.get("zoneName")),
+                    zoneUpdateRequest.getZoneName().toLowerCase()
+            );
+            Predicate notCurrentZone = cb.notEqual(root.get("zoneId"), zoneId);
+
+            query.select(root).where(cb.and(namePredicate, notCurrentZone));
+
+            List<Zone> conflictingZones = entityManager.createQuery(query).getResultList();
+
+            if (!conflictingZones.isEmpty()) {
+                return ResponseService.generateErrorResponse(
+                        "Zone with this name already exists",
+                        HttpStatus.CONFLICT);
             }
 
-            // Proceed with update
-            zoneToBeEdited.setZoneName(zone.getZoneName());
-            entityManager.merge(zoneToBeEdited);
+            // 4. Additional validations
+            if (zoneUpdateRequest.getZoneName().length() > 100) {
+                return ResponseService.generateErrorResponse(
+                        "Zone name must be 100 characters or less",
+                        HttpStatus.BAD_REQUEST);
+            }
 
-            return ResponseService.generateSuccessResponse("Zone edited successfully", zoneToBeEdited, HttpStatus.OK);
-        } catch (Exception exception) {
-            exception.printStackTrace(); // optional
-            return ResponseService.generateErrorResponse("Cannot edit zone", HttpStatus.INTERNAL_SERVER_ERROR);
+            // 5. Update only allowed fields
+            existingZone.setZoneName(zoneUpdateRequest.getZoneName());
+
+         /*   // Add other updatable fields as needed
+            if (zoneUpdateRequest.ge() != null) {
+                existingZone.setDescription(zoneUpdateRequest.getDescription());
+            }*/
+
+            // 6. Save changes
+            entityManager.merge(existingZone);
+
+            return ResponseService.generateSuccessResponse(
+                    "Zone updated successfully",
+                    existingZone,
+                    HttpStatus.OK);
+
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse(
+                    "Failed to update zone: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @Transactional

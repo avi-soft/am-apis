@@ -2,9 +2,11 @@ package com.community.api.endpoint.avisoft.controller.Division;
 
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
+import com.community.api.dto.DivisionRequest;
 import com.community.api.entity.Districts;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Zone;
+import com.community.api.entity.ZoneDivisions;
 import com.community.api.services.DistrictService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SharedUtilityService;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -20,9 +24,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
+import javax.validation.Valid;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -97,139 +104,310 @@ public class DivisionController {
     }*/
 
     @Transactional
-    @RequestMapping(value = "add", method = RequestMethod.POST)
-    public ResponseEntity<?> addDivision(@RequestBody Map<String, String> divisionDto) {
-        String divisionName = divisionDto.get("division_name");
-        String divisionCode = divisionDto.get("division_code");
-        String zoneIdStr = divisionDto.get("zone_id");
-
-        if (divisionName == null || divisionName.trim().isEmpty())
-            throw new IllegalArgumentException("Division name is required");
-        if (divisionCode == null || divisionCode.trim().isEmpty())
-            throw new IllegalArgumentException("Division code is required");
-        if (!sharedUtilityService.isAlphabetic(divisionCode))
-            throw new IllegalArgumentException("Division code should contain only alphabets");
-        if (zoneIdStr == null)
-            throw new IllegalArgumentException("Zone ID is required");
-
-        Integer zoneId = Integer.parseInt(zoneIdStr);
-        Zone zone = entityManager.find(Zone.class, zoneId);
-        if (zone == null)
-            return ResponseService.generateErrorResponse("Zone does not exist", HttpStatus.NOT_FOUND);
-
-        StateCode newDivision = new StateCode();
-        newDivision.setIsState(false);
-        newDivision.setState_id(districtService.getCount() + 1);
-        newDivision.setState_name(divisionName);
-        newDivision.setState_code(divisionCode);
-        newDivision.setArchived(false);
-
-        entityManager.persist(newDivision);
-
-        Query linkageCheck = entityManager.createNativeQuery(
-                "SELECT COUNT(*) FROM zone_divisions z " +
-                        "JOIN custom_state_codes s ON z.division_id = s.state_id " +
-                        "WHERE z.zone_id = :zid AND s.state_name = :dn"
-        );
-        System.out.println(newDivision.getState_id());
-        linkageCheck.setParameter("zid", zoneId);
-        linkageCheck.setParameter("dn", newDivision.getState_name());
-        Number count = (Number) linkageCheck.getSingleResult();
-
-        if (count.intValue() > 0) {
-            return ResponseService.generateErrorResponse("Division already linked to this zone", HttpStatus.BAD_REQUEST);
-        }
-
-        Query maxIdQuery = entityManager.createNativeQuery(
-                "SELECT MAX(zonedivisionid) FROM zone_divisions WHERE zonedivisionid < 990"
-        );
-            BigInteger maxId = (BigInteger) maxIdQuery.getSingleResult();
-
-        Query insertLinkage = entityManager.createNativeQuery(
-                "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) VALUES (:zdid, :zid, :did)"
-        );
-        insertLinkage.setParameter("zdid", maxId.intValue() + 1);
-        insertLinkage.setParameter("zid", zoneId);
-        insertLinkage.setParameter("did", newDivision.getState_id());
-
-        int result = insertLinkage.executeUpdate();
-        if (result == 1) {
-            return ResponseService.generateSuccessResponse("Division added successfully", divisionDto, HttpStatus.OK);
-        } else {
-            throw new IllegalStateException("Failed to link division to zone");
-        }
-    }
-
-    @Authorize(value = {Constant.roleSuperAdmin})
-    @Transactional
-    @RequestMapping(value = "{divisionId}/edit", method = RequestMethod.POST)
-    public ResponseEntity<?> editDivision(@PathVariable("divisionId") Integer divisionId,
-                                          @RequestBody Map<String, String> divisionDto) {
+    @PostMapping("/add")
+    public ResponseEntity<?> addDivision(@Valid @RequestBody DivisionRequest request) {
         try {
-            String newDivName = divisionDto.get("division_name");
-            String newDivCode = divisionDto.get("division_code");
-            String zoneIdStr = divisionDto.get("zone_id");
+            // 1. Validate zone exists and is active
+            Zone zone = entityManager.createQuery(
+                            "SELECT z FROM Zone z WHERE z.zoneId = :zoneId AND z.archived = false",
+                            Zone.class)
+                    .setParameter("zoneId", request.getZoneId())
+                    .getSingleResult();
 
-            if (newDivName == null || newDivName.trim().isEmpty())
-                throw new IllegalArgumentException("Division name is required");
-            if (newDivCode == null || newDivCode.trim().isEmpty())
-                throw new IllegalArgumentException("Division code is required");
-            if (!sharedUtilityService.isAlphabetic(newDivCode))
-                throw new IllegalArgumentException("Division code should contain only alphabets");
+            // 2. Check for existing division name in the SAME ZONE using native query
+            Query duplicateCheck = entityManager.createNativeQuery(
+                    "SELECT COUNT(*) FROM zone_divisions zd " +
+                            "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
+                            "WHERE zd.zone_id = :zoneId " +
+                            "AND LOWER(d.state_name) = LOWER(:name)");
 
-            StateCode division = entityManager.find(StateCode.class, divisionId);
-            if (division == null )
-                return ResponseService.generateErrorResponse("Division not found", HttpStatus.NOT_FOUND);
+            duplicateCheck.setParameter("zoneId", request.getZoneId());
+            duplicateCheck.setParameter("name", request.getDivisionName());
 
-            // Update name and code
-            division.setState_name(newDivName);
-            division.setState_code(newDivCode);
-            entityManager.merge(division);
+            int duplicateCount = ((Number)duplicateCheck.getSingleResult()).intValue();
 
-            // Update zone mapping if zone_id is provided
-            if (zoneIdStr != null && !zoneIdStr.trim().isEmpty()) {
-                Integer newZoneId = Integer.parseInt(zoneIdStr);
-                Zone zone = entityManager.find(Zone.class, newZoneId);
-                if (zone == null)
-                    return ResponseService.generateErrorResponse("Zone does not exist", HttpStatus.NOT_FOUND);
+            if (duplicateCount > 0) {
+                return ResponseService.generateErrorResponse(
+                        "Division with this name already exists in the specified zone",
+                        HttpStatus.CONFLICT);
+            }
+/*
 
-                // Check if the mapping already exists for this name in the same zone
-                Query linkageCheck = entityManager.createNativeQuery(
-                        "SELECT COUNT(*) FROM zone_divisions z " +
-                                "JOIN custom_state_codes s ON z.division_id = s.state_id " +
-                                "WHERE z.zone_id = :zid AND s.state_name = :dn"
-                );
-                linkageCheck.setParameter("zid", newZoneId);
-                linkageCheck.setParameter("dn", newDivName);
-                Number count = (Number) linkageCheck.getSingleResult();
+            // 3. Check for division name uniqueness GLOBALLY (case-insensitive)
+            boolean duplicateGlobally = entityManager.createQuery(
+                            "SELECT COUNT(d) > 0 FROM StateCode d " +
+                                    "WHERE LOWER(d.state_name) = LOWER(:name)",
+                            Boolean.class)
+                    .setParameter("name", request.getDivisionName())
+                    .getSingleResult();
 
-                if (count.intValue() == 0) {
-                    // Delete old mappings
-                    Query deleteOld = entityManager.createNativeQuery(
-                            "DELETE FROM zone_divisions WHERE division_id = :did");
-                    deleteOld.setParameter("did", divisionId);
-                    deleteOld.executeUpdate();
+            if (duplicateGlobally) {
+                return ResponseService.generateErrorResponse(
+                        "Division name must be globally unique",
+                        HttpStatus.CONFLICT);
+            }
+*/
 
-                    // Get max zonedivisionid
-                    Query maxIdQuery = entityManager.createNativeQuery(
-                            "SELECT MAX(zonedivisionid) FROM zone_divisions WHERE zonedivisionid < 990");
-                    BigInteger maxId = (BigInteger) maxIdQuery.getSingleResult();
-                    if (maxId == null) maxId = BigInteger.ZERO;
+            // 4. Check for division code uniqueness (case-insensitive)
+            boolean codeExists = entityManager.createQuery(
+                            "SELECT COUNT(d) > 0 FROM StateCode d " +
+                                    "WHERE LOWER(d.state_code) = LOWER(:code)",
+                            Boolean.class)
+                    .setParameter("code", request.getDivisionCode())
+                    .getSingleResult();
 
-                    // Insert new mapping
-                    Query insertNew = entityManager.createNativeQuery(
-                            "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) VALUES (:zdid, :zid, :did)");
-                    insertNew.setParameter("zdid", maxId.intValue() + 1);
-                    insertNew.setParameter("zid", newZoneId);
-                    insertNew.setParameter("did", divisionId);
-                    insertNew.executeUpdate();
-                }
+            if (codeExists) {
+                return ResponseService.generateErrorResponse(
+                        "Division code must be unique",
+                        HttpStatus.CONFLICT);
             }
 
-            return ResponseService.generateSuccessResponse("Division updated successfully", divisionDto, HttpStatus.OK);
+            // 5. Create and persist new division
+            StateCode division = new StateCode();
+            division.setState_name(request.getDivisionName());
+            division.setState_id(getCount()+1);
+            division.setState_code(request.getDivisionCode().toUpperCase());
+            division.setIsState(false);
+            division.setArchived(false);
+            entityManager.persist(division);
+
+            // 6. Get next zonedivisionid
+            Query maxIdQuery = entityManager.createNativeQuery(
+                    "SELECT MAX(zonedivisionid) FROM zone_divisions");
+            BigInteger maxId = (BigInteger) maxIdQuery.getSingleResult();
+            int newZoneDivisionId = (maxId != null) ? maxId.intValue() + 1 : 1;
+
+            // 7. Create zone-division linkage using native query
+            Query linkageQuery = entityManager.createNativeQuery(
+                    "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) " +
+                            "VALUES (:zoneDivId, :zoneId, :divId)");
+
+            linkageQuery.setParameter("zoneDivId", newZoneDivisionId);
+            linkageQuery.setParameter("zoneId", request.getZoneId());
+            linkageQuery.setParameter("divId", division.getState_id());
+            linkageQuery.executeUpdate();
+
+            request.setZoneName(zone.getZoneName());
+            return ResponseService.generateSuccessResponse(
+                    "Division created and linked to zone successfully",
+                    request,
+                    HttpStatus.CREATED);
+
+        } catch (NoResultException e) {
+            return ResponseService.generateErrorResponse(
+                    "Specified zone not found or is archived",
+                    HttpStatus.NOT_FOUND);
         } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Cannot update division", HttpStatus.INTERNAL_SERVER_ERROR);
+            e.printStackTrace();
+            return ResponseService.generateErrorResponse(
+                    "Division creation failed: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    public Integer getCount()
+    {
+        String query ="SELECT MAX(state_id) AS max_state_id FROM custom_state_codes";
+        Query nquery=entityManager.createNativeQuery(query);
+        return (Integer)nquery.getSingleResult();
+    }
+
+    @Transactional
+    @PutMapping("/{divisionId}/edit")
+    public ResponseEntity<?> editDivision(
+            @PathVariable Integer divisionId,
+            @RequestBody Map<String, String> requestBody,
+            @RequestParam(required = false) Integer zoneId) {
+
+        try {
+            // 1. Validate division exists and is active
+            StateCode division = entityManager.createQuery(
+                            "SELECT d FROM StateCode d " +
+                                    "WHERE d.state_id = :divisionId " +
+                                    "AND d.archived = false",
+                            StateCode.class)
+                    .setParameter("divisionId", divisionId)
+                    .getSingleResult();
+
+            // Get current zone linkage
+            Query currentZoneQuery = entityManager.createNativeQuery(
+                    "SELECT zone_id FROM zone_divisions " +
+                            "WHERE division_id = :divisionId");
+            currentZoneQuery.setParameter("divisionId", divisionId);
+            Integer currentZoneId = (Integer) currentZoneQuery.getSingleResult();
+            Zone currentZone = entityManager.find(Zone.class, currentZoneId);
+
+            // 2. Process division name update if provided
+            if (requestBody.containsKey("division_name")) {
+                String newName = requestBody.get("division_name");
+
+                if (newName == null || newName.trim().isEmpty()) {
+                    return ResponseService.generateErrorResponse(
+                            "Division name cannot be empty",
+                            HttpStatus.BAD_REQUEST);
+                }
+
+                // Check for duplicate name in the SAME ZONE (either current or new zone)
+                Integer targetZoneId = zoneId != null ? zoneId : currentZoneId;
+
+                Query nameCheck = entityManager.createNativeQuery(
+                        "SELECT COUNT(*) FROM zone_divisions zd " +
+                                "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
+                                "WHERE zd.zone_id = :zoneId " +
+                                "AND LOWER(d.state_name) = LOWER(:name) " +
+                                "AND d.state_id != :divisionId");
+
+                nameCheck.setParameter("zoneId", targetZoneId);
+                nameCheck.setParameter("name", newName);
+                nameCheck.setParameter("divisionId", divisionId);
+
+                int nameCount = ((Number)nameCheck.getSingleResult()).intValue();
+
+                if (nameCount > 0) {
+                    return ResponseService.generateErrorResponse(
+                            "Division with this name already exists in the target zone",
+                            HttpStatus.CONFLICT);
+                }
+
+                division.setState_name(newName);
+            }
+
+            // 3. Process division code update if provided
+            if (requestBody.containsKey("division_code")) {
+                String newCode = requestBody.get("division_code");
+
+                if (!sharedUtilityService.isAlphabetic(newCode)) {
+                    return ResponseService.generateErrorResponse(
+                            "Division code should contain only alphabets",
+                            HttpStatus.BAD_REQUEST);
+                }
+
+                // Code must be globally unique (across all zones)
+                Query codeCheck = entityManager.createNativeQuery(
+                        "SELECT COUNT(*) FROM custom_state_codes " +
+                                "WHERE LOWER(state_code) = LOWER(:code) " +
+                                "AND state_id != :divisionId");
+
+                codeCheck.setParameter("code", newCode);
+                codeCheck.setParameter("divisionId", divisionId);
+
+                int codeCount = ((Number)codeCheck.getSingleResult()).intValue();
+
+                if (codeCount > 0) {
+                    return ResponseService.generateErrorResponse(
+                            "Division code must be unique across all zones",
+                            HttpStatus.CONFLICT);
+                }
+
+                division.setState_code(newCode.toUpperCase());
+            }
+
+            // 4. Process zone update if parameter provided
+            if (zoneId != null && !zoneId.equals(currentZoneId)) {
+                // Validate new zone exists and is active
+                Zone newZone = entityManager.createQuery(
+                                "SELECT z FROM Zone z " +
+                                        "WHERE z.zoneId = :zoneId " +
+                                        "AND z.archived = false",
+                                Zone.class)
+                        .setParameter("zoneId", zoneId)
+                        .getSingleResult();
+
+                // Check if division name already exists in NEW zone
+                if (requestBody.containsKey("division_name")) {
+                    String divisionName = requestBody.get("division_name");
+                    Query nameConflictCheck = entityManager.createNativeQuery(
+                            "SELECT COUNT(*) FROM zone_divisions zd " +
+                                    "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
+                                    "WHERE zd.zone_id = :zoneId " +
+                                    "AND LOWER(d.state_name) = LOWER(:name)");
+
+                    nameConflictCheck.setParameter("zoneId", zoneId);
+                    nameConflictCheck.setParameter("name", divisionName);
+
+                    int conflictCount = ((Number)nameConflictCheck.getSingleResult()).intValue();
+
+                    if (conflictCount > 0) {
+                        return ResponseService.generateErrorResponse(
+                                "Target zone already has a division with this name",
+                                HttpStatus.CONFLICT);
+                    }
+                }
+
+                // Update zone linkage
+                Query updateQuery = entityManager.createNativeQuery(
+                        "UPDATE zone_divisions " +
+                                "SET zone_id = :newZoneId " +
+                                "WHERE division_id = :divisionId");
+
+                updateQuery.setParameter("newZoneId", zoneId);
+                updateQuery.setParameter("divisionId", divisionId);
+
+                int updatedRows = updateQuery.executeUpdate();
+
+                if (updatedRows == 0) {
+                    // Insert new linkage if no existing record
+                    Query maxIdQuery = entityManager.createNativeQuery(
+                            "SELECT MAX(zonedivisionid) FROM zone_divisions");
+                    BigInteger maxId = (BigInteger) maxIdQuery.getSingleResult();
+                    int newZoneDivisionId = (maxId != null) ? maxId.intValue() + 1 : 1;
+
+                    Query insertQuery = entityManager.createNativeQuery(
+                            "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) " +
+                                    "VALUES (:zoneDivId, :zoneId, :divId)");
+
+                    insertQuery.setParameter("zoneDivId", newZoneDivisionId);
+                    insertQuery.setParameter("zoneId", zoneId);
+                    insertQuery.setParameter("divId", divisionId);
+                    insertQuery.executeUpdate();
+                }
+
+                currentZoneId = zoneId;
+                currentZone = newZone;
+            }
+
+            // 5. Save division changes
+            entityManager.merge(division);
+
+            // 6. Build response
+            Map<String, Object> response = new HashMap<>();
+            response.put("divisionId", division.getState_id());
+            response.put("divisionName", division.getState_name());
+            response.put("divisionCode", division.getState_code());
+            response.put("zoneId", currentZoneId);
+            response.put("zoneName", currentZone != null ? currentZone.getZoneName() : null);
+
+            String message = "Division updated successfully";
+            if (zoneId != null) {
+                message += " and zone linkage updated";
+            }
+
+            return ResponseService.generateSuccessResponse(
+                    message,
+                    response,
+                    HttpStatus.OK);
+
+        } catch (NoResultException e) {
+            return ResponseService.generateErrorResponse(
+                    "Division or zone not found or is archived",
+                    HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseService.generateErrorResponse(
+                    "Failed to update division: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    private ResponseEntity<?> buildSuccessResponse(StateCode division, Zone zone, String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("divisionId", division.getState_id());
+        response.put("divisionName", division.getState_name());
+        response.put("zoneId", zone != null ? zone.getZoneId() : null);
+        response.put("zoneName", zone != null ? zone.getZoneName() : null);
+
+        return ResponseService.generateSuccessResponse(
+                message,
+                response,
+                HttpStatus.OK);
     }
 
     @Authorize(value ={Constant.roleSuperAdmin})
