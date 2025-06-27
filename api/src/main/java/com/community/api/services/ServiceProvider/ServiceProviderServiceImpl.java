@@ -1184,7 +1184,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                Boolean value= (Boolean) updates.get("isAcknowledged");
                existingServiceProvider.setIsAcknowledged(value);
            }
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,false);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
@@ -1483,7 +1483,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             String existingToken = serviceProvider.getToken();
 
-            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider);
+            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false);
 
 
             if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
@@ -1675,7 +1675,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String existingToken = existingServiceProvider.getToken();
 
 
-                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,true);
                 if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
 
 
@@ -1884,7 +1884,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
                 }
                 return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
             }
@@ -1945,7 +1945,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .orElse(null);
                 if (serviceProviderEntity != null) {
                     List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
                         return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 }else {
                     // Return empty response
@@ -1963,7 +1963,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .orElse(null);
                 if (serviceProviderEntity != null) {
                     List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
                     return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 } else {
                     // Return empty response
@@ -2058,7 +2058,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // Prepare response
             List<Map<String, Object>> response = new ArrayList<>();
             for (ServiceProviderEntity sp : listOfSp) {
-                response.add(sharedUtilityService.serviceProviderDetailsMap(sp));
+                response.add(sharedUtilityService.serviceProviderDetailsMap(sp,false));
             }
 
             log.info("end search");

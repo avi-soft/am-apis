@@ -326,8 +326,13 @@ public class ServiceProviderEntity  {
     @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isAcknowledged=false;
 
+
+    @Column(name = "login_message")
+    private String loginMessage;
+
     @Column(name = "date_joined")
     private LocalDate dateJoined;
+
 
 }
 
