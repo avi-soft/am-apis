@@ -28,28 +28,43 @@ public class FileTypeService
     }
 
     @Transactional
-    public List<FileType> addAllRandomFileTypes(List<FileType> fileTypes)
+    public List<FileType> getAllArchivedNonArchivedRandomFileTypes()
     {
-        List<FileType> fileTypesListToAdd = new ArrayList<>();
-        for(FileType fileType : fileTypes)
-        {
-            FileType fileTypeToAdd =new FileType();
-            int id = findMax() + 1;
-            if (fileType.getFile_type_name() == null || fileType.getFile_type_name().trim().isEmpty()) {
-                throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
-            }
-            List<FileType> existingFileType = getAllRandomFileTypes(false);
-            for (FileType existingFileType1: existingFileType) {
-                if (existingFileType1.getFile_type_name().equalsIgnoreCase(fileType.getFile_type_name())) {
-                    throw new IllegalArgumentException("File Type with name '"+fileType.getFile_type_name()+"' already exists");
+        TypedQuery<FileType> typedQuery= entityManager.createQuery(Constant.GET_ALL_ARCHIVED_NONARCHIVED_FILE_TYPE,FileType.class);
+        List<FileType> fileTypes = typedQuery.getResultList();
+        return fileTypes;
+    }
+
+    @Transactional
+    public List<FileType> addAllRandomFileTypes(List<FileType> fileTypes) throws Exception {
+        try {
+            List<FileType> fileTypesListToAdd = new ArrayList<>();
+            for (FileType fileType : fileTypes) {
+                FileType fileTypeToAdd = new FileType();
+                int id = findMax() + 1;
+                if (fileType.getFile_type_name() == null || fileType.getFile_type_name().trim().isEmpty()) {
+                    throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
                 }
+                List<FileType> existingFileType = getAllArchivedNonArchivedRandomFileTypes();
+                for (FileType existingFileType1 : existingFileType) {
+                    if (existingFileType1.getFile_type_name().trim().equalsIgnoreCase(fileType.getFile_type_name().trim())) {
+                        throw new IllegalArgumentException("File Type with name '" + fileType.getFile_type_name().trim() + "' already exists");
+                    }
+                }
+                fileTypeToAdd.setFile_type_id(id);
+                fileTypeToAdd.setFile_type_name(fileType.getFile_type_name().trim());
+                fileTypesListToAdd.add(fileTypeToAdd);
+                entityManager.persist(fileTypeToAdd);
             }
-            fileTypeToAdd.setFile_type_id(id);
-            fileTypeToAdd.setFile_type_name(fileType.getFile_type_name());
-            fileTypesListToAdd.add(fileTypeToAdd);
-            entityManager.persist(fileTypeToAdd);
+            return fileTypesListToAdd;
+        }catch (IllegalArgumentException illegalArgumentException)
+        {
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         }
-        return fileTypesListToAdd;
+        catch (Exception e)
+        {
+            throw new Exception(e.getMessage());
+        }
     }
 
     public int findMax() {
@@ -81,31 +96,33 @@ public class FileTypeService
     }
 
     @Transactional
-    public FileType updateFileType(FileType fileType, Integer fileTypeId)
-    {
-        FileType fileTypeToUpdate= entityManager.find(FileType.class,fileTypeId);
-        if(fileTypeToUpdate==null)
-        {
-            throw new IllegalArgumentException("File type not found");
-        }
-        if(fileTypeToUpdate.getArchived().equals(true))
-        {
-            throw new IllegalArgumentException("File type is archived");
-        }
-        if(fileType.getFile_type_name()!=null)
-        {
-            if (fileType.getFile_type_name().trim().isEmpty()) {
-                throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
+    public FileType updateFileType(FileType fileType, Integer fileTypeId) throws Exception {
+        try {
+            FileType fileTypeToUpdate = entityManager.find(FileType.class, fileTypeId);
+            if (fileTypeToUpdate == null) {
+                throw new IllegalArgumentException("File type not found");
             }
-            List<FileType> existingFileType = getAllRandomFileTypes(false);
-            for (FileType existingFileType1: existingFileType) {
-                if (existingFileType1.getFile_type_name().equalsIgnoreCase(fileType.getFile_type_name()) && !existingFileType1.getFile_type_id().equals(fileTypeId)) {
-                    throw new IllegalArgumentException("File Type with name '"+fileType.getFile_type_name()+"' already exists");
+            if (fileType.getFile_type_name() != null) {
+                if (fileType.getFile_type_name().trim().isEmpty()) {
+                    throw new IllegalArgumentException("File type cannot be empty or consist only of whitespace");
                 }
+                List<FileType> existingFileType = getAllArchivedNonArchivedRandomFileTypes();
+                for (FileType existingFileType1 : existingFileType) {
+                    if (existingFileType1.getFile_type_name().trim().equalsIgnoreCase(fileType.getFile_type_name().trim()) && !existingFileType1.getFile_type_id().equals(fileTypeId)) {
+                        throw new IllegalArgumentException("File Type with name '" + fileType.getFile_type_name().trim() + "' already exists");
+                    }
+                }
+                fileTypeToUpdate.setFile_type_name(fileType.getFile_type_name().trim());
             }
-            fileTypeToUpdate.setFile_type_name(fileType.getFile_type_name());
+            entityManager.merge(fileTypeToUpdate);
+            return fileTypeToUpdate;
+        }catch (IllegalArgumentException illegalArgumentException)
+        {
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         }
-        entityManager.merge(fileTypeToUpdate);
-        return fileTypeToUpdate;
+        catch (Exception e)
+        {
+            throw new Exception(e.getMessage());
+        }
     }
 }

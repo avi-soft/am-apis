@@ -47,7 +47,10 @@ public class DistrictController {
                 return responseService.generateErrorResponse("No data found",HttpStatus.OK);
             }
             return responseService.generateSuccessResponse("List retrieved successfully",names,HttpStatus.OK);
-        } catch (Exception e) {
+        }  catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error retrieving list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -60,7 +63,10 @@ public class DistrictController {
                 return responseService.generateErrorResponse("No data found",HttpStatus.OK);
             }
             return responseService.generateSuccessResponse("List retrieved successfully",names,HttpStatus.OK);
-        } catch (Exception e) {
+        }  catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception e) {
             exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Error retrieving list", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -76,6 +82,9 @@ public class DistrictController {
             Query query = entityManager.createQuery("SELECT s FROM StateCode s WHERE s.state_code = :code", StateCode.class);
             query.setParameter("code", district.getState_code());
             return ResponseService.generateSuccessResponse("State found", query.getResultList().get(0), HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         catch (Exception e) {
             exceptionHandling.handleException(e);
