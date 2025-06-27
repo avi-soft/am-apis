@@ -137,7 +137,7 @@ public class RoleController {
                 user.getPrivileges().add(privileges);
                 user.setToken(null);
                 entityManager.merge(user);
-                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user,false),HttpStatus.OK);
                 break;
             case 2:
                 user.getPrivileges().clear();
@@ -152,21 +152,21 @@ public class RoleController {
                 }
                 user.setToken(null);
                 entityManager.merge(user);
-                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user,false),HttpStatus.OK);
                 break;
             case 3:
                 user.getPrivileges().clear();
                 user.setRole(roleToBeId);
                 user.setToken(null);
                 entityManager.merge(user);
-                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user,false),HttpStatus.OK);
                 break;
             case 4:
                 user.getPrivileges().clear();
                 user.setRole(roleToBeId);
                 user.setToken(null);
                 entityManager.merge(user);
-                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user),HttpStatus.OK);
+                response= ResponseService.generateSuccessResponse(user.getFirst_name()+" "+user.getLast_name()+" ID:"+user.getService_provider_id()+"'s role changed from "+prevRole.getRole_name()+" to "+role.getRole_name(),sharedUtilityService.serviceProviderDetailsMap(user,false),HttpStatus.OK);
                 break;
             default:
                 response= ResponseService.generateErrorResponse("Invalid action",HttpStatus.BAD_REQUEST);
