@@ -116,7 +116,7 @@ public class ReserveCategoryService {
 
             // Check for duplicate names
             Query query = entityManager.createQuery(
-                    "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name",
+                    "SELECT r FROM CustomReserveCategory r WHERE LOWER(r.reserveCategoryName) = LOWER(:name)",
                     CustomReserveCategory.class);
             query.setParameter("name", reserveCategory.getReserveCategoryName());
             if(!query.getResultList().isEmpty()) {
@@ -125,6 +125,7 @@ public class ReserveCategoryService {
 
             // Set default values
             reserveCategory.setReserveCategoryId(getMaxReserveCategoryId() + 1);
+            reserveCategory.setArchived(false);
 
             if(reserveCategory.getSortOrder() == null || reserveCategory.getSortOrder() >= 1000) {
                 // Assign next available sort order for normal categories
@@ -161,7 +162,7 @@ public class ReserveCategoryService {
             if(reserveCategory.getReserveCategoryName() != null) {
                 // Check for duplicate names
                 Query query = entityManager.createQuery(
-                        "SELECT r FROM CustomReserveCategory r WHERE r.reserveCategoryName = :name AND r.reserveCategoryId != :id",
+                        "SELECT r FROM CustomReserveCategory r WHERE LOWER(r.reserveCategoryName) = SLOWER(:name) AND r.reserveCategoryId != :id",
                         CustomReserveCategory.class);
                 query.setParameter("name", reserveCategory.getReserveCategoryName());
                 query.setParameter("id", reserveCategoryId);
