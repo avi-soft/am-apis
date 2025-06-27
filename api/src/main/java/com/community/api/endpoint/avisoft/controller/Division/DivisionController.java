@@ -3,6 +3,7 @@ package com.community.api.endpoint.avisoft.controller.Division;
 import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.dto.DivisionRequest;
+import com.community.api.dto.DivisionResponse;
 import com.community.api.entity.Districts;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Zone;
@@ -29,6 +30,8 @@ import javax.persistence.Query;
 import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -426,16 +429,55 @@ public class DivisionController {
         }
     }
     @GetMapping("/all-divisions")
-    public ResponseEntity<?> getAll(@RequestParam(required = false,defaultValue = "false") Boolean archived) {
+    public ResponseEntity<?> getAllDivisionsWithZones(
+            @RequestParam(required = false, defaultValue = "false") Boolean archived) {
         try {
+            // 1. Get all divisions
+            List<StateCode> divisions = entityManager.createQuery(
+                            "SELECT s FROM StateCode s WHERE s.archived = :archived", StateCode.class)
+                    .setParameter("archived", archived)
+                    .getResultList();
 
-            Query query = entityManager.createQuery(
-                    "SELECT s FROM StateCode s WHERE s.archived = :archived", StateCode.class
-            );
-            query.setParameter("archived", archived);
-            return ResponseService.generateSuccessResponse("List of divisions",query.getResultList(),HttpStatus.OK);
-        } catch (Exception exception) {
-            return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
+            // 2. Create response DTOs with zone information
+            List<DivisionResponse> responseList = new ArrayList<>();
+
+            for (StateCode division : divisions) {
+                DivisionResponse response = new DivisionResponse();
+                response.setDivisionId(division.getState_id());
+                response.setDivisionName(division.getState_name());
+                response.setDivisionCode(division.getState_code());
+
+                // Get zone information for each division
+                Query zoneQuery = entityManager.createNativeQuery(
+                        "SELECT z.zone_id, z.zone_name FROM zone_divisions zd " +
+                                "JOIN custom_zones z ON zd.zone_id = z.zone_id " +
+                                "WHERE zd.division_id = :divisionId");
+                zoneQuery.setParameter("divisionId", division.getState_id());
+
+                // Handle multiple zone associations (if applicable)
+                List<Object[]> zoneResults = zoneQuery.getResultList();
+                if (!zoneResults.isEmpty()) {
+                    // Take the first zone association (or implement logic for multiple zones)
+                    Object[] firstZone = zoneResults.get(0);
+                    response.setZoneId((Integer) firstZone[0]);
+                    response.setZoneName((String) firstZone[1]);
+                } else {
+                    response.setZoneId(null);
+                    response.setZoneName(null);
+                }
+
+                responseList.add(response);
+            }
+
+            return ResponseService.generateSuccessResponse(
+                    "List of divisions with zone information",
+                    responseList,
+                    HttpStatus.OK);
+
+        } catch (Exception e) {
+            return ResponseService.generateErrorResponse(
+                    "Failed to retrieve divisions: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
