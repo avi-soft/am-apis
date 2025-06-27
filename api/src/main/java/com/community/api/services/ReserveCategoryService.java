@@ -162,7 +162,7 @@ public class ReserveCategoryService {
             if(reserveCategory.getReserveCategoryName() != null) {
                 // Check for duplicate names
                 Query query = entityManager.createQuery(
-                        "SELECT r FROM CustomReserveCategory r WHERE LOWER(r.reserveCategoryName) = SLOWER(:name) AND r.reserveCategoryId != :id",
+                        "SELECT r FROM CustomReserveCategory r WHERE LOWER(r.reserveCategoryName) = LOWER(:name) AND r.reserveCategoryId != :id",
                         CustomReserveCategory.class);
                 query.setParameter("name", reserveCategory.getReserveCategoryName());
                 query.setParameter("id", reserveCategoryId);

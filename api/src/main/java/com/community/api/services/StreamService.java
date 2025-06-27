@@ -162,34 +162,65 @@ public class StreamService {
     }
 
     @Transactional
-    public CustomStream saveStream(AddStreamDto addStreamDto, Long creatorId, Role creatorRole) throws Exception {
-        try{
+    public CustomStream saveStream(AddStreamDto addStreamDto, Long creatorId, Role creatorRole)
+            throws IllegalArgumentException, Exception {
+
+        try {
+            // 1. Validate input
+            if (addStreamDto == null) {
+                throw new IllegalArgumentException("Stream data cannot be null");
+            }
+
+            // 2. Check for duplicate stream name (case-insensitive)
+            TypedQuery<Long> duplicateCheck = entityManager.createQuery(
+                    "SELECT COUNT(s) FROM CustomStream s WHERE LOWER(s.streamName) = LOWER(:name)",
+                    Long.class);
+            duplicateCheck.setParameter("name", addStreamDto.getStreamName());
+
+            if (duplicateCheck.getSingleResult() > 0) {
+                throw new IllegalArgumentException("Stream with this name already exists");
+            }
+
+            // 3. Validate and collect qualifications
+            List<Qualification> qualifications = new ArrayList<>();
+            if (addStreamDto.getQualificationIds() == null || addStreamDto.getQualificationIds().isEmpty()) {
+                throw new IllegalArgumentException("At least one qualification is required");
+            }
+
+            for (Integer id : addStreamDto.getQualificationIds()) {
+                Qualification qualification = entityManager.find(Qualification.class, id);
+                if (qualification == null) {
+                    throw new IllegalArgumentException("Qualification not found with ID: " + id);
+                }
+                qualifications.add(qualification);
+            }
+
+            // 4. Determine sort order
+            TypedQuery<Long> maxSortQuery = entityManager.createQuery(
+                    "SELECT COALESCE(MAX(c.sortOrder), 0) FROM CustomStream c WHERE c.sortOrder < 10000000",
+                    Long.class);
+            Long maxSortOrder = maxSortQuery.getSingleResult();
+
+            // 5. Create and persist new stream
             CustomStream stream = new CustomStream();
             stream.setStreamName(addStreamDto.getStreamName());
-            List<Qualification>list=new ArrayList<>();
-            for(Integer id:addStreamDto.getQualificationIds())
-            {
-                Qualification qualification=entityManager.find(Qualification.class,id);
-                if(qualification!=null)
-                {
-                    list.add(qualification);
-                }
-            }
-            stream.setQualifications(list);
-            TypedQuery<Long> query = entityManager.createQuery(
-                    "SELECT MAX(c.sortOrder) FROM CustomStream c WHERE c.sortOrder < 10000000", Long.class
-            );
-            Long maxSortOrder = query.getSingleResult();
-            stream.setSortOrder(maxSortOrder+1);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
+            stream.setQualifications(qualifications);
+            stream.setSortOrder(maxSortOrder + 1);
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
             stream.setCreatorRole(creatorRole);
+            stream.setArchived('N');
+
             entityManager.persist(stream);
             return stream;
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation exceptions directly
+            throw e;
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            throw new Exception("Failed to create stream: " + e.getMessage());
         }
     }
 
