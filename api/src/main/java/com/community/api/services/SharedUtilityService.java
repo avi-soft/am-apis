@@ -285,11 +285,11 @@ public class SharedUtilityService {
             for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
             {
                 if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
-                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider(),false));
                     primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
                 }
                 ReferrerDTO referrerDTO=new ReferrerDTO();
-                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider(),false));
                 referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
                 ref.add(referrerDTO);
             }
@@ -577,11 +577,11 @@ public class SharedUtilityService {
             for(CustomerReferrer customerReferrer:customCustomer.getMyReferrer())
             {
                 if(customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()==true) {
-                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                    primaryRef.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider(),false));
                     primaryRef.setCreatedAt(customerReferrer.getCreatedAt());
                 }
                 ReferrerDTO referrerDTO=new ReferrerDTO();
-                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider()));
+                referrerDTO.setServiceProvider(serviceProviderDetailsMap(customerReferrer.getServiceProvider(),false));
                 referrerDTO.setCreatedAt(customerReferrer.getCreatedAt());
                 ref.add(referrerDTO);
             }
@@ -842,7 +842,9 @@ public class SharedUtilityService {
     }
 
     @Transactional
-    public Map<String, Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider) throws Exception {
+    public Map<String, Object> serviceProviderDetailsMap(ServiceProviderEntity serviceProvider,Boolean login) throws Exception {
+        if(login==null)
+            login=false;
         Map<String, Object> serviceProviderDetails = new HashMap<>();
         serviceProviderDetails.put("type", serviceProvider.getType());
         serviceProviderDetails.put("service_provider_id", serviceProvider.getService_provider_id());
@@ -925,6 +927,11 @@ public class SharedUtilityService {
         serviceProviderDetails.put("privileges", serviceProvider.getPrivileges());
         serviceProviderDetails.put("spAddresses", serviceProvider.getSpAddresses());
         serviceProviderDetails.put("rejected",serviceProvider.getRejected());
+        serviceProviderDetails.put("message",serviceProvider.getLoginMessage());
+        if(serviceProvider.getLoginMessage()!=null&&login) {
+            serviceProvider.setLoginMessage(null);
+            entityManager.merge(serviceProvider);
+        }
         serviceProviderDetails.put("isAcknowledged",serviceProvider.getIsAcknowledged());
         List<QualificationDetails> qualificationDetails = serviceProvider.getQualificationDetailsList();
         List<Map<String, Object>> qualificationsWithNames = mapQualificationsForServiceProvider(qualificationDetails);
@@ -1400,7 +1407,21 @@ public class SharedUtilityService {
 
         // Use regular expression to check if the string contains only alphabets
         return input.matches("[a-zA-Z ]+");
-    }public long parseToLong(Object value) {
+    }
+    public boolean isAlphabeticWithHyphen(String input) {
+        // Check for null or empty string
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+
+        // Regular expression that allows:
+        // - Alphabetic characters (a-z, A-Z)
+        // - Spaces
+        // - Hyphens
+        return input.matches("^[a-zA-Z\\- ]+$");
+    }
+
+    public long parseToLong(Object value) {
         if (value instanceof String) {
             try {
                 return Long.parseLong((String) value); // Parse string to long
