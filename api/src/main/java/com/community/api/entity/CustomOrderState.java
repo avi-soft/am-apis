@@ -14,7 +14,7 @@ import javax.persistence.Table;
 import java.util.Date;
 
 @Entity
-@Table(name = "ORDER_STATE")
+@Table(name = "ORDER_STATE") // extended version of order.
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
