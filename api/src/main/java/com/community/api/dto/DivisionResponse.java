@@ -27,4 +27,7 @@ public class DivisionResponse {
 
     @JsonProperty("zoneName")
     private String zoneName;
+
+    @JsonProperty("archived")
+    private Boolean archived;
 }
