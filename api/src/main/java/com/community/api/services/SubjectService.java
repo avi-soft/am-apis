@@ -188,8 +188,8 @@ public class SubjectService {
             if (addSubjectDto.getSubjectName() == null || addSubjectDto.getSubjectName().trim().isEmpty()) {
                 throw new IllegalArgumentException("Subject name is required");
             }
-            if(!sharedUtilityService.isAlphabeticWithHyphen(addSubjectDto.getSubjectName()))
-                throw new IllegalArgumentException("Subject names can contain only alphabets and hyphens");
+/*            if(!sharedUtilityService.isAlphabeticWithHyphen(addSubjectDto.getSubjectName()))
+                throw new IllegalArgumentException("Subject names can contain only alphabets and hyphens");*/
 
             // 3. Check for duplicate subject name (case-insensitive)
             TypedQuery<Long> duplicateCheck = entityManager.createQuery(
@@ -293,9 +293,14 @@ public class SubjectService {
             // 3. Process subject name update if provided
             if (subject.getSubjectName() != null) {
                 // Validate name format
-                if (!sharedUtilityService.isAlphabetic(subject.getSubjectName())) {
+               /* if (!sharedUtilityService.isAlphabetic(subject.getSubjectName())) {
                     throw new IllegalArgumentException(
                             "Subject name should contain only alphabetic characters");
+                }*/
+
+                if(subject.getSubjectName().isEmpty())
+                {
+                    throw new IllegalArgumentException("Subject name cannot be empty");
                 }
 
                 List<CustomSubject> existingSubjects = getAllArchivedNonArchivedSubject();
@@ -310,6 +315,10 @@ public class SubjectService {
 
             // 4. Process description update if provided
             if (subject.getSubjectDescription() != null) {
+                if(subject.getSubjectDescription().isEmpty())
+                {
+                    throw new IllegalArgumentException("Subject description cannot be empty");
+                }
                 subjectToEdit.setSubjectDescription(subject.getSubjectDescription());
             }
 
