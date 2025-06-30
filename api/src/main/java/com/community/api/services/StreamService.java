@@ -314,7 +314,7 @@ public class StreamService {
                 List<CustomStream> existingStreams = getAllStreamArchiveNonArchive();
                 for (CustomStream existingStream: existingStreams) {
                     if (existingStream.getStreamName().equalsIgnoreCase(stream.getStreamName()) && !existingStream.getStreamId().equals(streamId)) {
-                        throw new IllegalArgumentException("Subject with name '"+stream.getStreamName()+"' already exists");
+                        throw new IllegalArgumentException("Stream with name '"+stream.getStreamName()+"' already exists");
                     }
                 }
                 // Validate name format
