@@ -103,7 +103,7 @@ public class StreamService {
     public List<CustomStream> getStreamByQualificationId(Integer qualificationId) {
         try {
             List<CustomStream> streamList = entityManager.createQuery(
-                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId AND s.archived = 'N' m  ORDER BY s.sortOrder ASC",
+                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId AND s.archived = 'N' ORDER BY s.sortOrder ASC",
                             CustomStream.class)
                     .setParameter("qualificationId", qualificationId)
                     .getResultList();
@@ -317,11 +317,11 @@ public class StreamService {
                         throw new IllegalArgumentException("Stream with name '"+stream.getStreamName()+"' already exists");
                     }
                 }
-                // Validate name format
+               /* // Validate name format
                 if (!sharedUtilityService.isAlphabeticWithHyphen(stream.getStreamName())) {
                     throw new IllegalArgumentException(
                             "Stream name should contain only alphabets and hyphens");
-                }
+                }*/
                 streamToEdit.setStreamName(stream.getStreamName());
             }
 
