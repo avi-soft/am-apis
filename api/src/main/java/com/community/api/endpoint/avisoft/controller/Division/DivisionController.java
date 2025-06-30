@@ -446,6 +446,7 @@ public class DivisionController {
                 response.setDivisionId(division.getState_id());
                 response.setDivisionName(division.getState_name());
                 response.setDivisionCode(division.getState_code());
+                response.setArchived(division.getArchived());
 
                 // Get zone information for each division
                 Query zoneQuery = entityManager.createNativeQuery(
