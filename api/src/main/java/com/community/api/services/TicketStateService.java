@@ -356,6 +356,18 @@ public class TicketStateService {
                     }
                     ticket.setComment(createTicketDTO.getComment().trim());
                 }
+
+                // Change order state to in-progress.
+                if(ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    orderState.setOrderStateId(6);
+                    entityManager.merge(orderState);
+                } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    orderState.setOrderStateId(7);
+                    entityManager.merge(orderState);
+                }
+
                 // Commented to allow super admin and admin to do what ever they want within the flow.
                 /*if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_SUPPORT) && !ticket.getAssignee().equals(tokenUserId)) {
                     if(!ticket.getTicketState().getTicketStateId().equals(Constant.TICKET_STATE_ON_HOLD)) {
@@ -646,6 +658,7 @@ public class TicketStateService {
                 ticketHistory.setServiceProviderDocuments(clonedDocuments);
                 entityManager.merge(ticketHistory);
             } else {
+                log.info("here------------------------------------------------");
                 ticket = entityManager.merge(ticket);
             }
             return ticket;
