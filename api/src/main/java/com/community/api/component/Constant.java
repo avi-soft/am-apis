@@ -185,7 +185,7 @@ public class Constant {
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId AND p.gender_id = :genderId";
     public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived = :archived ORDER BY sortOrder ASC";
     public static final String GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE = "SELECT c FROM CustomSubject c ORDER BY sortOrder ASC";
-    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived = :archived ORDER BY sortOrder  ASC ";
+    public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived = :archived AND c.streamId <> 0 ORDER BY c.sortOrder ASC";
     public static final String GET_ALL_STREAM_ARCHIVE_NONARCHIVE = "SELECT c FROM CustomStream c ORDER BY sortOrder  ASC ";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
     public static final String GET_DOCUMENT_TYPE_BY_ID = "SELECT c FROM DocumentType c WHERE c.document_type_id = :documentTypeId";
