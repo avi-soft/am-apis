@@ -311,12 +311,12 @@ public class OrderController {
             int offset1 = offset * limit;
             sort = sort.toLowerCase();
 
-            if (orderStateIds != null && orderStateIds.contains(9)) {
-                orderStateIds.clear();
-                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 0, 999));
-            }
+//            if (orderStateIds != null && orderStateIds.contains(9)) {
+//                orderStateIds.clear();
+//                orderStateIds.addAll(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 0, 999));
+//            }
             // Validate order state IDs
-            else if (orderStateIds != null && !orderStateIds.isEmpty()) {
+            if (orderStateIds != null && !orderStateIds.isEmpty()) {
                 for (Integer id : orderStateIds) {
                     OrderStateRef ref = entityManager.find(OrderStateRef.class, id);
                     if (ref == null) {
@@ -805,7 +805,9 @@ public class OrderController {
 
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
-    public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
+                                         @RequestParam(value = "refund-amount", defaultValue = "0.0") Double refundAmount,
+                                         @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -836,7 +838,11 @@ public class OrderController {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
-            customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, tokenUserId, role);
+            // Here we need to add a max amount as well depending on what customer paid.
+            if(refundAmount < 0.0) {
+                throw new IllegalArgumentException("Refund Amount cannot be <=0 and greater than actual value of the product.");
+            }
+            customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {

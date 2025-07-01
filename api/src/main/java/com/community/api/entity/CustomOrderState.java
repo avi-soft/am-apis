@@ -41,6 +41,9 @@ public class CustomOrderState {
     @Column(name = "modified_date")
     private Date modifiedDate;
 
+    @Column(name = "refund_amount")
+    private Double refundAmount;
+
     public CustomOrderState(Integer orderStateId) {
         this.orderStateId=orderStateId;
     }

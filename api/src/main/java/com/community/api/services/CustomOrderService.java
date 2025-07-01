@@ -106,13 +106,15 @@ public class CustomOrderService {
     }
 
     @Transactional
-    public CustomOrderState updateOrderState(CustomOrderState customOrderState, CustomOrderState newCustomOrderState, Long userId, Role role) throws Exception {
+    public CustomOrderState updateOrderState(CustomOrderState customOrderState, CustomOrderState newCustomOrderState, Double refundAmount, Long userId, Role role) throws Exception {
         try {
 
             customOrderState.setOrderStateId(newCustomOrderState.getOrderStateId());
+            customOrderState.setRefundAmount(refundAmount);
             customOrderState.setModifiedDate(new Date());
             customOrderState.setModifierUserId(userId);
             customOrderState.setModifierRole(role);
+
             return entityManager.merge(customOrderState);
 
         } catch (Exception exception) {
