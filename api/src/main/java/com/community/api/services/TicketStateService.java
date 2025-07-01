@@ -213,7 +213,6 @@ public class TicketStateService {
             if (createTicketDTO == null) {
                 log.info("CREATE TICKET DTO IS NULL");
             }
-//            log.info("dto state is {}:" ,createTicketDTO.getTicketState().toString());
             if (createTicketDTO == null || (createTicketDTO.getTicketStatus() == null && createTicketDTO.getTicketState() == null && createTicketDTO.getTicketType() == null && createTicketDTO.getAssignee() == null && createTicketDTO.getAssigneeRole() == null && createTicketDTO.getTargetCompletionDate() == null)) {
                 throw new IllegalArgumentException("At least one parameter is required to update the ticket");
             }
@@ -475,7 +474,7 @@ public class TicketStateService {
                             if(parentTicketAssignee.getTicketPending() == 0) {
                                 throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
                             }
-                            parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending()-1);
+                            parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending() - 1);
                             parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
                             entityManager.merge(parentTicketAssignee);
                         }
@@ -529,7 +528,7 @@ public class TicketStateService {
                         if(assignee.getTicketPending() == 0) {
                             throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
                         }
-                        assignee.setTicketPending(assignee.getTicketPending() -1);
+                        assignee.setTicketPending(assignee.getTicketPending()-1);
                         assignee.setTicketCompleted(assignee.getTicketCompleted()+1);
                         entityManager.merge(assignee);
                     }
