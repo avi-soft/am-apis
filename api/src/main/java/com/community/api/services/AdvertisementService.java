@@ -442,6 +442,7 @@ public class AdvertisementService {
                 "AND a.archived = 'N' " +
                 "AND bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +
+                "AND c.is_approved = 'Y'" +
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "GROUP BY a.advertisement_id, a.description, a.title " +
