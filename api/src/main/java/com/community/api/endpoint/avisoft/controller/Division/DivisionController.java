@@ -236,8 +236,16 @@ public class DivisionController {
                     "SELECT zone_id FROM zone_divisions " +
                             "WHERE division_id = :divisionId");
             currentZoneQuery.setParameter("divisionId", divisionId);
-            Integer currentZoneId = (Integer) currentZoneQuery.getSingleResult();
-            Zone currentZone = entityManager.find(Zone.class, currentZoneId);
+            /*Integer currentZoneId = (Integer) currentZoneQuery.getSingleResult();
+            Zone currentZone = entityManager.find(Zone.class, currentZoneId);*/
+            Integer currentZoneId=null;
+            List<Integer> zoneIds = currentZoneQuery.getResultList();
+
+            Zone currentZone = null;
+            if (!zoneIds.isEmpty()) {
+                currentZone = entityManager.find(Zone.class, zoneIds.get(0));
+                currentZoneId = zoneIds.get(0);
+            }
 
             // 2. Process division name update if provided
             if (requestBody.containsKey("division_name")) {
