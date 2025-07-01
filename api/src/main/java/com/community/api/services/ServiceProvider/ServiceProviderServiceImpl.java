@@ -1973,19 +1973,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (userName != null && !userName.trim().isEmpty()) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(
-                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) = LOWER(:user_name)", ServiceProviderEntity.class)
-                        .setParameter("user_name", userName.trim().toLowerCase())
-                        .getResultStream()
-                        .findFirst()
-                        .orElse(null);
-                if (serviceProviderEntity != null) {
-                    List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
+                List<ServiceProviderEntity> serviceProviderEntities = entityManager.createQuery(
+                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) LIKE LOWER(:user_name)", ServiceProviderEntity.class)
+                        .setParameter("user_name", "%" + userName.trim().toLowerCase() + "%")
+                        .getResultList();
+
+                List<Map<String, Object>> response = new ArrayList<>();
+                for (ServiceProviderEntity serviceProviderEntity : serviceProviderEntities) {
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false));
+                }
+
+                if (!response.isEmpty()) {
                     return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 } else {
-                    // Return empty response
-                    List<Map<String, Object>> response = new ArrayList<>();
                     return ResponseService.generateSuccessResponse("No Details found for the given UserName", response, HttpStatus.OK);
                 }
             }
