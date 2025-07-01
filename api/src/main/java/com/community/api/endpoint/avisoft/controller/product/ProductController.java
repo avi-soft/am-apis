@@ -572,6 +572,12 @@ public class ProductController extends CatalogEndpoint {
                     }
                 }
             }
+            else if(addProductDto.getProductState()==null&&customProduct.getProductState().getProductStateId()==1)
+            {
+
+                CustomProductState  productState=entityManager.find(CustomProductState.class,2L);
+                    customProduct.setProductState(productState);
+            }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
