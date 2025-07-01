@@ -115,7 +115,7 @@ public class QualificationService {
 
         List<Qualification> qualifications = qualificationService.getAllQualifications(false);
         for (Qualification existingQualification : qualifications) {
-            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())&&existingQualification.getQualification_id()!=qualification.getQualification_id()) {
+            if (existingQualification.getQualification_name().equalsIgnoreCase(qualification.getQualification_name())&& !existingQualification.getQualification_id().equals(qualificationId)) {
                 throw new IllegalArgumentException("Qualification with the same name already exists");
             }
         }
