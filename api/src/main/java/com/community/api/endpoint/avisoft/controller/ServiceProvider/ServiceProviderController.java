@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -737,8 +738,8 @@ public class ServiceProviderController {
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
                     serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
 
-            // Merge results and remove duplicates
-            Set<Map<String, Object>> mergedResults = new HashSet<>();
+            // CHANGE: Use LinkedHashSet to maintain insertion order and remove duplicates
+            Set<Map<String, Object>> mergedResults = new LinkedHashSet<>();
             if (response1.getBody() != null && response1.getBody().getData() != null) {
                 mergedResults.addAll((List<Map<String, Object>>) response1.getBody().getData());
             }
@@ -748,6 +749,16 @@ public class ServiceProviderController {
 
             // Pagination logic
             List<Map<String, Object>> finalList = new ArrayList<>(mergedResults);
+
+            finalList.sort((a, b) -> {
+                Object idA = a.get("service_provider_id");
+                Object idB = b.get("service_provider_id");
+                if (idA instanceof Number && idB instanceof Number) {
+                    return Long.compare(((Number) idA).longValue(), ((Number) idB).longValue());
+                }
+                return 0;
+            });
+
             int totalItems = finalList.size();
             int totalPages = (int) Math.ceil((double) totalItems / limit);
             int currentPage = offset;

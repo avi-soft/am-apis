@@ -1,5 +1,6 @@
 package com.community.api.services;
 
+import com.community.api.component.JwtUtil;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
@@ -18,24 +19,31 @@ public class StatusChangeEmailService
     @Autowired
     private EntityManager entityManager;
     @Autowired
+    private JwtUtil jwtUtil;
+    @Autowired
     private ServiceProviderActionController serviceProviderActionController;
 
     public void sendStatusChangeEmails(List<ServiceProviderEntity> serviceProviders, String action, String authHeader) {
         for (ServiceProviderEntity serviceProvider : serviceProviders) {
             try {
+                Integer role=jwtUtil.extractRoleId(authHeader);
                 CommunicationRequest communicationRequest = new CommunicationRequest();
-                communicationRequest.setSubject("Service Provider Status Update");
+                communicationRequest.setSubject("Account Status Update");
                 communicationRequest.setUserIds(String.valueOf(serviceProvider.getService_provider_id()));
                 communicationRequest.setModes("1"); // Email mode
-                System.out.println(action);
+
+                // Determine recipient type based on role
+                String recipientType = (role != null && role == 2L)
+                        ? "Admin"
+                        : "Service Provider";
+
                 String statusMessage = getStatusChangeMessage(action);
-                System.out.println(statusMessage);
                 String newStatus = getStatusDisplayName(serviceProvider);
 
                 communicationRequest.setContentText(
-                        "Dear " + (serviceProvider.getFirst_name() != null ? serviceProvider.getFirst_name() : "Service Provider") +
+                        "Dear " + (serviceProvider.getFirst_name() != null ? serviceProvider.getFirst_name() : recipientType) +
                                 (serviceProvider.getLast_name() != null ? " " + serviceProvider.getLast_name() : "") + ",\n\n" +
-                                "We would like to inform you that your service provider status has been updated.\n\n" +
+                                "We would like to inform you that your " + recipientType.toLowerCase() + " account status has been updated.\n\n" +
                                 "Your current status: " + newStatus + "\n\n" +
                                 statusMessage + "\n\n" +
                                 "If you have any questions, please contact our support team.\n\n" +
@@ -43,17 +51,15 @@ public class StatusChangeEmailService
                                 "System Administrator"
                 );
 
-                // Assuming you have this method to send communications asynchronously
+                // Send communication asynchronously
                 communicateWithCustomersAsync(communicationRequest, serviceProvider.getRole(), authHeader);
 
             } catch (Exception e) {
-                // Log the error but don't fail the entire operation
-                System.err.println("Failed to send email notification to service provider " +
-                        serviceProvider.getService_provider_id() + ": " + e.getMessage());
+                // Improved error logging
+                System.out.println(e);
             }
         }
     }
-
     // Helper method to get status display name
     public String getStatusDisplayName(ServiceProviderEntity serviceProvider) {
         if (serviceProvider.getServiceProviderStatus() != null) {

@@ -159,7 +159,7 @@ public class Constant {
     public static final String GET_ALL_TICKET_STATUS = "SELECT c FROM CustomTicketStatus c";
     public static final String GET_TICKET_STATE_BY_TICKET_STATUS_ID = "SELECT c FROM CustomTicketStatus c WHERE c.ticketStatusId = :ticketStatusId";
     public static final String GET_SP_REFERRED_CANDIDATES="Select s.customer_id from customer_referrer s Where s.service_provider_id =:service_provider_id";
-    public static final Double DEFAULT_PLATFORM_FEE = 10d;
+    public static final Double DEFAULT_PLATFORM_FEE = 0d;
 
     public static final String GET_ALL_REJECTION_STATUS = "SELECT c FROM CustomProductRejectionStatus c";
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
@@ -184,7 +184,9 @@ public class Constant {
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId AND p.gender_id = :genderId";
     public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived = :archived ORDER BY sortOrder ASC";
+    public static final String GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE = "SELECT c FROM CustomSubject c ORDER BY sortOrder ASC";
     public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived = :archived ORDER BY sortOrder  ASC ";
+    public static final String GET_ALL_STREAM_ARCHIVE_NONARCHIVE = "SELECT c FROM CustomStream c ORDER BY sortOrder  ASC ";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
     public static final String GET_DOCUMENT_TYPE_BY_ID = "SELECT c FROM DocumentType c WHERE c.document_type_id = :documentTypeId";
     public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
@@ -224,6 +226,9 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final CustomOrderState ORDER_STATE_CANCELLED = new CustomOrderState(9);
+    public static final CustomOrderState ORDER_STATE_REFUND_SUCCESS = new CustomOrderState(10);
+    public static final CustomOrderState ORDER_STATE_REFUND_FAIL = new CustomOrderState(11);
     public static final Long TICKET_STATE_RETURNED = 6L;
     public static final Long TICKET_STATE_ON_HOLD = 3L;
     public static final Long TICKET_STATE_CLOSE = 5L;
@@ -253,8 +258,10 @@ public class Constant {
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
     public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+    public static final String GET_ORDERS_BY_ORDER_ID = "SELECT c FROM CustomOrderState c WHERE c.orderId = :orderId";
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.order = :orderId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
     public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
     public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";
