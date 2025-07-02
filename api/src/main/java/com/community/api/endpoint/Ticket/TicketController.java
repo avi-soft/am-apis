@@ -472,6 +472,40 @@ public class TicketController {
     }
 
     @Transactional
+    @PutMapping("/ticket/dummy-update/{ticketId}")
+    @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin})
+    public ResponseEntity<?> closeTicket(@PathVariable Long ticketId, @RequestHeader(value = "authorization") String authHeader) {
+        try {
+
+            CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
+            if (ticket == null) {
+                return ResponseService.generateErrorResponse("NO TICKETS FOUND WITH THE GIVEN CRITERIA", HttpStatus.NOT_FOUND);
+            }
+
+            ServiceProviderEntity assignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+            HashMap<String, Integer> dataMap = new HashMap<>();
+            dataMap.put("ticket_pending_before_update", assignee.getTicketPending());
+            dataMap.put("ticket_completed_before_update", assignee.getTicketCompleted().intValue());
+
+            CustomTicketState ticketState = ticketStateService.getTicketStateByTicketId(5L);
+            ticket.setTicketState(ticketState);
+            entityManager.merge(ticket);
+
+            ServiceProviderEntity updatedAssignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
+//            dataMap.put("ticket_pending_after_update", updatedAssignee.getTicketPending());
+//            dataMap.put("ticket_completed_after_update", updatedAssignee.getTicketCompleted().intValue());
+            return ResponseService.generateSuccessResponse("Tickets Updated successfully", dataMap, HttpStatus.OK);
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            return ResponseService.generateErrorResponse("Error updating ticket state :" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
     @PostMapping("/add")
     public ResponseEntity<?> createTicket(@ModelAttribute CreateTicketDto createTicketDto, @RequestParam(value = "files", required = false) List<MultipartFile> files, @RequestHeader(value = "Authorization") String authHeader) {
 
