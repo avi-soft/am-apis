@@ -667,17 +667,9 @@ public class ProductService {
             }
 
             if (title != null && !title.isEmpty()) {
-                String[] words = title.split("\\s+");
-                if (words.length > 0) {
-                    jpql.append("AND (");
-                    for (int i = 0; i < words.length; i++) {
-                        if (i > 0) {
-                            jpql.append(" AND ");
-                        }
-                        jpql.append("LOWER(p.metaTitle) LIKE LOWER(:titleWord").append(i).append(") ");
-                    }
-                    jpql.append(") ");
-                }
+                String trimmedTitle = title.trim();
+                // Search for the exact phrase (with spaces preserved) as a substring
+                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:titlePhrase) ");
             }
 
             if (fee != null) {
@@ -738,11 +730,10 @@ public class ProductService {
                 queryToCount.setParameter("productIds", customProductIds);
             }
             if (title != null && !title.isEmpty()) {
-                String[] words = title.split("\\s+");
-                for (int i = 0; i < words.length; i++) {
-                    query.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
-                    queryToCount.setParameter("titleWord" + i, "%" + words[i].toLowerCase() + "%");
-                }
+                String trimmedTitle = title.trim();
+                // Add wildcards before and after to allow the phrase to be part of a larger title
+                query.setParameter("titlePhrase", "%" + trimmedTitle + "%");
+                queryToCount.setParameter("titlePhrase", "%" + trimmedTitle + "%");
             }
             if (fee != null) {
                 query.setParameter("fee", fee);
@@ -1127,7 +1118,7 @@ public class ProductService {
             if (!addProductDto.getActiveEndDate().after(activeStartDate)) {
                 throw new IllegalArgumentException("Expiration date cannot be before or equal of current date.");
             } else if (!addProductDto.getGoLiveDate().before(addProductDto.getActiveEndDate())) {
-                throw new IllegalArgumentException("Go live date cannot be after or equal of active end date.");
+                throw new IllegalArgumentException("Go-live date must be before active end date, or if on the same day, its time must be earlier.");
             } else if (activeDateStart.after(activeDateEnd)) {
                 throw new IllegalArgumentException("Active start date cannot be after active end date.");
             } /*else if (!isSameOrFutureDate(addProductDto.getGoLiveDate())) {
@@ -2185,15 +2176,15 @@ public class ProductService {
             }
 
             // Additional validation checks remain the same
-            if (addProductDto.getModificationDateFrom() != null) {
+            /*if (addProductDto.getModificationDateFrom() != null) {
                 dateFormat.parse(dateFormat.format(addProductDto.getLastDateToPayFee()));
                 if (!addProductDto.getLastDateToPayFee().before(addProductDto.getModificationDateFrom())) {
                     throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
                 }
-            } else if (customProduct.getModificationDateFrom() != null) {
-                if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
+            } */else if (customProduct.getModificationDateFrom() != null) {
+                /*if (!addProductDto.getLastDateToPayFee().before(customProduct.getModificationDateFrom())) {
                     throw new IllegalArgumentException("last date to pay fee have to be before of modified date from.");
-                }
+                }*/
             }
 
             if (addProductDto.getAdmitCardDateFrom() != null) {
@@ -2306,24 +2297,24 @@ public class ProductService {
     private void validateModificationDateFrom(AddProductDto addProductDto, CustomProduct customProduct) {
         // Check against LastDateToPayFee
         if (addProductDto.getLastDateToPayFee() != null) {
-            if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+            /*if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                 throw new IllegalArgumentException("Modified date from must be after last date to pay fee.");
-            }
+            }*/
         } else if (customProduct.getLateDateToPayFee() != null) {
-            if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
+            /*if (!addProductDto.getModificationDateFrom().after(customProduct.getLateDateToPayFee())) {
                 throw new IllegalArgumentException("Modified date from must be after last date to pay fee.");
-            }
+            }*/
         }
 
         // Check against ActiveEndDate
         if (addProductDto.getActiveEndDate() != null) {
-            if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
+           /* if (!addProductDto.getModificationDateFrom().after(addProductDto.getActiveEndDate())) {
                 throw new IllegalArgumentException("Modified date from must be after active end date.");
-            }
+            }*/
         } else if (customProduct.getActiveEndDate() != null) {
-            if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
+           /* if (!addProductDto.getModificationDateFrom().after(customProduct.getActiveEndDate())) {
                 throw new IllegalArgumentException("Modified date from must be after active end date.");
-            }
+            }*/
         }
     }
 
@@ -3263,9 +3254,9 @@ public class ProductService {
 
                 if(addProductDto.getModificationDateFrom()!=null)
                 {
-                    if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
+                    /*if (!addProductDto.getModificationDateFrom().after(addProductDto.getLastDateToPayFee())) {
                         throw new IllegalArgumentException("Modification date from has to be future of last date to pay application fee.");
-                    }
+                    }*/
 
                 }
 
@@ -3300,9 +3291,9 @@ public class ProductService {
             }
 
             if (addProductDto.getModificationDateFrom() != null) {
-                if (addProductDto.getLastDateToPayFee().after(addProductDto.getModificationDateFrom())) {
+                /*if (addProductDto.getLastDateToPayFee().after(addProductDto.getModificationDateFrom())) {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to modifying date from.");
-                }
+                }*/
             } else if (addProductDto.getAdmitCardDateFrom() != null) {
                 if (addProductDto.getLastDateToPayFee().after(addProductDto.getAdmitCardDateFrom())) {
                     throw new IllegalArgumentException("Last date to pay fee cannot be after or equal to admit card date from.");
@@ -3316,8 +3307,15 @@ public class ProductService {
                 }
             }
             if (addProductDto.getLastDateToPayFee() != null) {
-                if (addProductDto.getLastDateToPayFee().before(addProductDto.getActiveEndDate())) {
-                    throw new IllegalArgumentException("Last date to pay application fee must be on or after the active end date.");
+                LocalDate lastPayDate = addProductDto.getLastDateToPayFee().toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDate();
+                LocalDate activeEndDate = addProductDto.getActiveEndDate().toInstant()
+                        .atZone(ZoneId.systemDefault()).toLocalDate();
+
+                if (lastPayDate.isBefore(activeEndDate)) {
+                    throw new IllegalArgumentException(
+                            "Last date to pay fee must be on or after the active end date (time ignored)."
+                    );
                 }
             }
 

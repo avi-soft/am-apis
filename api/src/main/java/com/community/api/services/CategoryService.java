@@ -33,8 +33,8 @@ public class CategoryService {
                 "INNER JOIN blc_sku bs ON bp.default_sku_id = bs.sku_id " +
                 "WHERE cp.category_id = :categoryId " +
                 "AND bp.archived = 'N' " +
-                "AND (bs.active_end_date IS NULL OR bs.active_end_date >= CURRENT_DATE) " +
-                "AND p.go_live_date <= CURRENT_DATE " +
+                "AND (bs.active_end_date IS NULL OR bs.active_end_date >= CURRENT_TIMESTAMP)" +
+                "AND p.go_live_date <= CURRENT_TIMESTAMP " +
                 "AND p.product_state_id NOT IN (7) " +
                 "AND p.is_approved = TRUE " +
                 "ORDER BY p.created_date DESC " +
@@ -65,8 +65,8 @@ public class CategoryService {
                 "INNER JOIN blc_sku bs ON bp.default_sku_id = bs.sku_id " +
                 "WHERE cp.category_id = ? " +
                 "AND bp.archived = 'N' " +
-                "AND (bs.active_end_date IS NULL OR bs.active_end_date >= CURRENT_DATE) " +
-                "AND p.go_live_date <= CURRENT_DATE " +
+                "AND (bs.active_end_date IS NULL OR bs.active_end_date >= CURRENT_TIMESTAMP)" +
+                "AND p.go_live_date <= CURRENT_TIMESTAMP " +
                 "AND p.product_state_id NOT IN (7) " +
                 "AND p.is_approved = TRUE";
 

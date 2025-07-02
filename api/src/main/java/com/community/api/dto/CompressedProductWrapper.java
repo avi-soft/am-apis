@@ -95,6 +95,7 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.numberOfPosts=product.getNumberOfPosts();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
+        this.totalVacanciesInProduct=product.getTotalVacanciesInProduct();
         Long genderId = 1L;  // Default to 1 (MALE)
         Long categoryId = 1L; // Default to 1 (GEN)
         int flag = 0;
@@ -245,6 +246,7 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
                     setAgeLimit(ageLimitResult, sharedUtilityService);
                 }
             }
+            setAgeLimit(ageLimitResult, sharedUtilityService);
         }
 
         System.out.println("\n=== FINAL VALUES ===");
@@ -268,13 +270,21 @@ public class CompressedProductWrapper extends BaseWrapper implements APIWrapper<
             this.ageLimit = "N/A";
             return;
         }
-        int[] ageLimits = null;
-        if (ageLimitResult.getBornAfter() != null && ageLimitResult.getBornBefore() != null) {
+        int[] ageLimits=null;
+        if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
             ageLimits = sharedUtilityService.calculateAgeRange(
                     ageLimitResult.getBornBefore(),
                     ageLimitResult.getBornAfter(),
                     null);
         }
+
+
+        this.ageLimit = (ageLimitResult.getMaximumAge() != null && ageLimitResult.getMinimumAge() != null &&
+                ageLimitResult.getMaximumAge() != 0 && ageLimitResult.getMinimumAge() != 0)
+                ? ageLimitResult.getMinimumAge() + "-" + ageLimitResult.getMaximumAge()
+                : (ageLimits != null && ageLimits.length >= 2)
+                ? ageLimits[0] + "-" + ageLimits[1]
+                : "N/A";
     }
 }
 

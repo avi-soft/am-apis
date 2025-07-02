@@ -99,6 +99,7 @@ public class ReserveCategoryController {
                     "Cannot edit reserve category: " + e.getMessage(),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            System.out.println(e);
             return ResponseService.generateErrorResponse(
                     "Cannot edit reserve category: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);

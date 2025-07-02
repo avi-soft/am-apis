@@ -75,7 +75,7 @@ public class StreamController {
             return ResponseService.generateErrorResponse(  "Method Argument Not Valid Exception Caught: " + methodArgumentNotValidException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(  "Illegal Argument Exception Caught: " + illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse(  illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

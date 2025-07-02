@@ -82,6 +82,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -398,6 +399,11 @@ public class ProductController extends CatalogEndpoint {
 //            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
+            if(addProductDto.getPlatformFee()==null)
+                customProduct.setPlatformFee(DEFAULT_PLATFORM_FEE);
+            if(addProductDto.getPlatformFee()!=null&&addProductDto.getPlatformFee()<0)
+                return ResponseService.generateErrorResponse("Platform fee cannot be negative", HttpStatus.BAD_REQUEST);
+
             if (addProductDto.getSector() != null) {
                 if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
                     return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
@@ -562,6 +568,13 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
+                    System.out.println("yes");
+                    CustomProductState productState=entityManager.find(CustomProductState.class,5L);
+                    if(addProductDto.getProductState()==3L||customProduct.getIsApproved()) {
+                        customProduct.setProductState(productState);
+                    }
+                }
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
 
@@ -696,9 +709,11 @@ public class ProductController extends CatalogEndpoint {
             }
 
             boolean isArchived = ((Status) customProduct).getArchived() == 'Y';
-            boolean isExpired = customProduct.getDefaultSku().getActiveEndDate().before(new Date());
+            Instant now = Instant.now();
+            Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
+            boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired) || allowExpiredAccess) {
+            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);

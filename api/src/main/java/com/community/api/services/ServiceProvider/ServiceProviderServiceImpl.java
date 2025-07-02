@@ -1214,7 +1214,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
             entityManager.merge(existingServiceProvider);
 
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,false);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
@@ -1515,7 +1515,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             String existingToken = serviceProvider.getToken();
 
-            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider);
+            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false);
 
 
             if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
@@ -1707,7 +1707,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String existingToken = existingServiceProvider.getToken();
 
 
-                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
+                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,true);
                 if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
 
 
@@ -1886,9 +1886,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Boolean rejected,
             String userName,
             List<Integer> qualificationType,
-            Integer rank) {
+            List<Long> rank_id,
+            String type) {
 
         try {
+            log.info("inside search");
+
             CustomServiceProviderTicket customServiceProviderTicket = null;
             if (ticketId != null) {
                 customServiceProviderTicket = entityManager.find(CustomServiceProviderTicket.class, ticketId);
@@ -1897,12 +1900,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // If all filter values are null/empty, return all service providers
             if (first_name == null && last_name == null &&
                     (state == null || state.isEmpty()) &&
+                    (type == null || type.isEmpty()) &&
                     (district == null || district.isEmpty()) &&
                     mobileNumber == null &&
                     userName == null &&
                     test_status_id == null &&
-                    role == null && completed == null && rank==null&&
+                    role == null && completed == null &&
                     archived == null && approved == null && rejected == null &&
+                    (rank_id == null || rank_id.isEmpty()) &&
                     (qualificationType == null || qualificationType.isEmpty())) {
 
                 Query query = entityManager.createQuery(
@@ -1911,7 +1916,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
                 }
                 return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
             }
@@ -1940,6 +1945,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             alias.put("approved", 's');
             alias.put("rejected", 's');
             alias.put("rank_id", 's');
+            alias.put("type", 's');
 
             // Trim and lowercase
             if (first_name != null) first_name = first_name.trim().toLowerCase();
@@ -1971,7 +1977,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .orElse(null);
                 if (serviceProviderEntity != null) {
                     List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
                         return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 }else {
                     // Return empty response
@@ -1981,19 +1987,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (userName != null && !userName.trim().isEmpty()) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(
-                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) = LOWER(:user_name)", ServiceProviderEntity.class)
-                        .setParameter("user_name", userName.trim().toLowerCase())
-                        .getResultStream()
-                        .findFirst()
-                        .orElse(null);
-                if (serviceProviderEntity != null) {
-                    List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity));
+                List<ServiceProviderEntity> serviceProviderEntities = entityManager.createQuery(
+                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) LIKE LOWER(:user_name)", ServiceProviderEntity.class)
+                        .setParameter("user_name", "%" + userName.trim().toLowerCase() + "%")
+                        .getResultList();
+
+                List<Map<String, Object>> response = new ArrayList<>();
+                for (ServiceProviderEntity serviceProviderEntity : serviceProviderEntities) {
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false));
+                }
+
+                if (!response.isEmpty()) {
                     return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 } else {
-                    // Return empty response
-                    List<Map<String, Object>> response = new ArrayList<>();
                     return ResponseService.generateSuccessResponse("No Details found for the given UserName", response, HttpStatus.OK);
                 }
             }
@@ -2006,9 +2012,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected","rank_id"};
-            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected,rank};
-
+            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected", "type"};
+            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected, type};
+            log.info("type is: {}", type);
             // Add fields dynamically
             for (int i = 0; i < fieldValues.length; i++) {
                 if (fieldValues[i] != null) {
@@ -2031,6 +2037,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 queryBuilder.append("a.district IN :districts AND ");
             }
 
+            if(rank_id != null && !rank_id.isEmpty()) {
+                queryBuilder.append("s.rank_id IN :rankIds AND ");
+            }
             // Remove last AND
             String queryString = queryBuilder.toString();
             if (queryString.endsWith(" AND ")) {
@@ -2054,13 +2063,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (state != null && !state.isEmpty()) {
                 finalQuery.setParameter("states", state);
             }
+            if(rank_id != null && !rank_id.isEmpty()) {
+                finalQuery.setParameter("rankIds", rank_id);
+            }
             if (district != null && !district.isEmpty()) {
                 finalQuery.setParameter("districts", district);
             }
             if (qualificationType != null && !qualificationType.isEmpty()) {
                 finalQuery.setParameter("qualificationType", qualificationType);
             }
-            System.out.println(finalQuery.toString());
+            System.out.println(queryString);
             // Execute query
             List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
 
@@ -2078,17 +2090,21 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // Prepare response
             List<Map<String, Object>> response = new ArrayList<>();
             for (ServiceProviderEntity sp : listOfSp) {
-                response.add(sharedUtilityService.serviceProviderDetailsMap(sp));
+                response.add(sharedUtilityService.serviceProviderDetailsMap(sp,false));
             }
 
+            log.info("end search");
             return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
 
-        } catch (PersistenceException e) {
-            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Error finding SP : " + e.getMessage(), HttpStatus.EXPECTATION_FAILED);
+        } catch (PersistenceException persistenceException) {
+            exceptionHandlingService.handleException(persistenceException);
+            return ResponseService.generateErrorResponse("Error finding SP : " + persistenceException.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            return ResponseService.generateErrorResponse("Error finding SP : " + illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return ResponseService.generateErrorResponse("Error finding SP : " + exception.getMessage(), HttpStatus.EXPECTATION_FAILED);
         }
     }
 

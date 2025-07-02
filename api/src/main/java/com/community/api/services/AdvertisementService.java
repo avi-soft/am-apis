@@ -282,7 +282,7 @@ public class AdvertisementService {
             }
 
                 if (title != null && !title.isEmpty()) {
-                    jpql.append("AND a.title LIKE :title ");
+                    jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
                 }
 
                 // Create the query with the final JPQL string
@@ -438,12 +438,13 @@ public class AdvertisementService {
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE a.category_id IN (?1) " +
-                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_DATE) " +
+                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND a.archived = 'N' " +
                 "AND bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +
-                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                "AND c.go_live_date <= CURRENT_DATE " +
+                "AND c.is_approved = 'Y'" +
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "GROUP BY a.advertisement_id, a.description, a.title " +
                 "ORDER BY a.advertisement_id " +
                 "LIMIT ?2 OFFSET ?3";
@@ -468,12 +469,12 @@ public class AdvertisementService {
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE a.category_id IN (:categoryIds) " +
-                "AND (a.active_end_date IS NULL OR a.active_end_date >= CURRENT_DATE) " +
+                "AND (a.active_end_date IS NULL OR a.active_end_date >=CURRENT_TIMESTAMP) " +
                 "AND a.archived = 'N' " +
                 "AND bp.archived = 'N' " +
                 "AND c.product_state_id NOT IN (7) " +
-                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_DATE) " +
-                "AND c.go_live_date <= CURRENT_DATE ";
+                "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                "AND c.go_live_date <= CURRENT_TIMESTAMP ";
 
         try {
             BigInteger count = (BigInteger) entityManager.createNativeQuery(sql)

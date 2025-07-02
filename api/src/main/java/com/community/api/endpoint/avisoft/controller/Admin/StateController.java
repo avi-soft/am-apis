@@ -40,6 +40,7 @@ public class StateController {
             List<StateCode> names= districtService.findStateList(archived);
             return responseService.generateSuccessResponse("List Retrieved Successfully",names,HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }catch (Exception e) {
             exceptionHandling.handleException(e);

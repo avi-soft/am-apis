@@ -26,11 +26,14 @@ public class Constant {
     public static final String FIND_ALL_BOARD_UNIVERSITY_QUERY = "SELECT q FROM BoardUniversity q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
 
     public static final String FIND_ALL_INSTITUTION_QUERY = "SELECT q FROM Institution q WHERE q.archived = :archived ORDER BY q.sortOrder ASC";
-    public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q";
+    public static final String FIND_ALL_SERVICE_PROVIDER_TEST_RANK_QUERY= "SELECT q FROM ServiceProviderRank q ORDER BY q.rank_id";
     public static final String FIND_SERVICE_PROVIDER_RANK_BY_SERVICE_PROVIDER_RANK_ID = "SELECT r FROM ServiceProviderRank r WHERE r.rank_id = :serviceProviderRankId";
-    public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=false ORDER BY dt.sort_order ASC";
+    public static final String GET_ALL_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt where dt.archived=:archived ORDER BY dt.sort_order ASC";
+    public static final String GET_ALL_ARCHIVE_UNARCHIVE_DOCUMENT_TYPES="SELECT dt FROM DocumentType dt ORDER BY dt.sort_order ASC";      ////ALL WITHOUT ANY ARCHIVE OR UNARCHIVE CONDITION
     public static final String GET_ALL_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q where q.archived = :archived";
+    public static final String GET_ALL_ARCHIVE_UNARCHIVE_RANDOM_TYPING_TEXT="SELECT q FROM TypingText q";
     public static final String GET_ALL_FILE_TYPE="SELECT q FROM FileType q where q.archived = :archived";
+    public static final String GET_ALL_ARCHIVED_NONARCHIVED_FILE_TYPE="SELECT q FROM FileType q";
     public static final String GET_ALL_SCORING_CRITERIA="SELECT q FROM ScoringCriteria q";
     public static String PHONE_QUERY_SERVICE_PROVIDER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code";
     public static String PHONE_QUERY_SERVICE_PROVIDER_FILTER = "SELECT c FROM ServiceProviderEntity c WHERE c.mobileNumber = :mobileNumber AND c.country_code = :country_code AND approved = true AND role =4 ";
@@ -55,6 +58,7 @@ public class Constant {
     public static final String jpql = "SELECT a FROM ServiceProviderAddressRef a";
     public static String DISTRICT_ALL_QUERY = "SELECT d from Districts d where archived =:archived";
     public static String DISTRICT_QUERY = "SELECT d from Districts d WHERE d.state_code = :state_code and archived = :archived";
+    public static String DISTRICT_QUERY_ALL = "SELECT d from Districts d WHERE d.state_code = :state_code";
     public static String FIND_DISTRICT = "SELECT d.district_name from Districts d where d.district_id = :district_id";
     public static String FIND_DISTRICT_ID_BY_NAME = "SELECT d.district_id from Districts d where d.district_name = :district_name";
     public static String FIND_DISTRICT_BY_NAME = "SELECT d from Districts d where d.district_name = :district";
@@ -86,6 +90,7 @@ public class Constant {
     public static String NUMBER_FORMAT_EXCEPTION = "Number format exception";
     public static String CATALOG_SERVICE_NOT_INITIALIZED = "Catalog service not initialized";
     public static String GET_STATES_LIST="Select s from StateCode s where archived= :archived and isState = true";
+    public static String GET_STATES_LIST_ALL="Select s from StateCode s";
     public static String GET_DIVISIONS_LIST="Select s from StateCode s where archived= :archived and isZone = true";
     public static String GET_QUALIFICATIONS_COUNT = "SELECT COUNT(*) FROM Qualification";
     public static String GET_BOARD_UNIVERSITY_COUNT="SELECT COUNT(*) FROM BoardUniversity";
@@ -154,7 +159,7 @@ public class Constant {
     public static final String GET_ALL_TICKET_STATUS = "SELECT c FROM CustomTicketStatus c";
     public static final String GET_TICKET_STATE_BY_TICKET_STATUS_ID = "SELECT c FROM CustomTicketStatus c WHERE c.ticketStatusId = :ticketStatusId";
     public static final String GET_SP_REFERRED_CANDIDATES="Select s.customer_id from customer_referrer s Where s.service_provider_id =:service_provider_id";
-    public static final Double DEFAULT_PLATFORM_FEE = 10d;
+    public static final Double DEFAULT_PLATFORM_FEE = 0d;
 
     public static final String GET_ALL_REJECTION_STATUS = "SELECT c FROM CustomProductRejectionStatus c";
     public static final String GET_REJECTION_STATUS_BY_REJECTION_ID = "SELECT c FROM CustomProductRejectionStatus c WHERE c.rejectionStatusId = :rejectionStatusId";
@@ -179,7 +184,9 @@ public class Constant {
     public static final String GET_PRODUCT_GENDER_PHYSICAL_REQUIREMENT = "SELECT c FROM CustomProductGenderPhysicalRequirementRef c WHERE c.customProduct = :customProduct";
     public static final String GET_RESERVE_CATEGORY_FEE= "SELECT p.fee FROM custom_product_reserve_category_fee_post_reference p WHERE p.product_id = :pid AND p.reserve_category_id = :reserveCategoryId AND p.gender_id = :genderId";
     public static final String GET_ALL_SUBJECT = "SELECT c FROM CustomSubject c WHERE c.archived = :archived ORDER BY sortOrder ASC";
+    public static final String GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE = "SELECT c FROM CustomSubject c ORDER BY sortOrder ASC";
     public static final String GET_ALL_STREAM = "SELECT c FROM CustomStream c WHERE c.archived = :archived ORDER BY sortOrder  ASC ";
+    public static final String GET_ALL_STREAM_ARCHIVE_NONARCHIVE = "SELECT c FROM CustomStream c ORDER BY sortOrder  ASC ";
     public static final String GET_SUBJECT_BY_SUBJECT_ID = "SELECT c FROM CustomSubject c WHERE c.subjectId = :subjectId";
     public static final String GET_DOCUMENT_TYPE_BY_ID = "SELECT c FROM DocumentType c WHERE c.document_type_id = :documentTypeId";
     public static final String GET_SUBJECT_BY_SUBJECT_NAME = "SELECT c FROM CustomSubject c WHERE LOWER(c.subjectName) = LOWER(:subjectName) AND c.archived != 'Y'";
@@ -219,6 +226,9 @@ public class Constant {
     public static final CustomOrderState ORDER_STATE_NEW = new CustomOrderState(1);
     public static final CustomOrderState ORDER_STATE_IN_REVIEW = new CustomOrderState(8);
     public static final CustomOrderState ORDER_STATE_ASSIGNED = new CustomOrderState(4);
+    public static final CustomOrderState ORDER_STATE_CANCELLED = new CustomOrderState(9);
+    public static final CustomOrderState ORDER_STATE_REFUND_SUCCESS = new CustomOrderState(10);
+    public static final CustomOrderState ORDER_STATE_REFUND_FAIL = new CustomOrderState(11);
     public static final Long TICKET_STATE_RETURNED = 6L;
     public static final Long TICKET_STATE_ON_HOLD = 3L;
     public static final Long TICKET_STATE_CLOSE = 5L;
@@ -248,8 +258,10 @@ public class Constant {
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_ID = "SELECT c FROM OrderStateRef c WHERE c.orderStateId = :orderStateId";
     public static final String GET_ORDER_STATE_BY_ORDER_STATE_NAME = "SELECT c FROM OrderStateRef c WHERE c.orderStateName = :orderStateName";
     public static final String GET_ORDERS_BY_ORDER_STATE_ID = "SELECT c FROM CustomOrderState c WHERE c.orderStateId = :orderStateId";
+    public static final String GET_ORDERS_BY_ORDER_ID = "SELECT c FROM CustomOrderState c WHERE c.orderId = :orderId";
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.order = :orderId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
     public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
     public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";
@@ -364,7 +376,7 @@ public class Constant {
                     "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
                     "    LEFT JOIN customer_qualifications cq " +
                     "        ON qd.qualification_id = cq.qualification_id " +
-                    "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+                    "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND (" +
                     "        (qd.qualification_id IS NULL) " +
@@ -401,7 +413,7 @@ public class Constant {
                     "    JOIN custom_product_reserve_category_fee_post_reference fee " +
                     "        ON p.product_id = fee.product_id " +
                     "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-                    "    WHERE sku.active_end_date >= CURRENT_DATE " +
+                    "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
                     "    AND p.soft_delete = 'N' " +
                     "    AND NOT EXISTS (" +
                     "        SELECT 1 FROM post_details pd " +
@@ -457,7 +469,7 @@ public class Constant {
             "        ON qf.qualification_eligibility_id = qd.qualification_eligibility_id " +
             "    LEFT JOIN customer_qualifications cq " +
             "        ON qd.qualification_id = cq.qualification_id " +
-            "    WHERE (sku.active_end_date >= CURRENT_DATE) " +
+            "    WHERE (sku.active_end_date >= CURRENT_TIMESTAMP) " +
             "    AND p.soft_delete = 'N' " +
             "    AND (" +
             "        (qd.qualification_id IS NULL) " +
@@ -494,7 +506,7 @@ public class Constant {
             "    JOIN custom_product_reserve_category_fee_post_reference fee " +
             "        ON p.product_id = fee.product_id " +
             "        AND (fee.reserve_category_id = :reserveCategoryId OR fee.reserve_category_id = 7) " +
-            "    WHERE sku.active_end_date >= CURRENT_DATE " +
+            "    WHERE sku.active_end_date >= CURRENT_TIMESTAMP " +
             "    AND p.soft_delete = 'N' " +
             "    AND NOT EXISTS (" +
             "        SELECT 1 FROM post_details pd " +

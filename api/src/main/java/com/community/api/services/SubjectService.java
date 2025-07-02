@@ -7,6 +7,7 @@ import com.community.api.dto.AddSubjectDto;
 import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
 import com.community.api.entity.Role;
+import com.community.api.entity.TypingText;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,9 @@ import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class SubjectService {
@@ -81,13 +84,23 @@ public class SubjectService {
             return Collections.emptyList();
         }
     }
+
+    public List<CustomSubject> getAllArchivedNonArchivedSubject() {
+        try {
+            Query query=entityManager.createQuery(Constant.GET_ALL_SUBJECT_ARCHIVE_UNARCHIVE, CustomSubject.class);
+            List<CustomSubject> subjectList = query.getResultList();
+            return subjectList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return Collections.emptyList();
+        }
+    }
     public List<CustomSubject> getSubjectsByStreamIds(Long streamId) {
         try {
-
-            String jpql = """
-                SELECT s FROM CustomStream cs 
-                JOIN cs.subjects s 
-                WHERE cs.streamId = :streamId ORDER BY cs.sortOrder ASC""";
+            String jpql = "SELECT s FROM CustomStream cs JOIN cs.subjects s " +
+                    "WHERE cs.streamId = :streamId " +
+                    "AND s.archived = 'N' " +
+                    "ORDER BY s.sortOrder ASC";
 
             List<CustomSubject> subjects = entityManager.createQuery(jpql, CustomSubject.class)
                     .setParameter("streamId", streamId)
@@ -98,6 +111,7 @@ public class SubjectService {
             return Collections.emptyList();
         }
     }
+
 
     public CustomSubject getSubjectBySubjectId(Long subjectId) {
         try {
@@ -161,33 +175,87 @@ public class SubjectService {
     }
 
     @Transactional
-    public CustomSubject saveSubject(AddSubjectDto addSubjectDto, Long creatorId, Role creatorRole) throws Exception {
-        try{
+    public CustomSubject saveSubject(AddSubjectDto addSubjectDto, Long creatorId, Role creatorRole)
+            throws IllegalArgumentException, Exception {
+
+        try {
+            // 1. Validate input
+            if (addSubjectDto == null) {
+                throw new IllegalArgumentException("Subject data cannot be null");
+            }
+
+            // 2. Validate subject name
+            if (addSubjectDto.getSubjectName() == null || addSubjectDto.getSubjectName().trim().isEmpty()) {
+                throw new IllegalArgumentException("Subject name is required");
+            }
+/*            if(!sharedUtilityService.isAlphabeticWithHyphen(addSubjectDto.getSubjectName()))
+                throw new IllegalArgumentException("Subject names can contain only alphabets and hyphens");*/
+
+            // 3. Check for duplicate subject name (case-insensitive)
+            TypedQuery<Long> duplicateCheck = entityManager.createQuery(
+                    "SELECT COUNT(s) FROM CustomSubject s WHERE LOWER(s.subjectName) = LOWER(:name)",
+                    Long.class);
+            duplicateCheck.setParameter("name", addSubjectDto.getSubjectName());
+
+            if (duplicateCheck.getSingleResult() > 0) {
+                throw new IllegalArgumentException("Subject with this name already exists");
+            }
+
+
+            // 4. Validate at least one stream is provided
+            if (addSubjectDto.getStreamIds() == null || addSubjectDto.getStreamIds().isEmpty()) {
+                throw new IllegalArgumentException("At least one stream must be provided");
+            }
+
+            // 5. Create new subject
             CustomSubject subject = new CustomSubject();
             subject.setSubjectName(addSubjectDto.getSubjectName());
             subject.setSubjectDescription(addSubjectDto.getSubjectDescription());
             subject.setCreatedDate(new Date());
             subject.setCreatorUserId(creatorId);
-            List<CustomStream>subjects=new ArrayList<>();
-            TypedQuery<Long> query = entityManager.createQuery(
-                    "SELECT MAX(c.sortOrder) FROM CustomSubject c WHERE c.sortOrder < 1000000", Long.class
-            );
-            Long maxSortOrder = query.getSingleResult();
-            subject.setSortOrder(maxSortOrder+1);
-            for(Long id:addSubjectDto.getStreamIds())
-            {
-                CustomStream stream=entityManager.find(CustomStream.class,id);
-                if(stream!=null)
-                {
-                    subjects.add(stream);
-                }
-            }
-            subject.setStreams(subjects);
             subject.setCreatorRole(creatorRole);
-            return entityManager.merge(subject);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception("SOME EXCEPTION OCCURRED: "+ exception.getMessage());
+
+            // 6. Set sort order
+            TypedQuery<Long> maxSortQuery = entityManager.createQuery(
+                    "SELECT COALESCE(MAX(c.sortOrder), 0) FROM CustomSubject c WHERE c.sortOrder < 1000000",
+                    Long.class);
+            subject.setSortOrder(maxSortQuery.getSingleResult() + 1);
+
+            // 7. Validate and add streams
+            List<CustomStream> streams = new ArrayList<>();
+            Set<Long> processedStreamIds = new HashSet<>(); // To prevent duplicates
+
+            for (Long streamId : addSubjectDto.getStreamIds()) {
+                if (streamId == null) {
+                    continue; // Skip null IDs
+                }
+
+                if (!processedStreamIds.add(streamId)) {
+                    continue; // Skip duplicate IDs
+                }
+
+                CustomStream stream = entityManager.find(CustomStream.class, streamId);
+                if (stream == null) {
+                    throw new IllegalArgumentException("Stream not found with ID: " + streamId);
+                }
+                streams.add(stream);
+            }
+
+            if (streams.isEmpty()) {
+                throw new IllegalArgumentException("No valid streams provided");
+            }
+
+            subject.setStreams(streams);
+
+            // 8. Persist and return
+            entityManager.persist(subject);
+            return subject;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            throw new Exception("Failed to create subject: " + e.getMessage());
         }
     }
 
@@ -207,48 +275,89 @@ public class SubjectService {
         }
     }
     @Transactional
-    public CustomSubject editSubject(Long subjectId,List<Long>streamIds,CustomSubject subject) throws Exception {
+    public CustomSubject editSubject(Long subjectId, List<Long> streamIds, CustomSubject subject)
+            throws IllegalArgumentException, Exception {
+
         try {
+            // 1. Validate existing subject
             CustomSubject subjectToEdit = entityManager.find(CustomSubject.class, subjectId);
             if (subjectToEdit == null) {
-                throw new IllegalArgumentException("Subject not found");
+                throw new IllegalArgumentException("Subject not found with ID: " + subjectId);
             }
 
-            if (subject.getSubjectId() != null) {
-                throw new IllegalArgumentException("Cannot change subject ID");
+            // 2. Validate ID consistency
+            if (subject.getSubjectId() != null && !subject.getSubjectId().equals(subjectId)) {
+                throw new IllegalArgumentException("Cannot change subject ID during update");
             }
 
-            // Validate subject name
+            // 3. Process subject name update if provided
             if (subject.getSubjectName() != null) {
-                if (!sharedUtilityService.isAlphabetic(subject.getSubjectName())) {
-                    throw new IllegalArgumentException("Subject name should contain only alphabets");
+                // Validate name format
+               /* if (!sharedUtilityService.isAlphabetic(subject.getSubjectName())) {
+                    throw new IllegalArgumentException(
+                            "Subject name should contain only alphabetic characters");
+                }*/
+
+                if(subject.getSubjectName().isEmpty())
+                {
+                    throw new IllegalArgumentException("Subject name cannot be empty");
                 }
+
+                List<CustomSubject> existingSubjects = getAllArchivedNonArchivedSubject();
+                for (CustomSubject existingSubject: existingSubjects) {
+                    if (existingSubject.getSubjectName().equalsIgnoreCase(subject.getSubjectName()) && !existingSubject.getSubjectId().equals(subjectId)) {
+                        throw new IllegalArgumentException("Subject with name '"+subject.getSubjectName()+"' already exists");
+                    }
+                }
+
                 subjectToEdit.setSubjectName(subject.getSubjectName());
             }
 
-            // Update other fields if provided
+            // 4. Process description update if provided
             if (subject.getSubjectDescription() != null) {
+                if(subject.getSubjectDescription().isEmpty())
+                {
+                    throw new IllegalArgumentException("Subject description cannot be empty");
+                }
                 subjectToEdit.setSubjectDescription(subject.getSubjectDescription());
             }
+
+            // 5. Process sort order update if provided
             if (subject.getSortOrder() != null) {
                 subjectToEdit.setSortOrder(subject.getSortOrder());
             }
-            List<CustomStream>newStreams=new ArrayList<>();
-            for(Long id:streamIds)
-            {
-                CustomStream stream=entityManager.find(CustomStream.class,id);
-                if(stream!=null)
-                {
-                    newStreams.add(stream);
-                }
-            }
-            if(!newStreams.isEmpty())
-                subjectToEdit.setStreams(newStreams);
 
+            // 6. Process streams update if provided
+            if (streamIds != null) {
+                Set<Long> uniqueStreamIds = new HashSet<>(streamIds); // Remove duplicates
+                List<CustomStream> validStreams = new ArrayList<>();
+
+                for (Long streamId : uniqueStreamIds) {
+                    if (streamId == null) continue;
+
+                    CustomStream stream = entityManager.find(CustomStream.class, streamId);
+                    if (stream == null) {
+                        throw new IllegalArgumentException(
+                                "Stream not found with ID: " + streamId);
+                    }
+                    validStreams.add(stream);
+                }
+
+                if (!validStreams.isEmpty()) {
+                    subjectToEdit.setStreams(validStreams);
+                }
+            }else {
+                subjectToEdit.setStreams(new ArrayList<>());
+            }
+
+            // 7. Save changes
             entityManager.merge(subjectToEdit);
             return subjectToEdit;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
-            throw e;
+            throw new Exception("Failed to update subject: " + e.getMessage());
         }
     }
 

@@ -75,7 +75,7 @@ public class GenderController {
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Cannot add gender: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -93,7 +93,7 @@ public class GenderController {
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             return ResponseService.generateErrorResponse("Cannot edit gender: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
