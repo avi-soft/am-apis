@@ -972,12 +972,28 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-                System.out.println("calling removal");
-                Order cart=orderService.findCartForCustomer(customer);
-                cart.setOrderItems(null);
-                entityManager.merge(cart);
-                System.out.println("removal done");
-                entityManager.merge(customCustomer);
+                try {
+                    System.out.println("calling removal");
+                    Order cart = orderService.findCartForCustomer(customer);
+                    OrderItem orderItemToRemove = null;
+                    for (OrderItem orderItem1 : cart.getOrderItems()) {
+                        System.out.println("order item id current "+orderItem.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem).getId());
+                        System.out.println("order item inside current "+orderItem1.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem1).getId());
+                        if (findProductFromItemAttribute(orderItem).getId().equals(findProductFromItemAttribute(orderItem1).getId())) {
+                            orderItemToRemove = orderItem1;
+                            break;
+                        }
+                    }
+                    cartService.removeItemFromCart(cart, orderItemToRemove.getId());
+                    entityManager.merge(cart);
+                    System.out.println("removal done");
+                    entityManager.merge(customCustomer);
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
                 details.setVerified(true);
