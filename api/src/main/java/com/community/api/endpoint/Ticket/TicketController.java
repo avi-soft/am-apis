@@ -494,6 +494,7 @@ public class TicketController {
             ServiceProviderEntity updatedAssignee = entityManager.find(ServiceProviderEntity.class, ticket.getAssignee());
 //            dataMap.put("ticket_pending_after_update", updatedAssignee.getTicketPending());
 //            dataMap.put("ticket_completed_after_update", updatedAssignee.getTicketCompleted().intValue());
+
             return ResponseService.generateSuccessResponse("Tickets Updated successfully", dataMap, HttpStatus.OK);
 
         } catch (IllegalArgumentException illegalArgumentException) {

@@ -685,7 +685,6 @@ public class TicketStateService {
         }
     }
 
-
     @Transactional
     public Set<ServiceProviderDocument> updateTicketDocument(List<MultipartFile> files, CustomServiceProviderTicket ticket, Long tokenUserId, Role role) throws Exception {
         try {
