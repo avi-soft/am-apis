@@ -261,6 +261,7 @@ public class Constant {
     public static final String GET_ORDERS_BY_ORDER_ID = "SELECT c FROM CustomOrderState c WHERE c.orderId = :orderId";
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.order = :orderId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
     public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
     public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";

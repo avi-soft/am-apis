@@ -13,6 +13,7 @@ import com.community.api.dto.OrderStateGroupDto;
 import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomOrderStatus;
+import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketState;
 import com.community.api.entity.CustomTicketStatus;
@@ -27,6 +28,7 @@ import com.community.api.services.OrderDTOService;
 import com.community.api.services.OrderStateRefService;
 import com.community.api.services.OrderStatusByStateService;
 import com.community.api.services.PhysicalRequirementDtoService;
+import com.community.api.services.ProductService;
 import com.community.api.services.ReserveCategoryDtoService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
@@ -127,6 +129,8 @@ public class OrderController {
     private SharedUtilityService sharedUtilityService;
     @Autowired
     private OrderStateRefService orderStateRefService;
+    @Autowired
+    private ProductService productService;
 
     @Autowired
     public void setEntityManager(EntityManager entityManager) {
@@ -838,10 +842,20 @@ public class OrderController {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
+            OrderItem orderItem = order.getOrderItems().get(0);
+            Product product = findProductFromItemAttribute(orderItem);
+
+            CustomProduct customProduct = productService.getCustomProductByCustomProductId(product.getId());
+
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0) {
-                throw new IllegalArgumentException("Refund Amount cannot be <=0 and greater than actual value of the product.");
+            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue() -  customProduct.getPlatformFee()) {
+                throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
+            // Updating archived ticket logic.
+            /*CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
+            if(ticket != null) {
+                serviceProviderTicketService.deleteTicket(ticket);
+            }*/
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
@@ -856,4 +870,5 @@ public class OrderController {
             return ResponseService.generateErrorResponse("Something Went Wrong: " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }
