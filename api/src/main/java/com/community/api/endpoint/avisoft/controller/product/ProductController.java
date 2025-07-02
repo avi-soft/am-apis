@@ -1,15 +1,12 @@
 package com.community.api.endpoint.avisoft.controller.product;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
-import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.ProductEvents;
@@ -17,8 +14,6 @@ import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
 import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.Post;
 
@@ -41,7 +36,6 @@ import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.SharedUtilityService;
-import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -62,7 +56,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,16 +67,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -997,7 +985,6 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "state", required = false) List<Long> state,
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
             @RequestParam(value = "category", required = false) List<Long> categories,
-            @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
@@ -1007,7 +994,9 @@ public class ProductController extends CatalogEndpoint {
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestBody(required = false) FilterProductTitleDto titleDto)
+    {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -1058,13 +1047,20 @@ public class ProductController extends CatalogEndpoint {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
+                        titleDto != null ? titleDto.getTitle() : null,
+                        titleDto != null ? titleDto.getDisplayTemplate() : null,
+                        fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
                 );
+
+
             } else {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit, all, createdById, productIds
+                        titleDto != null ? titleDto.getTitle() : null,
+                        titleDto != null ? titleDto.getDisplayTemplate() : null,
+                        fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
                 );
+
             }
             products = (List<CustomProduct>) opresponse.get("products");
             if (products.isEmpty()) {
@@ -1143,12 +1139,12 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
-            @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
-            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo) {
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
+            @RequestBody(required = false) FilterProductTitleDto titleDto) {
 
         try {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
@@ -1175,7 +1171,8 @@ public class ProductController extends CatalogEndpoint {
                     dateTo = dateFormat.parse(dateFormat.format(dateTo));
                 }
             }
-            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo, productIds);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories,  titleDto != null ? titleDto.getTitle() : null,
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
