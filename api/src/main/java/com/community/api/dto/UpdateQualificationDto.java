@@ -31,7 +31,7 @@ public class UpdateQualificationDto
 
     private Long stream_id;
 
-    private boolean qualification_is_ongoing;
+    private Boolean qualification_is_ongoing;
 
     private String institution_address;
 

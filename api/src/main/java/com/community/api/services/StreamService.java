@@ -22,7 +22,9 @@ import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.community.api.component.Constant.FIND_ALL_QUALIFICATIONS_QUERY;
 
@@ -87,10 +89,21 @@ public class StreamService {
         }
     }
 
+    public List<CustomStream> getAllStreamArchiveNonArchive( ){
+        try {
+            Query query=entityManager.createQuery(Constant.GET_ALL_STREAM_ARCHIVE_NONARCHIVE, CustomStream.class);
+            List<CustomStream> streamList = query.getResultList();
+            return streamList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return Collections.emptyList();
+        }
+    }
+
     public List<CustomStream> getStreamByQualificationId(Integer qualificationId) {
         try {
             List<CustomStream> streamList = entityManager.createQuery(
-                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId ORDER BY s.sortOrder ASC",
+                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId AND s.archived = 'N' ORDER BY s.sortOrder ASC",
                             CustomStream.class)
                     .setParameter("qualificationId", qualificationId)
                     .getResultList();
@@ -162,34 +175,65 @@ public class StreamService {
     }
 
     @Transactional
-    public CustomStream saveStream(AddStreamDto addStreamDto, Long creatorId, Role creatorRole) throws Exception {
-        try{
+    public CustomStream saveStream(AddStreamDto addStreamDto, Long creatorId, Role creatorRole)
+            throws IllegalArgumentException, Exception {
+
+        try {
+            // 1. Validate input
+            if (addStreamDto == null) {
+                throw new IllegalArgumentException("Stream data cannot be null");
+            }
+
+            // 2. Check for duplicate stream name (case-insensitive)
+            TypedQuery<Long> duplicateCheck = entityManager.createQuery(
+                    "SELECT COUNT(s) FROM CustomStream s WHERE LOWER(s.streamName) = LOWER(:name)",
+                    Long.class);
+            duplicateCheck.setParameter("name", addStreamDto.getStreamName());
+
+            if (duplicateCheck.getSingleResult() > 0) {
+                throw new IllegalArgumentException("Stream with this name already exists");
+            }
+
+            // 3. Validate and collect qualifications
+            List<Qualification> qualifications = new ArrayList<>();
+            if (addStreamDto.getQualificationIds() == null || addStreamDto.getQualificationIds().isEmpty()) {
+                throw new IllegalArgumentException("At least one qualification is required");
+            }
+
+            for (Integer id : addStreamDto.getQualificationIds()) {
+                Qualification qualification = entityManager.find(Qualification.class, id);
+                if (qualification == null) {
+                    throw new IllegalArgumentException("Qualification not found with ID: " + id);
+                }
+                qualifications.add(qualification);
+            }
+
+            // 4. Determine sort order
+            TypedQuery<Long> maxSortQuery = entityManager.createQuery(
+                    "SELECT COALESCE(MAX(c.sortOrder), 0) FROM CustomStream c WHERE c.sortOrder < 10000000",
+                    Long.class);
+            Long maxSortOrder = maxSortQuery.getSingleResult();
+
+            // 5. Create and persist new stream
             CustomStream stream = new CustomStream();
             stream.setStreamName(addStreamDto.getStreamName());
-            List<Qualification>list=new ArrayList<>();
-            for(Integer id:addStreamDto.getQualificationIds())
-            {
-                Qualification qualification=entityManager.find(Qualification.class,id);
-                if(qualification!=null)
-                {
-                    list.add(qualification);
-                }
-            }
-            stream.setQualifications(list);
-            TypedQuery<Long> query = entityManager.createQuery(
-                    "SELECT MAX(c.sortOrder) FROM CustomStream c WHERE c.sortOrder < 10000000", Long.class
-            );
-            Long maxSortOrder = query.getSingleResult();
-            stream.setSortOrder(maxSortOrder+1);
             stream.setStreamDescription(addStreamDto.getStreamDescription());
+            stream.setQualifications(qualifications);
+            stream.setSortOrder(maxSortOrder + 1);
             stream.setCreatedDate(new Date());
             stream.setCreatorUserId(creatorId);
             stream.setCreatorRole(creatorRole);
+            stream.setArchived('N');
+
             entityManager.persist(stream);
             return stream;
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            // Re-throw validation exceptions directly
+            throw e;
+        } catch (Exception e) {
+            exceptionHandlingService.handleException(e);
+            throw new Exception("Failed to create stream: " + e.getMessage());
         }
     }
 
@@ -249,52 +293,85 @@ public class StreamService {
                 .getResultList();
     }
     @Transactional
-    public CustomStream editStream(Long streamId,List<Integer>qualificationIds,CustomStream stream) throws IllegalArgumentException, Exception {
+    public CustomStream editStream(Long streamId, List<Integer> qualificationIds, CustomStream stream)
+            throws IllegalArgumentException, Exception {
+
         try {
+            // 1. Validate existing stream
             CustomStream streamToEdit = entityManager.find(CustomStream.class, streamId);
             if (streamToEdit == null) {
-                throw new IllegalArgumentException("Stream not found");
+                throw new IllegalArgumentException("Stream not found with ID: " + streamId);
             }
 
-            if (stream.getStreamId() != null) {
-                throw new IllegalArgumentException("Cannot give stream id when editing");
+            // 2. Validate stream ID consistency
+            if (stream.getStreamId() != null && !stream.getStreamId().equals(streamId)) {
+                throw new IllegalArgumentException("Cannot change stream ID during update");
             }
 
-            Query query = entityManager.createQuery(
-                    "SELECT s FROM CustomStream s WHERE s.streamName = :streamName AND s.streamId != :streamId",
-                    CustomStream.class);
-            query.setParameter("streamName", stream.getStreamName());
-            query.setParameter("streamId", streamId);
-
-            List<CustomStream> existingStreams = query.getResultList();
-            if (!existingStreams.isEmpty()) {
-                throw new IllegalArgumentException("Stream with this name already exists");
-            }
-
-            if (!sharedUtilityService.isAlphabetic(stream.getStreamName())) {
-                throw new IllegalArgumentException("Stream name should contain only alphabets and hyphens");
-            }
-            List<Qualification>newQf=new ArrayList<>();
-            if(qualificationIds!=null&&!qualificationIds.isEmpty())
-            {
-                for(Integer id:qualificationIds)
-                {
-                    System.out.println("id"+id);
-                    Qualification qualification=entityManager.find(Qualification.class,id);
-                    if(qualification!=null)
-                    {
-                        newQf.add(qualification);
+            // 3. Validate and process stream name
+            if (stream.getStreamName() != null) {
+                // Case-insensitive duplicate check
+                List<CustomStream> existingStreams = getAllStreamArchiveNonArchive();
+                for (CustomStream existingStream: existingStreams) {
+                    if (existingStream.getStreamName().equalsIgnoreCase(stream.getStreamName()) && !existingStream.getStreamId().equals(streamId)) {
+                        throw new IllegalArgumentException("Stream with name '"+stream.getStreamName()+"' already exists");
                     }
                 }
-                streamToEdit.setQualifications(newQf);
+               /* // Validate name format
+                if (!sharedUtilityService.isAlphabeticWithHyphen(stream.getStreamName())) {
+                    throw new IllegalArgumentException(
+                            "Stream name should contain only alphabets and hyphens");
+                }*/
+                streamToEdit.setStreamName(stream.getStreamName());
             }
-            streamToEdit.setStreamName(stream.getStreamName());
-            streamToEdit.setStreamDescription(stream.getStreamDescription());
-            entityManager.merge(streamToEdit);
 
+            // 4. Process description update if provided
+            if (stream.getStreamDescription() != null) {
+                streamToEdit.setStreamDescription(stream.getStreamDescription());
+            }
+
+            // 5. Process qualifications update if provided
+            if (qualificationIds != null && !qualificationIds.isEmpty()) {
+                List<Qualification> newQualifications = new ArrayList<>();
+                Set<Integer> processedIds = new HashSet<>(); // To prevent duplicates
+
+                for (Integer id : qualificationIds) {
+                    if (id == null) {
+                        continue; // Skip null IDs
+                    }
+
+                    if (!processedIds.add(id)) {
+                        continue; // Skip duplicate IDs
+                    }
+
+                    Qualification qualification = entityManager.find(Qualification.class, id);
+                    if (qualification == null) {
+                        throw new IllegalArgumentException(
+                                "Qualification not found with ID: " + id);
+                    }
+                    newQualifications.add(qualification);
+                }
+
+                if (newQualifications.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "At least one valid qualification must be provided");
+                }
+
+                streamToEdit.setQualifications(newQualifications);
+            }
+            else
+            {
+                streamToEdit.setQualifications(new ArrayList<>());
+            }
+
+            // 6. Save changes
+            entityManager.merge(streamToEdit);
             return streamToEdit;
+
+        } catch (IllegalArgumentException e) {
+            throw e; // Re-throw validation exceptions directly
         } catch (Exception e) {
-            throw new Exception(e.getMessage());
+            throw new Exception("Failed to update stream: " + e.getMessage());
         }
     }
 }
