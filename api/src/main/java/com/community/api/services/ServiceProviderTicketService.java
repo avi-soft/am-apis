@@ -1429,9 +1429,10 @@ public class ServiceProviderTicketService {
             if (orderId == null || orderId <= 0) {
                 throw new IllegalArgumentException("OrderId cannot be <=0 or null");
             }
+            OrderImpl order = entityManager.find(OrderImpl.class, orderId);
 
             Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID, CustomServiceProviderTicket.class);
-            query.setParameter("orderId", orderId);
+            query.setParameter("orderId", order);
             List<CustomServiceProviderTicket> ticket = query.getResultList();
 
             if (!ticket.isEmpty()) {
@@ -1453,8 +1454,9 @@ public class ServiceProviderTicketService {
                 throw new IllegalArgumentException("parentTicketId cannot be <=0 or null");
             }
 
+            CustomServiceProviderTicket parentTicket = entityManager.find(CustomServiceProviderTicket.class, parentTicketId);
             Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_PARENT_TICKET_ID, CustomServiceProviderTicket.class);
-            query.setParameter("orderId", parentTicketId);
+            query.setParameter("parentTicketId", parentTicket);
             List<CustomServiceProviderTicket> ticket = query.getResultList();
 
             if (!ticket.isEmpty()) {
@@ -1480,9 +1482,11 @@ public class ServiceProviderTicketService {
             }
             // find all the review ticket which are associated with this ticket and archive them as well.
             List<CustomServiceProviderTicket> childTickets = fetchChildTicketByTicketId(ticket.getTicketId());
-            for(CustomServiceProviderTicket childTicket: childTickets) {
-                ticket.setArchived(true);
-                entityManager.merge(childTicket);
+            if(childTickets != null) {
+                for(CustomServiceProviderTicket childTicket: childTickets) {
+                    childTicket.setArchived(true);
+                    entityManager.merge(childTicket);
+                }
             }
 
             ticket.setArchived(true);

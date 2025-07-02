@@ -811,7 +811,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
-                                         @RequestParam(value = "refund-amount", defaultValue = "0.0") Double refundAmount,
+                                         @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
                                          @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
@@ -847,7 +847,7 @@ public class OrderController {
             Product product = findProductFromItemAttribute(orderItem);
 
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue()) {
+            if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
                 throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
 
