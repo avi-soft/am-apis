@@ -476,7 +476,11 @@ public class TicketStateService {
                                 }
                             }
 //                            handled by trigger.
-//                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
+                            if(parentTicketAssignee.getTicketPending() == 0) {
+                                throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
+                            }
+                            parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending() - 1);
+                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted()+1);
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {
@@ -525,7 +529,12 @@ public class TicketStateService {
                         } else {
                             assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                         }
-//                        assignee.setTicketCompleted(assignee.getTicketCompleted()+1);
+
+                        if(assignee.getTicketPending() == 0) {
+                            throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
+                        }
+                        assignee.setTicketPending(assignee.getTicketPending()-1);
+                        assignee.setTicketCompleted(assignee.getTicketCompleted()+1);
                         entityManager.merge(assignee);
                     }
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
