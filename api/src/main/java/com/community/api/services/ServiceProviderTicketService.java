@@ -1345,7 +1345,6 @@ public class ServiceProviderTicketService {
             jpql.append("ORDER BY modified_date DESC NULLS LAST ");
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
-            query.setParameter("archived", archived);
 
             // Set parameters
             if (!customTicketStates.isEmpty()) {
