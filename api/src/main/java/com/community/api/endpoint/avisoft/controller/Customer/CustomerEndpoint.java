@@ -26,6 +26,7 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.*;
 import org.broadleafcommerce.profile.core.service.AddressService;
@@ -1633,7 +1634,7 @@ public class CustomerEndpoint {
                 if(ticket==null)
                     return ResponseService.generateErrorResponse("Invalid ticket",HttpStatus.BAD_REQUEST);
                 Order order=orderService.findOrderById(ticket.getOrder().getId());
-                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId))
+                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId)||(ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW)||ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             }
 
@@ -2230,47 +2231,95 @@ public class CustomerEndpoint {
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                     @RequestParam(value = "limit", defaultValue = "10") int limit,
-                                                    @RequestHeader(value = "Authorization") String authHeader) {
+                                                    @RequestHeader(value = "Authorization") String authHeader,
+                                                    @RequestParam(value = "unique_products", required = false, defaultValue = "false") boolean uniqueProducts) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
+            // Authorization check
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            // Validate pagination parameters
 
-            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be negative");
+            // Validate pagination
+            if (offset < 0) throw new IllegalArgumentException("Offset cannot be negative");
             if (limit <= 0) throw new IllegalArgumentException("Limit must be positive");
 
-            // Validate customer existence
+            // Validate customer
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
 
-            // Fetch valid orders (excluding failed payment status 999)
+            // Broadleaf-compliant query
+            String queryString;
+            if (uniqueProducts) {
+                queryString = "SELECT t.order_id FROM (" +
+                        "SELECT o.order_id, oi.order_item_id, o.submit_date, " +
+                        "attr.value as product_id, " +
+                        "ROW_NUMBER() OVER (PARTITION BY attr.value ORDER BY o.submit_date DESC) as rn " +
+                        "FROM BLC_ORDER o " +
+                        "JOIN BLC_ORDER_ITEM oi ON o.order_id = oi.order_id " +
+                        "JOIN BLC_ORDER_ITEM_ATTRIBUTE attr ON oi.order_item_id = attr.order_item_id " +
+                        "WHERE o.customer_id = :customerId " +
+                        "AND o.order_status != 'FAILED' " +
+                        "AND attr.name = 'productId'" +
+                        ") t WHERE t.rn = 1";
+            } else {
+                queryString = "SELECT DISTINCT o.order_id, o.submit_date FROM BLC_ORDER o " + // Added submit_date to SELECT
+                        "JOIN BLC_ORDER_ITEM oi ON o.order_id = oi.order_id " +
+                        "JOIN BLC_ORDER_ITEM_ATTRIBUTE attr ON oi.order_item_id = attr.order_item_id " +
+                        "WHERE o.customer_id = :customerId " +
+                        "AND o.order_status != 'FAILED' " +
+                        "AND attr.name = 'productId' " +
+                        "ORDER BY o.submit_date DESC";
+            }
 
-
-            Query query = entityManager.createNativeQuery(APPLIED_FORM_QUERY);
+            Query query = entityManager.createNativeQuery(queryString);
             query.setParameter("customerId", customer_id);
 
-            List<BigInteger> orderIds = query.getResultList();
+            List<Object[]> resultList = query.getResultList();
+
+            List<BigInteger> orderIds = new ArrayList<>();
+            for (Object[] row : resultList) {
+                BigInteger orderId = (BigInteger) row[0]; // order_id
+                orderIds.add(orderId);
+            }
             List<CustomProductWrapper> appliedForms = new ArrayList<>();
+            Set<Long> processedProductIds = new HashSet<>();
 
             for (BigInteger id : orderIds) {
                 Order order = orderService.findOrderById(id.longValue());
                 if (order == null || order.getOrderItems().isEmpty()) continue;
 
-                OrderItem orderItem = order.getOrderItems().get(0);
-                Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
-                CustomProduct product = entityManager.find(CustomProduct.class, productId);
+                // Get productId from OrderItemAttributes (Map<String, OrderItemAttribute>)
+                Long productId = null;
+                OrderItem firstItem = order.getOrderItems().get(0);
+                Map<String, OrderItemAttribute> attributes = firstItem.getOrderItemAttributes();
 
-                if (product != null && ((Status) product).getArchived() != 'Y') {
+                if (attributes != null) {
+                    OrderItemAttribute productIdAttr = attributes.get("productId");
+                    if (productIdAttr != null) {
+                        productId = Long.parseLong(productIdAttr.getValue());
+                    }
+                }
+
+                if (productId == null) continue;
+
+                // Skip duplicates when unique_products=true
+                if (uniqueProducts && processedProductIds.contains(productId)) {
+                    continue;
+                }
+
+                CustomProduct product = entityManager.find(CustomProduct.class, productId);
+                if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(product, request,reserveCategoryService,reserveCategoryAgeService,genderService,customer,sharedUtilityService);
+                    wrapper.wrapDetails(product, request, reserveCategoryService,
+                            reserveCategoryAgeService, genderService,
+                            customer, sharedUtilityService);
                     appliedForms.add(wrapper);
+                    processedProductIds.add(productId);
                 }
             }
 
@@ -2278,30 +2327,31 @@ public class CustomerEndpoint {
             int totalItems = appliedForms.size();
             int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / limit);
             if (offset >= totalPages && offset != 0)
-                return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("No more forms available", HttpStatus.BAD_REQUEST);
 
-            int fromIndex = offset * limit;
-            int toIndex = Math.min(fromIndex + limit, totalItems);
-            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList() : appliedForms.subList(fromIndex, toIndex);
+            List<CustomProductWrapper> paginatedList = appliedForms.stream()
+                    .skip(offset * limit)
+                    .limit(limit)
+                    .collect(Collectors.toList());
 
             // Response
-            Map<String, Object> response = Map.of(
-                    "forms", paginatedList,
-                    "totalItems", totalItems,
-                    "totalPages", totalPages,
-                    "currentPage", offset
-            );
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+            response.put("uniqueProducts", uniqueProducts);
 
-            return ResponseService.generateSuccessResponse("Ordered forms retrieved successfully", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Forms retrieved successfully", response, HttpStatus.OK);
 
         } catch (NumberFormatException e) {
-            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Invalid customer ID format", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            return new ResponseEntity<>("Exception: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error retrieving forms", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
