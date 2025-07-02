@@ -845,17 +845,16 @@ public class OrderController {
             OrderItem orderItem = order.getOrderItems().get(0);
             Product product = findProductFromItemAttribute(orderItem);
 
-            CustomProduct customProduct = productService.getCustomProductByCustomProductId(product.getId());
-
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue() -  customProduct.getPlatformFee()) {
+            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue()) {
                 throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
+
             // Updating archived ticket logic.
-            /*CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
+            CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
             if(ticket != null) {
                 serviceProviderTicketService.deleteTicket(ticket);
-            }*/
+            }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 
