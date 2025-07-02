@@ -231,11 +231,29 @@ public class DivisionController {
                     .setParameter("divisionId", divisionId)
                     .getSingleResult();
 
+
             // 2. Get current zone linkages
             List<Integer> currentZoneIds = entityManager.createNativeQuery(
                             "SELECT zone_id FROM zone_divisions WHERE division_id = :divisionId")
                     .setParameter("divisionId", divisionId)
                     .getResultList();
+
+            // Get current zone linkage
+            Query currentZoneQuery = entityManager.createNativeQuery(
+                    "SELECT zone_id FROM zone_divisions " +
+                            "WHERE division_id = :divisionId");
+            currentZoneQuery.setParameter("divisionId", divisionId);
+            /*Integer currentZoneId = (Integer) currentZoneQuery.getSingleResult();
+            Zone currentZone = entityManager.find(Zone.class, currentZoneId);*/
+            Integer currentZoneId=null;
+           zoneIds = currentZoneQuery.getResultList();
+
+            Zone currentZone = null;
+            if (!zoneIds.isEmpty()) {
+                currentZone = entityManager.find(Zone.class, zoneIds.get(0));
+                currentZoneId = zoneIds.get(0);
+            }
+
 
             List<Zone> currentZones = entityManager.createQuery(
                             "SELECT z FROM Zone z WHERE z.zoneId IN :zoneIds", Zone.class)
@@ -409,6 +427,7 @@ public class DivisionController {
                 response.setDivisionId(division.getState_id());
                 response.setDivisionName(division.getState_name());
                 response.setDivisionCode(division.getState_code());
+                response.setArchived(division.getArchived());
 
                 // Get zone information for each division
                 Query zoneQuery = entityManager.createNativeQuery(

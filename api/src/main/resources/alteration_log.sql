@@ -374,5 +374,12 @@ BEGIN
 --    INSERT INTO custom_document
 --    VALUES (32, 'Ticket_Document', 'Ticket Document', '5KB', '5MB', FALSE, FALSE, FALSE, 30);
 
+-- RAMAN 26-06-2025
+--    INSERT INTO order_state_ref (order_state_id, order_state_name, order_state_description)
+--    VALUES
+--    (9, 'CANCELLED', 'Order is Cancelled.'),
+--    (10, 'REFUND_SUCCESS', 'Refund is successfully initiated.'),
+--    (11, 'REFUND_FAIL', 'Refund is failed.');
+
 END $$;
 

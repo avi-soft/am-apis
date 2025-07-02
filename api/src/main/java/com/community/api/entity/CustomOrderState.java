@@ -8,10 +8,13 @@ import lombok.Setter;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import java.util.Date;
 
 @Entity
-@Table(name = "ORDER_STATE")
+@Table(name = "ORDER_STATE") // extended version of order.
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -27,6 +30,19 @@ public class CustomOrderState {
     @Id
     @Column(name = "order_id")
     private Long orderId;
+
+    @Column(name = "modifier_user_id")
+    private Long modifierUserId;
+
+    @ManyToOne
+    @JoinColumn(name = "modifier_role_id")
+    private Role modifierRole;
+
+    @Column(name = "modified_date")
+    private Date modifiedDate;
+
+    @Column(name = "refund_amount")
+    private Double refundAmount;
 
     public CustomOrderState(Integer orderStateId) {
         this.orderStateId=orderStateId;

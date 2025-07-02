@@ -89,10 +89,21 @@ public class StreamService {
         }
     }
 
+    public List<CustomStream> getAllStreamArchiveNonArchive( ){
+        try {
+            Query query=entityManager.createQuery(Constant.GET_ALL_STREAM_ARCHIVE_NONARCHIVE, CustomStream.class);
+            List<CustomStream> streamList = query.getResultList();
+            return streamList;
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            return Collections.emptyList();
+        }
+    }
+
     public List<CustomStream> getStreamByQualificationId(Integer qualificationId) {
         try {
             List<CustomStream> streamList = entityManager.createQuery(
-                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId ORDER BY s.sortOrder ASC",
+                            "SELECT s FROM Qualification q JOIN q.streams s WHERE q.qualification_id = :qualificationId AND s.archived = 'N' ORDER BY s.sortOrder ASC",
                             CustomStream.class)
                     .setParameter("qualificationId", qualificationId)
                     .getResultList();
@@ -300,22 +311,17 @@ public class StreamService {
             // 3. Validate and process stream name
             if (stream.getStreamName() != null) {
                 // Case-insensitive duplicate check
-                Query query = entityManager.createQuery(
-                        "SELECT s FROM CustomStream s WHERE LOWER(s.streamName) = LOWER(:streamName) " +
-                                "AND s.streamId != :streamId",
-                        CustomStream.class);
-                query.setParameter("streamName", stream.getStreamName());
-                query.setParameter("streamId", streamId);
-
-                if (!query.getResultList().isEmpty()) {
-                    throw new IllegalArgumentException("Stream with this name already exists");
+                List<CustomStream> existingStreams = getAllStreamArchiveNonArchive();
+                for (CustomStream existingStream: existingStreams) {
+                    if (existingStream.getStreamName().equalsIgnoreCase(stream.getStreamName()) && !existingStream.getStreamId().equals(streamId)) {
+                        throw new IllegalArgumentException("Stream with name '"+stream.getStreamName()+"' already exists");
+                    }
                 }
-
-                // Validate name format
+               /* // Validate name format
                 if (!sharedUtilityService.isAlphabeticWithHyphen(stream.getStreamName())) {
                     throw new IllegalArgumentException(
                             "Stream name should contain only alphabets and hyphens");
-                }
+                }*/
                 streamToEdit.setStreamName(stream.getStreamName());
             }
 
@@ -352,6 +358,10 @@ public class StreamService {
                 }
 
                 streamToEdit.setQualifications(newQualifications);
+            }
+            else
+            {
+                streamToEdit.setQualifications(new ArrayList<>());
             }
 
             // 6. Save changes
