@@ -1265,7 +1265,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays, Boolean archived) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -1338,6 +1338,10 @@ public class ServiceProviderTicketService {
                 }
             }
 
+            if(archived != null ) {
+                jpql.append("AND c.archived = :archived ");
+            }
+
             jpql.append("ORDER BY modified_date DESC NULLS LAST ");
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
@@ -1382,6 +1386,10 @@ public class ServiceProviderTicketService {
 
                 query.setParameter("now", now);
                 query.setParameter("threeDaysLater", threeDaysLater);
+            }
+
+            if(archived != null ) {
+                query.setParameter("archived", archived);
             }
 
             // Execute and return the result
@@ -1439,13 +1447,49 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
+    public List<CustomServiceProviderTicket> fetchChildTicketByTicketId(Long parentTicketId) throws Exception {
+        try {
+            if (parentTicketId == null || parentTicketId <= 0) {
+                throw new IllegalArgumentException("parentTicketId cannot be <=0 or null");
+            }
+
+            Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_PARENT_TICKET_ID, CustomServiceProviderTicket.class);
+            query.setParameter("orderId", parentTicketId);
+            List<CustomServiceProviderTicket> ticket = query.getResultList();
+
+            if (!ticket.isEmpty()) {
+                return ticket;
+            } else {
+                return null;
+            }
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
     public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket) throws Exception {
         try {
             if (ticket == null) {
-                throw new IllegalArgumentException("Ticket cannot null");
+                throw new IllegalArgumentException("Ticket is null");
             }
-            // Need to add logic here.
+            // find all the review ticket which are associated with this ticket and archive them as well.
+            List<CustomServiceProviderTicket> childTickets = fetchChildTicketByTicketId(ticket.getTicketId());
+            for(CustomServiceProviderTicket childTicket: childTickets) {
+                ticket.setArchived(true);
+                entityManager.merge(childTicket);
+            }
+
+            ticket.setArchived(true);
             return entityManager.merge(ticket);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());
