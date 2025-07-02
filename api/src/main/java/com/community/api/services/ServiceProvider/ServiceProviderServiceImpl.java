@@ -47,6 +47,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.multipart.MultipartFile;
@@ -74,6 +75,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.BiConsumer;
 import javax.validation.constraints.Pattern;
 
 import static com.community.api.component.Constant.PHONE_QUERY_SERVICE_PROVIDER_FILTER;
@@ -197,6 +199,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
     @Transactional
     public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates,String authHeader) {
+        ServiceProviderEntity existingServiceProvider=null;
+        ServiceProviderEntity originalCopy=null;
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.","authorizationHeader", HttpStatus.UNAUTHORIZED);
@@ -214,9 +218,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
 
             // Find existing ServiceProviderEntity
-            ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
+            existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (existingServiceProvider == null) {
                 errorMessages.put("service_provider_id","ServiceProvider with ID " + userId + " not found");
+            }
+
+            if(existingServiceProvider!=null)
+            {
+              originalCopy = cloneServiceProvider(existingServiceProvider);
             }
             String type= null;
             if (updates.containsKey("type")) {
@@ -1193,24 +1202,29 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
                 assignRank(existingServiceProvider, totalScore);
             }
-            if (!errorMessages.isEmpty()) {
-                String message = String.join(", ", errorMessages.values());
-                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
-            }
            if(updates.containsKey("isAcknowledged"))
            {
                Boolean value= (Boolean) updates.get("isAcknowledged");
                existingServiceProvider.setIsAcknowledged(value);
            }
+            if (!errorMessages.isEmpty()) {
+                restoreServiceProvider(existingServiceProvider, originalCopy);
+                String message = String.join(", ", errorMessages.values());
+                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
+            }
+            entityManager.merge(existingServiceProvider);
+
             Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
+            restoreServiceProvider(existingServiceProvider, originalCopy);
             exceptionHandling.handleException(e);
-            return ResponseService.generateSuccessResponse("No such field present :" + e.getMessage(),"noFieldPresent", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("No such field present: " + e.getMessage(), "noFieldPresent", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
+            restoreServiceProvider(existingServiceProvider, originalCopy);
             exceptionHandling.handleException(e);
-            return ResponseService.generateSuccessResponse("Error updating Service Provider : ","generalException", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse("Error updating Service Provider", "generalException", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2143,7 +2157,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
     }
 
-    private boolean areAddressesSame(ServiceProviderAddress a, ServiceProviderAddress b) {
+    public boolean areAddressesSame(ServiceProviderAddress a, ServiceProviderAddress b) {
         if (a == null || b == null) return false;
 
         return Objects.equals(a.getPincode(), b.getPincode()) &&
@@ -2841,5 +2855,182 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 //            throw new Exception(exception.getMessage());
 //        }
 //    }
+
+    private ServiceProviderEntity cloneServiceProvider(ServiceProviderEntity original) {
+        ServiceProviderEntity clone = new ServiceProviderEntity();
+
+        clone.setService_provider_id(original.getService_provider_id());
+        clone.setType(original.getType());
+        clone.setTotalScore(original.getTotalScore());
+        clone.setUser_name(original.getUser_name());
+        clone.setPfpNa(original.getPfpNa());
+        clone.setFirst_name(original.getFirst_name());
+        clone.setLast_name(original.getLast_name());
+        clone.setCountry_code(original.getCountry_code());
+        clone.setFather_name(original.getFather_name());
+        clone.setMother_name(original.getMother_name());
+        clone.setDate_of_birth(original.getDate_of_birth());
+        clone.setAadhaar_number(original.getAadhaar_number());
+        clone.setPan_number(original.getPan_number());
+        clone.setCompleted(original.getCompleted());
+        clone.setApproved(original.getApproved());
+        clone.setIsArchived(original.getIsArchived());
+        clone.setMobileNumber(original.getMobileNumber());
+        clone.setOtp(original.getOtp());
+        clone.setSecondary_mobile_number(original.getSecondary_mobile_number());
+        clone.setRole(original.getRole());
+        clone.setWhatsapp_number(original.getWhatsapp_number());
+        clone.setPrimary_email(original.getPrimary_email());
+        clone.setSecondary_email(original.getSecondary_email());
+        clone.setPassword(original.getPassword());
+        clone.setIs_running_business_unit(original.getIs_running_business_unit());
+        clone.setIsPasswordCreated(original.getIsPasswordCreated());
+        clone.setBusiness_name(original.getBusiness_name());
+        clone.setBusiness_location(original.getBusiness_location());
+        clone.setBusiness_email(original.getBusiness_email());
+        clone.setNumber_of_employees(original.getNumber_of_employees());
+        clone.setIsCFormAvailable(original.getIsCFormAvailable());
+        clone.setRegistration_number(original.getRegistration_number());
+        clone.setPartTimeOrFullTime(original.getPartTimeOrFullTime());
+        clone.setBusinessUnitInfraScore(original.getBusinessUnitInfraScore());
+        clone.setWorkExperienceScore(original.getWorkExperienceScore());
+        clone.setQualificationScore(original.getQualificationScore());
+        clone.setTechnicalExpertiseScore(original.getTechnicalExpertiseScore());
+        clone.setStaffScore(original.getStaffScore());
+        clone.setWrittenTestScore(original.getWrittenTestScore());
+        clone.setImageUploadScore(original.getImageUploadScore());
+        clone.setPartTimeOrFullTimeScore(original.getPartTimeOrFullTimeScore());
+        clone.setInfraScore(original.getInfraScore());
+        clone.setOtherSkill(original.getOtherSkill());
+        clone.setSkills(original.getSkills() != null ? new ArrayList<>(original.getSkills()) : null);
+        clone.setHas_technical_knowledge(original.getHas_technical_knowledge());
+        clone.setWork_experience_in(original.getWork_experience_in());
+        clone.setWork_experience_in_months(original.getWork_experience_in_months());
+        clone.setRejected(original.getRejected());
+        clone.setHighest_qualification(original.getHighest_qualification());
+        clone.setName_of_institute(original.getName_of_institute());
+        clone.setYear_of_passing(original.getYear_of_passing());
+        clone.setBoard_or_university(original.getBoard_or_university());
+        clone.setTotal_marks(original.getTotal_marks());
+        clone.setMarks_obtained(original.getMarks_obtained());
+        clone.setCgpa(original.getCgpa());
+        clone.setLatitude(original.getLatitude());
+        clone.setLongitude(original.getLongitude());
+        clone.setRank(original.getRank());
+        clone.setSignedUp(original.getSignedUp());
+        clone.setBusiness_geo_location(original.getBusiness_geo_location());
+        clone.setIsSameAsCurrentAddress(original.getIsSameAsCurrentAddress());
+        clone.setStatus(original.getStatus());
+        clone.setServiceProviderStatus(original.getServiceProviderStatus());
+        clone.setLastStatusId(original.getLastStatusId());
+        clone.setRanking(original.getRanking());
+        clone.setPrivileges(original.getPrivileges() != null ? new ArrayList<>(original.getPrivileges()) : null);
+        clone.setInfra(original.getInfra() != null ? new ArrayList<>(original.getInfra()) : null);
+        clone.setLanguages(original.getLanguages() != null ? new ArrayList<>(original.getLanguages()) : null);
+        clone.setToken(original.getToken());
+        clone.setTotalSkillTestPoints(original.getTotalSkillTestPoints());
+        clone.setIsActive(original.getIsActive());
+        clone.setMaximumTicketSize(original.getMaximumTicketSize());
+        clone.setMaximumBindingSize(original.getMaximumBindingSize());
+        clone.setTicketCompleted(original.getTicketCompleted());
+        clone.setTicketPending(original.getTicketPending());
+        clone.setTicketAssigned(original.getTicketAssigned());
+        clone.setAutoScoring(original.getAutoScoring());
+        clone.setAdminOverridden(original.getAdminOverridden());
+        clone.setEligibleForReRanking(original.getEligibleForReRanking());
+        clone.setReviewTicketStatusScore(original.getReviewTicketStatusScore());
+        clone.setReviewTicketFeedbackScore(original.getReviewTicketFeedbackScore());
+        clone.setTimeCompletionScore(original.getTimeCompletionScore());
+        clone.setIsAcknowledged(original.getIsAcknowledged());
+
+        return clone;
+    }
+
+    private void restoreServiceProvider(ServiceProviderEntity target, ServiceProviderEntity source) {
+        target.setService_provider_id(source.getService_provider_id());
+        target.setType(source.getType());
+        target.setTotalScore(source.getTotalScore());
+        target.setUser_name(source.getUser_name());
+        target.setPfpNa(source.getPfpNa());
+        target.setFirst_name(source.getFirst_name());
+        target.setLast_name(source.getLast_name());
+        target.setCountry_code(source.getCountry_code());
+        target.setFather_name(source.getFather_name());
+        target.setMother_name(source.getMother_name());
+        target.setDate_of_birth(source.getDate_of_birth());
+        target.setAadhaar_number(source.getAadhaar_number());
+        target.setPan_number(source.getPan_number());
+        target.setCompleted(source.getCompleted());
+        target.setApproved(source.getApproved());
+        target.setIsArchived(source.getIsArchived());
+        target.setMobileNumber(source.getMobileNumber());
+        target.setOtp(source.getOtp());
+        target.setSecondary_mobile_number(source.getSecondary_mobile_number());
+        target.setRole(source.getRole());
+        target.setWhatsapp_number(source.getWhatsapp_number());
+        target.setPrimary_email(source.getPrimary_email());
+        target.setSecondary_email(source.getSecondary_email());
+        target.setPassword(source.getPassword());
+        target.setIs_running_business_unit(source.getIs_running_business_unit());
+        target.setIsPasswordCreated(source.getIsPasswordCreated());
+        target.setBusiness_name(source.getBusiness_name());
+        target.setBusiness_location(source.getBusiness_location());
+        target.setBusiness_email(source.getBusiness_email());
+        target.setNumber_of_employees(source.getNumber_of_employees());
+        target.setIsCFormAvailable(source.getIsCFormAvailable());
+        target.setRegistration_number(source.getRegistration_number());
+        target.setPartTimeOrFullTime(source.getPartTimeOrFullTime());
+        target.setBusinessUnitInfraScore(source.getBusinessUnitInfraScore());
+        target.setWorkExperienceScore(source.getWorkExperienceScore());
+        target.setQualificationScore(source.getQualificationScore());
+        target.setTechnicalExpertiseScore(source.getTechnicalExpertiseScore());
+        target.setStaffScore(source.getStaffScore());
+        target.setWrittenTestScore(source.getWrittenTestScore());
+        target.setImageUploadScore(source.getImageUploadScore());
+        target.setPartTimeOrFullTimeScore(source.getPartTimeOrFullTimeScore());
+        target.setInfraScore(source.getInfraScore());
+        target.setOtherSkill(source.getOtherSkill());
+        target.setSkills(source.getSkills() != null ? new ArrayList<>(source.getSkills()) : null);
+        target.setHas_technical_knowledge(source.getHas_technical_knowledge());
+        target.setWork_experience_in(source.getWork_experience_in());
+        target.setWork_experience_in_months(source.getWork_experience_in_months());
+        target.setRejected(source.getRejected());
+        target.setHighest_qualification(source.getHighest_qualification());
+        target.setName_of_institute(source.getName_of_institute());
+        target.setYear_of_passing(source.getYear_of_passing());
+        target.setBoard_or_university(source.getBoard_or_university());
+        target.setTotal_marks(source.getTotal_marks());
+        target.setMarks_obtained(source.getMarks_obtained());
+        target.setCgpa(source.getCgpa());
+        target.setLatitude(source.getLatitude());
+        target.setLongitude(source.getLongitude());
+        target.setRank(source.getRank());
+        target.setSignedUp(source.getSignedUp());
+        target.setBusiness_geo_location(source.getBusiness_geo_location());
+        target.setIsSameAsCurrentAddress(source.getIsSameAsCurrentAddress());
+        target.setStatus(source.getStatus());
+        target.setServiceProviderStatus(source.getServiceProviderStatus());
+        target.setLastStatusId(source.getLastStatusId());
+        target.setRanking(source.getRanking());
+        target.setPrivileges(source.getPrivileges() != null ? new ArrayList<>(source.getPrivileges()) : null);
+        target.setInfra(source.getInfra() != null ? new ArrayList<>(source.getInfra()) : null);
+        target.setLanguages(source.getLanguages() != null ? new ArrayList<>(source.getLanguages()) : null);
+        target.setToken(source.getToken());
+        target.setTotalSkillTestPoints(source.getTotalSkillTestPoints());
+        target.setIsActive(source.getIsActive());
+        target.setMaximumTicketSize(source.getMaximumTicketSize());
+        target.setMaximumBindingSize(source.getMaximumBindingSize());
+        target.setTicketCompleted(source.getTicketCompleted());
+        target.setTicketPending(source.getTicketPending());
+        target.setTicketAssigned(source.getTicketAssigned());
+        target.setAutoScoring(source.getAutoScoring());
+        target.setAdminOverridden(source.getAdminOverridden());
+        target.setEligibleForReRanking(source.getEligibleForReRanking());
+        target.setReviewTicketStatusScore(source.getReviewTicketStatusScore());
+        target.setReviewTicketFeedbackScore(source.getReviewTicketFeedbackScore());
+        target.setTimeCompletionScore(source.getTimeCompletionScore());
+        target.setIsAcknowledged(source.getIsAcknowledged());
+    }
+
 
 }

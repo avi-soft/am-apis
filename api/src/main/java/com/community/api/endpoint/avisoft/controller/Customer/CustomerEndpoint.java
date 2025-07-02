@@ -39,6 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -832,7 +833,7 @@ public class CustomerEndpoint {
                                 Objects.equals(curr.getStateProvinceRegion(), perm.getStateProvinceRegion());
 
                 customCustomer.setIsSameAsCurrentAddress(addressesMatch);
-                em.merge(customCustomer);
+//                em.merge(customCustomer);
             }
 
             if (details.containsKey("adharNumber")) {
@@ -993,16 +994,16 @@ public class CustomerEndpoint {
                         String validUpto = (String) details.get("otherCategoryValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                         } else {
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                             customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
+                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                     }
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
                     customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"), dateFormat));
@@ -1048,16 +1049,16 @@ public class CustomerEndpoint {
                         String validUpto = (String) details.get("domicileValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                         } else {
-                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
+                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                             customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
+                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                     }
                     customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"), dateFormat));
                 } else if (domicile.equals(false)) {
@@ -1299,7 +1300,7 @@ public class CustomerEndpoint {
 
                     customCustomer.setOtherItems(existingItems);
                     customCustomer.setOtherReligion((String) details.get("otherReligion"));
-                    entityManager.merge(customCustomer);
+//                    entityManager.merge(customCustomer);
                 }
 //
             }
@@ -1389,7 +1390,7 @@ public class CustomerEndpoint {
 
                     customCustomer.setOtherItems(existingItems);
                     customCustomer.setOtherCategory((String) details.get("otherCategory"));
-                    entityManager.merge(customCustomer);
+//                    entityManager.merge(customCustomer);
                 }
 //
             } else if (!details.containsKey("category")) {
@@ -1556,6 +1557,7 @@ public class CustomerEndpoint {
             }*/
 
             if (!errorMessages.isEmpty()) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 String message = String.join(", ", errorMessages.values());
                 return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
             }
@@ -1566,7 +1568,7 @@ public class CustomerEndpoint {
                 Boolean value= (Boolean) details.get("isAcknowledged");
                 customCustomer.setIsAcknowledged(value);
             }
-            if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null) {
+            if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null && errorMessages.isEmpty()) {
                 customCustomer.setEmailActive(true);
                 em.merge(customCustomer);
                 List<String> email = new ArrayList<>();
@@ -1583,18 +1585,21 @@ public class CustomerEndpoint {
             } else {
                 em.merge(customCustomer);
             }
+            entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
-        } catch (ClassCastException classCastException) {
+        }
+        catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            return ResponseService.generateSuccessResponse(illegalArgumentException.getMessage(),"illegalArgumentException",HttpStatus.BAD_REQUEST);
+        }
+        catch (ClassCastException classCastException) {
             exceptionHandling.handleException(classCastException);
             return ResponseService.generateSuccessResponse("Invalid Casting: " + classCastException.getMessage(),"classCastException", HttpStatus.BAD_REQUEST);
         } catch (ParseException parseException) {
             exceptionHandling.handleException(parseException);
             return ResponseService.generateSuccessResponse("Unparsable Exception: " + parseException.getMessage(),"parseException", HttpStatus.BAD_REQUEST);
-        } catch (NumberFormatException exception) {
-            exceptionHandling.handleException(exception);
-            return ResponseService.generateSuccessResponse("Invalid Format: " + exception.getMessage(),"invalidFormat", HttpStatus.BAD_REQUEST);
-        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+        }  catch (DataIntegrityViolationException dataIntegrityViolationException) {
             exceptionHandling.handleException(dataIntegrityViolationException);
             return ResponseService.generateSuccessResponse("Error updating " + dataIntegrityViolationException.getMessage(),"dataIntegrityViolation", HttpStatus.BAD_REQUEST);
         } catch (ConstraintViolationException constraintViolationException) {
@@ -2552,14 +2557,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString,Map<String,String> errorMessages, String dateOfIssueFieldName,String dateOfExpireFieldName) throws Exception {
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in " + dateFormatInString + " format");
+                errorMessages.put(dateOfIssueFieldName,"Date of Issue must be in " + dateFormatInString + " format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2567,19 +2572,19 @@ public class CustomerEndpoint {
             if (validUptoStr != null) {
 
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in " + dateFormatInString + " format");
+                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date must be in " + dateFormatInString + " format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
                 // Check if validUpto is before dateOfIssue
                 if (validUpto.before(dateOfIssue)) {
-                    throw new IllegalArgumentException("Valid Upto Date cannot be before Date of Issue");
+                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date cannot be before Date of Issue " + dateFormatInString + " format");
                 }
             }
             return true;
         } catch (IllegalArgumentException ex) {
             exceptionHandlingService.handleException(ex);
-            throw ex; // Rethrow with meaningful context
+            throw new IllegalArgumentException(ex.getMessage());
         } catch (ParseException ex) {
             exceptionHandlingService.handleException(ex);
             throw new IllegalArgumentException("Invalid date format", ex);
