@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -31,4 +32,7 @@ public class ZoneDivisions {
     @ManyToOne
     @JoinColumn(name = "division_id",nullable = false)
     private StateCode divisions;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
 }

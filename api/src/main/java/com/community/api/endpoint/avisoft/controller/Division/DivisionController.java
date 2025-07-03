@@ -231,11 +231,17 @@ public class DivisionController {
                     .setParameter("divisionId", divisionId)
                     .getSingleResult();
 
-            // 2. Get current zone linkages (simplified)
-            List<Integer> currentZoneIds = entityManager.createNativeQuery(
-                            "SELECT zone_id FROM zone_divisions WHERE division_id = :divisionId")
+            // 2. Get current zone linkages
+            List<ZoneDivisions> currentZoneMappings = entityManager.createQuery(
+                            "SELECT zd FROM ZoneDivisions zd " +
+                                    "WHERE zd.divisions.state_id = :divisionId AND zd.archived = false",
+                            ZoneDivisions.class)
                     .setParameter("divisionId", divisionId)
                     .getResultList();
+
+            List<Integer> currentZoneIds = currentZoneMappings.stream()
+                    .map(zd -> zd.getZone().getZoneId())
+                    .collect(Collectors.toList());
 
             // 3. Process division name update if provided
             if (requestBody.containsKey("division_name")) {
@@ -247,15 +253,17 @@ public class DivisionController {
                 // Check for duplicate name in current or new zones
                 List<Integer> targetZoneIds = zoneIds != null ? zoneIds : currentZoneIds;
                 if (!targetZoneIds.isEmpty()) {
-                    Query nameCheck = entityManager.createNativeQuery(
-                            "SELECT COUNT(*) FROM zone_divisions zd " +
-                                    "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
-                                    "WHERE zd.zone_id IN :zoneIds AND LOWER(d.state_name) = LOWER(:name) AND d.state_id != :divisionId");
+                    Query nameCheck = entityManager.createQuery(
+                            "SELECT COUNT(d) FROM StateCode d " +
+                                    "JOIN ZoneDivisions zd ON zd.divisions.state_id = d.state_id " +
+                                    "WHERE zd.zone.zoneId IN :zoneIds AND LOWER(d.state_name) = LOWER(:name) " +
+                                    "AND d.state_id != :divisionId AND zd.archived = false",
+                            Long.class);
                     nameCheck.setParameter("zoneIds", targetZoneIds);
                     nameCheck.setParameter("name", newName);
                     nameCheck.setParameter("divisionId", divisionId);
 
-                    if (((Number)nameCheck.getSingleResult()).intValue() > 0) {
+                    if ((Long)nameCheck.getSingleResult() > 0L) {
                         return ResponseService.generateErrorResponse(
                                 "Division with this name already exists in one of the target zones",
                                 HttpStatus.CONFLICT);
@@ -264,7 +272,7 @@ public class DivisionController {
                 division.setState_name(newName);
             }
 
-            // 4. Process division code update if provided (unchanged)
+            // 4. Process division code update if provided
             if (requestBody.containsKey("division_code")) {
                 String newCode = requestBody.get("division_code").trim().toUpperCase();
                 if (!newCode.matches("^[A-Z]+$")) {
@@ -289,39 +297,61 @@ public class DivisionController {
 
             // 5. Process zone updates if zoneIds parameter provided
             if (zoneIds != null) {
-                // Validate exactly one zone is provided (if your business requires 1:1 mapping)
+                // Validate exactly one zone is provided
                 if (zoneIds.size() != 1) {
                     return ResponseService.generateErrorResponse(
                             "Exactly one zone ID must be provided",
                             HttpStatus.BAD_REQUEST);
                 }
 
-                // Remove existing zone associations
-                Query deleteQuery = entityManager.createNativeQuery(
-                        "DELETE FROM zone_divisions WHERE division_id = :divisionId");
-                deleteQuery.setParameter("divisionId", divisionId);
-                deleteQuery.executeUpdate();
+                Integer newZoneId = zoneIds.get(0);
 
-                // Add new zone association
-                Zone newZone = entityManager.find(Zone.class, zoneIds.get(0));
-                if (newZone == null || newZone.getArchived()) {
-                    return ResponseService.generateErrorResponse(
-                            "Zone not found or is archived",
-                            HttpStatus.NOT_FOUND);
+                // Check if the new zone is the same as current active zone
+                boolean alreadyCorrectMapping = currentZoneMappings.stream()
+                        .anyMatch(zd -> zd.getZone().getZoneId().equals(newZoneId) && !zd.getArchived());
+
+                if (!alreadyCorrectMapping) {
+                    // Archive all existing active mappings for this division
+                    if (!currentZoneMappings.isEmpty()) {
+                        Query archiveQuery = entityManager.createQuery(
+                                "UPDATE ZoneDivisions zd SET zd.archived = true " +
+                                        "WHERE zd.divisions.state_id = :divisionId AND zd.archived = false");
+                        archiveQuery.setParameter("divisionId", divisionId);
+                        archiveQuery.executeUpdate();
+                    }
+
+                    // Check if the new zone mapping already exists (but archived)
+                    Zone newZone = entityManager.find(Zone.class, newZoneId);
+                    if (newZone == null || newZone.getArchived()) {
+                        return ResponseService.generateErrorResponse(
+                                "Zone not found or is archived",
+                                HttpStatus.NOT_FOUND);
+                    }
+
+                    // Check for existing archived mapping to reactivate
+                    ZoneDivisions existingMapping = entityManager.createQuery(
+                                    "SELECT zd FROM ZoneDivisions zd " +
+                                            "WHERE zd.divisions.state_id = :divisionId " +
+                                            "AND zd.zone.zoneId = :zoneId", ZoneDivisions.class)
+                            .setParameter("divisionId", divisionId)
+                            .setParameter("zoneId", newZoneId)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (existingMapping != null) {
+                        // Reactivate archived mapping
+                        existingMapping.setArchived(false);
+                        entityManager.merge(existingMapping);
+                    } else {
+                        // Create new mapping
+                        ZoneDivisions newMapping = new ZoneDivisions();
+                        newMapping.setZone(newZone);
+                        newMapping.setDivisions(division);
+                        newMapping.setArchived(false);
+                        entityManager.persist(newMapping);
+                    }
                 }
-
-                // Get next sequence value properly (database-specific)
-                Query nextIdQuery = entityManager.createNativeQuery(
-                        "SELECT COALESCE(MAX(zonedivisionid), 0) + 1 FROM zone_divisions");
-                Number nextId = (Number) nextIdQuery.getSingleResult();
-
-                Query insertQuery = entityManager.createNativeQuery(
-                        "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) " +
-                                "VALUES (:id, :zoneId, :divId)");
-                insertQuery.setParameter("id", nextId.intValue());
-                insertQuery.setParameter("zoneId", newZone.getZoneId());
-                insertQuery.setParameter("divId", divisionId);
-                insertQuery.executeUpdate();
             }
 
             // 6. Save all changes
@@ -331,7 +361,7 @@ public class DivisionController {
             List<Integer> finalZoneIds = zoneIds != null ? zoneIds : currentZoneIds;
             List<Zone> updatedZones = finalZoneIds.isEmpty() ? Collections.emptyList() :
                     entityManager.createQuery(
-                                    "SELECT z FROM Zone z WHERE z.zoneId IN :zoneIds", Zone.class)
+                                    "SELECT z FROM Zone z WHERE z.zoneId IN :zoneIds AND z.archived = false", Zone.class)
                             .setParameter("zoneIds", finalZoneIds)
                             .getResultList();
 
