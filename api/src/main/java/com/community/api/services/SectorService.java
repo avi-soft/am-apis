@@ -172,48 +172,61 @@ public class SectorService {
         entityManager.merge(customSector);
         return customSector;
     }
-    public List<Object[]> getCompressedProductsBySector(List<Long> sectorIds, Integer offset, Integer limit) {
-        try{
+    public List<Object[]> getCompressedProductsBySector(List<Long> sectorIds, Integer offset, Integer limit, List<Long> categoryId) {
+        try {
+            System.out.println(categoryId);
             StringBuilder sql = new StringBuilder("SELECT cs.sector_id, cs.sector_description, cs.sector_name, " +
                     "STRING_AGG(CAST(c.product_id AS TEXT), ',' ORDER BY c.product_id DESC) AS product_ids " +
                     "FROM custom_product c " +
+                    "JOIN blc_product bp on bp.product_id=c.product_id " +
                     "JOIN custom_sector cs ON cs.sector_id = c.sector_id " +
-                    "JOIN blc_product bp ON c.product_id = bp.product_id " +
                     "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                     "WHERE bp.archived = 'N' " +
                     "AND c.product_state_id NOT IN (7) " +
                     "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                     "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
+            if (categoryId != null && !categoryId.isEmpty()) {
+                sql.append( "AND bp.default_category_id IN (:categoryId) ");
+            }
             if (sectorIds != null && !sectorIds.isEmpty()) {
-                sql.append("AND c.sector_id IN :sectorIds ");
+                sql.append("AND c.sector_id IN (:sectorIds) ");
             }
 
             sql.append("GROUP BY cs.sector_id, cs.sector_description, cs.sector_name " +
                     "ORDER BY cs.sector_id DESC " +
                     "LIMIT :limit OFFSET :offset");
-
+            System.out.println(sql.toString());
             Query query = entityManager.createNativeQuery(sql.toString());
+            if (categoryId != null && !categoryId.isEmpty()) {
+                query.setParameter("categoryId", categoryId);
+            }
             if (sectorIds != null && !sectorIds.isEmpty()) {
                 query.setParameter("sectorIds", sectorIds);
             }
             query.setParameter("limit", limit);
             query.setParameter("offset", offset);
+            System.out.println(query.getResultList().size());
             return query.getResultList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch compressed products by sector: " + e.getMessage(), e);
         }
     }
-    public List<BigInteger> getCompressedProductBySector(Long sectorId, Integer offset, Integer limit) {
+    public List<BigInteger> getCompressedProductBySector(Long sectorId, Integer offset, Integer limit, List<Long> categoryId) {
         try {
             StringBuilder sql = new StringBuilder("SELECT c.product_id " +
                     "FROM custom_product c " +
                     "JOIN custom_sector cs ON cs.sector_id = c.sector_id " +
+                    "JOIN blc_category_product_xref cp ON cp.product_id = c.product_id " +
                     "JOIN blc_product bp ON c.product_id = bp.product_id " +
                     "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                     "WHERE bp.archived = 'N' " +
-                    "AND c.product_state_id NOT IN (7) " +
-                    "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
+                    "AND c.product_state_id NOT IN (7) ");
+            if (categoryId != null && !categoryId.isEmpty()) {
+                sql.append( "AND bp.default_category_id IN (:categoryId) ");
+            }
+
+            sql.append("AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                     "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                     "AND c.sector_id = :sectorId " +
                     "ORDER BY c.product_id DESC " +
@@ -221,6 +234,9 @@ public class SectorService {
 
             Query query = entityManager.createNativeQuery(sql.toString());
             query.setParameter("sectorId", sectorId);
+            if (categoryId != null && !categoryId.isEmpty()) {
+                query.setParameter("categoryId", categoryId);
+            }
             query.setParameter("limit", limit);
             query.setParameter("offset", offset);
 
@@ -229,23 +245,32 @@ public class SectorService {
             throw new RuntimeException("Failed to fetch compressed products by sector: " + e.getMessage(), e);
         }
     }
-    public BigInteger getCompressedProductsBySectorCount(List<Long> sectorIds) {
+    public BigInteger getCompressedProductsBySectorCount(List<Long> sectorIds, List<Long> categoryId) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT cs.sector_id) " +
                 "FROM custom_product c " +
                 "JOIN custom_sector cs ON cs.sector_id = c.sector_id " +
+                "JOIN blc_category_product_xref cp ON cp.product_id = c.product_id " +
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE bp.archived = 'N' " +
-                "AND c.product_state_id NOT IN (7) " +
+                "AND c.product_state_id NOT IN (7) " );
+        if (categoryId != null && !categoryId.isEmpty()) {
+            sql.append( "AND bp.default_category_id IN (:categoryId) ");
+        }
+
+        sql.append(
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
         if (sectorIds != null && !sectorIds.isEmpty()) {
-            sql.append("AND c.sector_id IN :sectorIds ");
+            sql.append("AND c.sector_id IN (:sectorIds) ");
         }
 
         try {
             Query query = entityManager.createNativeQuery(sql.toString());
+            if (categoryId != null && !categoryId.isEmpty()) {
+                query.setParameter("categoryId", categoryId);
+            }
             if (sectorIds != null && !sectorIds.isEmpty()) {
                 query.setParameter("sectorIds", sectorIds);
             }
@@ -254,14 +279,20 @@ public class SectorService {
             throw new RuntimeException("Failed to count sectors: " + e.getMessage(), e);
         }
     }
-    public BigInteger getCompressedProductsCount(Long sectorId) {
+    public BigInteger getCompressedProductsCount(Long sectorId, List<Long> categoryId) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(DISTINCT c.product_id) " +
                 "FROM custom_product c " +
                 "JOIN custom_sector cs ON cs.sector_id = c.sector_id " +
+                "JOIN blc_category_product_xref cp ON cp.product_id = c.product_id " +
                 "JOIN blc_product bp ON c.product_id = bp.product_id " +
                 "JOIN blc_sku s ON s.sku_id = bp.default_sku_id " +
                 "WHERE bp.archived = 'N' " +
-                "AND c.product_state_id NOT IN (7) " +
+                "AND c.product_state_id NOT IN (7) ");
+        if (categoryId != null && !categoryId.isEmpty()) {
+            sql.append( "AND bp.default_category_id IN (:categoryId) ");
+        }
+
+        sql.append(
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
                 "AND c.go_live_date <= CURRENT_TIMESTAMP " +
                 "AND c.sector_id = :sectorId");
@@ -269,6 +300,9 @@ public class SectorService {
         try {
             Query query = entityManager.createNativeQuery(sql.toString());
             query.setParameter("sectorId", sectorId);
+            if (categoryId != null && !categoryId.isEmpty()) {
+                query.setParameter("categoryId", categoryId);
+            }
             return (BigInteger) query.getSingleResult();
         } catch (Exception e) {
             throw new RuntimeException("Failed to count sectors: " + e.getMessage(), e);
