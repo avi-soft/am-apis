@@ -814,7 +814,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
                     while (iterator.hasNext()) {
                         ServiceProviderDocument document = iterator.next();
-                        if (document.getDocumentType().getDocument_type_id() == 17) {
+                        if (document.getDocumentType().getDocument_type_id() == 3) {
                             iterator.remove();
                         }
                     }
