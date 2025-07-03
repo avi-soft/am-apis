@@ -2265,7 +2265,7 @@ public class CustomerEndpoint {
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                     @RequestParam(value = "limit", defaultValue = "10") int limit,
                                                     @RequestHeader(value = "Authorization") String authHeader,
-                                                    @RequestParam(value = "unique_products", required = false, defaultValue = "false") boolean uniqueProducts) {
+                                                    @RequestParam(value = "unique_products", required = false, defaultValue = "true") boolean uniqueProducts) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
