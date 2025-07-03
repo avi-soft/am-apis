@@ -608,6 +608,7 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -951,6 +952,7 @@ public class CartEndPoint extends BaseEndpoint {
                 order.setSubmitDate(new Date());
 
                 OrderItem orderItem = order.getOrderItems().get(0);
+                System.out.println("Order item"+orderItem.getId());
                 Product product = findProductFromItemAttribute(orderItem);
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
                 customProduct.getPurchasedBy().add(customCustomer.getId());
@@ -970,13 +972,28 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-                System.out.println("calling removal");
-                Order cart=orderService.findCartForCustomer(customer);
-                ResponseEntity<?>response=removeCartItems(customerId,orderItem.getId(),authHeader);
-                System.out.println(response.getBody());
-                entityManager.merge(cart);
-                System.out.println("removal done");
-                entityManager.merge(customCustomer);
+                try {
+                    System.out.println("calling removal");
+                    Order cart = orderService.findCartForCustomer(customer);
+                    OrderItem orderItemToRemove = null;
+                    for (OrderItem orderItem1 : cart.getOrderItems()) {
+                        System.out.println("order item id current "+orderItem.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem).getId());
+                        System.out.println("order item inside current "+orderItem1.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem1).getId());
+                        if (findProductFromItemAttribute(orderItem).getId().equals(findProductFromItemAttribute(orderItem1).getId())) {
+                            orderItemToRemove = orderItem1;
+                            break;
+                        }
+                    }
+                    cartService.removeItemFromCart(cart, orderItemToRemove.getId());
+                    entityManager.merge(cart);
+                    System.out.println("removal done");
+                    entityManager.merge(customCustomer);
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
                 details.setVerified(true);
@@ -1185,6 +1202,33 @@ public class CartEndPoint extends BaseEndpoint {
         String roleName= roleService.findRoleName(roleId);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         return roleUser.equals(roleName) && tokenUserId.equals(userId);
+    }
+    @Transactional
+    public void removeCartItems(Long customerId, Long orderItemId) {
+        Customer customer = customerService.readCustomerById(customerId);
+        Order cart = orderService.findCartForCustomer(customer);
+
+        if (cart == null || cart.getOrderItems() == null) {
+            System.out.println("No items found");
+            return;
+        }
+
+        OrderItem orderItemToRemove = null;
+        for (OrderItem orderItem : cart.getOrderItems()) {
+            if (orderItem.getId().equals(orderItemId)) {
+                orderItemToRemove = orderItem;
+                break;
+            }
+        }
+
+        if (orderItemToRemove != null) {
+            cart.getOrderItems().remove(orderItemToRemove); // remove from list
+            entityManager.remove(entityManager.contains(orderItemToRemove) ? orderItemToRemove : entityManager.merge(orderItemToRemove)); // remove from DB
+            entityManager.merge(cart); // optional if cascade is set
+            System.out.println("Item removed successfully.");
+        } else {
+            System.out.println("Item not found in cart.");
+        }
     }
     }
 
