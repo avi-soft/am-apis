@@ -18,12 +18,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.social.NotAuthorizedException;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.ValidationException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,53 +71,71 @@ public class BankAccountController {
      * @param bankAccountDTO the bank account dto
      * @return the response entity
      */
+    @Transactional
     @PostMapping("/add")
     public ResponseEntity<?> addBankAccount(
-            @RequestBody BankAccountDTO bankAccountDTO,
+            @Valid @RequestBody BankAccountDTO bankAccountDTO,
+            BindingResult bindingResult,
             @RequestHeader(value = "Authorization") String authHeader) {
 
         try {
+            Map<String,String> errorMessages= new HashMap<>();
             Long customerId = bankAccountDTO.getUserId();
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             if (Objects.equals(roleId, bankAccountDTO.getRole()) && !Objects.equals(tokenUserId, bankAccountDTO.getUserId()))
-                return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            String errorMessage = bankAccountService.getErrorMessage(bankAccountDTO);
-            if (!errorMessage.isEmpty())
-                return ResponseService.generateErrorResponse(errorMessage, HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Forbidden","forbidden", HttpStatus.FORBIDDEN);
+
             if (customerId == null) {
-                return ResponseService.generateErrorResponse("Customer Id not specified", HttpStatus.BAD_REQUEST);
-            }
-            if (bankAccountDTO.getRole() == 5) {
-                Customer customer = customerService.readCustomerById(customerId);
-                if (customer == null) {
-                    return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
-                }
-            } else {
-                ServiceProviderEntity customer = entityManager.find(ServiceProviderEntity.class, customerId);
-                if (customer == null) {
-                    return ResponseService.generateErrorResponse("Customer not found for this Id", HttpStatus.NOT_FOUND);
-                }
+                return ResponseService.generateSuccessResponse("Customer Id not specified","customerId", HttpStatus.BAD_REQUEST);
             }
 
-            if (bankAccountService.isAccountOrUpiDuplicate(bankAccountDTO.getAccountNumber(), bankAccountDTO.getUpiId())) {
-                return ResponseService.generateErrorResponse("Account number or UPI ID already exists.", HttpStatus.BAD_REQUEST);
+            if (bindingResult.hasErrors()) {
+                bindingResult.getFieldErrors().forEach(error ->
+                        errorMessages.put(error.getField(), error.getDefaultMessage())
+                );
             }
 
-//            if(bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(),null,bankAccountDTO.getUserId()))
-//              return ResponseService.generateErrorResponse("Bank account exists",HttpStatus.BAD_REQUEST);
-            String result = bankAccountService.addBankAccount(authHeader, bankAccountDTO);
+            Map<String,String> bankErrors = bankAccountService.validateBankAccountDTO(bankAccountDTO);
+            errorMessages.putAll(bankErrors);
 
-            if (result.contains("Account numbers do not match.")) {
-                return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
+            if (bankAccountService.isAccountDuplicate(bankAccountDTO.getAccountNumber())) {
+                errorMessages.put("accountNumber", "Account number already exists.");
             }
+            if (bankAccountService.isUpiDuplicate(bankAccountDTO.getUpiId())) {
+                errorMessages.put("upiId", "UPI ID already exists.");
+            }
+            if (bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(), null, jwtTokenUtil.extractId(authHeader.substring(7)))) {
+                errorMessages.put("accountNumber", "Account already exists.");
+            }
+
+            if (bankAccountDTO.getIfscCode() == null || bankAccountDTO.getIfscCode().isBlank()) {
+                errorMessages.put("ifscCode", "IFSC Code is required.");
+            }
+
+// If any error is present, return them
+            if (!errorMessages.isEmpty()) {
+                String message = String.join(", ", errorMessages.values());
+                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
+            }
+            // Create and persist the bank details
+            BankDetails bankDetails = new BankDetails();
+            bankDetails.setAccountNumber(bankAccountDTO.getAccountNumber());
+            bankDetails.setUserId(bankAccountDTO.getUserId());
+            bankDetails.setRole(bankAccountDTO.getRole());
+            bankDetails.setIfscCode(bankAccountDTO.getIfscCode());
+            bankDetails.setBankName(bankAccountDTO.getBankName());
+            bankDetails.setBranchName(bankAccountDTO.getBranchName());
+            bankDetails.setAccountType(bankAccountDTO.getAccountType());
+            bankDetails.setUpiId(bankAccountDTO.getUpiId());
+            bankDetails.setAccountHolder(bankAccountDTO.getAccountHolder());
+            entityManager.persist(bankDetails);
+            Long generatedId = bankDetails.getId();
+
            /* if (result.contains("Account number already exists.")) {
                 return ResponseService.generateErrorResponse(result, HttpStatus.BAD_REQUEST);
             }*/
-            String[] resultParts = result.split("ID: ");
-            System.out.println(result);
-            Long generatedId = Long.parseLong(resultParts[1].trim());
             BankAccountDTO responseDTO = new BankAccountDTO(
                     generatedId,
                     bankAccountDTO.getUserId(),
@@ -130,13 +151,11 @@ public class BankAccountController {
 
 
             return ResponseService.generateSuccessResponse("Bank account added successfully!", responseDTO, HttpStatus.OK);
-        } catch (AlreadyExistsException e) {
-            return ResponseService.generateErrorResponse("Bank Account Already exists", HttpStatus.BAD_REQUEST);
-        } catch (ValidationException v) {
-            return ResponseService.generateErrorResponse("Failed Validation" + v.getMessage(), HttpStatus.BAD_REQUEST);
+        }  catch (ValidationException v) {
+            return ResponseService.generateSuccessResponse("Failed Validation" + v.getMessage(),"validationException", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse(e.getMessage(),"generalException", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -198,29 +217,57 @@ public class BankAccountController {
      * @param bankAccountDTO the bank account dto
      * @return the response entity
      */
+    @Transactional
     @PutMapping("/update/{accountId}")
     public ResponseEntity<?> updateBankAccount(
             @PathVariable Long accountId,
-            @RequestBody BankAccountDTO bankAccountDTO,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @Valid @RequestBody BankAccountDTO bankAccountDTO, BindingResult bindingResult,
+            @RequestHeader(value = "Authorization") String authHeader)
+           {
         try {
             // Validate path variable
+            Map<String,String> errorMessages = new HashMap<>();
             if (accountId == null) {
-                return ResponseService.generateErrorResponse("Account ID is required", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateSuccessResponse("Account ID is required","accountId", HttpStatus.BAD_REQUEST);
             }
-            String errorMessage = bankAccountService.getErrorMessage(bankAccountDTO);
-            if (!errorMessage.isEmpty())
-                return ResponseService.generateErrorResponse(errorMessage, HttpStatus.BAD_REQUEST);
-            // Validate DTO (handled by @Valid and DTO annotations)
-
             // Check if account exists
             Optional<BankDetails> existingAccount = bankAccountService.getBankAccountById(accountId);
             if (existingAccount.isEmpty()) {
-                return ResponseService.generateErrorResponse("Bank account not found", HttpStatus.NOT_FOUND);
+                return ResponseService.generateSuccessResponse("Bank account not found", "accountId",HttpStatus.NOT_FOUND);
             }
-
+            if (bindingResult.hasErrors()) {
+                bindingResult.getFieldErrors().forEach(error ->
+                        errorMessages.put(error.getField(), error.getDefaultMessage())
+                );
+            }
+            Map<String,String> bankErrors = bankAccountService.validateBankAccountDTO(bankAccountDTO);
+            errorMessages.putAll(bankErrors);
+            BankDetails existingAccount1 = entityManager.find(BankDetails.class, accountId);
             // Update account
-            String result = bankAccountService.updateBankAccount(authHeader, accountId, bankAccountDTO);
+            if (bankAccountService.hasDuplicateAccountForUpdate(existingAccount1, bankAccountDTO, accountId) ){
+                errorMessages.put("accountNumber", "Account number already exists.");
+            }
+            if (bankAccountService.hasDuplicateUpiForUpdate(existingAccount1, bankAccountDTO, accountId)) {
+                errorMessages.put("upiId", "UPI ID already exists.");
+            }
+//            if (bankAccountService.doesAccountExist(bankAccountDTO.getAccountNumber(), null, jwtTokenUtil.extractId(authHeader.substring(7)))) {
+//                errorMessages.put("accountNumber", "Account already exists.");
+//            }
+            if (!errorMessages.isEmpty()) {
+                String message = String.join(", ", errorMessages.values());
+                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
+            }
+            // Update fields from DTO to entity
+            existingAccount1.setRole(bankAccountDTO.getRole());
+            existingAccount1.setAccountNumber(bankAccountDTO.getAccountNumber());
+            existingAccount1.setAccountHolder(bankAccountDTO.getAccountHolder());
+            existingAccount1.setIfscCode(bankAccountDTO.getIfscCode());
+            existingAccount1.setBankName(bankAccountDTO.getBankName());
+            existingAccount1.setBranchName(bankAccountDTO.getBranchName());
+            existingAccount1.setAccountType(bankAccountDTO.getAccountType());
+            existingAccount1.setUpiId(bankAccountDTO.getUpiId());
+
+            entityManager.merge(existingAccount1);
 
             // Return updated account details
             Optional<BankDetails> updatedAccount = bankAccountService.getBankAccountById(accountId);
@@ -229,13 +276,11 @@ public class BankAccountController {
             return ResponseService.generateSuccessResponse("Bank account updated successfully!",
                     updatedBankAccountDTO, HttpStatus.OK);
 
-        } catch (AlreadyExistsException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
         } catch (NotAuthorizedException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
+            return ResponseService.generateSuccessResponse(e.getMessage(), "notAuthorizedException",HttpStatus.FORBIDDEN);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Failed to update bank account",
+            return ResponseService.generateSuccessResponse("Failed to update bank account","generalException",
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
