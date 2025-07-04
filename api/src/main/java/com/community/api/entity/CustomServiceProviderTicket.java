@@ -63,6 +63,10 @@ public class CustomServiceProviderTicket {
     @JsonProperty("creator_user_id")
     private Long userId;
 
+    @Column(name = "archived")
+    @JsonProperty("archived")
+    Boolean archived = false;
+
     @Column(name = "created_date")
     @JsonProperty("created_date")
     private Date createdDate;
@@ -150,9 +154,5 @@ public class CustomServiceProviderTicket {
     @JsonProperty("ticket_documents")
     @OneToMany(mappedBy = "serviceProviderTicket", fetch = FetchType.EAGER)
     private Set<ServiceProviderDocument> serviceProviderDocuments = new HashSet<>();
-
-//    @JsonIgnore
-//    @OneToMany(mappedBy = "ticket")
-//    private List<CustomTicketHistory> ticketHistoryList = new ArrayList<>();
 
 }
