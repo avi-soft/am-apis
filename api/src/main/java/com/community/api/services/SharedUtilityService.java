@@ -1272,13 +1272,14 @@ public class SharedUtilityService {
         try {
             boolean cond = true;
             Date issueDate = sdf.parse(categoryIssueDate);
-            Date uptoDate = sdf.parse(categoryUptoDate);
-
-            if(issueDate.after(uptoDate)) {
-                cond = false;
-                errorMessages.put("categoryIssueDate","category Issue date cannot be future of category valid upto date.");
+            if(categoryUptoDate!=null && !categoryUptoDate.trim().isEmpty())
+            {
+                Date uptoDate = sdf.parse(categoryUptoDate);
+                if(issueDate.after(uptoDate)) {
+                    cond = false;
+                    errorMessages.put("categoryIssueDate","category Issue date cannot be future of category valid upto date.");
+                }
             }
-
             if(issueDate.after(new Date())) {
                 cond = false;
                 errorMessages.put("categoryIssueDate","category Issue date cannot be future of current date");

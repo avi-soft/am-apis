@@ -83,6 +83,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @Slf4j
 @RequestMapping(value = "/orders", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -810,7 +811,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
-                                         @RequestParam(value = "refund-amount", defaultValue = "0.0") Double refundAmount,
+                                         @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
                                          @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
@@ -842,20 +843,22 @@ public class OrderController {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
-            OrderItem orderItem = order.getOrderItems().get(0);
-            Product product = findProductFromItemAttribute(orderItem);
+            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
+                throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
+            }
 
-            CustomProduct customProduct = productService.getCustomProductByCustomProductId(product.getId());
+            OrderItem orderItem = order.getOrderItems().get(0);
 
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue() -  customProduct.getPlatformFee()) {
+            if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
                 throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
+
             // Updating archived ticket logic.
-            /*CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
+            CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
             if(ticket != null) {
                 serviceProviderTicketService.deleteTicket(ticket);
-            }*/
+            }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 

@@ -553,7 +553,7 @@ public class ProductService {
     }
 
     public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
-                                              List<Long> reserveCategories, String title, Double fee,
+                                              List<Long> reserveCategories, String title, String displayTemplate,Double fee,
                                               Integer post, Date startRange, Date endRange,
                                               Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById, List<Long> productIds) throws Exception {
         try {
@@ -668,9 +668,14 @@ public class ProductService {
 
             if (title != null && !title.isEmpty()) {
                 String trimmedTitle = title.trim();
-                // Search for the exact phrase (with spaces preserved) as a substring
-                jpql.append("AND LOWER(p.metaTitle) LIKE LOWER(:titlePhrase) ");
+
+                jpql.append("AND LOCATE(LOWER(:titlePhrase), LOWER(p.metaTitle)) > 0 ");
             }
+            if (displayTemplate != null && !displayTemplate.isEmpty()) {
+                String trimmedDisplayTemplate = displayTemplate.trim();
+                jpql.append("AND LOCATE(LOWER(:displayTemplatePhrase), LOWER(p.displayTemplate)) > 0 ");
+            }
+
 
             if (fee != null) {
                 jpql.append("AND r.fee = :fee ");
@@ -731,10 +736,17 @@ public class ProductService {
             }
             if (title != null && !title.isEmpty()) {
                 String trimmedTitle = title.trim();
-                // Add wildcards before and after to allow the phrase to be part of a larger title
-                query.setParameter("titlePhrase", "%" + trimmedTitle + "%");
-                queryToCount.setParameter("titlePhrase", "%" + trimmedTitle + "%");
+
+                // Set the parameter for LOCATE function
+                query.setParameter("titlePhrase", trimmedTitle);
+                queryToCount.setParameter("titlePhrase", trimmedTitle);
             }
+            if (displayTemplate != null && !displayTemplate.isEmpty()) {
+                String trimmedDisplayTemplate = displayTemplate.trim();
+                query.setParameter("displayTemplatePhrase", trimmedDisplayTemplate);
+                queryToCount.setParameter("displayTemplatePhrase", trimmedDisplayTemplate);
+            }
+
             if (fee != null) {
                 query.setParameter("fee", fee);
                 queryToCount.setParameter("fee", fee);
@@ -769,7 +781,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds) {
         try {
             Role role = null;
             if (roleId != null) {
@@ -808,7 +820,7 @@ public class ProductService {
             Boolean isExpired = null;
             Map<String, Object> allProductsResponse = filterProducts(
                     states, statuses, categories, reserveCategories,
-                    title, fee, post, dateFrom, dateTo,
+                    title,displayTemplate, fee, post, dateFrom, dateTo,
                     isExpired, 0, Integer.MAX_VALUE, false, createdById, productIds
             );
 

@@ -11,6 +11,7 @@ import com.community.api.entity.ZoneDivisions;
 import com.community.api.services.DistrictService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.SharedUtilityService;
+import io.swagger.models.auth.In;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("division")
@@ -219,188 +221,165 @@ public class DivisionController {
     public ResponseEntity<?> editDivision(
             @PathVariable Integer divisionId,
             @RequestBody Map<String, String> requestBody,
-            @RequestParam(required = false) Integer zoneId) {
+            @RequestParam(required = false) List<Integer> zoneIds) {
 
         try {
             // 1. Validate division exists and is active
             StateCode division = entityManager.createQuery(
-                            "SELECT d FROM StateCode d " +
-                                    "WHERE d.state_id = :divisionId " +
-                                    "AND d.archived = false",
+                            "SELECT d FROM StateCode d WHERE d.state_id = :divisionId AND d.archived = false",
                             StateCode.class)
                     .setParameter("divisionId", divisionId)
                     .getSingleResult();
 
-            // Get current zone linkage
-            Query currentZoneQuery = entityManager.createNativeQuery(
-                    "SELECT zone_id FROM zone_divisions " +
-                            "WHERE division_id = :divisionId");
-            currentZoneQuery.setParameter("divisionId", divisionId);
-            /*Integer currentZoneId = (Integer) currentZoneQuery.getSingleResult();
-            Zone currentZone = entityManager.find(Zone.class, currentZoneId);*/
-            Integer currentZoneId=null;
-            List<Integer> zoneIds = currentZoneQuery.getResultList();
+            // 2. Get current zone linkages
+            List<ZoneDivisions> currentZoneMappings = entityManager.createQuery(
+                            "SELECT zd FROM ZoneDivisions zd " +
+                                    "WHERE zd.divisions.state_id = :divisionId AND zd.archived = false",
+                            ZoneDivisions.class)
+                    .setParameter("divisionId", divisionId)
+                    .getResultList();
 
-            Zone currentZone = null;
-            if (!zoneIds.isEmpty()) {
-                currentZone = entityManager.find(Zone.class, zoneIds.get(0));
-                currentZoneId = zoneIds.get(0);
-            }
+            List<Integer> currentZoneIds = currentZoneMappings.stream()
+                    .map(zd -> zd.getZone().getZoneId())
+                    .collect(Collectors.toList());
 
-            // 2. Process division name update if provided
+            // 3. Process division name update if provided
             if (requestBody.containsKey("division_name")) {
-                String newName = requestBody.get("division_name");
-
-                if (newName == null || newName.trim().isEmpty()) {
-                    return ResponseService.generateErrorResponse(
-                            "Division name cannot be empty",
-                            HttpStatus.BAD_REQUEST);
+                String newName = requestBody.get("division_name").trim();
+                if (newName.isEmpty()) {
+                    return ResponseService.generateErrorResponse("Division name cannot be empty", HttpStatus.BAD_REQUEST);
                 }
 
-                // Check for duplicate name in the SAME ZONE (either current or new zone)
-                Integer targetZoneId = zoneId != null ? zoneId : currentZoneId;
+                // Check for duplicate name in current or new zones
+                List<Integer> targetZoneIds = zoneIds != null ? zoneIds : currentZoneIds;
+                if (!targetZoneIds.isEmpty()) {
+                    Query nameCheck = entityManager.createQuery(
+                            "SELECT COUNT(d) FROM StateCode d " +
+                                    "JOIN ZoneDivisions zd ON zd.divisions.state_id = d.state_id " +
+                                    "WHERE zd.zone.zoneId IN :zoneIds AND LOWER(d.state_name) = LOWER(:name) " +
+                                    "AND d.state_id != :divisionId AND zd.archived = false",
+                            Long.class);
+                    nameCheck.setParameter("zoneIds", targetZoneIds);
+                    nameCheck.setParameter("name", newName);
+                    nameCheck.setParameter("divisionId", divisionId);
 
-                Query nameCheck = entityManager.createNativeQuery(
-                        "SELECT COUNT(*) FROM zone_divisions zd " +
-                                "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
-                                "WHERE zd.zone_id = :zoneId " +
-                                "AND LOWER(d.state_name) = LOWER(:name) " +
-                                "AND d.state_id != :divisionId");
-
-                nameCheck.setParameter("zoneId", targetZoneId);
-                nameCheck.setParameter("name", newName);
-                nameCheck.setParameter("divisionId", divisionId);
-
-                int nameCount = ((Number)nameCheck.getSingleResult()).intValue();
-
-                if (nameCount > 0) {
-                    return ResponseService.generateErrorResponse(
-                            "Division with this name already exists in the target zone",
-                            HttpStatus.CONFLICT);
+                    if ((Long)nameCheck.getSingleResult() > 0L) {
+                        return ResponseService.generateErrorResponse(
+                                "Division with this name already exists in one of the target zones",
+                                HttpStatus.CONFLICT);
+                    }
                 }
-
                 division.setState_name(newName);
             }
 
-            // 3. Process division code update if provided
+            // 4. Process division code update if provided
             if (requestBody.containsKey("division_code")) {
-                String newCode = requestBody.get("division_code");
-
-                if (!sharedUtilityService.isAlphabetic(newCode)) {
+                String newCode = requestBody.get("division_code").trim().toUpperCase();
+                if (!newCode.matches("^[A-Z]+$")) {
                     return ResponseService.generateErrorResponse(
                             "Division code should contain only alphabets",
                             HttpStatus.BAD_REQUEST);
                 }
 
-                // Code must be globally unique (across all zones)
-                Query codeCheck = entityManager.createNativeQuery(
-                        "SELECT COUNT(*) FROM custom_state_codes " +
-                                "WHERE LOWER(state_code) = LOWER(:code) " +
-                                "AND state_id != :divisionId");
-
+                Query codeCheck = entityManager.createQuery(
+                        "SELECT COUNT(d) FROM StateCode d WHERE d.state_code = :code AND d.state_id != :divisionId",
+                        Long.class);
                 codeCheck.setParameter("code", newCode);
                 codeCheck.setParameter("divisionId", divisionId);
 
-                int codeCount = ((Number)codeCheck.getSingleResult()).intValue();
-
-                if (codeCount > 0) {
+                if ((Long)codeCheck.getSingleResult() > 0L) {
                     return ResponseService.generateErrorResponse(
                             "Division code must be unique across all zones",
                             HttpStatus.CONFLICT);
                 }
-
-                division.setState_code(newCode.toUpperCase());
+                division.setState_code(newCode);
             }
 
-            // 4. Process zone update if parameter provided
-            if (zoneId != null && !zoneId.equals(currentZoneId)) {
-                // Validate new zone exists and is active
-                Zone newZone = entityManager.createQuery(
-                                "SELECT z FROM Zone z " +
-                                        "WHERE z.zoneId = :zoneId " +
-                                        "AND z.archived = false",
-                                Zone.class)
-                        .setParameter("zoneId", zoneId)
-                        .getSingleResult();
+            // 5. Process zone updates if zoneIds parameter provided
+            if (zoneIds != null) {
+                // Validate exactly one zone is provided
+                if (zoneIds.size() != 1) {
+                    return ResponseService.generateErrorResponse(
+                            "Exactly one zone ID must be provided",
+                            HttpStatus.BAD_REQUEST);
+                }
 
-                // Check if division name already exists in NEW zone
-                if (requestBody.containsKey("division_name")) {
-                    String divisionName = requestBody.get("division_name");
-                    Query nameConflictCheck = entityManager.createNativeQuery(
-                            "SELECT COUNT(*) FROM zone_divisions zd " +
-                                    "JOIN custom_state_codes d ON zd.division_id = d.state_id " +
-                                    "WHERE zd.zone_id = :zoneId " +
-                                    "AND LOWER(d.state_name) = LOWER(:name)");
+                Integer newZoneId = zoneIds.get(0);
 
-                    nameConflictCheck.setParameter("zoneId", zoneId);
-                    nameConflictCheck.setParameter("name", divisionName);
+                // Check if the new zone is the same as current active zone
+                boolean alreadyCorrectMapping = currentZoneMappings.stream()
+                        .anyMatch(zd -> zd.getZone().getZoneId().equals(newZoneId) && !zd.getArchived());
 
-                    int conflictCount = ((Number)nameConflictCheck.getSingleResult()).intValue();
+                if (!alreadyCorrectMapping) {
+                    // Archive all existing active mappings for this division
+                    if (!currentZoneMappings.isEmpty()) {
+                        Query archiveQuery = entityManager.createQuery(
+                                "UPDATE ZoneDivisions zd SET zd.archived = true " +
+                                        "WHERE zd.divisions.state_id = :divisionId AND zd.archived = false");
+                        archiveQuery.setParameter("divisionId", divisionId);
+                        archiveQuery.executeUpdate();
+                    }
 
-                    if (conflictCount > 0) {
+                    // Check if the new zone mapping already exists (but archived)
+                    Zone newZone = entityManager.find(Zone.class, newZoneId);
+                    if (newZone == null || newZone.getArchived()) {
                         return ResponseService.generateErrorResponse(
-                                "Target zone already has a division with this name",
-                                HttpStatus.CONFLICT);
+                                "Zone not found or is archived",
+                                HttpStatus.NOT_FOUND);
+                    }
+
+                    // Check for existing archived mapping to reactivate
+                    ZoneDivisions existingMapping = entityManager.createQuery(
+                                    "SELECT zd FROM ZoneDivisions zd " +
+                                            "WHERE zd.divisions.state_id = :divisionId " +
+                                            "AND zd.zone.zoneId = :zoneId", ZoneDivisions.class)
+                            .setParameter("divisionId", divisionId)
+                            .setParameter("zoneId", newZoneId)
+                            .getResultStream()
+                            .findFirst()
+                            .orElse(null);
+
+                    if (existingMapping != null) {
+                        // Reactivate archived mapping
+                        existingMapping.setArchived(false);
+                        entityManager.merge(existingMapping);
+                    } else {
+                        // Create new mapping
+                        ZoneDivisions newMapping = new ZoneDivisions();
+                        newMapping.setZone(newZone);
+                        newMapping.setDivisions(division);
+                        newMapping.setArchived(false);
+                        entityManager.persist(newMapping);
                     }
                 }
-
-                // Update zone linkage
-                Query updateQuery = entityManager.createNativeQuery(
-                        "UPDATE zone_divisions " +
-                                "SET zone_id = :newZoneId " +
-                                "WHERE division_id = :divisionId");
-
-                updateQuery.setParameter("newZoneId", zoneId);
-                updateQuery.setParameter("divisionId", divisionId);
-
-                int updatedRows = updateQuery.executeUpdate();
-
-                if (updatedRows == 0) {
-                    // Insert new linkage if no existing record
-                    Query maxIdQuery = entityManager.createNativeQuery(
-                            "SELECT MAX(zonedivisionid) FROM zone_divisions");
-                    BigInteger maxId = (BigInteger) maxIdQuery.getSingleResult();
-                    int newZoneDivisionId = (maxId != null) ? maxId.intValue() + 1 : 1;
-
-                    Query insertQuery = entityManager.createNativeQuery(
-                            "INSERT INTO zone_divisions (zonedivisionid, zone_id, division_id) " +
-                                    "VALUES (:zoneDivId, :zoneId, :divId)");
-
-                    insertQuery.setParameter("zoneDivId", newZoneDivisionId);
-                    insertQuery.setParameter("zoneId", zoneId);
-                    insertQuery.setParameter("divId", divisionId);
-                    insertQuery.executeUpdate();
-                }
-
-                currentZoneId = zoneId;
-                currentZone = newZone;
             }
 
-            // 5. Save division changes
+            // 6. Save all changes
             entityManager.merge(division);
 
-            // 6. Build response
+            // 7. Get updated zone information for response
+            List<Integer> finalZoneIds = zoneIds != null ? zoneIds : currentZoneIds;
+            List<Zone> updatedZones = finalZoneIds.isEmpty() ? Collections.emptyList() :
+                    entityManager.createQuery(
+                                    "SELECT z FROM Zone z WHERE z.zoneId IN :zoneIds AND z.archived = false", Zone.class)
+                            .setParameter("zoneIds", finalZoneIds)
+                            .getResultList();
+
+            // 8. Build response
             Map<String, Object> response = new HashMap<>();
             response.put("divisionId", division.getState_id());
             response.put("divisionName", division.getState_name());
             response.put("divisionCode", division.getState_code());
-            response.put("zoneId", currentZoneId);
-            response.put("zoneName", currentZone != null ? currentZone.getZoneName() : null);
-
-            String message = "Division updated successfully";
-            if (zoneId != null) {
-                message += " and zone linkage updated";
-            }
+            response.put("zoneIds", updatedZones.stream().map(Zone::getZoneId).collect(Collectors.toList()));
+            response.put("zoneNames", updatedZones.stream().map(Zone::getZoneName).collect(Collectors.toList()));
 
             return ResponseService.generateSuccessResponse(
-                    message,
+                    zoneIds != null ? "Division and zone linkage updated successfully" : "Division updated successfully",
                     response,
                     HttpStatus.OK);
 
         } catch (NoResultException e) {
-            return ResponseService.generateErrorResponse(
-                    "Division or zone not found or is archived",
-                    HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse("Division not found or is archived", HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseService.generateErrorResponse(

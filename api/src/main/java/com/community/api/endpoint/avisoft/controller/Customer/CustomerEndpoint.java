@@ -26,6 +26,7 @@ import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.profile.core.domain.*;
 import org.broadleafcommerce.profile.core.service.AddressService;
@@ -39,6 +40,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -165,6 +167,8 @@ public class CustomerEndpoint {
     private SharedUtilityService sharedUtilityService;
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
+    @Autowired
+    private StatusChangeEmailService statusChangeEmailService;
 
     public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -832,7 +836,7 @@ public class CustomerEndpoint {
                                 Objects.equals(curr.getStateProvinceRegion(), perm.getStateProvinceRegion());
 
                 customCustomer.setIsSameAsCurrentAddress(addressesMatch);
-                em.merge(customCustomer);
+//                em.merge(customCustomer);
             }
 
             if (details.containsKey("adharNumber")) {
@@ -993,16 +997,16 @@ public class CustomerEndpoint {
                         String validUpto = (String) details.get("otherCategoryValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                         } else {
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                             customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat);
+                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
                     }
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
                     customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"), dateFormat));
@@ -1048,16 +1052,16 @@ public class CustomerEndpoint {
                         String validUpto = (String) details.get("domicileValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat);
+                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                         } else {
-                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
+                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                             customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat);
+                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
                     }
                     customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"), dateFormat));
                 } else if (domicile.equals(false)) {
@@ -1299,7 +1303,7 @@ public class CustomerEndpoint {
 
                     customCustomer.setOtherItems(existingItems);
                     customCustomer.setOtherReligion((String) details.get("otherReligion"));
-                    entityManager.merge(customCustomer);
+//                    entityManager.merge(customCustomer);
                 }
 //
             }
@@ -1389,7 +1393,7 @@ public class CustomerEndpoint {
 
                     customCustomer.setOtherItems(existingItems);
                     customCustomer.setOtherCategory((String) details.get("otherCategory"));
-                    entityManager.merge(customCustomer);
+//                    entityManager.merge(customCustomer);
                 }
 //
 
@@ -1557,6 +1561,7 @@ public class CustomerEndpoint {
             }*/
 
             if (!errorMessages.isEmpty()) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                 String message = String.join(", ", errorMessages.values());
                 return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
             }
@@ -1567,7 +1572,7 @@ public class CustomerEndpoint {
                 Boolean value= (Boolean) details.get("isAcknowledged");
                 customCustomer.setIsAcknowledged(value);
             }
-            if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null) {
+            if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null && errorMessages.isEmpty()) {
                 customCustomer.setEmailActive(true);
                 em.merge(customCustomer);
                 List<String> email = new ArrayList<>();
@@ -1584,18 +1589,21 @@ public class CustomerEndpoint {
             } else {
                 em.merge(customCustomer);
             }
+            entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
-        } catch (ClassCastException classCastException) {
+        }
+        catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandling.handleException(illegalArgumentException);
+            return ResponseService.generateSuccessResponse(illegalArgumentException.getMessage(),"illegalArgumentException",HttpStatus.BAD_REQUEST);
+        }
+        catch (ClassCastException classCastException) {
             exceptionHandling.handleException(classCastException);
             return ResponseService.generateSuccessResponse("Invalid Casting: " + classCastException.getMessage(),"classCastException", HttpStatus.BAD_REQUEST);
         } catch (ParseException parseException) {
             exceptionHandling.handleException(parseException);
             return ResponseService.generateSuccessResponse("Unparsable Exception: " + parseException.getMessage(),"parseException", HttpStatus.BAD_REQUEST);
-        } catch (NumberFormatException exception) {
-            exceptionHandling.handleException(exception);
-            return ResponseService.generateSuccessResponse("Invalid Format: " + exception.getMessage(),"invalidFormat", HttpStatus.BAD_REQUEST);
-        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
+        }  catch (DataIntegrityViolationException dataIntegrityViolationException) {
             exceptionHandling.handleException(dataIntegrityViolationException);
             return ResponseService.generateSuccessResponse("Error updating " + dataIntegrityViolationException.getMessage(),"dataIntegrityViolation", HttpStatus.BAD_REQUEST);
         } catch (ConstraintViolationException constraintViolationException) {
@@ -1662,7 +1670,7 @@ public class CustomerEndpoint {
                 if(ticket==null)
                     return ResponseService.generateErrorResponse("Invalid ticket",HttpStatus.BAD_REQUEST);
                 Order order=orderService.findOrderById(ticket.getOrder().getId());
-                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId))
+                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId)||(ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW)||ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             }
 
@@ -2259,47 +2267,95 @@ public class CustomerEndpoint {
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
                                                     @RequestParam(value = "limit", defaultValue = "10") int limit,
-                                                    @RequestHeader(value = "Authorization") String authHeader) {
+                                                    @RequestHeader(value = "Authorization") String authHeader,
+                                                    @RequestParam(value = "unique_products", required = false, defaultValue = "true") boolean uniqueProducts) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
             Role role = roleService.getRoleByRoleId(roleId);
 
-            //checking for super admin and admin
+            // Authorization check
             if ((role.getRole_name().equals(roleUser) && !Objects.equals(tokenUserId, customer_id)) || role.getRole_name().equals(roleServiceProvider))
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            // Validate pagination parameters
 
-            if (offset < 0) throw new IllegalArgumentException("Offset for pagination cannot be negative");
+            // Validate pagination
+            if (offset < 0) throw new IllegalArgumentException("Offset cannot be negative");
             if (limit <= 0) throw new IllegalArgumentException("Limit must be positive");
 
-            // Validate customer existence
+            // Validate customer
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
 
-            // Fetch valid orders (excluding failed payment status 999)
+            // Broadleaf-compliant query
+            String queryString;
+            if (uniqueProducts) {
+                queryString = "SELECT t.order_id FROM (" +
+                        "SELECT o.order_id, oi.order_item_id, o.submit_date, " +
+                        "attr.value as product_id, " +
+                        "ROW_NUMBER() OVER (PARTITION BY attr.value ORDER BY o.submit_date DESC) as rn " +
+                        "FROM BLC_ORDER o " +
+                        "JOIN BLC_ORDER_ITEM oi ON o.order_id = oi.order_id " +
+                        "JOIN BLC_ORDER_ITEM_ATTRIBUTE attr ON oi.order_item_id = attr.order_item_id " +
+                        "WHERE o.customer_id = :customerId " +
+                        "AND o.order_status != 'FAILED' " +
+                        "AND attr.name = 'productId'" +
+                        ") t WHERE t.rn = 1";
+            } else {
+                queryString = "SELECT DISTINCT o.order_id, o.submit_date FROM BLC_ORDER o " + // Added submit_date to SELECT
+                        "JOIN BLC_ORDER_ITEM oi ON o.order_id = oi.order_id " +
+                        "JOIN BLC_ORDER_ITEM_ATTRIBUTE attr ON oi.order_item_id = attr.order_item_id " +
+                        "WHERE o.customer_id = :customerId " +
+                        "AND o.order_status != 'FAILED' " +
+                        "AND attr.name = 'productId' " +
+                        "ORDER BY o.submit_date DESC";
+            }
 
-
-            Query query = entityManager.createNativeQuery(APPLIED_FORM_QUERY);
+            Query query = entityManager.createNativeQuery(queryString);
             query.setParameter("customerId", customer_id);
 
-            List<BigInteger> orderIds = query.getResultList();
+            List<Object[]> resultList = query.getResultList();
+
+            List<BigInteger> orderIds = new ArrayList<>();
+            for (Object[] row : resultList) {
+                BigInteger orderId = (BigInteger) row[0]; // order_id
+                orderIds.add(orderId);
+            }
             List<CustomProductWrapper> appliedForms = new ArrayList<>();
+            Set<Long> processedProductIds = new HashSet<>();
 
             for (BigInteger id : orderIds) {
                 Order order = orderService.findOrderById(id.longValue());
                 if (order == null || order.getOrderItems().isEmpty()) continue;
 
-                OrderItem orderItem = order.getOrderItems().get(0);
-                Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
-                CustomProduct product = entityManager.find(CustomProduct.class, productId);
+                // Get productId from OrderItemAttributes (Map<String, OrderItemAttribute>)
+                Long productId = null;
+                OrderItem firstItem = order.getOrderItems().get(0);
+                Map<String, OrderItemAttribute> attributes = firstItem.getOrderItemAttributes();
 
-                if (product != null && ((Status) product).getArchived() != 'Y') {
+                if (attributes != null) {
+                    OrderItemAttribute productIdAttr = attributes.get("productId");
+                    if (productIdAttr != null) {
+                        productId = Long.parseLong(productIdAttr.getValue());
+                    }
+                }
+
+                if (productId == null) continue;
+
+                // Skip duplicates when unique_products=true
+                if (uniqueProducts && processedProductIds.contains(productId)) {
+                    continue;
+                }
+
+                CustomProduct product = entityManager.find(CustomProduct.class, productId);
+                if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(product, request,reserveCategoryService,reserveCategoryAgeService,genderService,customer,sharedUtilityService);
+                    wrapper.wrapDetails(product, request, reserveCategoryService,
+                            reserveCategoryAgeService, genderService,
+                            customer, sharedUtilityService);
                     appliedForms.add(wrapper);
+                    processedProductIds.add(productId);
                 }
             }
 
@@ -2307,30 +2363,31 @@ public class CustomerEndpoint {
             int totalItems = appliedForms.size();
             int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / limit);
             if (offset >= totalPages && offset != 0)
-                return ResponseService.generateErrorResponse("No more filled forms available", HttpStatus.BAD_REQUEST);
+                return ResponseService.generateErrorResponse("No more forms available", HttpStatus.BAD_REQUEST);
 
-            int fromIndex = offset * limit;
-            int toIndex = Math.min(fromIndex + limit, totalItems);
-            List<CustomProductWrapper> paginatedList = totalItems == 0 ? Collections.emptyList() : appliedForms.subList(fromIndex, toIndex);
+            List<CustomProductWrapper> paginatedList = appliedForms.stream()
+                    .skip(offset * limit)
+                    .limit(limit)
+                    .collect(Collectors.toList());
 
             // Response
-            Map<String, Object> response = Map.of(
-                    "forms", paginatedList,
-                    "totalItems", totalItems,
-                    "totalPages", totalPages,
-                    "currentPage", offset
-            );
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", paginatedList);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+            response.put("uniqueProducts", uniqueProducts);
 
-            return ResponseService.generateSuccessResponse("Ordered forms retrieved successfully", response, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Forms retrieved successfully", response, HttpStatus.OK);
 
         } catch (NumberFormatException e) {
-            return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("Invalid customer ID format", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
-            return new ResponseEntity<>("Exception: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse("Error retrieving forms", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -2579,14 +2636,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString,Map<String,String> errorMessages, String dateOfIssueFieldName,String dateOfExpireFieldName) throws Exception {
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                throw new IllegalArgumentException("Date of Issue must be in " + dateFormatInString + " format");
+                errorMessages.put(dateOfIssueFieldName,"Date of Issue must be in " + dateFormatInString + " format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2594,19 +2651,19 @@ public class CustomerEndpoint {
             if (validUptoStr != null) {
 
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    throw new IllegalArgumentException("Valid Upto Date must be in " + dateFormatInString + " format");
+                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date must be in " + dateFormatInString + " format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
                 // Check if validUpto is before dateOfIssue
                 if (validUpto.before(dateOfIssue)) {
-                    throw new IllegalArgumentException("Valid Upto Date cannot be before Date of Issue");
+                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date cannot be before Date of Issue " + dateFormatInString + " format");
                 }
             }
             return true;
         } catch (IllegalArgumentException ex) {
             exceptionHandlingService.handleException(ex);
-            throw ex; // Rethrow with meaningful context
+            throw new IllegalArgumentException(ex.getMessage());
         } catch (ParseException ex) {
             exceptionHandlingService.handleException(ex);
             throw new IllegalArgumentException("Invalid date format", ex);
@@ -3058,6 +3115,7 @@ public class CustomerEndpoint {
         List<Long> ids = getLongList(map, "userIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
+        List<CustomCustomer> processedCustomers = new ArrayList<>(); // Add this line
         String actionReq = null;
         if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
@@ -3108,7 +3166,7 @@ public class CustomerEndpoint {
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
             if (action.equals(Constant.ACTION_SUSPEND)) {
-                sharedUtilityService.blackListToken(customCustomer.getToken(), 5, customCustomer.getId());
+                sharedUtilityService.blackListToken(customCustomer.getToken(), Constant.CUSTOMER_ROLE_ID, customCustomer.getId());
                 logout(customCustomer.getToken());
             } else {
                 sharedUtilityService.removeToken(customCustomer.getToken());
@@ -3116,6 +3174,10 @@ public class CustomerEndpoint {
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);
+            processedCustomers.add(customCustomer);
+        }
+        if (!processedCustomers.isEmpty()) {
+            statusChangeEmailService.sendCustomerStatusChangeEmails(processedCustomers, action, authHeader);
         }
         Map<String, Object> response = new HashMap<>();
         if (skippedIds.isEmpty()) {
@@ -3343,7 +3405,7 @@ public class CustomerEndpoint {
         Map<String, Object> response = new HashMap<>();
         response.put("forms", wrappers);
         response.put("totalItems", resultCount);
-        response.put("totalPages", resultCount.longValue() / limit);
+        response.put("totalPages", (resultCount.longValue() / limit)+1);
         response.put("currentPage", offset + 1);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }

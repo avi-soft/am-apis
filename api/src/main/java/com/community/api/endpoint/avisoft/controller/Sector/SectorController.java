@@ -19,6 +19,8 @@ import com.community.api.services.SectorService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.StaticDataService;
 import com.community.api.services.exception.ExceptionHandlingService;
+import org.broadleafcommerce.core.catalog.domain.Category;
+import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -154,84 +156,113 @@ public class SectorController {
     ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
     SharedUtilityService sharedUtilityService;
-    @GetMapping("/get-products-by-sectors")
-    public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectors", required = false) String sectors
-            ,@RequestParam(value = "limit",required = false,defaultValue = "10")Integer limit
-            ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
-            ,@RequestHeader(value = "Authorization", required = false) String authHeader
-            ,@RequestParam(value = "name-only",required = false,defaultValue = "true") Boolean nameOnly)
-    {
-        CustomCustomer customCustomer = null;
-        String role=Constant.roleUser;
-        if (authHeader != null) {
-            String jwtToken = authHeader.substring(7);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            role  = roleService.findRoleName(roleId);
-            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            if (roleId == 5)
-                customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
-        }
-        List<Long> longList=new ArrayList<>();
-        if(sectors!=null) {
-             longList= Arrays.stream(sectors.split(","))
-                    .map(Long::parseLong)
-                    .collect(Collectors.toList());
-        }
-       /* CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
-        if(customSector==null)
-            return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);*/
-        List<Object[]> rows =sectorService.getCompressedProductsBySector(longList,offset,limit);
-        System.out.println("res"+rows);
-        BigInteger count=sectorService.getCompressedProductsBySectorCount(longList);
-        List<SectorDTO>adv=new ArrayList<>();
-        for (Object[] row : rows) {
-            SectorDTO dto=new SectorDTO();
-            dto.setSectorId(((BigInteger) row[0]).longValue());
-            dto.setSectorDescription((String) row[1]);
-            dto.setSectorName((String)row[2]);
-            adv.add(dto);
-            if(!nameOnly)
-            {
-            String productIdsStr = row[3].toString(); // row[2] contains comma-separated product IDs
-            String[] productIdStrings = productIdsStr.split(",");
 
-            for (String idStr : productIdStrings) {
-                try {
-                    Long id = Long.parseLong(idStr.trim());
-                    CustomProduct product = entityManager.find(CustomProduct.class, id);
-                    if (product != null) {
-                        CompressedProductWrapper compressedProductWrapper = new CompressedProductWrapper();
-                        compressedProductWrapper.wrapDetails(product, request, reserveCategoryService, reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
-                        dto.getProducts().add(compressedProductWrapper);
-                    }
-                } catch (NumberFormatException e) {
-                    // Skip invalid ID strings
-                    System.err.println("Invalid product ID: " + idStr);
+    @Autowired
+    CatalogService catalogService;
+    @GetMapping("/get-products-by-sectors")
+    public ResponseEntity<?> getProductsByAdvertisementId(
+            @RequestParam(value = "sectors", required = false) String sectors,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "name-only", required = false, defaultValue = "true") Boolean nameOnly,
+            @RequestParam(value = "categoryId", required = false) List<Long> categoryId) {
+
+        try {
+            CustomCustomer customCustomer = null;
+            String role = Constant.roleUser;
+
+            if (authHeader != null) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                role = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleId == 5) {
+                    customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
                 }
             }
+            if(categoryId!=null)
+            {
+                for(Long id:categoryId) {
+                    Category category = catalogService.findCategoryById(id);
+                    if(category==null)
+                        return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
+                }
             }
-        }
-        int totalItems = count.intValue();
-        int totalPages = (int) Math.ceil((double) totalItems / limit);
-        int fromIndex = offset * limit;
-        int toIndex = Math.min(fromIndex + limit, totalItems);
+            List<Long> longList = new ArrayList<>();
+            if (sectors != null) {
+                longList = Arrays.stream(sectors.split(","))
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+            }
 
-        if (fromIndex >= totalItems && offset != 0) {
-            return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            // Ensure categoryId is not null
+            if (categoryId == null) {
+                categoryId = new ArrayList<>();
+            }
+
+            List<Object[]> rows = sectorService.getCompressedProductsBySector(longList, offset, limit, categoryId);
+            BigInteger count = sectorService.getCompressedProductsBySectorCount(longList, categoryId);
+
+            List<SectorDTO> adv = new ArrayList<>();
+            for (Object[] row : rows) {
+                SectorDTO dto = new SectorDTO();
+                dto.setSectorId(((BigInteger) row[0]).longValue());
+                dto.setSectorDescription((String) row[1]);
+                dto.setSectorName((String) row[2]);
+                adv.add(dto);
+
+                if (!nameOnly) {
+                    String productIdsStr = row[3].toString();
+                    String[] productIdStrings = productIdsStr.split(",");
+
+                    for (String idStr : productIdStrings) {
+                        try {
+                            Long id = Long.parseLong(idStr.trim());
+                            CustomProduct product = entityManager.find(CustomProduct.class, id);
+                            if (product != null) {
+                                CompressedProductWrapper compressedProductWrapper = new CompressedProductWrapper();
+                                compressedProductWrapper.wrapDetails(product, request, reserveCategoryService,
+                                        reserveCategoryAgeService, genderService, customCustomer, sharedUtilityService);
+                                dto.getProducts().add(compressedProductWrapper);
+                            }
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid product ID: " + idStr);
+                        }
+                    }
+                }
+            }
+
+            int totalItems = count.intValue();
+            int totalPages = (int) Math.ceil((double) totalItems / limit);
+            int fromIndex = offset * limit;
+            int toIndex = Math.min(fromIndex + limit, totalItems);
+
+            if (fromIndex >= totalItems && offset != 0) {
+                return ResponseService.generateErrorResponse("Page index out of range", HttpStatus.BAD_REQUEST);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("sectors", adv);
+            response.put("totalItems", totalItems);
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset);
+
+            return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseService.generateErrorResponse("Failed to retrieve sectors: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        // Construct paginated response
-        Map<String, Object> response = new HashMap<>();
-        response.put("sectors", adv);
-        response.put("totalItems", totalItems);
-        response.put("totalPages", totalPages);
-        response.put("currentPage", offset);
-        return ResponseService.generateSuccessResponse("SECTORS RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
     }
+
     @GetMapping("/get-products-by-sector-id")
     public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
             ,@RequestParam(value = "limit",required = false,defaultValue = "10")Integer limit
             ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
-            ,@RequestHeader(value = "Authorization", required = false) String authHeader)
+            ,@RequestHeader(value = "Authorization", required = false) String authHeader
+            ,@RequestParam(value = "categoryId", required = false) List<Long> categoryId)
     {
         CustomCustomer customCustomer = null;
         String role=Constant.roleUser;
@@ -243,17 +274,23 @@ public class SectorController {
             if (roleId == 5)
                 customCustomer = entityManager.find(CustomCustomer.class, tokenUserId);
         }
-
-
+        if(categoryId!=null)
+        {
+            for(Long id:categoryId) {
+                Category category = catalogService.findCategoryById(id);
+                if(category==null)
+                    return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
+            }
+        }
        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
         if(customSector==null)
             return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
-        BigInteger count=sectorService.getCompressedProductsCount(sectorId);
+        BigInteger count=sectorService.getCompressedProductsCount(sectorId,categoryId);
         SectorDTO sectorDTO=new SectorDTO();
         sectorDTO.setSectorName(customSector.getSectorName());
         sectorDTO.setSectorDescription(customSector.getSectorDescription());
         sectorDTO.setSectorId(customSector.getSectorId());
-        List<BigInteger> productIds = sectorService.getCompressedProductBySector(sectorId, offset, limit);
+        List<BigInteger> productIds = sectorService.getCompressedProductBySector(sectorId, offset, limit,categoryId);
         List<CompressedProductWrapper> products = new ArrayList<>();
         for (BigInteger productId : productIds) {
             CustomProduct product = entityManager.find(CustomProduct.class, productId.longValue());

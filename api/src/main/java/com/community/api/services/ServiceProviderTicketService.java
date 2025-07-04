@@ -1266,7 +1266,7 @@ public class ServiceProviderTicketService {
         }
     }
 
-    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays) throws Exception {
+    public List<CustomServiceProviderTicket> filterTicket(List<Long> states, List<Long> types, Long userId, Role role, Date dateFrom, Date dateTo, List<Long> statuses, List<Long> assigneeUserIds, Boolean dueInThreeDays, Boolean archived) throws Exception {
         try {
             // Initialize the JPQL query
             StringBuilder jpql = new StringBuilder("SELECT c FROM CustomServiceProviderTicket c ")
@@ -1339,6 +1339,10 @@ public class ServiceProviderTicketService {
                 }
             }
 
+            if(archived != null ) {
+                jpql.append("AND c.archived = :archived ");
+            }
+
             jpql.append("ORDER BY modified_date DESC NULLS LAST ");
             // Create the query with the final JPQL string
             TypedQuery<CustomServiceProviderTicket> query = entityManager.createQuery(jpql.toString(), CustomServiceProviderTicket.class);
@@ -1385,6 +1389,10 @@ public class ServiceProviderTicketService {
                 query.setParameter("threeDaysLater", threeDaysLater);
             }
 
+            if(archived != null ) {
+                query.setParameter("archived", archived);
+            }
+
             // Execute and return the result
             return query.getResultList();
         } catch (Exception exception) {
@@ -1422,9 +1430,10 @@ public class ServiceProviderTicketService {
             if (orderId == null || orderId <= 0) {
                 throw new IllegalArgumentException("OrderId cannot be <=0 or null");
             }
+            OrderImpl order = entityManager.find(OrderImpl.class, orderId);
 
             Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID, CustomServiceProviderTicket.class);
-            query.setParameter("orderId", orderId);
+            query.setParameter("orderId", order);
             List<CustomServiceProviderTicket> ticket = query.getResultList();
 
             if (!ticket.isEmpty()) {
@@ -1440,13 +1449,52 @@ public class ServiceProviderTicketService {
     }
 
     @Transactional
+    public List<CustomServiceProviderTicket> fetchChildTicketByTicketId(Long parentTicketId) throws Exception {
+        try {
+            if (parentTicketId == null || parentTicketId <= 0) {
+                throw new IllegalArgumentException("parentTicketId cannot be <=0 or null");
+            }
+
+            CustomServiceProviderTicket parentTicket = entityManager.find(CustomServiceProviderTicket.class, parentTicketId);
+            Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_PARENT_TICKET_ID, CustomServiceProviderTicket.class);
+            query.setParameter("parentTicketId", parentTicket);
+            List<CustomServiceProviderTicket> ticket = query.getResultList();
+
+            if (!ticket.isEmpty()) {
+                return ticket;
+            } else {
+                return null;
+            }
+
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException.getMessage());
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
     public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket) throws Exception {
         try {
             if (ticket == null) {
-                throw new IllegalArgumentException("Ticket cannot null");
+                throw new IllegalArgumentException("Ticket is null");
             }
-            // Need to add logic here.
+            // find all the review ticket which are associated with this ticket and archive them as well.
+            List<CustomServiceProviderTicket> childTickets = fetchChildTicketByTicketId(ticket.getTicketId());
+            if(childTickets != null) {
+                for(CustomServiceProviderTicket childTicket: childTickets) {
+                    childTicket.setArchived(true);
+                    entityManager.merge(childTicket);
+                }
+            }
+
+            ticket.setArchived(true);
             return entityManager.merge(ticket);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new Exception(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception("Exception caught: " + exception.getMessage());

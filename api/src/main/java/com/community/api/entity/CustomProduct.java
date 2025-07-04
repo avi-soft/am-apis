@@ -218,7 +218,6 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "soft_delete", columnDefinition = "VARCHAR(1) DEFAULT 'N'")
     private String del;
 
-
     @ElementCollection
     @CollectionTable(name = "product_purchasers",
             joinColumns = @JoinColumn(name = "product_id"))
