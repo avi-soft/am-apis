@@ -167,6 +167,8 @@ public class CustomerEndpoint {
     private SharedUtilityService sharedUtilityService;
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
+    @Autowired
+    private StatusChangeEmailService statusChangeEmailService;
 
     public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -3112,6 +3114,7 @@ public class CustomerEndpoint {
         List<Long> ids = getLongList(map, "userIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
+        List<CustomCustomer> processedCustomers = new ArrayList<>(); // Add this line
         String actionReq = null;
         if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
@@ -3162,7 +3165,7 @@ public class CustomerEndpoint {
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
             if (action.equals(Constant.ACTION_SUSPEND)) {
-                sharedUtilityService.blackListToken(customCustomer.getToken(), 5, customCustomer.getId());
+                sharedUtilityService.blackListToken(customCustomer.getToken(), Constant.CUSTOMER_ROLE_ID, customCustomer.getId());
                 logout(customCustomer.getToken());
             } else {
                 sharedUtilityService.removeToken(customCustomer.getToken());
@@ -3170,6 +3173,10 @@ public class CustomerEndpoint {
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);
+            processedCustomers.add(customCustomer);
+        }
+        if (!processedCustomers.isEmpty()) {
+            statusChangeEmailService.sendCustomerStatusChangeEmails(processedCustomers, action, authHeader);
         }
         Map<String, Object> response = new HashMap<>();
         if (skippedIds.isEmpty()) {
