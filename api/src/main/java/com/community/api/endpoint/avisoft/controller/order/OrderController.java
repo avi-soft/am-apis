@@ -843,8 +843,11 @@ public class OrderController {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
+            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
+                throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
+            }
+
             OrderItem orderItem = order.getOrderItems().get(0);
-            Product product = findProductFromItemAttribute(orderItem);
 
             // Here we need to add a max amount as well depending on what customer paid.
             if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
