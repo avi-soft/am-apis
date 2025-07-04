@@ -52,7 +52,7 @@ BEGIN
 		    END IF;
 
 		    -- Always validate eligibility against ticket_completed
-		    IF sp_record.ticket_completed IS NOT NULL AND sp_record.ticket_completed > 3 THEN
+		    IF sp_record.ticket_completed IS NOT NULL AND sp_record.ticket_completed > 4 THEN
 		        UPDATE public.service_provider
 		        SET is_eligible_for_re_ranking = true
 		        WHERE service_provider_id = sp_record.service_provider_id;

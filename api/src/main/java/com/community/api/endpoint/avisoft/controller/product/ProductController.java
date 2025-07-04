@@ -744,7 +744,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (offset < 0) {
@@ -865,7 +865,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {
@@ -932,7 +932,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {

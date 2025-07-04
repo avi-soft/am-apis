@@ -325,7 +325,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestParam(defaultValue = "false",required = false)Boolean ext) {
 
         try {

@@ -602,7 +602,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) List<Long> rank,
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "limit", defaultValue = "1000") int limit,
             @RequestParam(required = false) Long ticketId,
             HttpServletRequest request) {
 
@@ -805,7 +805,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
