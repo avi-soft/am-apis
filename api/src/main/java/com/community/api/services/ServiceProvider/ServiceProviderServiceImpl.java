@@ -47,14 +47,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.Column;
 import javax.persistence.EntityManager;
-import javax.persistence.Lob;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
@@ -75,7 +73,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.function.BiConsumer;
 import javax.validation.constraints.Pattern;
 
 import static com.community.api.component.Constant.PHONE_QUERY_SERVICE_PROVIDER_FILTER;
@@ -529,14 +526,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             businessKeys.add("business_name");
 
 
-            businessKeys.add("business_location");
+//            businessKeys.add("business_location");
             businessKeys.add("business_email");
             businessKeys.add("number_of_employees");
-            businessKeys.add("latitude");
-            businessKeys.add("longitude");
+            businessKeys.add("business_latitude");
+            businessKeys.add("business_longitude");
             businessKeys.add("business_geo_location");
             businessKeys.add("isCFormAvailable");
             businessKeys.add("registration_number");
+            businessKeys.add("business_district");
+            businessKeys.add("business_city");
+            businessKeys.add("business_pincode");
+            businessKeys.add("business_state");
+            businessKeys.add("business_address");
 
             if (updates.containsKey("is_running_business_unit")) {
                 Object isRunningObj = updates.get("is_running_business_unit");
@@ -568,7 +570,97 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         }
                     }
 
+                    //Adding business_address for professional SP
+                    List<String> businessAddresssKeys = new ArrayList<>();
+                    businessAddresssKeys.add("business_district");
+                    businessAddresssKeys.add("business_city");
+                    businessAddresssKeys.add("business_pincode");
+                    businessAddresssKeys.add("business_state");
+                    businessAddresssKeys.add("business_address");
+                    businessAddresssKeys.add("business_longitude");
+                    businessAddresssKeys.add("business_latitude");
+                    businessAddresssKeys.add("business_geo_location");
+//                    int businessKeysCount = 0;
+//                    for (String key : updates.keySet()) {
+//                        if (businessAddresssKeys.contains(key))
+//                            businessKeysCount++;
+//                    }
+//                    if (businessKeysCount > 0 && businessKeysCount < businessAddresssKeys.size())
+//                    {
+//                        for (String key : businessAddresssKeys) {
+//                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+//                                errorMessages.put(key, key + " is required to add or update business address");
+//                            }
+//                        }
+//                    }
+                    if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address")&& updates.containsKey("business_longitude")&& updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
+                        existingServiceProvider.setIsAcknowledged(false);
+                        if (validateBusinessAddressFields(updates).isEmpty()) {
+                            boolean flag=false;
+                            Long addId=0L;
+                            for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
+                            {
+                                if(serviceProviderAddress.getAddress_type_id()==1) {
+                                    flag = true;
+                                    addId=serviceProviderAddress.getAddress_id();
+                                    break;
+                                }
+                            }
+                            if (!flag) {
+                                ServiceProviderAddress serviceProviderAddress = new ServiceProviderAddress();
+                                serviceProviderAddress.setAddress_type_id(findAddressName("OFFICE_ADDRESS").getAddress_type_Id());
+                                serviceProviderAddress.setAddress_name("OFFICE_ADDRESS");
+                                serviceProviderAddress.setPincode((String) updates.get("business_pincode"));
+                                serviceProviderAddress.setDistrict((String) updates.get("business_district"));
+                                serviceProviderAddress.setState((String) updates.get("business_state"));
+                                serviceProviderAddress.setCity((String) updates.get("business_city"));
+                                serviceProviderAddress.setAddress_line((String) updates.get("business_address"));
+                                serviceProviderAddress.setLongitude((Double) updates.get("business_longitude"));
+                                serviceProviderAddress.setLatitude((Double) updates.get("business_latitude"));
+                                serviceProviderAddress.setGeoLocation((String) updates.get("business_geo_location"));
+                                if (serviceProviderAddress.getAddress_line() != null || serviceProviderAddress.getCity() != null || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null || serviceProviderAddress.getLongitude()!=null || serviceProviderAddress.getLatitude()!=null || serviceProviderAddress.getGeoLocation()!=null) {
+                                    addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
+                                }
+                            } else {
+                                ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
+                                ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
+                                serviceProviderAddress.setAddress_name("OFFICE_ADDRESS");
+                                serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
+                                serviceProviderAddressDTO.setAddress_id(serviceProviderAddress.getAddress_id());
+                                serviceProviderAddressDTO.setState((String) updates.get("business_state"));
+                                serviceProviderAddressDTO.setDistrict((String) updates.get("business_district"));
+                                serviceProviderAddressDTO.setAddress_line((String) updates.get("business_address"));
+                                serviceProviderAddressDTO.setPincode((String) updates.get("business_pincode"));
 
+                                serviceProviderAddressDTO.setCity((String) updates.get("business_city"));
+                                Object longitudeObj = updates.get("business_longitude");
+                                Object latitudeObj = updates.get("business_latitude");
+
+                                if (longitudeObj instanceof Number) {
+                                    serviceProviderAddressDTO.setLongitude(((Number) longitudeObj).doubleValue());
+                                }
+                                if (latitudeObj instanceof Number) {
+                                    serviceProviderAddressDTO.setLatitude(((Number) latitudeObj).doubleValue());
+                                }
+                                Object geoObj = updates.get("business_geo_location");
+                                if (geoObj != null) {
+                                    serviceProviderAddressDTO.setGeoLocation(geoObj.toString());
+                                }
+
+                                serviceProviderAddressDTO.setServiceProviderEntity(existingServiceProvider);
+                                Map<String, String> addressErrors = updateAddress(
+                                        existingServiceProvider.getService_provider_id(),
+                                        serviceProviderAddress,
+                                        serviceProviderAddressDTO
+                                );
+
+                                errorMessages.putAll(addressErrors);
+
+                            }
+                        } else {
+                            errorMessages.putAll(validateBusinessAddressFields(updates));
+                        }
+                    }
 
                         existingServiceProvider.setIsCFormAvailable((Boolean) updates.get("isCFormAvailable"));
                         if(((Boolean) updates.get("isCFormAvailable")))
@@ -588,64 +680,22 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         updates.remove("isCFormAvailable");
                         updates.remove("registration_number");
 
-
-                        Object latObj = updates.get("latitude");
-                        Double latitude = null;
-
-                        if (latObj instanceof Double) {
-                            latitude = (Double) latObj;
-                        } else if (latObj instanceof String) {
-                            try {
-                                latitude = Double.parseDouble((String) latObj);
-                            } catch (NumberFormatException e) {
-                                errorMessages.put("latitude","Latitude must be a valid number");
-                            }
-                        } else {
-                            errorMessages.put("latitude","Latitude must be a valid number");
-                        }
-
-                        if (latitude != null) {
-                            if (latitude > 90 || latitude < -90) {
-                                errorMessages.put("latitude","Invalid latitude: must be between -90 and 90");
-                            } else {
-                                existingServiceProvider.setLatitude(latitude);
-                            }
-                        }
-
-
-
-                        Object longObj = updates.get("longitude");
-                        Double longitude = null;
-
-                        if (longObj instanceof Double) {
-                            longitude = (Double) longObj;
-                        } else if (longObj instanceof String) {
-                            try {
-                                longitude = Double.parseDouble((String) longObj);
-                            } catch (NumberFormatException e) {
-                                errorMessages.put("longitude","Longitude must be a valid number");
-                            }
-                        } else {
-                            errorMessages.put("longitude","Longitude must be a valid number");
-                        }
-
-                        if (longitude != null) {
-                            if (longitude > 180 || longitude < -180) {
-                                errorMessages.put("longitude","Invalid longitude: must be between -180 and 180");
-                            } else {
-                                existingServiceProvider.setLongitude(longitude);
-                            }
-                        }
-
-
-                    updates.remove("latitude");
-                    updates.remove("longitude");
                     existingServiceProvider.setNumber_of_employees((Integer) updates.get("number_of_employees"));
                     updates.remove("number_of_employees");
 
-                }  else  {
+                }  else {
                     existingServiceProvider.setIs_running_business_unit(false);
                     existingServiceProvider.setBusiness_name(null);
+
+                    // Collect addresses to remove
+                    List<ServiceProviderAddress> toRemove = new ArrayList<>();
+                    for (ServiceProviderAddress serviceProviderAddress : existingServiceProvider.getSpAddresses()) {
+                        if (serviceProviderAddress.getAddress_type_id() == 1) {
+                            toRemove.add(serviceProviderAddress);
+                        }
+                    }
+                    existingServiceProvider.getSpAddresses().removeAll(toRemove);
+
                     existingServiceProvider.setBusiness_location(null);
                     existingServiceProvider.setBusiness_email(null);
                     existingServiceProvider.setNumber_of_employees(null);
@@ -662,17 +712,22 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             serviceProviderDocument.setIsArchived(true );
                         }
                     }
-                    updates.remove("latitude");
-                    updates.remove("longitude");
-                    updates.remove("number_of_employees");
-                    updates.remove("business_email");
-                    updates.remove("business_location");
-                    updates.remove("business_name");
-                    updates.remove("business_geo_location");
-                    updates.remove("registration_number");
-                    updates.remove("isCFormAvailable");
 
                 }
+                updates.remove("number_of_employees");
+                updates.remove("business_email");
+                updates.remove("business_location");
+                updates.remove("business_name");
+                updates.remove("registration_number");
+                updates.remove("isCFormAvailable");
+                updates.remove("business_state");
+                updates.remove("business_district");
+                updates.remove("business_pincode");
+                updates.remove("business_address");
+                updates.remove("business_city");
+                updates.remove("business_longitude");
+                updates.remove("business_latitude");
+                updates.remove("business_geo_location");
             }
             if (updates.containsKey("work_experience_in_months")) {
                 Object workExpMonths = updates.get("work_experience_in_months");
@@ -819,7 +874,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
             if(updates.containsKey("pfpNa")&& (Boolean) updates.get("pfpNa"))
             {
-                System.out.println("hii");
                     Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
                     while (iterator.hasNext()) {
                         ServiceProviderDocument document = iterator.next();
@@ -1373,6 +1427,109 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return errorMessages;
     }
 
+    public Map<String,String> validateBusinessAddressFields(Map<String, Object> updates) {
+        Map<String,String> errorMessages = new HashMap<>();
+        String state = (String) updates.get("business_state");
+        String district = (String) updates.get("business_district");
+        String pincode = (String) updates.get("business_pincode");
+        String city = (String) updates.get("business_city");
+        String businessAddress = (String) updates.get("business_address");
+
+        String[] fieldNames = {
+                "business_state", "business_district",
+                "business_pincode", "business_address",
+                "business_city"
+        };
+        String[] fieldValues = {
+                state, district, pincode, businessAddress, city
+        };
+
+        for (int i = 0; i < fieldValues.length; i++) {
+            if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
+                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
+            }
+        }
+
+        // Validate pincode format
+        String pattern = Constant.PINCODE_REGEXP;
+        if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
+            errorMessages.put("business_pincode","Pincode should contain only numbers and should be of length 6");
+        }
+
+        // Validate city format
+        pattern = Constant.CITY_REGEXP;
+        if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
+            errorMessages.put("business_city","Field city should only contain letters");
+        }
+
+        // Validate permanent_state
+        if (state != null && !state.trim().isEmpty()) {
+            try {
+                String stateName = districtService.findStateById(Integer.parseInt(state));
+                if (stateName == null) {
+                    errorMessages.put("business_state","Invalid State");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.put("business_state","Invalid business State ID format");
+            }
+        }
+
+        // Validate permanent_district
+        if (district != null && !district.trim().isEmpty()) {
+            try {
+                String districtName = districtService.findDistrictById(Integer.parseInt(district));
+                if (districtName == null) {
+                    errorMessages.put("business_district","Invalid District");
+                }
+            } catch (NumberFormatException e) {
+                errorMessages.put("business_district","Invalid business District ID format");
+            }
+        }
+
+        Object latObj = updates.get("business_latitude");
+        Double latitude = null;
+
+        if (latObj instanceof Double) {
+            latitude = (Double) latObj;
+        } else if (latObj instanceof String) {
+            try {
+                latitude = Double.parseDouble((String) latObj);
+            } catch (NumberFormatException e) {
+                errorMessages.put("business_latitude","Latitude must be a valid number");
+            }
+        } else {
+            errorMessages.put("business_latitude","Latitude must be a valid number");
+        }
+
+        if (latitude != null) {
+            if (latitude > 90 || latitude < -90) {
+                errorMessages.put("business_latitude","Invalid latitude: must be between -90 and 90");
+            }
+        }
+
+        Object longObj = updates.get("business_longitude");
+        Double longitude = null;
+
+        if (longObj instanceof Double) {
+            longitude = (Double) longObj;
+        } else if (longObj instanceof String) {
+            try {
+                longitude = Double.parseDouble((String) longObj);
+            } catch (NumberFormatException e) {
+                errorMessages.put("business_longitude","Longitude must be a valid number");
+            }
+        } else {
+            errorMessages.put("business_longitude","Longitude must be a valid number");
+        }
+
+        if (longitude != null) {
+            if (longitude > 180 || longitude < -180) {
+                errorMessages.put("business_longitude","Invalid longitude: must be between -180 and 180");
+            }
+        }
+        return errorMessages;
+    }
+
 
     @Override
     public ServiceProviderEntity getServiceProviderById(Long userId) {
@@ -1811,7 +1968,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             addresses.add(serviceProviderAddress);
             existingServiceProvider.setSpAddresses(addresses);
             serviceProviderAddress.setServiceProviderEntity(existingServiceProvider);
-
             entityManager.persist(serviceProviderAddress);
 
             entityManager.merge(existingServiceProvider);
@@ -1863,6 +2019,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 addressToupdate.setCity(dto.getCity());
             if (dto.getPincode() != null && !dto.getPincode().isEmpty())
                 addressToupdate.setPincode(dto.getPincode());
+            if(dto.getLongitude()!=null)
+            {
+                addressToupdate.setLongitude(dto.getLongitude());
+            }
+            if(dto.getLatitude()!=null)
+            {
+                addressToupdate.setLatitude(dto.getLatitude());
+            }
+            if(dto.getGeoLocation()!=null)
+            {
+                addressToupdate.setGeoLocation(dto.getGeoLocation());
+            }
             existingServiceProvider.setSpAddresses(addresses);
             serviceProviderAddress.setServiceProviderEntity(existingServiceProvider);
         }
