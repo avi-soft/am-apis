@@ -201,7 +201,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates,String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseService.generateErrorResponse("Authorization header is missing or invalid.", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.","authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
@@ -226,10 +226,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (typeStr == null || typeStr.trim().isEmpty()) {
-                    return ResponseService.generateSuccessResponse("Service Provider type cannot be null or empty", "type",HttpStatus.BAD_REQUEST);
+                    errorMessages.put("type","Service Provider type cannot be null or empty");
                 }
-                if (!typeStr.equalsIgnoreCase("PROFESSIONAL") && !typeStr.equalsIgnoreCase("INDIVIDUAL")) {
-                    return ResponseService.generateSuccessResponse("Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.", "type",HttpStatus.BAD_REQUEST);
+                if(typeStr!=null)
+                {
+                    if (!typeStr.equalsIgnoreCase("PROFESSIONAL") && !typeStr.equalsIgnoreCase("INDIVIDUAL")) {
+                        errorMessages.put("type","Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.");
+                    }
                 }
                 existingServiceProvider.setType(typeStr.toUpperCase());
                 type= typeStr.toUpperCase();
@@ -247,14 +250,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
 
                     if (serviceProviderRank == null) {
-                        return ResponseService.generateSuccessResponse("Rank with id " + rankId + " does not exist","rankId", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("rankId","Rank with id " + rankId + " does not exist");
                     }
-                    if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
-                        return ResponseService.generateSuccessResponse("The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d", "rankId",HttpStatus.BAD_REQUEST);
-                    } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
-                        return ResponseService.generateSuccessResponse("The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d", "rankId",HttpStatus.BAD_REQUEST);
+                    if(rankId!=null)
+                    {
+                        if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
+                            errorMessages.put("rankId","The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d");
+                        } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
+                            errorMessages.put("rankId","The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d");
+                        }
                     }
-
                     existingServiceProvider.setAdminOverridden(true);
                     existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setAutoScoring(false);
@@ -267,8 +272,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Object maximumTicketSizeObj = updates.get("maximum_ticket_size");
                     Integer maximumTicketSize = maximumTicketSizeObj instanceof Number ? ((Number) maximumTicketSizeObj).intValue() : null;
 
-                    if(maximumTicketSize < 0) {
-                        return ResponseService.generateSuccessResponse("The maximum ticket size cannot be a negative number.","maximum_ticket_size", HttpStatus.BAD_REQUEST);
+                    if(maximumTicketSize!=null && maximumTicketSize < 0) {
+                        errorMessages.put("maximum_ticket_size","The maximum ticket size cannot be a negative number.");
                     }
                     existingServiceProvider.setMaximumTicketSize(maximumTicketSize);
                     existingServiceProvider.setAdminOverridden(true);
@@ -281,8 +286,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     Object maximumBindingSizeObj = updates.get("maximum_binding_size");
                     Integer maximumBindingSize = maximumBindingSizeObj instanceof Number ? ((Number) maximumBindingSizeObj).intValue() : null;
 
-                    if(maximumBindingSize < 0) {
-                        return ResponseService.generateSuccessResponse("The maximum binding size cannot be a negative number.", "maximum_binding_size",HttpStatus.BAD_REQUEST);
+                    if(maximumBindingSize!=null && maximumBindingSize < 0) {
+                        errorMessages.put("maximum_binding_size","The maximum binding size cannot be a negative number.");
                     }
 
                     existingServiceProvider.setMaximumBindingSize(maximumBindingSize);
@@ -297,10 +302,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             {
                 if(updates.containsKey("rankId") && updates.get("rankId")!=null)
                 {
-                   return ResponseService.generateSuccessResponse("Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank","rankId",HttpStatus.BAD_REQUEST);
+                    errorMessages.put("rankId","Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank");
                 }
-                if(updates.containsKey("maximum_ticket_size") || updates.containsKey("maximum_binding_value")) {
-                    return ResponseService.generateSuccessResponse("Not authorized to update the maximum ticket size or maximum binding size of Service Provider. Only Admin or Super Admin can update it.","maximum_ticket_size",HttpStatus.BAD_REQUEST);
+                if(updates.containsKey("maximum_ticket_size")) {
+                    errorMessages.put("maximum_ticket_size","Not authorized to update the maximum ticket size of Service Provider. Only Admin or Super Admin can update it.");
+                }
+                if(updates.containsKey("maximum_binding_value"))
+                {
+                    errorMessages.put("maximum_binding_value","Not authorized to update the maximum binding size of Service Provider. Only Admin or Super Admin can update it.");
                 }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
@@ -309,10 +318,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (partTimeOrFullTimeStr == null || partTimeOrFullTimeStr.trim().isEmpty()) {
-                    return ResponseService.generateSuccessResponse("Service Provider partTime or FullTime field cannot be null or empty","partTimeOrFullTime", HttpStatus.BAD_REQUEST);
+                    errorMessages.put("partTimeOrFullTime","Service Provider partTime or FullTime field cannot be null or empty");
                 }
                 if (!partTimeOrFullTimeStr.equalsIgnoreCase("PART TIME") && !partTimeOrFullTimeStr.equalsIgnoreCase("FULL TIME")) {
-                    return ResponseService.generateSuccessResponse("Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.", "partTimeOrFullTime",HttpStatus.BAD_REQUEST);
+                    errorMessages.put("partTimeOrFullTime","Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.");
                 }
                 existingServiceProvider.setPartTimeOrFullTime(partTimeOrFullTimeStr.toUpperCase());
             }
@@ -326,10 +335,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
             if (mobileNumber != null && secondaryMobileNumber == null && mobileNumber.equalsIgnoreCase(existingServiceProvider.getSecondary_mobile_number())) {
-                return ResponseService.generateSuccessResponse("Primary and Secondary Mobile Numbers cannot be the same","mobileNumber", HttpStatus.BAD_REQUEST);
+                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
             }
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
-                return ResponseService.generateSuccessResponse("Primary and Secondary Mobile Numbers cannot be the same", "mobileNumber",HttpStatus.BAD_REQUEST);
+                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
             }
             List<String> addresskeys = new ArrayList<>();
             addresskeys.add("district");
@@ -343,7 +352,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     count++;
             }
             if (count > 0 && count < addresskeys.size())
-                return ResponseService.generateSuccessResponse("Need all address fields to add or update address","residential_address", HttpStatus.BAD_REQUEST);
+            {
+                for (String key : addresskeys) {
+                    if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+                        errorMessages.put(key, key + " is required to add or update address");
+                    }
+                }
+            }
 
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
@@ -418,8 +433,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (PermanentAddressKeys.contains(key))
                     KeysCount++;
             }
-            if (KeysCount > 0 && KeysCount < addresskeys.size())
-                return ResponseService.generateSuccessResponse("Need all address fields to add or update address","permanent_residential_address", HttpStatus.BAD_REQUEST);
+            if (KeysCount > 0 && KeysCount < PermanentAddressKeys.size())
+            {
+                for (String key : PermanentAddressKeys) {
+                    if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+                        errorMessages.put(key, key + " is required to add or update permanent address");
+                    }
+                }
+            }
             if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
                 if (validatePAddressFields(updates).isEmpty()) {
@@ -523,9 +544,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 if (isRunning) {
                     if (keysPresent > 0 && keysPresent < businessKeys.size()) {
-                        return ResponseService.generateSuccessResponse(
-                                "Need all business fields to add or update business profile", "is_running_business_unit",HttpStatus.BAD_REQUEST
-                        );
+                        for (String key : businessKeys) {
+                            if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
+                                errorMessages.put(key, key + " is required to add or update business profile");
+                            }
+                        }
                     }
 
                     // Null or empty check for each business field
@@ -534,10 +557,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         if(key.equals("registration_number"))
                             continue;
                         if (value == null || value.toString().trim().isEmpty()) {
-                            return ResponseService.generateSuccessResponse(
-                                    "Field '" + key + "' cannot be null or empty when is_running_business_unit is true",
-                                   key, HttpStatus.BAD_REQUEST
-                            );
+                            errorMessages.put(key,"Field '" + key + "' cannot be null or empty when is_running_business_unit is true");
                         }
                     }
 
@@ -551,7 +571,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
                             }
                             else
-                                return ResponseService.generateSuccessResponse("Registration Number can not be empty or null", "registration_number",HttpStatus.BAD_REQUEST);
+                                errorMessages.put("registration_number","Registration Number can not be empty or null");
 
 
                         }
@@ -656,7 +676,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     try {
                         months = Integer.parseInt(workExpMonths.toString().trim());
                     } catch (NumberFormatException e) {
-                        return ResponseService.generateSuccessResponse("Invalid value for work_experience_in_months","work_experience_in_months", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("work_experience_in_months","Invalid value for work_experience_in_months");
                     }
                 }
 
@@ -665,7 +685,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (months != 0) {
 
                     if (workExp == null || workExp.toString().trim().isEmpty()) {
-                        return ResponseService.generateSuccessResponse("Work Experience description is required ","work_experience_in", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("work_experience_in","Work Experience description is required ");
                     }
                 } else {
 
@@ -692,10 +712,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if ((existingSPByUsername != null) || existingSPByEmail != null) {
                 if (existingSPByUsername != null && !existingSPByUsername.getService_provider_id().equals(userId)) {
-                    return ResponseService.generateSuccessResponse("Username is not available","user_name", HttpStatus.BAD_REQUEST);
+                    errorMessages.put("user_name","Username is not available");
                 }
                 if (existingSPByEmail != null && !existingSPByEmail.getService_provider_id().equals(userId)) {
-                    return ResponseService.generateSuccessResponse("Email already in use", "primary_email",HttpStatus.BAD_REQUEST);
+                    errorMessages.put("primary_email","Email already in use");
                 }
             }
             List<Skill> serviceProviderSkills = new ArrayList<>();
@@ -714,13 +734,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             {
                                 if(!updates.containsKey("other_skill"))
                                 {
-                                    return ResponseService.generateSuccessResponse("You have to enter the other skill","other_skill",HttpStatus.BAD_REQUEST);
+                                    errorMessages.put("other_skill","You have to enter the other skill");
                                 }
                                 else {
                                     String otherSkill = (String)updates.get("other_skill");
                                     if(otherSkill==null || otherSkill.trim().isEmpty())
                                     {
-                                        return ResponseService.generateSuccessResponse("other skill text field cannot be null or empty","other_skill",HttpStatus.BAD_REQUEST);
+                                        errorMessages.put("other_skill","other skill text field cannot be null or empty");
                                     }
                                     assert existingServiceProvider != null;
                                     existingServiceProvider.setOtherSkill(otherSkill);
@@ -758,7 +778,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalSkills <= 4) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(8L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Technical Expertise Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Technical Expertise Score");
                         } else {
                             Integer totalTechnicalScores = totalSkills * scoringCriteriaToMap.getScore();
                             existingServiceProvider.setTechnicalExpertiseScore(totalTechnicalScores);
@@ -768,7 +788,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalSkills >= 5) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(9L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Technical Expertise Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Technical Expertise Score");
                         } else {
                             existingServiceProvider.setTechnicalExpertiseScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -823,7 +843,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalInfras >= 5) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(13L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -831,7 +851,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else if (totalInfras >= 2 && totalInfras <= 4) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(14L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -839,7 +859,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else if (totalInfras == 1) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(15L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -848,7 +868,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 } else if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && ((List<?>) updates.get("infra_list")).isEmpty()) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(16L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for Infra Score", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
                     } else {
                         existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -859,7 +879,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (existingServiceProvider.getPartTimeOrFullTime().equalsIgnoreCase("PART TIME")) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(18L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Part time or Full time Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Part time or Full time Score");
                         } else {
                             existingServiceProvider.setPartTimeOrFullTimeScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -868,7 +888,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (existingServiceProvider.getPartTimeOrFullTime().equalsIgnoreCase("FULL TIME")) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(17L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for Part time or Full time Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Part time or Full time Score");
                         } else {
                             existingServiceProvider.setPartTimeOrFullTimeScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -912,7 +932,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                     .getSingleResult();
 
                             if (aadhaarCount > 0) {
-                                return ResponseService.generateSuccessResponse("Aadhaar number already exists","aadhaar_number", HttpStatus.BAD_REQUEST);
+                                errorMessages.put("aadhaar_number","Aadhaar number already exists");
                             }
                         }
 
@@ -940,7 +960,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 .getSingleResult();
 
                         if (panCount > 0) {
-                            return ResponseService.generateSuccessResponse("PAN number already exists", "pan_number",HttpStatus.BAD_REQUEST);
+                            errorMessages.put("pan_number","PAN number already exists");
                         }
                     }
                 }
@@ -1025,10 +1045,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     field.set(existingServiceProvider, newValue);
                 }
             }
-            if (!errorMessages.isEmpty()) {
-                String message = String.join(", ", errorMessages.values());
-                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
-            }
 
             // Merge the updated entity
             entityManager.merge(existingServiceProvider);
@@ -1046,7 +1062,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 23) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(2L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Work Experience Score", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1055,7 +1071,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 35) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(3L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Work Experience Score", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1064,7 +1080,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 59) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(4L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Work Experience Score", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1072,7 +1088,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 } else if (existingServiceProvider.getWork_experience_in_months() != null && existingServiceProvider.getWork_experience_in_months() >= 60) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(5L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Work Experience Score", HttpStatus.BAD_REQUEST);
+                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1085,7 +1101,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit())) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(1L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring businessScore", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring businessScore");
                         } else {
                             existingServiceProvider.setBusinessUnitInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -1130,7 +1146,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (numberOfEmployees != null && numberOfEmployees < 2 || !isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
                         } else {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -1139,7 +1155,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             && numberOfEmployees <= 4 && isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(11L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
                         } else {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -1147,7 +1163,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else if (numberOfEmployees != null && numberOfEmployees > 4 && isRunning) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(10L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            return ResponseService.generateErrorResponse("Scoring Criteria is not found for scoring Staff Score", HttpStatus.BAD_REQUEST);
+                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
                         } else {
                             existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -1179,6 +1195,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
                 assignRank(existingServiceProvider, totalScore);
             }
+            if (!errorMessages.isEmpty()) {
+                String message = String.join(", ", errorMessages.values());
+                return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
+            }
            if(updates.containsKey("isAcknowledged"))
            {
                Boolean value= (Boolean) updates.get("isAcknowledged");
@@ -1189,10 +1209,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("No such field present :" + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("No such field present :" + e.getMessage(),"noFieldPresent", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Error updating Service Provider : ", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse("Error updating Service Provider : ","generalException", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1955,19 +1975,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (userName != null && !userName.trim().isEmpty()) {
-                ServiceProviderEntity serviceProviderEntity = entityManager.createQuery(
-                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) = LOWER(:user_name)", ServiceProviderEntity.class)
-                        .setParameter("user_name", userName.trim().toLowerCase())
-                        .getResultStream()
-                        .findFirst()
-                        .orElse(null);
-                if (serviceProviderEntity != null) {
-                    List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
+                List<ServiceProviderEntity> serviceProviderEntities = entityManager.createQuery(
+                                "SELECT s FROM ServiceProviderEntity s WHERE LOWER(s.user_name) LIKE LOWER(:user_name)", ServiceProviderEntity.class)
+                        .setParameter("user_name", "%" + userName.trim().toLowerCase() + "%")
+                        .getResultList();
+
+                List<Map<String, Object>> response = new ArrayList<>();
+                for (ServiceProviderEntity serviceProviderEntity : serviceProviderEntities) {
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false));
+                }
+
+                if (!response.isEmpty()) {
                     return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
                 } else {
-                    // Return empty response
-                    List<Map<String, Object>> response = new ArrayList<>();
                     return ResponseService.generateSuccessResponse("No Details found for the given UserName", response, HttpStatus.OK);
                 }
             }

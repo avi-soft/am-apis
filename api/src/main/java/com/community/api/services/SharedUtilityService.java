@@ -1408,7 +1408,21 @@ public class SharedUtilityService {
 
         // Use regular expression to check if the string contains only alphabets
         return input.matches("[a-zA-Z ]+");
-    }public long parseToLong(Object value) {
+    }
+    public boolean isAlphabeticWithHyphen(String input) {
+        // Check for null or empty string
+        if (input == null || input.isEmpty()) {
+            return false;
+        }
+
+        // Regular expression that allows:
+        // - Alphabetic characters (a-z, A-Z)
+        // - Spaces
+        // - Hyphens
+        return input.matches("^[a-zA-Z\\- ]+$");
+    }
+
+    public long parseToLong(Object value) {
         if (value instanceof String) {
             try {
                 return Long.parseLong((String) value); // Parse string to long

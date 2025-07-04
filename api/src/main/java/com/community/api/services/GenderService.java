@@ -109,7 +109,7 @@ public class GenderService {
     public CustomGender addGender(CustomGender customGender) throws IllegalArgumentException, Exception {
         try {
             Query query = entityManager.createQuery(
-                    "SELECT g FROM CustomGender g WHERE g.genderName = :genderName", CustomGender.class);
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderName) = LOWER(:genderName) ", CustomGender.class);
             query.setParameter("genderName", customGender.getGenderName());
             List<CustomGender> genders = query.getResultList();
 
@@ -120,6 +120,23 @@ public class GenderService {
 
             if(!genders.isEmpty())
                 throw new IllegalArgumentException("Gender already exists");
+
+
+            query = entityManager.createQuery(
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderName) = LOWER(:genderName) AND LOWER(g.genderSymbol) = LOWER(:symbol) ", CustomGender.class);
+            query.setParameter("genderName", customGender.getGenderName());
+            query.setParameter("symbol", customGender.getGenderSymbol());
+            genders = query.getResultList();
+
+            if(!genders.isEmpty())
+                throw new IllegalArgumentException("Gender already exists with same name and symbol");
+
+            query = entityManager.createQuery(
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderSymbol) = LOWER(:symbol) ", CustomGender.class);
+            query.setParameter("symbol", customGender.getGenderSymbol());
+            genders = query.getResultList();
+            if(!genders.isEmpty())
+                throw new IllegalArgumentException("Gender with this symbol already exists");
 
             if(customGender.getGenderName() == null)
                 throw new IllegalArgumentException("Gender name is required");
@@ -146,30 +163,77 @@ public class GenderService {
     public CustomGender editGender(Long genderId, CustomGender customGender)
             throws IllegalArgumentException, Exception {
         try {
-            CustomGender gender = entityManager.find(CustomGender.class, genderId);
+            CustomGender existingGender = entityManager.find(CustomGender.class, genderId);
+            if (existingGender == null) {
+                throw new IllegalArgumentException("Gender not found");
+            }
 
-            if(customGender.getGenderId() != null)
+            if (customGender.getGenderId() != null) {
                 throw new IllegalArgumentException("Cannot give gender id when editing");
+            }
 
+            // Validate gender name
+            if (customGender.getGenderName() == null) {
+                throw new IllegalArgumentException("Gender name is required");
+            }
+
+            if (!sharedUtilityService.isAlphabetic(customGender.getGenderName())) {
+                throw new IllegalArgumentException("Gender name should contain only alphabets");
+            }
+
+            // Validate gender symbol
+            if (customGender.getGenderSymbol() == null) {
+                throw new IllegalArgumentException("Gender symbol is required");
+            }
+
+            // Check for duplicate name (excluding current gender)
             Query query = entityManager.createQuery(
-                    "SELECT g FROM CustomGender g WHERE g.genderName = :genderName", CustomGender.class);
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderName) = LOWER(:genderName) AND g.genderId != :genderId",
+                    CustomGender.class);
             query.setParameter("genderName", customGender.getGenderName());
+            query.setParameter("genderId", genderId);
             List<CustomGender> genders = query.getResultList();
 
-            if(!genders.isEmpty() && genders.get(0).getGenderId() != gender.getGenderId())
+            if (!genders.isEmpty()) {
                 throw new IllegalArgumentException("Gender with this name already exists");
+            }
 
-            if (!sharedUtilityService.isAlphabetic(customGender.getGenderName()))
-                throw new IllegalArgumentException("Gender name should contain only alphabets");
+            // Check for duplicate name+symbol combination (excluding current gender)
+            query = entityManager.createQuery(
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderName) = LOWER(:genderName) " +
+                            "AND LOWER(g.genderSymbol) = LOWER(:genderSymbol) AND g.genderId != :genderId",
+                    CustomGender.class);
+            query.setParameter("genderName", customGender.getGenderName());
+            query.setParameter("genderSymbol", customGender.getGenderSymbol());
+            query.setParameter("genderId", genderId);
+            genders = query.getResultList();
 
-            if(customGender.getArchived() != null) {
+            if (!genders.isEmpty()) {
+                throw new IllegalArgumentException("Gender already exists with same name and symbol");
+            }
+
+            // Check for duplicate symbol (excluding current gender)
+            query = entityManager.createQuery(
+                    "SELECT g FROM CustomGender g WHERE LOWER(g.genderSymbol) = LOWER(:genderSymbol) AND g.genderId != :genderId",
+                    CustomGender.class);
+            query.setParameter("genderSymbol", customGender.getGenderSymbol());
+            query.setParameter("genderId", genderId);
+            genders = query.getResultList();
+
+            if (!genders.isEmpty()) {
+                throw new IllegalArgumentException("Gender with this symbol already exists");
+            }
+
+            if (customGender.getArchived() != null) {
                 throw new IllegalArgumentException("Cannot provide archive status when updating a gender");
             }
 
-            gender.setGenderName(customGender.getGenderName());
-            gender.setGenderSymbol(customGender.getGenderSymbol());
-            entityManager.merge(gender);
-            return gender;
+            // Update the fields
+            existingGender.setGenderName(customGender.getGenderName());
+            existingGender.setGenderSymbol(customGender.getGenderSymbol());
+
+            entityManager.merge(existingGender);
+            return existingGender;
         } catch (Exception e) {
             throw new Exception(e.getMessage());
         }

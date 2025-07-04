@@ -1416,6 +1416,43 @@ public class ServiceProviderTicketService {
         }
     }
 
+    @Transactional
+    public CustomServiceProviderTicket fetchTicketByOrderId(Long orderId) throws Exception {
+        try {
+            if (orderId == null || orderId <= 0) {
+                throw new IllegalArgumentException("OrderId cannot be <=0 or null");
+            }
+
+            Query query = entityManager.createQuery(Constant.GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID, CustomServiceProviderTicket.class);
+            query.setParameter("orderId", orderId);
+            List<CustomServiceProviderTicket> ticket = query.getResultList();
+
+            if (!ticket.isEmpty()) {
+                return ticket.get(0);
+            } else {
+                return null;
+            }
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
+    @Transactional
+    public CustomServiceProviderTicket deleteTicket(CustomServiceProviderTicket ticket) throws Exception {
+        try {
+            if (ticket == null) {
+                throw new IllegalArgumentException("Ticket cannot null");
+            }
+            // Need to add logic here.
+            return entityManager.merge(ticket);
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+            throw new Exception("Exception caught: " + exception.getMessage());
+        }
+    }
+
     public Product findProductFromItemAttribute(OrderItem orderItem) {
         Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
         Product product = catalogService.findProductById(productId);

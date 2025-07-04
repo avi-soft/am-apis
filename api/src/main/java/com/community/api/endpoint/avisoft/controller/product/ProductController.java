@@ -400,6 +400,11 @@ public class ProductController extends CatalogEndpoint {
 //            // Validations and checks.
             productService.updateProductValidation(addProductDto, customProduct);
 
+            if(addProductDto.getPlatformFee()==null)
+                customProduct.setPlatformFee(DEFAULT_PLATFORM_FEE);
+            if(addProductDto.getPlatformFee()!=null&&addProductDto.getPlatformFee()<0)
+                return ResponseService.generateErrorResponse("Platform fee cannot be negative", HttpStatus.BAD_REQUEST);
+
             if (addProductDto.getSector() != null) {
                 if (addProductDto.getSector() != 1000 && addProductDto.getSectorRunningField() != null) {
                     return ResponseService.generateErrorResponse("Cannot add running field for sector except OTHERS", HttpStatus.BAD_REQUEST);
