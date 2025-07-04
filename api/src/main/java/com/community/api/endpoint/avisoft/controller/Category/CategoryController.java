@@ -225,7 +225,7 @@ public class CategoryController extends CatalogEndpoint {
             HttpServletRequest request,
             @RequestParam(value = "category", required = false) List<Long> parentCategories,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {

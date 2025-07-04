@@ -1011,7 +1011,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestBody(required = false) FilterProductTitleDto titleDto)
     {
 

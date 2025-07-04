@@ -254,7 +254,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
             if(offset<0)
@@ -557,7 +557,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
             CustomCustomer customCustomer = null;
