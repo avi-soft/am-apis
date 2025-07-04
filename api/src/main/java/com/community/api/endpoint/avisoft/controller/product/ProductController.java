@@ -43,6 +43,9 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.domain.Sku;
 
 import org.broadleafcommerce.core.catalog.service.type.ProductType;
+import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -121,6 +124,9 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     SharedUtilityService sharedUtilityService;
+
+    @Autowired
+    OrderService orderService;
 
     @Value("${origin.url}")
     private String origin;
@@ -654,7 +660,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestHeader(value = "Authorization",required = false) String authHeader) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath,@RequestParam(name = "orderId",required = false)Long orderId, @RequestHeader(value = "Authorization",required = false) String authHeader) {
 
         try {
             Integer roleId=5;
@@ -680,7 +686,18 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
             boolean allowExpiredAccess=false;
-            if(authHeader!=null)
+            boolean bypass=false;
+            if(orderId!=null) {
+                Order order = orderService.findOrderById(orderId);
+                if (order == null)
+                    return ResponseService.generateErrorResponse("Order not found", HttpStatus.BAD_REQUEST);
+                OrderItem orderItem=order.getOrderItems().get(0);
+                Product product=findProductFromItemAttribute(orderItem);
+                if(product.getId().equals(productId))
+                    bypass=true;
+
+            }
+            if(authHeader!=null&&!bypass)
             {
                 allowExpiredAccess =
                         roleId == 1 || roleId == 2 ||
@@ -1254,6 +1271,11 @@ public class ProductController extends CatalogEndpoint {
     public CustomProduct getProductWithPurchasers(Long id) {
         CustomProduct product = entityManager.find(CustomProduct.class,id);
         product.getPurchasedBy().size(); // triggers initialization
+        return product;
+    }
+    public Product findProductFromItemAttribute(OrderItem orderItem) {
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        Product product = catalogService.findProductById(productId);
         return product;
     }
 }

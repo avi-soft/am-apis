@@ -3404,7 +3404,7 @@ public class CustomerEndpoint {
         Map<String, Object> response = new HashMap<>();
         response.put("forms", wrappers);
         response.put("totalItems", resultCount);
-        response.put("totalPages", resultCount.longValue() / limit);
+        response.put("totalPages", (resultCount.longValue() / limit)+1);
         response.put("currentPage", offset + 1);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
