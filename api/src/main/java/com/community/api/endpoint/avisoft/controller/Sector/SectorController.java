@@ -156,7 +156,8 @@ public class SectorController {
     ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
     SharedUtilityService sharedUtilityService;
-     @Autowired
+
+    @Autowired
     CatalogService catalogService;
     @GetMapping("/get-products-by-sectors")
     public ResponseEntity<?> getProductsByAdvertisementId(
@@ -281,7 +282,6 @@ public class SectorController {
                     return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
             }
         }
-
        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
         if(customSector==null)
             return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);

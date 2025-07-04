@@ -260,7 +260,7 @@ public class SectorService {
 
         sql.append(
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
-                "AND c.go_live_date <= CURRENT_TIMESTAMP ");
+                        "AND c.go_live_date <= CURRENT_TIMESTAMP ");
 
         if (sectorIds != null && !sectorIds.isEmpty()) {
             sql.append("AND c.sector_id IN (:sectorIds) ");
@@ -294,8 +294,8 @@ public class SectorService {
 
         sql.append(
                 "AND (s.active_end_date IS NULL OR s.active_end_date >= CURRENT_TIMESTAMP) " +
-                "AND c.go_live_date <= CURRENT_TIMESTAMP " +
-                "AND c.sector_id = :sectorId");
+                        "AND c.go_live_date <= CURRENT_TIMESTAMP " +
+                        "AND c.sector_id = :sectorId");
 
         try {
             Query query = entityManager.createNativeQuery(sql.toString());
