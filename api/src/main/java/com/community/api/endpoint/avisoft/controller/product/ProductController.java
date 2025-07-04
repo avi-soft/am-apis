@@ -995,7 +995,7 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    @GetMapping("/get-filter-products")
+    @PostMapping("/get-filter-products")
     public ResponseEntity<?> getFilterProducts(
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
@@ -1146,7 +1146,7 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    @GetMapping("/get-all")
+    @PostMapping("/get-all")
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
