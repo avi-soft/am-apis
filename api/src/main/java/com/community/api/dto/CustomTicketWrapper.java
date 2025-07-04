@@ -28,6 +28,9 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
     @JsonProperty("ticket_id")
     protected Long id;
 
+    @JsonProperty("archived")
+    protected Boolean archived;
+
     @JsonProperty("created_date")
     protected Date createdDate;
 
@@ -135,6 +138,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
+        this.archived = customServiceProviderTicket.getArchived();
 //        this.serviceProviderDocuments = customServiceProviderTicket.getServiceProviderDocuments();
 
         ServiceProviderEntity assignee = null;
@@ -215,6 +219,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.isReviewRequired = customServiceProviderTicket.getIsReviewRequired();
         this.customWorkQuality = customServiceProviderTicket.getWorkQuality();
         this.isCompleted = customServiceProviderTicket.getIsComplete();
+        this.archived = customServiceProviderTicket.getArchived();
         this.ticketDocumentWrapperSet = ticketDocumentWrappers;
 
         ServiceProviderEntity serviceProvider = null;
@@ -288,6 +293,7 @@ public class CustomTicketWrapper extends BaseWrapper implements APIWrapper<Custo
         this.customTicketStatus = customServiceProviderTicket.getTicketStatus();
         this.assignedDate = customServiceProviderTicket.getTicketAssignDate();
         this.assigneeName = combinedOrderDTO.getCustomerDetails().getFullName();
+        this.archived = customServiceProviderTicket.getArchived();
     }
 
     @Override

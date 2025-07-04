@@ -2183,7 +2183,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2265,7 +2265,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,
+                                                    @RequestParam(value = "limit", defaultValue = "1000") int limit,
                                                     @RequestHeader(value = "Authorization") String authHeader,
                                                     @RequestParam(value = "unique_products", required = false, defaultValue = "true") boolean uniqueProducts) {
         try {
@@ -2394,7 +2394,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2482,7 +2482,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             if (offset < 0) {
@@ -2691,7 +2691,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
         /* try {*/
         if (!sort.equals("DESC") && !sort.equals("ASC"))
             return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);

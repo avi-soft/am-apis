@@ -306,7 +306,7 @@ public class TicketController {
             @RequestParam(value = "ticket_status", required = false) List<Long> ticket_status,
             @RequestParam(value = "assignee_user_ids", required = false) List<Long> assigneeUserIds,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "limit", defaultValue = "1000") int limit,
             @RequestParam(value = "personal", required = false) Boolean personal,
             @RequestParam(value = "due_in_three_days", required = false) Boolean dueInThreeDays,
             @RequestParam(value = "archived", defaultValue = "false") Boolean archived) {
