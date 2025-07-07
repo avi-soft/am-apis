@@ -367,10 +367,16 @@ public class TicketStateService {
                 if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(6);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(7);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
 
@@ -459,6 +465,9 @@ public class TicketStateService {
                         if (parentTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                             CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
                             orderState.setOrderStateId(7);
+                            orderState.setModifiedDate(new Date());
+                            orderState.setModifierUserId(tokenUserId);
+                            orderState.setModifierRole(tokenRole);
                             entityManager.merge(orderState);
                         }
 
@@ -613,6 +622,9 @@ public class TicketStateService {
                     query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                     Integer orderStateId = (Integer) query.getFirstResult();
                     orderState.setOrderStateId(orderStateId);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
             }
