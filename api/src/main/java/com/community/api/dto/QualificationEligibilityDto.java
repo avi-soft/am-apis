@@ -36,4 +36,7 @@ public class QualificationEligibilityDto {
     private Boolean isAppearing;
     private List<String> highestQualificationSubjectNames;
 
+    private Long groupId;
+    private LogicalRelationshipDto logicalRelationship;
+
 }

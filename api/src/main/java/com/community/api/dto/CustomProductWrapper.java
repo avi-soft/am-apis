@@ -286,7 +286,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
-                postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+                postProjectionDTO.setQualificationEligibilityGroups(post.getQualificationEligibilityGroups());
                 postProjectionDTO.setStateDistributions(post.getStateDistributions());
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());

@@ -5,12 +5,14 @@ import com.community.api.component.JwtUtil;
 import com.community.api.dto.AddProductDto;
 import com.community.api.dto.CustomProductWrapper;
 import com.community.api.dto.DivisionProjectionDTO;
+import com.community.api.dto.LogicalRelationshipDto;
 import com.community.api.dto.PostProjectionDTO;
 import com.community.api.dto.QualificationEligibilityDto;
 import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
 import com.community.api.dto.DistrictCategoryDistributionDto;
+import com.community.api.dto.QualificationEligibilityGroupDto;
 import com.community.api.dto.ZoneDistributionDto;
 import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
@@ -3447,65 +3449,147 @@ public class ProductService {
             throw new Exception("SOME EXCEPTION WHILE VALIDATING PHYSICAL REQUIREMENTS: " + exception.getMessage() + "\n");
         }
     }
+    public boolean validateQualificationEligibilityGroups(List<QualificationEligibilityGroupDto> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return true; // No qualification requirements
+        }
 
-    public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
-        try {
-            Set<QualificationEligibilityDto> seenSet = new HashSet<>();
-            if (postDto.getQualificationEligibility() == null) {
-                return true;
-            }
+        for (QualificationEligibilityGroupDto group : groups) {
+            validateGroup(group);
+        }
 
-            for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
-                // Get qualification details
-                Qualification qualificationDetails = entityManager.find(Qualification.class, dto.getQualificationIds().get(0));
-                if (qualificationDetails == null) {
-                    throw new IllegalArgumentException("Qualification not found");
-                }
+        return true;
+    }
 
-                // Check for duplicates
-                if (!seenSet.add(dto)) {
-                    throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " + postDto.getPostName());
-                }
-            }
+    private void validateGroup(QualificationEligibilityGroupDto group) {
+        if (group.getQualificationEligibilities() == null || group.getQualificationEligibilities().isEmpty()) {
+            throw new IllegalArgumentException("Group must contain at least one qualification eligibility");
+        }
 
-            for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
-                Qualification qualificationDetails = entityManager.find(Qualification.class, qualificationEligibilityDto.getQualificationIds().get(0));
-
-                // Basic validations
-                if (qualificationEligibilityDto.getIsAppearing() == null) {
-                    throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
-                }
-
-                // Running field validations
-                validateRunningFields(qualificationEligibilityDto, qualificationDetails);
-
-                // Percentage/CGPA validation
-                validatePercentageAndCgpa(qualificationEligibilityDto, qualificationDetails);
-
-                // Qualification validation
-                validateQualificationIds(qualificationEligibilityDto);
-
-                // Stream validation with mapping
-                validateStreamsWithMapping(qualificationEligibilityDto, qualificationDetails);
-
-                // Subject validation with mapping (different logic for qualification 1 & 2)
-                validateSubjectsWithMapping(qualificationEligibilityDto, qualificationDetails);
-
-                // Reserve category validation
-                validateReserveCategory(qualificationEligibilityDto);
-
-                // Final percentage range validation
-                validatePercentageRange(qualificationEligibilityDto);
-            }
-            return true;
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            throw new IllegalArgumentException(illegalArgumentException.getMessage());
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            throw new Exception(exception.getMessage() + "\n");
+        for (QualificationEligibilityDto dto : group.getQualificationEligibilities()) {
+            validateQualificationEligibility(dto);
         }
     }
+
+    private void validateQualificationEligibility(QualificationEligibilityDto dto) {
+//        Set<QualificationEligibilityDto> seenSet = new HashSet<>();
+        Qualification qualificationDetails = entityManager.find(Qualification.class, dto.getQualificationIds().get(0));
+        if (qualificationDetails == null) {
+            throw new IllegalArgumentException("Qualification not found");
+        }
+
+     /*   // Check for duplicates
+        if (!seenSet.add(dto)) {
+            throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " + postDto.getPostName());
+        }*/
+
+        // New logical relationship validation
+        if (dto.getLogicalRelationship() != null) {
+            validateLogicalRelationships(dto);
+        }
+
+        if (dto.getIsAppearing() == null) {
+            throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
+        }
+
+        // Running field validations
+        validateRunningFields(dto, qualificationDetails);
+
+        // Percentage/CGPA validation
+        validatePercentageAndCgpa(dto, qualificationDetails);
+
+        // Qualification validation
+        validateQualificationIds(dto);
+
+        // Stream validation with mapping
+        validateStreamsWithMapping(dto, qualificationDetails);
+
+        // Subject validation with mapping (different logic for qualification 1 & 2)
+        validateSubjectsWithMapping(dto, qualificationDetails);
+
+        // Reserve category validation
+        validateReserveCategory(dto);
+
+        // Final percentage range validation
+        validatePercentageRange(dto);
+    }
+
+    private void validateLogicalRelationships(QualificationEligibilityDto dto) {
+        LogicalRelationshipDto relationship = dto.getLogicalRelationship();
+
+        // Validate stream relationships
+        if (dto.getCustomStreamIds() != null && dto.getCustomStreamIds().size() > 1) {
+            if (relationship.getStreamOperator() == null) {
+                throw new IllegalArgumentException("Stream logical operator must be specified for multiple streams");
+            }
+        }
+
+        // Validate subject relationships
+        if (dto.getCustomSubjectIds() != null && dto.getCustomSubjectIds().size() > 1) {
+            if (relationship.getSubjectOperator() == null) {
+                throw new IllegalArgumentException("Subject logical operator must be specified for multiple subjects");
+            }
+        }
+    }
+
+//    public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
+//        try {
+//            Set<QualificationEligibilityDto> seenSet = new HashSet<>();
+//            if (postDto.getQualificationEligibility() == null) {
+//                return true;
+//            }
+//
+//            for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
+//                // Get qualification details
+//                Qualification qualificationDetails = entityManager.find(Qualification.class, dto.getQualificationIds().get(0));
+//                if (qualificationDetails == null) {
+//                    throw new IllegalArgumentException("Qualification not found");
+//                }
+//
+//                // Check for duplicates
+//                if (!seenSet.add(dto)) {
+//                    throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " + postDto.getPostName());
+//                }
+//            }
+//
+//            for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
+//                Qualification qualificationDetails = entityManager.find(Qualification.class, qualificationEligibilityDto.getQualificationIds().get(0));
+//
+//                // Basic validations
+//                if (qualificationEligibilityDto.getIsAppearing() == null) {
+//                    throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
+//                }
+//
+//                // Running field validations
+//                validateRunningFields(qualificationEligibilityDto, qualificationDetails);
+//
+//                // Percentage/CGPA validation
+//                validatePercentageAndCgpa(qualificationEligibilityDto, qualificationDetails);
+//
+//                // Qualification validation
+//                validateQualificationIds(qualificationEligibilityDto);
+//
+//                // Stream validation with mapping
+//                validateStreamsWithMapping(qualificationEligibilityDto, qualificationDetails);
+//
+//                // Subject validation with mapping (different logic for qualification 1 & 2)
+//                validateSubjectsWithMapping(qualificationEligibilityDto, qualificationDetails);
+//
+//                // Reserve category validation
+//                validateReserveCategory(qualificationEligibilityDto);
+//
+//                // Final percentage range validation
+//                validatePercentageRange(qualificationEligibilityDto);
+//            }
+//            return true;
+//        } catch (IllegalArgumentException illegalArgumentException) {
+//            exceptionHandlingService.handleException(illegalArgumentException);
+//            throw new IllegalArgumentException(illegalArgumentException.getMessage());
+//        } catch (Exception exception) {
+//            exceptionHandlingService.handleException(exception);
+//            throw new Exception(exception.getMessage() + "\n");
+//        }
+//    }
 
     private void validateRunningFields(QualificationEligibilityDto dto, Qualification qualification) {
         // Qualification running field validation
@@ -3814,12 +3898,8 @@ public class ProductService {
             {
                 validatePhysicalRequirement(postDto, null);
             }
-            if(postDto.getQualificationEligibility()!=null&&!postDto.getQualificationEligibility().isEmpty()) {
-                for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
-                    if (qualificationEligibilityDto.getQualificationIds() != null) {
-                        validateQualificationRequirement(postDto);
-                    }
-                }
+            if(postDto.getQualificationEligibilityGroups()!=null&&!postDto.getQualificationEligibilityGroups().isEmpty()) {
+                validateQualificationEligibilityGroups(postDto.getQualificationEligibilityGroups());
             }
         }
         return true;

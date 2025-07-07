@@ -1245,7 +1245,7 @@ public class ProductController extends CatalogEndpoint {
                 reserveCategoryAgeDtosToSet.add(reserveCategoryAgeDto);
             }
             postProjectionDTO.setReserveCategoryAge(reserveCategoryAgeDtosToSet);
-            postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+            postProjectionDTO.setQualificationEligibilityGroups(post.getQualificationEligibilityGroups());
             postProjectionDTO.setPhysicalRequirements(post.getPhysicalRequirements());
             postProjectionDTOS.add(postProjectionDTO);
         }

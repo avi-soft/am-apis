@@ -2,6 +2,7 @@
 package com.community.api.services;
 import javax.persistence.EntityManager;
 import javax.validation.ConstraintViolationException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,6 +31,8 @@ public class PostService {
     private final SharedUtilityService sharedUtilityService;
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     protected SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd");
+    @Autowired
+    protected  ProductService productService;
     @Autowired
     private ProductReserveCategoryBornBeforeAfterRefService reserveCategoryBornBeforeAfterRefService;
     @Autowired
@@ -222,7 +225,7 @@ public class PostService {
             throw new Exception("Some exception while validating reserve category: " + exception.getMessage());
         }
     }
-    private Post savePost(PostDto postDto,Product product) throws Exception {
+    private Post savePost(PostDto postDto, Product product) throws Exception {
         Post post = new Post();
         post.setPostName(postDto.getPostName());
         post.setPostTotalVacancies(postDto.getPostTotalVacancies());
@@ -233,6 +236,7 @@ public class PostService {
         // list is created but haven't set it yet if there are no types
         List<VacancyDistributionType> vacancyTypes = new ArrayList<>();
         validateAge(postDto);
+
         // Only set vacancy types and handle distributions if there are vacancy distribution type IDs
         if (postDto.getVacancyDistributionTypeIds() != null && !postDto.getVacancyDistributionTypeIds().isEmpty()) {
             for (Integer typeId : postDto.getVacancyDistributionTypeIds()) {
@@ -244,6 +248,7 @@ public class PostService {
             }
             post.setVacancyDistributionTypes(vacancyTypes);
         }
+
         post.setAdditionalComments(postDto.getPostAdditionalComments());
         post.setDuration(postDto.getDuration());
         post.setStateDistributionAdditionalComments(postDto.getStateDistributionAdditionalComments());
@@ -259,7 +264,8 @@ public class PostService {
         post.setTotalSeatsVisible(postDto.getTotalSeatsVisible());
         post.setIncome(postDto.getIncome());
         post.setReligion(postDto.getReligion());
-        //  persisting the post once, regardless of distribution types
+
+        // Persisting the post once, regardless of distribution types
         entityManager.persist(post);
         entityManager.flush();
 
@@ -286,74 +292,21 @@ public class PostService {
                 post.setZoneDistributions(zoneDistributions);
             }
         }
+
         entityManager.persist(post);
-        entityManager.flush();// Ensure Post is saved and has an ID
-        for (QualificationEligibilityDto qualificationEligibilityDto:postDto.getQualificationEligibility()) {
-            if (qualificationEligibilityDto != null) {
-                if (qualificationEligibilityDto.getQualificationIds() != null) {
-                    QualificationEligibility qualificationRequirement = new QualificationEligibility();
-                    //set qualifications
-                    List<Integer> qualificationIds = qualificationEligibilityDto.getQualificationIds();
-                    List<Qualification> qualificationsToAdd = new ArrayList<>();
-                    if (qualificationIds != null) {
-                        for (Integer qualificationId : qualificationIds) {
-                            Qualification qualification = entityManager.find(Qualification.class, qualificationId);
-                            qualificationsToAdd.add(qualification);
-                        }
-                        qualificationRequirement.setQualifications(qualificationsToAdd);
-                    }
+        entityManager.flush(); // Ensure Post is saved and has an ID
 
-                    //set subjects
-                    List<Long> subjectIds = qualificationEligibilityDto.getCustomSubjectIds();
-                    if (subjectIds != null) {
-                        if (!subjectIds.isEmpty()) {
-                            List<CustomSubject> subjectsToAdd = new ArrayList<>();
-                            for (Long subjectId : subjectIds) {
-                                CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
-                                subjectsToAdd.add(customSubject);
-                            }
-                            qualificationRequirement.setCustomSubjects(subjectsToAdd);
-                        }
-                    }
-
-                    //set streams
-                    List<Long> streamIds = qualificationEligibilityDto.getCustomStreamIds();
-                    List<CustomStream> streamsToAdd = new ArrayList<>();
-                    if (streamIds != null) {
-                        for (Long streamId : streamIds) {
-                            CustomStream customStream = entityManager.find(CustomStream.class, streamId);
-                            streamsToAdd.add(customStream);
-                        }
-                        qualificationRequirement.setCustomStreams(streamsToAdd);
-
-                    }
-                    if (qualificationEligibilityDto.getCustomReserveCategoryId() != null) {
-                        CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, qualificationEligibilityDto.getCustomReserveCategoryId());
-                        qualificationRequirement.setCustomReserveCategory(customReserveCategory);
-                    }
-                    qualificationRequirement.setPercentage(qualificationEligibilityDto.getPercentage());
-                    qualificationRequirement.setPost(post);
-                    qualificationRequirement.setIsPercentage(qualificationEligibilityDto.getIsPercentage());
-                    qualificationRequirement.setCgpa(qualificationEligibilityDto.getCgpa());
-                    qualificationRequirement.setQualificationIdRunningField(qualificationEligibilityDto.getQualificationIdRunningField());
-                    qualificationRequirement.setSubjectIdRunningField(qualificationEligibilityDto.getSubjectIdRunningField());
-                    qualificationRequirement.setStreamIdRunningField(qualificationEligibilityDto.getStreamIdRunningField());
-                    qualificationRequirement.setReserveCatIdRunningField(qualificationEligibilityDto.getReserveCatIdRunningField());
-                    qualificationRequirement.setAdditionalComments(qualificationEligibilityDto.getAdditionalComments());
-                    qualificationRequirement.setIsAppearing(qualificationEligibilityDto.getIsAppearing());
-                    qualificationRequirement.setHighestQualificationSubjectNames(qualificationEligibilityDto.getHighestQualificationSubjectNames());
-                    entityManager.persist(qualificationRequirement);
-                }
-                entityManager.flush();
-            }
+        // Handle Qualification Eligibility Groups (NEW STRUCTURE)
+        if (postDto.getQualificationEligibilityGroups() != null && !postDto.getQualificationEligibilityGroups().isEmpty()) {
+            productService.validateQualificationEligibilityGroups(postDto.getQualificationEligibilityGroups());
+            saveQualificationEligibilityGroups(postDto.getQualificationEligibilityGroups(), post);
         }
+
+        // Handle Physical Requirements
         List<AddPhysicalRequirementDto> physicalRequirementDtos = postDto.getPhysicalRequirements();
-        if (!physicalRequirementDtos.isEmpty()) {
+        if (physicalRequirementDtos != null && !physicalRequirementDtos.isEmpty()) {
             for (AddPhysicalRequirementDto dto : physicalRequirementDtos) {
                 CustomGender customGender = genderService.getGenderByGenderId(dto.getGenderId());
-//                if (customGender == null) {
-//                    throw new IllegalArgumentException("Gender not found for ID: " + dto.getGenderId());
-//                }
 
                 CustomProductGenderPhysicalRequirementRef requirement = new CustomProductGenderPhysicalRequirementRef();
                 requirement.setCustomGender(customGender);
@@ -372,6 +325,8 @@ public class PostService {
         }
 
         entityManager.refresh(post);
+
+        // Handle Other Distributions
         if (postDto.getVacancyDistributionTypeIds() != null && postDto.getVacancyDistributionTypeIds().contains(4)) {
             if (postDto.getOtherDistributions() != null && !postDto.getOtherDistributions().isEmpty()) {
                 List<OtherDistribution> otherDistributions = saveOtherDistributions(postDto.getOtherDistributions(), post);
@@ -380,6 +335,128 @@ public class PostService {
         }
 
         return post;
+    }
+
+    private void saveQualificationEligibilityGroups(List<QualificationEligibilityGroupDto> groupDtos, Post post) {
+        for (QualificationEligibilityGroupDto groupDto : groupDtos) {
+            // Create and save the group
+            QualificationEligibilityGroup group = new QualificationEligibilityGroup();
+            group.setPost(post);
+            group.setGroupName(groupDto.getGroupName());
+            group.setLogicalOperator(groupDto.getLogicalOperator());
+            group.setCreatedAt(LocalDateTime.now());
+
+            entityManager.persist(group);
+            entityManager.flush(); // Ensure group is saved and has an ID
+
+            // Save qualification eligibilities within the group
+            for (QualificationEligibilityDto qualificationDto : groupDto.getQualificationEligibilities()) {
+                if (qualificationDto != null) {
+                    saveQualificationEligibility(qualificationDto, post, group);
+                }
+            }
+        }
+    }
+
+    private void saveQualificationEligibility(QualificationEligibilityDto qualificationDto, Post post, QualificationEligibilityGroup group) {
+        if (qualificationDto.getQualificationIds() != null && !qualificationDto.getQualificationIds().isEmpty()) {
+            QualificationEligibility qualificationRequirement = new QualificationEligibility();
+
+            // Set the group relationship
+            qualificationRequirement.setGroup(group);
+            qualificationRequirement.setPost(post);
+
+            // Set qualifications
+            List<Integer> qualificationIds = qualificationDto.getQualificationIds();
+            List<Qualification> qualificationsToAdd = new ArrayList<>();
+            if (qualificationIds != null) {
+                for (Integer qualificationId : qualificationIds) {
+                    Qualification qualification = entityManager.find(Qualification.class, qualificationId);
+                    if (qualification == null) {
+                        throw new IllegalArgumentException("Qualification not found with id: " + qualificationId);
+                    }
+                    qualificationsToAdd.add(qualification);
+                }
+                qualificationRequirement.setQualifications(qualificationsToAdd);
+            }
+
+            // Set subjects
+            List<Long> subjectIds = qualificationDto.getCustomSubjectIds();
+            if (subjectIds != null && !subjectIds.isEmpty()) {
+                List<CustomSubject> subjectsToAdd = new ArrayList<>();
+                for (Long subjectId : subjectIds) {
+                    CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
+                    if (customSubject == null) {
+                        throw new IllegalArgumentException("CustomSubject not found with id: " + subjectId);
+                    }
+                    subjectsToAdd.add(customSubject);
+                }
+                qualificationRequirement.setCustomSubjects(subjectsToAdd);
+            }
+
+            // Set streams
+            List<Long> streamIds = qualificationDto.getCustomStreamIds();
+            if (streamIds != null && !streamIds.isEmpty()) {
+                List<CustomStream> streamsToAdd = new ArrayList<>();
+                for (Long streamId : streamIds) {
+                    CustomStream customStream = entityManager.find(CustomStream.class, streamId);
+                    if (customStream == null) {
+                        throw new IllegalArgumentException("CustomStream not found with id: " + streamId);
+                    }
+                    streamsToAdd.add(customStream);
+                }
+                qualificationRequirement.setCustomStreams(streamsToAdd);
+            }
+
+            // Set reserve category
+            if (qualificationDto.getCustomReserveCategoryId() != null) {
+                CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, qualificationDto.getCustomReserveCategoryId());
+                if (customReserveCategory == null) {
+                    throw new IllegalArgumentException("CustomReserveCategory not found with id: " + qualificationDto.getCustomReserveCategoryId());
+                }
+                qualificationRequirement.setCustomReserveCategory(customReserveCategory);
+            }
+
+            // Set other fields
+            qualificationRequirement.setPercentage(qualificationDto.getPercentage());
+            qualificationRequirement.setIsPercentage(qualificationDto.getIsPercentage());
+            qualificationRequirement.setCgpa(qualificationDto.getCgpa());
+            qualificationRequirement.setQualificationIdRunningField(qualificationDto.getQualificationIdRunningField());
+            qualificationRequirement.setSubjectIdRunningField(qualificationDto.getSubjectIdRunningField());
+            qualificationRequirement.setStreamIdRunningField(qualificationDto.getStreamIdRunningField());
+            qualificationRequirement.setReserveCatIdRunningField(qualificationDto.getReserveCatIdRunningField());
+            qualificationRequirement.setAdditionalComments(qualificationDto.getAdditionalComments());
+            qualificationRequirement.setIsAppearing(qualificationDto.getIsAppearing());
+            qualificationRequirement.setHighestQualificationSubjectNames(qualificationDto.getHighestQualificationSubjectNames());
+
+            entityManager.persist(qualificationRequirement);
+            entityManager.flush();
+
+            // Save logical relationships if present
+            if (qualificationDto.getLogicalRelationship() != null) {
+                saveLogicalRelationships(qualificationDto.getLogicalRelationship(), qualificationRequirement);
+            }
+        }
+    }
+
+    private void saveLogicalRelationships(LogicalRelationshipDto relationshipDto, QualificationEligibility qualificationEligibility) {
+        // Save stream relationship
+        if (qualificationEligibility.getCustomStreams() != null && !qualificationEligibility.getCustomStreams().isEmpty()) {
+            QualificationStreamRelationship streamRelationship = new QualificationStreamRelationship();
+            streamRelationship.setQualificationEligibility(qualificationEligibility);
+            streamRelationship.setLogicalOperator(relationshipDto.getStreamOperator());
+//            streamRelationship.setMandatory(relationshipDto.getStreamsAreMandatory());
+            entityManager.persist(streamRelationship);
+        }
+
+        // Save subject relationship
+        if (qualificationEligibility.getCustomSubjects() != null && !qualificationEligibility.getCustomSubjects().isEmpty()) {
+            QualificationSubjectRelationship subjectRelationship = new QualificationSubjectRelationship();
+            subjectRelationship.setQualificationEligibility(qualificationEligibility);
+            subjectRelationship.setLogicalOperator(relationshipDto.getSubjectOperator());
+//            subjectRelationship.setMandatory(relationshipDto.getSubjectsAreMandatory());
+            entityManager.persist(subjectRelationship);
+        }
     }
 
     private List<StateDistribution> saveStateDistributions(List<StateDistributionDto> stateDtos, Post post) throws Exception {

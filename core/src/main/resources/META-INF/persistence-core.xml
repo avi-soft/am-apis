@@ -114,6 +114,10 @@
         <class>com.community.api.entity.RandomImageType</class>
         <class>com.community.api.entity.ProductEvents</class>
         <class>com.community.api.entity.ShortAccessToken</class>
+        <class>com.community.api.entity.QualificationEligibilityGroup</class>
+        <class>com.community.api.entity.QualificationReserveCategoryRelationship</class>
+        <class>com.community.api.entity.QualificationStreamRelationship</class>
+        <class>com.community.api.entity.QualificationSubjectRelationship</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
