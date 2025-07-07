@@ -412,7 +412,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String spAdmin,
             @RequestParam(required = false) String sp,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             HttpServletRequest request) {
         try {
             if (offset < 0) {
@@ -556,7 +556,7 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
         try {
             int startPosition = page * limit;
 
@@ -602,7 +602,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) List<Long> rank,
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "limit", defaultValue = "1000") int limit,
             @RequestParam(required = false) Long ticketId,
             HttpServletRequest request) {
 
@@ -805,7 +805,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -857,7 +857,7 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
-    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
+    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
         try {
             int startPosition = page * limit;
             Query query = null;
@@ -1176,7 +1176,7 @@ public class ServiceProviderController {
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
-    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "30", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
+    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "1000", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
         Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);

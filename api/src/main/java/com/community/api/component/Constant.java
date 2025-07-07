@@ -98,6 +98,7 @@ public class Constant {
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
     public static String GET_FILE_TYPE_COUNT = "SELECT COUNT(*) FROM FileType";
+    public static Integer CUSTOMER_ROLE_ID= 5;
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
     public static String CANNOT_ADD_MORE_THAN_ONE_FORM="You can only add one of this form. Please choose a different form if you need more";

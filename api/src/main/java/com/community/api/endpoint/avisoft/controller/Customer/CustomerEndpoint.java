@@ -167,6 +167,8 @@ public class CustomerEndpoint {
     private SharedUtilityService sharedUtilityService;
     @Autowired
     private ServiceProviderServiceImpl serviceProviderService;
+    @Autowired
+    private StatusChangeEmailService statusChangeEmailService;
 
     public static Date convertStringToDate(String dateStr, String s) throws ParseException {
         if (dateStr == null || dateStr.isEmpty()) {
@@ -2181,7 +2183,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getSavedForms(HttpServletRequest request,
                                            @RequestParam long customer_id,
                                            @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                           @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                           @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2263,7 +2265,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,
+                                                    @RequestParam(value = "limit", defaultValue = "1000") int limit,
                                                     @RequestHeader(value = "Authorization") String authHeader,
                                                     @RequestParam(value = "unique_products", required = false, defaultValue = "true") boolean uniqueProducts) {
         try {
@@ -2392,7 +2394,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
                                                          @RequestParam long customer_id,
                                                          @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                         @RequestParam(value = "limit", defaultValue = "10") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
+                                                         @RequestParam(value = "limit", defaultValue = "1000") int limit, @RequestHeader(value = "Authorization") String authHeader) throws Exception {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2480,7 +2482,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleServiceProvider, Constant.roleAdmin, Constant.roleSuperAdmin, Constant.roleServiceProviderAdmin})
     public ResponseEntity<?> getAllCustomers(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest) {
         try {
             if (offset < 0) {
@@ -2689,7 +2691,7 @@ public class CustomerEndpoint {
     @Authorize(value = {Constant.roleAdmin, Constant.roleAdminServiceProvider, Constant.roleSuperAdmin, Constant.roleServiceProvider})
     @GetMapping("/filter")
     @Transactional
-    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
+    public ResponseEntity<?> filterCustomer(@RequestParam(required = false) List<String> name, @RequestParam(required = false) List<Long> ref, @RequestParam(required = false) List<Integer> stateId, @RequestParam(required = false) List<Integer> districtId, @RequestParam(required = false) List<Integer> qualificationType, @RequestParam(required = false) String username, @RequestParam(required = false) Boolean completed, @RequestParam(required = false, defaultValue = "false") Boolean suspended, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(required = false, defaultValue = "ASC") String sort) throws Exception {
         /* try {*/
         if (!sort.equals("DESC") && !sort.equals("ASC"))
             return ResponseService.generateErrorResponse("Invalid sort filter", HttpStatus.BAD_REQUEST);
@@ -3112,6 +3114,7 @@ public class CustomerEndpoint {
         List<Long> ids = getLongList(map, "userIds");
         Map<Long, String> skippedIds = new HashMap<>();
         List<Long> actionedIds = new ArrayList<>();
+        List<CustomCustomer> processedCustomers = new ArrayList<>(); // Add this line
         String actionReq = null;
         if (!action.equals(Constant.ACTION_SUSPEND) && !action.equals(Constant.ACTION_ACTIVATE)) {
             return ResponseService.generateErrorResponse("Invalid action", HttpStatus.BAD_REQUEST);
@@ -3162,7 +3165,7 @@ public class CustomerEndpoint {
             customCustomer.setArchivedByRole(roleId);
             customCustomer.setArchivedById(tokenUserId);
             if (action.equals(Constant.ACTION_SUSPEND)) {
-                sharedUtilityService.blackListToken(customCustomer.getToken(), 5, customCustomer.getId());
+                sharedUtilityService.blackListToken(customCustomer.getToken(), Constant.CUSTOMER_ROLE_ID, customCustomer.getId());
                 logout(customCustomer.getToken());
             } else {
                 sharedUtilityService.removeToken(customCustomer.getToken());
@@ -3170,6 +3173,10 @@ public class CustomerEndpoint {
             actionedIds.add(customerId);
             ++successCount;
             entityManager.merge(customCustomer);
+            processedCustomers.add(customCustomer);
+        }
+        if (!processedCustomers.isEmpty()) {
+            statusChangeEmailService.sendCustomerStatusChangeEmails(processedCustomers, action, authHeader);
         }
         Map<String, Object> response = new HashMap<>();
         if (skippedIds.isEmpty()) {

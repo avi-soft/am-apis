@@ -66,8 +66,11 @@ BEGIN
 
         -- Update order_state to assigned (assuming order_state_id = 4 means assigned)
         UPDATE order_state
-        SET order_state_id = 4
-        WHERE order_id = p_order_id;
+        SET
+            order_state_id = 2,
+            modified_date = NOW()
+        WHERE
+            order_id = p_order_id;
 
         RAISE NOTICE 'Order % assigned to service provider % with ticket %', p_order_id, v_service_provider_id, v_ticket_id;
 

@@ -367,10 +367,16 @@ public class TicketStateService {
                 if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(6);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(7);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
 
@@ -459,6 +465,9 @@ public class TicketStateService {
                         if (parentTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                             CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
                             orderState.setOrderStateId(7);
+                            orderState.setModifiedDate(new Date());
+                            orderState.setModifierUserId(tokenUserId);
+                            orderState.setModifierRole(tokenRole);
                             entityManager.merge(orderState);
                         }
 
@@ -473,12 +482,12 @@ public class TicketStateService {
                                     parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                                 }
                             }
-//                            handled by trigger.
-//                            if (parentTicketAssignee.getTicketPending() == 0) {
-//                                throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
-//                            }
-//                            parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending() - 1);
-//                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted() + 1);
+
+                            if (parentTicketAssignee.getTicketPending() == 0) {
+                                throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
+                            }
+                            parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending() - 1);
+                            parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted() + 1);
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {
@@ -531,8 +540,8 @@ public class TicketStateService {
                         if (assignee.getTicketPending() == 0) {
                             throw new IllegalArgumentException("Ticket pending of assignee is 0 (value cannot be < 0 )");
                         }
-//                        assignee.setTicketPending(assignee.getTicketPending() - 1);
-//                        assignee.setTicketCompleted(assignee.getTicketCompleted() + 1);
+                        assignee.setTicketPending(assignee.getTicketPending() - 1);
+                        assignee.setTicketCompleted(assignee.getTicketCompleted() + 1);
                         entityManager.merge(assignee);
                     }
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
@@ -613,24 +622,18 @@ public class TicketStateService {
                     query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                     Integer orderStateId = (Integer) query.getFirstResult();
                     orderState.setOrderStateId(orderStateId);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
             }
 
-            Long newAssigneeId = createTicketDTO.getAssignee();
-            Long oldAssigneeId = ticket.getAssignee();
             LocalDateTime localDateTime = LocalDateTime.now();
             Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
             ticket.setModifiedDate(date);
             ticket.setModifierId(tokenUserId);
             ticket.setModifierRole(tokenRole);
-
-            /* if (oldAssigneeId != null || newAssigneeId != null) {
-                updateSpTicketAvailability(ticket, ticketState, oldAssigneeId, newAssigneeId);
-            }
-            if (newAssigneeId != null) {
-                ticket.setAssignee(newAssigneeId);
-            } */
 
             if (createTicketDTO.getComment() != null && !createTicketDTO.getComment().trim().isEmpty()) {
                 ticket.setComment(createTicketDTO.getComment().trim());

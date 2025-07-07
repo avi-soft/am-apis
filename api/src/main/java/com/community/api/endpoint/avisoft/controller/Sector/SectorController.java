@@ -156,12 +156,13 @@ public class SectorController {
     ReserveCategoryAgeService reserveCategoryAgeService;
     @Autowired
     SharedUtilityService sharedUtilityService;
-     @Autowired
+
+    @Autowired
     CatalogService catalogService;
     @GetMapping("/get-products-by-sectors")
     public ResponseEntity<?> getProductsByAdvertisementId(
             @RequestParam(value = "sectors", required = false) String sectors,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(value = "name-only", required = false, defaultValue = "true") Boolean nameOnly,
@@ -258,7 +259,7 @@ public class SectorController {
 
     @GetMapping("/get-products-by-sector-id")
     public ResponseEntity<?>getProductsByAdvertisementId(@RequestParam(value = "sectorId", required = true) Long sectorId
-            ,@RequestParam(value = "limit",required = false,defaultValue = "10")Integer limit
+            ,@RequestParam(value = "limit",required = false,defaultValue = "1000")Integer limit
             ,@RequestParam(value = "offset",required = false,defaultValue = "0")Integer offset
             ,@RequestHeader(value = "Authorization", required = false) String authHeader
             ,@RequestParam(value = "categoryId", required = false) List<Long> categoryId)
@@ -281,7 +282,6 @@ public class SectorController {
                     return ResponseService.generateErrorResponse("Category with id "+id+" not found",HttpStatus.BAD_REQUEST);
             }
         }
-
        CustomSector customSector=entityManager.find(CustomSector.class,sectorId);
         if(customSector==null)
             return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
