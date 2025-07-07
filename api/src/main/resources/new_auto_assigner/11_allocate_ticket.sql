@@ -40,8 +40,11 @@ BEGIN
 
         -- Update the order state to assigned
         UPDATE order_state
-        SET order_state_id = 2
-        WHERE order_id = p_order_id;
+        SET
+            order_state_id = 2,
+            modified_date = NOW()
+        WHERE
+            order_id = p_order_id;
 
         -- Append the ticket_id to output list
         p_assigned_ticket_ids := array_append(p_assigned_ticket_ids, ticket_id);

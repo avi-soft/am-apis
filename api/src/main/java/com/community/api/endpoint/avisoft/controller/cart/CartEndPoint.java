@@ -16,6 +16,7 @@ import com.community.api.entity.OrderCustomerDetailsDTO;
 import com.community.api.entity.OrderDTO;
 import com.community.api.entity.Post;
 import com.community.api.entity.RazorpayDetails;
+import com.community.api.entity.Role;
 import com.community.api.services.*;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -617,6 +618,11 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Role role = roleService.getRoleByRoleId(roleId);
+
             if(!verifyUser(authHeader,customerId))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             CustomProduct customProduct = null;
@@ -841,6 +847,9 @@ public class CartEndPoint extends BaseEndpoint {
                         return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
                     orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(customerId);
+                    orderState.setModifierRole(role);
                     // Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
                     //orderState.setOrderStatusId(orderStatusId);
                     //orderState.setOrderStatusId(orderStatusId);
@@ -949,6 +958,7 @@ public class CartEndPoint extends BaseEndpoint {
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
                 customOrderState.setOrderStatusId(1);
+                customOrderState.setModifiedDate(new Date());
                 order.setSubmitDate(new Date());
 
                 OrderItem orderItem = order.getOrderItems().get(0);
@@ -1004,6 +1014,7 @@ public class CartEndPoint extends BaseEndpoint {
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
                 customOrderState.setOrderStatusId(null);
+                customOrderState.setModifiedDate(new Date());
                 order.setSubmitDate(new Date());
                 entityManager.merge(order);
             } else {
