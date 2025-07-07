@@ -2265,7 +2265,7 @@ public class CustomerEndpoint {
     public ResponseEntity<?> getFilledFormsByUserId(HttpServletRequest request,
                                                     @RequestParam long customer_id,
                                                     @RequestParam(value = "offset", defaultValue = "0") int offset,
-                                                    @RequestParam(value = "limit", defaultValue = "1000") int limit,
+                                                    @RequestParam(value = "limit", defaultValue = "10") int limit,
                                                     @RequestHeader(value = "Authorization") String authHeader,
                                                     @RequestParam(value = "unique_products", required = false, defaultValue = "true") boolean uniqueProducts) {
         try {
@@ -2317,9 +2317,18 @@ public class CustomerEndpoint {
             List<Object[]> resultList = query.getResultList();
 
             List<BigInteger> orderIds = new ArrayList<>();
-            for (Object[] row : resultList) {
-                BigInteger orderId = (BigInteger) row[0]; // order_id
-                orderIds.add(orderId);
+
+            if (uniqueProducts) {
+                for (Object row : resultList) {
+                    BigInteger orderId = (BigInteger) row;
+                    orderIds.add(orderId);
+                }
+            } else {
+                for (Object row : resultList) {
+                    Object[] columns = (Object[]) row;
+                    BigInteger orderId = (BigInteger) columns[0];
+                    orderIds.add(orderId);
+                }
             }
             List<CustomProductWrapper> appliedForms = new ArrayList<>();
             Set<Long> processedProductIds = new HashSet<>();
@@ -2389,6 +2398,7 @@ public class CustomerEndpoint {
             return ResponseService.generateErrorResponse("Error retrieving forms", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @GetMapping(value = "/forms/show-recommended-forms")
     public ResponseEntity<?> getRecommendedFormsByUserId(HttpServletRequest request,
@@ -3404,7 +3414,8 @@ public class CustomerEndpoint {
         Map<String, Object> response = new HashMap<>();
         response.put("forms", wrappers);
         response.put("totalItems", resultCount);
-        response.put("totalPages", (resultCount.longValue() / limit)+1);
+        long totalPages = (resultCount.longValue() + limit - 1) / limit;
+        response.put("totalPages", totalPages);
         response.put("currentPage", offset + 1);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
