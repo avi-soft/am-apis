@@ -1,5 +1,6 @@
 CREATE OR REPLACE PROCEDURE public.random_binding_ticket_allocation_for_tickets(INOUT ticket_ids bigint[], INOUT assigned_ticket_ids bigint[])
-LANGUAGE 'plpgsql'
+    LANGUAGE 'plpgsql'
+
 AS $BODY$
 DECLARE
     v_ticket_id BIGINT;
@@ -21,25 +22,25 @@ BEGIN
 
     FOREACH v_ticket_id IN ARRAY ticket_ids LOOP
         v_assigned := FALSE;
-		
+
        raise notice 'TICKET ID: %', v_ticket_id;
-      
+
         -- Get basic ticket info (excluding rejected_by)
 		SELECT ticket_type_id, order_id, parent_ticket_id, assignee_user_id
 		INTO v_ticket_type_id, v_order_id, v_parent_ticket_id, v_assignee
 		FROM custom_service_provider_ticket
 		WHERE ticket_id = v_ticket_id;
-		
+
 		IF v_ticket_type_id = 2 THEN
 		    SELECT order_id
 		    INTO v_order_id
 		    FROM custom_service_provider_ticket
 		    WHERE ticket_id = v_parent_ticket_id;
-		
+
 		    -- Optional: log to confirm updated order ID
 		    RAISE NOTICE 'Updated order_id from parent ticket: %', v_order_id;
 		END IF;
-		
+
 		-- Get rejected_by from separate table
 		SELECT array_agg(rejected_by_id)
 		INTO v_rejected_by
@@ -71,7 +72,7 @@ BEGIN
                 IF v_ticket_type_id = 2 AND v_assignee = ref.id THEN
                     CONTINUE;
                 END IF;
-               
+
 				RAISE NOTICE 'primary referrer: %', ref.service_provider_id;
 				raise notice 'ticket type id is %', v_ticket_type_id;
                 CALL reallocate_ticket(
@@ -130,7 +131,7 @@ BEGIN
         SELECT creator_user_id INTO v_creator_user_id
         FROM custom_product
         WHERE product_id = v_product_id;
-       
+
         SELECT service_provider_id
 		INTO v_sp_id
 		FROM service_provider
@@ -138,7 +139,7 @@ BEGIN
 		  AND role IN (2, 4)
 		  AND is_active = TRUE
 		  AND approved = TRUE;
-		
+
 	    IF v_sp_id IS NULL then
 	    	v_unassigned_ticket_ids := array_append(v_unassigned_ticket_ids, v_ticket_id);
 		    CONTINUE;
@@ -149,7 +150,7 @@ BEGIN
             	v_unassigned_ticket_ids := array_append(v_unassigned_ticket_ids, v_ticket_id);
                 CONTINUE;
             END IF;
-			
+
             CALL reallocate_ticket(
                 p_order_id           => v_order_id,
                 p_service_provider_id => v_creator_user_id,
