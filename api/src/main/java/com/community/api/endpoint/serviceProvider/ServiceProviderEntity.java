@@ -119,7 +119,7 @@ public class ServiceProviderEntity {
     @Column(name = "completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean completed;
     @Column(name = "approved", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean approved;
+    private Boolean approved = false;
     @Column(name = "archived", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isArchived = false;
     private String otp;

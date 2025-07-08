@@ -6,6 +6,8 @@ import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomAdmin;
 import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.ServiceProviderReRankingEligibility;
+import com.community.api.entity.ServiceProviderReRankingScore;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.services.*;
 import com.community.api.services.Admin.AdminService;
@@ -315,7 +317,16 @@ public class OtpEndpoint {
                 ServiceProviderTestStatus serviceProviderTestStatus = em.find(ServiceProviderTestStatus.class, Constant.INITIAL_TEST_STATUS);
                 serviceProviderEntity.setServiceProviderStatus(serviceProviderTestStatus);
                 serviceProviderEntity.setRole(4);
+
                 em.persist(serviceProviderEntity);
+                em.flush();
+
+                ServiceProviderReRankingEligibility serviceProviderReRankingEligibility = new ServiceProviderReRankingEligibility();
+                ServiceProviderReRankingScore serviceProviderReRankingScore = new ServiceProviderReRankingScore();
+                serviceProviderReRankingEligibility.setServiceProvider(serviceProviderEntity);
+                serviceProviderReRankingScore.setServiceProvider(serviceProviderEntity);
+                em.persist(serviceProviderReRankingEligibility);
+                em.persist(serviceProviderReRankingScore);
             } else if (existingServiceProvider.getOtp() != null) {
                 existingServiceProvider.setOtp(otp);
                 em.merge(existingServiceProvider);
