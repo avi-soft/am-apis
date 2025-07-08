@@ -569,7 +569,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             errorMessages.put(key,"Field '" + key + "' cannot be null or empty when is_running_business_unit is true");
                         }
                     }
-
+                    existingServiceProvider.setBusiness_email((String)updates.get("business_email"));
+                    existingServiceProvider.setBusiness_name((String)updates.get("business_name"));
                     //Adding business_address for professional SP
                     List<String> businessAddresssKeys = new ArrayList<>();
                     businessAddresssKeys.add("business_district");
@@ -593,6 +594,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 //                            }
 //                        }
 //                    }
+
                     if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address")&& updates.containsKey("business_longitude")&& updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
                         existingServiceProvider.setIsAcknowledged(false);
                         if (validateBusinessAddressFields(updates).isEmpty()) {
