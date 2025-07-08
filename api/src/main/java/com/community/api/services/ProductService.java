@@ -602,6 +602,8 @@ public class ProductService {
                     }
                 }
                 jpql.append("AND p.productState IN :states ");
+                if(states.contains(2L))
+                    jpql.append("OR p.isEdited = true ");
                 if (containsStateLive) {
                     jpql.append("AND (p.productState.id != 5 OR (p.productState.id = 5 AND FUNCTION('DATE', p.goLiveDate) <= FUNCTION('DATE', CURRENT_TIMESTAMP))) ");
                 }
