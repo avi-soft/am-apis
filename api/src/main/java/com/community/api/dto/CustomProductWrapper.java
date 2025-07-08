@@ -168,6 +168,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     protected Boolean isExamDateFromNa;
     @JsonProperty("is_answer_key_available_date_na")
     protected Boolean isAnswerKeyAvailableDateNa;
+    @JsonProperty("is_edited")
+    protected Boolean isEdited;
     @JsonProperty( "is_result_declaration_date_na")
     protected Boolean isResultDeclarationDateNa;
     @JsonProperty( "is_counselling_date_na")
@@ -202,6 +204,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
         this.categoryName = product.getDefaultCategory().getName();
         this.priorityLevel = addProductDto.getPriorityLevel();
+        this.isEdited=false;
         this.archived = 'N';
         this.createdDate = currentDate;
         this.examCenterAvailableDate=addProductDto.getExamCenterAvailableDate();
@@ -396,6 +399,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
     public void wrapDetails(CustomProduct customProduct, List<ReserveCategoryDto> reserveCategoryDtoList) {
         this.id = customProduct.getId();
         this.metaTitle = customProduct.getMetaTitle();
+        this.isEdited=customProduct.getIsEdited();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.active = customProduct.isActive();
         this.isApproved=customProduct.getIsApproved();
@@ -468,6 +472,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.resultDeclarationDate=customProduct.getResultDeclarationDate();
         this.categoryName = customProduct.getDefaultCategory().getName();
+        this.isEdited=customProduct.getIsEdited();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
@@ -585,6 +590,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.metaTitle = customProduct.getMetaTitle();
         this.displayTemplate = customProduct.getDisplayTemplate();
         this.createdDate = customProduct.getCreatedDate();
+        this.isEdited=customProduct.getIsEdited();
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.examCenterAvailableDate=customProduct.getExamCenterAvailableDate();
@@ -702,6 +708,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.archived = 'N';
         this.createdDate = product.getCreatedDate();
         this.answerKeyAvailableDate=product.getAnswerKeyAvailableDate();
+        this.isEdited=product.getIsEdited();
         this.activeGoLiveDate = product.getGoLiveDate();
         this.activeEndDate = product.getDefaultSku().getActiveEndDate();
         this.activeStartDate = product.getDefaultSku().getActiveStartDate();
