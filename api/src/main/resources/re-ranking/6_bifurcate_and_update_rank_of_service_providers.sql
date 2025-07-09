@@ -45,12 +45,12 @@ begin
 
         -- Fetch current rank
         SELECT rank_id INTO existing_rank
-        FROM service_provider
+        FROM service_provider_rank_mapping
         WHERE service_provider_id = sp_id;
 
         -- Only update if rank has changed
         IF existing_rank IS DISTINCT FROM current_rank THEN
-            UPDATE service_provider
+            UPDATE service_provider_rank_mapping
             SET rank_id = current_rank
             WHERE service_provider_id = sp_id;
 
