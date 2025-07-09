@@ -1,9 +1,7 @@
 package com.community.api.entity;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.micrometer.core.lang.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,6 +25,8 @@ public class ServiceProviderAddress
     @Column(columnDefinition = "VARCHAR(255) DEFAULT 'CURRENT_ADDRESS'")
     private String address_name="CURRENT_ADDRESS";
     private String district,address_line,state,city,pincode;
+    private Double latitude,longitude;
+    private String geoLocation;
 
     @ManyToOne(fetch = FetchType.LAZY) // Use lazy loading to improve performance if needed
     @JoinColumn(name = "service_provider_id") // Explicitly specify the foreign key column
