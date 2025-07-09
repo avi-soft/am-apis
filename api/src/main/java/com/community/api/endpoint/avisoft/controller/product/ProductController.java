@@ -562,6 +562,7 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                customProduct.setIsEdited(false);
                 if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
                     System.out.println("yes");
                     CustomProductState productState=entityManager.find(CustomProductState.class,5L);
@@ -642,7 +643,11 @@ public class ProductController extends CatalogEndpoint {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
-
+            customProduct.setIsEdited(true);
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3L)
+            {
+                customProduct.setIsEdited(false);
+            }
             entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 

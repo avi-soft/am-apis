@@ -602,7 +602,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             errorMessages.put(key, "Field '" + key + "' cannot be null or empty when is_running_business_unit is true");
                         }
                     }
-
+                    existingServiceProvider.setBusiness_email((String)updates.get("business_email"));
+                    existingServiceProvider.setBusiness_name((String)updates.get("business_name"));
                     //Adding business_address for professional SP
                     List<String> businessAddresssKeys = new ArrayList<>();
                     businessAddresssKeys.add("business_district");

@@ -117,6 +117,8 @@
         <class>com.community.api.entity.Schedule</class>
         <class>com.community.api.entity.ServiceProviderReRankingScore</class>
         <class>com.community.api.entity.ServiceProviderReRankingEligibility</class>
+        <class>com.community.api.entity.LogicalOperator</class>
+        <class>com.community.api.entity.QualificationRelation</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 
