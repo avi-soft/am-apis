@@ -26,7 +26,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 
 import javax.persistence.EntityManager;
@@ -92,7 +98,7 @@ public class OtpEndpoint {
 
     @PostMapping(value = "/send-otp", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session,@RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
+    public ResponseEntity<?> sendOtp(@RequestBody CustomCustomer customerDetails, HttpSession session, @RequestHeader(value = "Authorization",required = false) String authHeader) throws UnsupportedEncodingException {
         try {
             if (customerDetails.getMobileNumber() == null || customerDetails.getMobileNumber().isEmpty()) {
                 return responseService.generateErrorResponse(ApiConstants.MOBILE_NUMBER_NULL_OR_EMPTY, HttpStatus.NOT_ACCEPTABLE);
@@ -157,7 +163,7 @@ public class OtpEndpoint {
 
     @Transactional
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session,@RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth,HttpServletRequest request,@RequestHeader(name = "Authorization",required = false)String authHeadReq) {
+    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, Object> loginDetails, HttpSession session, @RequestParam(name = "tempAuth",required = false,defaultValue ="false")Boolean tempAuth, HttpServletRequest request, @RequestHeader(name = "Authorization",required = false)String authHeadReq) {
         try {
             String authHeader=Constant.BEARER_CONST;
             loginDetails=sanitizerService.sanitizeInputMap(loginDetails);
