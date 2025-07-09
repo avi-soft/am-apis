@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
+import javax.persistence.Column;
 import java.util.List;
 
 @Getter
@@ -35,5 +35,11 @@ public class QualificationEligibilityDto {
     private String additionalComments;
     private Boolean isAppearing;
     private List<String> highestQualificationSubjectNames;
-
+    private Long streamsRelationId=1L;
+    private Long subjectsRelationId=1L;
+    private Boolean streamsMandatory = true;
+    private Boolean subjectsMandatory = true;
+    private Boolean reserveCategoryMandatory = true;
+    private Long qualificationOperatorId=1L;
+    private Boolean isCertificationRequired=false;
 }
