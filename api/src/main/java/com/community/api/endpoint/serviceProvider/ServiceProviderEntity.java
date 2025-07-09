@@ -197,7 +197,6 @@ public class ServiceProviderEntity {
     @JoinColumn(name = "service_provider_id")
     private List<ServiceProviderAddress> spAddresses;
 
-
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "status_id", referencedColumnName = "status_id")
     private ServiceProviderStatus status;
@@ -239,10 +238,6 @@ public class ServiceProviderEntity {
     @JsonIgnore
     @OneToMany(mappedBy = "service_provider", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ServiceProviderTest> serviceProviderTests;
-
-/* @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE}) // Only persist/merge, no REMOVE
- @JoinColumn(name="test_status_id", referencedColumnName = "test_status_id")
- private ServiceProviderTestStatus testStatus;*/
 
     @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -303,21 +298,6 @@ public class ServiceProviderEntity {
 
     @Column(name = "auto_scoring", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean autoScoring = true;
-
-    /*@Column(name = "is_admin_overridden", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean adminOverridden = false;
-
-    @Column(name = "is_eligible_for_re_ranking")
-    private Boolean eligibleForReRanking;*/
-
-    /*@Column(name = "review_ticket_status_score")
-    private Long reviewTicketStatusScore = 0L;
-
-    @Column(name = "review_ticket_feedback_score")
-    private Long reviewTicketFeedbackScore = 0L;
-
-    @Column(name = "time_completion_score")
-    private Long timeCompletionScore = 0L;*/
 
     @Column(name = "is_acknowledged", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isAcknowledged = false;
