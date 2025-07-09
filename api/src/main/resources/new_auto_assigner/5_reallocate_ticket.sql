@@ -84,8 +84,11 @@ BEGIN
 
 	        -- Update order state
 	        UPDATE order_state
-	        SET order_state_id = 2 -- assuming 1002 = ASSIGNED
-	        WHERE order_id = p_order_id;
+            SET
+                order_state_id = 2,
+                modified_date = NOW()
+            WHERE
+                order_id = p_order_id;
 	
 	        -- Increment SP ticket count
 	        UPDATE service_provider

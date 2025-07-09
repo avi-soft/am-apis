@@ -140,7 +140,7 @@ public class OrderController {
 
 /*    @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
@@ -190,7 +190,7 @@ public class OrderController {
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
 
@@ -307,7 +307,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
-    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
         try {
             if (offset < 0 || limit <= 0) {
                 throw new IllegalArgumentException("Offset or Limit invalid");
@@ -730,7 +730,7 @@ public class OrderController {
 
     @Transactional
     @GetMapping("/{orderId}/availableSp")
-    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit) {
         try {
             List<ServiceProviderEntity> result = customOrderService.availableSp(orderId, page, limit);
             return ResponseService.generateSuccessResponse("List of available Sp", result, HttpStatus.OK);

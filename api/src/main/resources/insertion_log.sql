@@ -2253,6 +2253,13 @@ END IF;
     		(2,'Pdf'),
     		(3,'Signature');
     END IF;
+
+    IF (SELECT COUNT(*) FROM logical_operator) = 0 THEN
+            INSERT INTO logical_operator (logical_operator_id, operator_name)
+            VALUES
+        		(1,'AND'),
+        		(2,'OR'),
+        END IF;
 ----
 --    -- Check and insert into vacancy_distribution_type table
 --    IF NOT EXISTS (SELECT 1 FROM vacancy_distribution_type) THEN

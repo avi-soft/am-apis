@@ -10,18 +10,22 @@ BEGIN
 
 	RAISE NOTICE '2. Update Service Providers eligibility';
 
-    FOR sp_record in
-        SELECT service_provider_id, "type", ticket_completed, is_eligible_for_re_ranking
-        FROM public.service_provider
-        WHERE is_admin_overridden = false
-          AND "type" IS NOT null
-          and role = 4
-    loop
+    FOR sp_record IN
+        SELECT sp.service_provider_id, sp."type", sp.ticket_completed, elig.is_eligible_for_re_ranking
+        FROM public.service_provider sp
+        JOIN public.service_provider_re_ranking_eligibility elig
+            ON sp.service_provider_id = elig.service_provider_id
+        WHERE elig.is_admin_overridden = false
+          AND sp."type" IS NOT null
+          AND sp.approved = true
+          AND sp.archived = false
+          AND sp.role = 4
+    LOOP
 
 	    IF sp_record."type" = 'PROFESSIONAL' THEN
 		    -- Treat NULL as false
 		    IF sp_record.is_eligible_for_re_ranking IS NULL THEN
-		        UPDATE public.service_provider
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = false
 		        WHERE service_provider_id = sp_record.service_provider_id;
 
@@ -30,11 +34,11 @@ BEGIN
 
 		    -- Always validate eligibility against ticket_completed
 		    IF sp_record.ticket_completed IS NOT NULL AND sp_record.ticket_completed > 10 THEN
-		        UPDATE public.service_provider
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = true
 		        WHERE service_provider_id = sp_record.service_provider_id;
 		    ELSE
-		        UPDATE public.service_provider
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = false
 		        WHERE service_provider_id = sp_record.service_provider_id;
 		    END IF;
@@ -44,7 +48,7 @@ BEGIN
 		ELSIF sp_record."type" = 'INDIVIDUAL' THEN
 		    -- Treat NULL as false
 		    IF sp_record.is_eligible_for_re_ranking IS NULL THEN
-		        UPDATE public.service_provider
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = false
 		        WHERE service_provider_id = sp_record.service_provider_id;
 
@@ -52,12 +56,12 @@ BEGIN
 		    END IF;
 
 		    -- Always validate eligibility against ticket_completed
-		    IF sp_record.ticket_completed IS NOT NULL AND sp_record.ticket_completed > 3 THEN
-		        UPDATE public.service_provider
+		    IF sp_record.ticket_completed IS NOT NULL AND sp_record.ticket_completed > 4 THEN
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = true
 		        WHERE service_provider_id = sp_record.service_provider_id;
 		    ELSE
-		        UPDATE public.service_provider
+		        UPDATE public.service_provider_re_ranking_eligibility
 		        SET is_eligible_for_re_ranking = false
 		        WHERE service_provider_id = sp_record.service_provider_id;
 		    END IF;
