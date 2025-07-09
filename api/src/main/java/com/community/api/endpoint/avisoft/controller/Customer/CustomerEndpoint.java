@@ -2318,9 +2318,18 @@ public class CustomerEndpoint {
             List<Object[]> resultList = query.getResultList();
 
             List<BigInteger> orderIds = new ArrayList<>();
-            for (Object[] row : resultList) {
-                BigInteger orderId = (BigInteger) row[0]; // order_id
-                orderIds.add(orderId);
+
+            if (uniqueProducts) {
+                for (Object row : resultList) {
+                    BigInteger orderId = (BigInteger) row;
+                    orderIds.add(orderId);
+                }
+            } else {
+                for (Object row : resultList) {
+                    Object[] columns = (Object[]) row;
+                    BigInteger orderId = (BigInteger) columns[0];
+                    orderIds.add(orderId);
+                }
             }
             List<CustomProductWrapper> appliedForms = new ArrayList<>();
             Set<Long> processedProductIds = new HashSet<>();
