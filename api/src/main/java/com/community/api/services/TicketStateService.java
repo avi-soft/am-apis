@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.CreateTicketDto;
+import com.community.api.dto.ServiceProviderReRankingScoreDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
@@ -75,6 +76,8 @@ public class TicketStateService {
     protected ExceptionHandlingService exceptionHandlingService;
     @Autowired
     ServiceProviderServiceImpl serviceProviderService;
+    @Autowired
+    ServiceProviderReRankingScoreService serviceProviderReRankingScoreService;
 
     public List<CustomTicketState> getAllTicketState() throws Exception {
         try {
@@ -366,10 +369,16 @@ public class TicketStateService {
                 if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_IN_PROGRESS) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(6);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(7);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
 
@@ -458,18 +467,26 @@ public class TicketStateService {
                         if (parentTicket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                             CustomOrderState orderState = entityManager.find(CustomOrderState.class, parentTicket.getOrder().getId());
                             orderState.setOrderStateId(7);
+                            orderState.setModifiedDate(new Date());
+                            orderState.setModifierUserId(tokenUserId);
+                            orderState.setModifierRole(tokenRole);
                             entityManager.merge(orderState);
                         }
 
                         if (parentTicketAssignee != null) {
-                            parentTicketAssignee.setReviewTicketStatusScore(parentTicketAssignee.getReviewTicketStatusScore() + Constant.REVIEW_TICKET_STATUS_SUCCESS);
-                            parentTicketAssignee.setReviewTicketFeedbackScore(parentTicketAssignee.getReviewTicketFeedbackScore() + workQualityScore);
+                            ServiceProviderReRankingScoreDto serviceProviderReRankingScoreDto = new ServiceProviderReRankingScoreDto();
+                            serviceProviderReRankingScoreDto.setReviewTicketStatusScore(Constant.REVIEW_TICKET_STATUS_SUCCESS);
+                            serviceProviderReRankingScoreDto.setReviewTicketFeedbackScore(workQualityScore);
+//                            parentTicketAssignee.setReviewTicketStatusScore(parentTicketAssignee.getReviewTicketStatusScore() + Constant.REVIEW_TICKET_STATUS_SUCCESS);
+//                            parentTicketAssignee.setReviewTicketFeedbackScore(parentTicketAssignee.getReviewTicketFeedbackScore() + workQualityScore);
 
                             if (parentTicket.getTargetCompletionDate() != null) {
                                 if (parentTicket.getTargetCompletionDate().before(parentTicket.getModifiedDate())) {
-                                    parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_FAIL);
+                                    serviceProviderReRankingScoreDto.setTimeCompletionScore(Constant.TIME_COMPLETION_FAIL);
+//                                    parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_FAIL);
                                 } else {
-                                    parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
+                                    serviceProviderReRankingScoreDto.setTimeCompletionScore(Constant.TIME_COMPLETION_SUCCESS);
+//                                    parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                                 }
                             }
 
@@ -478,6 +495,8 @@ public class TicketStateService {
                             }
                             parentTicketAssignee.setTicketPending(parentTicketAssignee.getTicketPending() - 1);
                             parentTicketAssignee.setTicketCompleted(parentTicketAssignee.getTicketCompleted() + 1);
+
+                            serviceProviderReRankingScoreService.updateServiceProviderReRankingScore(parentTicketAssignee, serviceProviderReRankingScoreDto);
                             entityManager.merge(parentTicketAssignee);
                         }
                     } else {
@@ -487,8 +506,12 @@ public class TicketStateService {
                         parentTicket.setWorkQuality(workQuality);
 
                         if (parentTicketAssignee != null) {
-                            parentTicketAssignee.setReviewTicketStatusScore(parentTicketAssignee.getReviewTicketStatusScore() + Constant.REVIEW_TICKET_STATUS_FAIL);
-                            parentTicketAssignee.setReviewTicketFeedbackScore(parentTicketAssignee.getReviewTicketFeedbackScore() + workQualityScore);
+
+                            ServiceProviderReRankingScoreDto serviceProviderReRankingScoreDto = new ServiceProviderReRankingScoreDto();
+                            serviceProviderReRankingScoreDto.setReviewTicketStatusScore(Constant.REVIEW_TICKET_STATUS_FAIL);
+                            serviceProviderReRankingScoreDto.setReviewTicketFeedbackScore(workQualityScore);
+//                            parentTicketAssignee.setReviewTicketStatusScore(parentTicketAssignee.getReviewTicketStatusScore() + Constant.REVIEW_TICKET_STATUS_FAIL);
+//                            parentTicketAssignee.setReviewTicketFeedbackScore(parentTicketAssignee.getReviewTicketFeedbackScore() + workQualityScore);
 
                             // Won't Update time completion score as it does not matter the ticket is not complete yet.
                             /*if(parentTicket.getTargetCompletionDate() != null) {
@@ -498,6 +521,8 @@ public class TicketStateService {
                                     parentTicketAssignee.setTimeCompletionScore(parentTicketAssignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                                 }
                             }*/
+
+                            serviceProviderReRankingScoreService.updateServiceProviderReRankingScore(parentTicketAssignee, serviceProviderReRankingScoreDto);
                             entityManager.merge(parentTicketAssignee);
                         }
                     }
@@ -520,11 +545,16 @@ public class TicketStateService {
                         }
                     }
                     if (ticket.getAssignee() != null) {
+
+                        ServiceProviderReRankingScoreDto serviceProviderReRankingScoreDto = new ServiceProviderReRankingScoreDto();
+
                         ServiceProviderEntity assignee = serviceProviderService.getServiceProviderById(ticket.getAssignee());
                         if (ticket.getTargetCompletionDate().before(new Date())) {
-                            assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_FAIL);
+                            serviceProviderReRankingScoreDto.setTimeCompletionScore(Constant.TIME_COMPLETION_FAIL);
+//                            assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_FAIL);
                         } else {
-                            assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
+                            serviceProviderReRankingScoreDto.setTimeCompletionScore(Constant.TIME_COMPLETION_SUCCESS);
+//                            assignee.setTimeCompletionScore(assignee.getTimeCompletionScore() + Constant.TIME_COMPLETION_SUCCESS);
                         }
 
                         if (assignee.getTicketPending() == 0) {
@@ -532,6 +562,8 @@ public class TicketStateService {
                         }
                         assignee.setTicketPending(assignee.getTicketPending() - 1);
                         assignee.setTicketCompleted(assignee.getTicketCompleted() + 1);
+
+                        serviceProviderReRankingScoreService.updateServiceProviderReRankingScore(assignee, serviceProviderReRankingScoreDto);
                         entityManager.merge(assignee);
                     }
                     if (createTicketDTO.getComment() == null || createTicketDTO.getComment().trim().isEmpty()) {
@@ -612,6 +644,9 @@ public class TicketStateService {
                     query.setParameter("ticketStateId", createTicketDTO.getTicketState());
                     Integer orderStateId = (Integer) query.getFirstResult();
                     orderState.setOrderStateId(orderStateId);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
             }

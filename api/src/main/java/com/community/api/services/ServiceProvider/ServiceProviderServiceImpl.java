@@ -2,6 +2,7 @@ package com.community.api.services.ServiceProvider;
 
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
+import com.community.api.dto.ServiceProviderReRankingEligibilityDto;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.endpoint.serviceProvider.ServiceProviderStatus;
 import com.community.api.entity.CustomServiceProviderTicket;
@@ -13,6 +14,7 @@ import com.community.api.entity.ServiceProviderAddressRef;
 import com.community.api.entity.ServiceProviderInfra;
 import com.community.api.entity.ServiceProviderLanguage;
 import com.community.api.entity.ServiceProviderRank;
+import com.community.api.entity.ServiceProviderReRankingEligibility;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.entity.Skill;
 import com.community.api.entity.StateCode;
@@ -26,6 +28,8 @@ import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.ServiceProviderInfraService;
 import com.community.api.services.ServiceProviderLanguageService;
+import com.community.api.services.ServiceProviderReRankingEligibilityService;
+import com.community.api.services.ServiceProviderReRankingScoreService;
 import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.SharedUtilityService;
 import com.community.api.services.SkillService;
@@ -141,6 +145,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     private FileService fileService;
     @Autowired
     private DocumentStorageService documentStorageService;
+    @Autowired
+    ServiceProviderReRankingEligibilityService serviceProviderReRankingEligibilityService;
 
     @Value("${twilio.phoneNumber}")
     private String twilioPhoneNumber;
@@ -193,6 +199,17 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return str != null && str.matches("^[A-Za-z]+( [A-Za-z]+)*$");
     }
 
+    public static Date convertStringToDate(String dateStr, String s) throws ParseException {
+        if (dateStr == null || dateStr.isEmpty()) {
+            throw new IllegalArgumentException("Date string cannot be null or empty");
+        }
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        dateFormat.setLenient(false);
+        return dateFormat.parse(dateStr);
+    }
+
     @Override
     @Transactional
     public ServiceProviderEntity saveServiceProvider(ServiceProviderEntity serviceProviderEntity) {
@@ -207,12 +224,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates,String authHeader) {
-        ServiceProviderEntity existingServiceProvider=null;
-        ServiceProviderEntity originalCopy=null;
+    public ResponseEntity<?> updateServiceProvider(Long userId, Map<String, Object> updates, String authHeader) {
+        ServiceProviderEntity existingServiceProvider = null;
+        ServiceProviderEntity originalCopy = null;
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.","authorizationHeader", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.", "authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
@@ -220,45 +237,44 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             Long tokenUserId;
             roleId = jwtTokenUtil.extractRoleId(jwtToken);
             tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            String role= roleService.findRoleName(roleId);
+            String role = roleService.findRoleName(roleId);
 
             updates = sharedUtilityService.trimStringValues(updates);
-            Map<String,String> errorMessages = new HashMap<>();
+            Map<String, String> errorMessages = new HashMap<>();
 
 
             // Find existing ServiceProviderEntity
             existingServiceProvider = entityManager.find(ServiceProviderEntity.class, userId);
             if (existingServiceProvider == null) {
-                errorMessages.put("service_provider_id","ServiceProvider with ID " + userId + " not found");
+                errorMessages.put("service_provider_id", "ServiceProvider with ID " + userId + " not found");
             }
 
-            if(existingServiceProvider!=null)
-            {
-              originalCopy = cloneServiceProvider(existingServiceProvider);
+            if (existingServiceProvider != null) {
+                originalCopy = cloneServiceProvider(existingServiceProvider);
             }
-            String type= null;
+            String type = null;
             if (updates.containsKey("type")) {
                 String typeStr = (String) updates.get("type");
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (typeStr == null || typeStr.trim().isEmpty()) {
-                    errorMessages.put("type","Service Provider type cannot be null or empty");
+                    errorMessages.put("type", "Service Provider type cannot be null or empty");
                 }
-                if(typeStr!=null)
-                {
+                if (typeStr != null) {
                     if (!typeStr.equalsIgnoreCase("PROFESSIONAL") && !typeStr.equalsIgnoreCase("INDIVIDUAL")) {
-                        errorMessages.put("type","Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.");
+                        errorMessages.put("type", "Invalid value for 'type'. Allowed values are 'PROFESSIONAL' or 'INDIVIDUAL'.");
                     }
                 }
                 existingServiceProvider.setType(typeStr.toUpperCase());
-                type= typeStr.toUpperCase();
+                type = typeStr.toUpperCase();
                 updates.remove("type");
+            } else {
+                type = existingServiceProvider.getType();
             }
-            else
-            {
-                type= existingServiceProvider.getType();
-            }
-            if(role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN)) {
+
+            ServiceProviderReRankingEligibilityDto serviceProviderReRankingEligibilityDto = null;
+
+            if (role.equalsIgnoreCase(Constant.ADMIN) || role.equalsIgnoreCase(Constant.SUPER_ADMIN)) {
                 if (updates.containsKey("rankId")) {
                     Object rankIdObj = updates.get("rankId");
                     Long rankId = rankIdObj instanceof Number ? ((Number) rankIdObj).longValue() : null;
@@ -266,66 +282,88 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     ServiceProviderRank serviceProviderRank = entityManager.find(ServiceProviderRank.class, rankId);
 
                     if (serviceProviderRank == null) {
-                        errorMessages.put("rankId","Rank with id " + rankId + " does not exist");
+                        errorMessages.put("rankId", "Rank with id " + rankId + " does not exist");
                     }
-                    if(rankId!=null)
-                    {
+                    if (rankId != null) {
                         if (type.equalsIgnoreCase("PROFESSIONAL") && rankId > 4) {
-                            errorMessages.put("rankId","The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d");
+                            errorMessages.put("rankId", "The service Provider is Professional so only Professional Ranking can be given i.e. from 1a to 1d");
                         } else if (type.equalsIgnoreCase("INDIVIDUAL") && rankId < 5) {
-                            errorMessages.put("rankId","The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d");
+                            errorMessages.put("rankId", "The service Provider is Individual so only Individual Ranking can be given i.e. from 2a to 2d");
                         }
                     }
-                    existingServiceProvider.setAdminOverridden(true);
-                    existingServiceProvider.setEligibleForReRanking(null);
+
+                    serviceProviderReRankingEligibilityDto = new ServiceProviderReRankingEligibilityDto();
+
+                    serviceProviderReRankingEligibilityDto.setAdminOverridden(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(null);
+//                    existingServiceProvider.setAdminOverridden(true);
+//                    existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setAutoScoring(false);
                     existingServiceProvider.setRanking(serviceProviderRank);
 //                    existingServiceProvider.setAutoScoring(false);
+
+                    serviceProviderReRankingEligibilityService.updateServiceProviderReRankingEligibility(existingServiceProvider, serviceProviderReRankingEligibilityDto);
                 }
                 updates.remove("rankId");
 
-                if(updates.containsKey("maximum_ticket_size")) {
+                if (updates.containsKey("maximum_ticket_size")) {
                     Object maximumTicketSizeObj = updates.get("maximum_ticket_size");
                     Integer maximumTicketSize = maximumTicketSizeObj instanceof Number ? ((Number) maximumTicketSizeObj).intValue() : null;
 
-                    if(maximumTicketSize!=null && maximumTicketSize < 0) {
-                        errorMessages.put("maximum_ticket_size","The maximum ticket size cannot be a negative number.");
+                    if (maximumTicketSize != null && maximumTicketSize < 0) {
+                        errorMessages.put("maximum_ticket_size", "The maximum ticket size cannot be a negative number.");
                     }
+
+                    serviceProviderReRankingEligibilityDto = new ServiceProviderReRankingEligibilityDto();
+
+                    serviceProviderReRankingEligibilityDto.setAdminOverridden(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(null);
+
+                    serviceProviderReRankingEligibilityDto = new ServiceProviderReRankingEligibilityDto();
+
+                    serviceProviderReRankingEligibilityDto.setAdminOverridden(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(null);
+
                     existingServiceProvider.setMaximumTicketSize(maximumTicketSize);
-                    existingServiceProvider.setAdminOverridden(true);
-                    existingServiceProvider.setEligibleForReRanking(null);
+//                    existingServiceProvider.setAdminOverridden(true);
+//                    existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setAutoScoring(false);
+
+                    serviceProviderReRankingEligibilityService.updateServiceProviderReRankingEligibility(existingServiceProvider, serviceProviderReRankingEligibilityDto);
                 }
                 updates.remove("maximum_ticket_size");
 
-                if(updates.containsKey("maximum_binding_size")) {
+                if (updates.containsKey("maximum_binding_size")) {
                     Object maximumBindingSizeObj = updates.get("maximum_binding_size");
                     Integer maximumBindingSize = maximumBindingSizeObj instanceof Number ? ((Number) maximumBindingSizeObj).intValue() : null;
 
-                    if(maximumBindingSize!=null && maximumBindingSize < 0) {
-                        errorMessages.put("maximum_binding_size","The maximum binding size cannot be a negative number.");
+                    if (maximumBindingSize != null && maximumBindingSize < 0) {
+                        errorMessages.put("maximum_binding_size", "The maximum binding size cannot be a negative number.");
                     }
 
+                    serviceProviderReRankingEligibilityDto = new ServiceProviderReRankingEligibilityDto();
+
+                    serviceProviderReRankingEligibilityDto.setAdminOverridden(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(null);
+
                     existingServiceProvider.setMaximumBindingSize(maximumBindingSize);
-                    existingServiceProvider.setAdminOverridden(true);
-                    existingServiceProvider.setEligibleForReRanking(null);
+//                    existingServiceProvider.setAdminOverridden(true);
+//                    existingServiceProvider.setEligibleForReRanking(null);
                     existingServiceProvider.setAutoScoring(false);
+
+                    serviceProviderReRankingEligibilityService.updateServiceProviderReRankingEligibility(existingServiceProvider, serviceProviderReRankingEligibilityDto);
                 }
                 updates.remove("maximum_binding_size");
 
-            }
-            else
-            {
-                if(updates.containsKey("rankId") && updates.get("rankId")!=null)
-                {
-                    errorMessages.put("rankId","Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank");
+            } else {
+                if (updates.containsKey("rankId") && updates.get("rankId") != null) {
+                    errorMessages.put("rankId", "Not authorized to update the rank of Service Provider. Only Admin or Super Admin can update the Rank");
                 }
-                if(updates.containsKey("maximum_ticket_size")) {
-                    errorMessages.put("maximum_ticket_size","Not authorized to update the maximum ticket size of Service Provider. Only Admin or Super Admin can update it.");
+                if (updates.containsKey("maximum_ticket_size")) {
+                    errorMessages.put("maximum_ticket_size", "Not authorized to update the maximum ticket size of Service Provider. Only Admin or Super Admin can update it.");
                 }
-                if(updates.containsKey("maximum_binding_value"))
-                {
-                    errorMessages.put("maximum_binding_value","Not authorized to update the maximum binding size of Service Provider. Only Admin or Super Admin can update it.");
+                if (updates.containsKey("maximum_binding_value")) {
+                    errorMessages.put("maximum_binding_value", "Not authorized to update the maximum binding size of Service Provider. Only Admin or Super Admin can update it.");
                 }
             }
             if (updates.containsKey("partTimeOrFullTime")) {
@@ -334,10 +372,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                 // Validate that the type value is either "Professional" or "Individual"
                 if (partTimeOrFullTimeStr == null || partTimeOrFullTimeStr.trim().isEmpty()) {
-                    errorMessages.put("partTimeOrFullTime","Service Provider partTime or FullTime field cannot be null or empty");
+                    errorMessages.put("partTimeOrFullTime", "Service Provider partTime or FullTime field cannot be null or empty");
                 }
                 if (!partTimeOrFullTimeStr.equalsIgnoreCase("PART TIME") && !partTimeOrFullTimeStr.equalsIgnoreCase("FULL TIME")) {
-                    errorMessages.put("partTimeOrFullTime","Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.");
+                    errorMessages.put("partTimeOrFullTime", "Invalid value for 'partTime or FullTime'. Allowed values are 'PART TIME' or 'FULL TIME'.");
                 }
                 existingServiceProvider.setPartTimeOrFullTime(partTimeOrFullTimeStr.toUpperCase());
             }
@@ -347,14 +385,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if (mobileNumber != null && secondaryMobileNumber != null) {
                 if (mobileNumber.equalsIgnoreCase(secondaryMobileNumber)) {
-                    errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                    errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
                 }
             }
             if (mobileNumber != null && secondaryMobileNumber == null && mobileNumber.equalsIgnoreCase(existingServiceProvider.getSecondary_mobile_number())) {
-                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
             }
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
-                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
             }
             List<String> addresskeys = new ArrayList<>();
             addresskeys.add("district");
@@ -367,8 +405,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (addresskeys.contains(key))
                     count++;
             }
-            if (count > 0 && count < addresskeys.size())
-            {
+            if (count > 0 && count < addresskeys.size()) {
                 for (String key : addresskeys) {
                     if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
                         errorMessages.put(key, key + " is required to add or update address");
@@ -379,13 +416,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (updates.containsKey("district") && updates.containsKey("state") && updates.containsKey("city") && updates.containsKey("pincode") && updates.containsKey("residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
                 if (validateAddressFields(updates).isEmpty()) {
-                    boolean flag=false;
-                    Long addId=0L;
-                    for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
-                    {
-                        if(serviceProviderAddress.getAddress_type_id()==2) {
+                    boolean flag = false;
+                    Long addId = 0L;
+                    for (ServiceProviderAddress serviceProviderAddress : existingServiceProvider.getSpAddresses()) {
+                        if (serviceProviderAddress.getAddress_type_id() == 2) {
                             flag = true;
-                            addId=serviceProviderAddress.getAddress_id();
+                            addId = serviceProviderAddress.getAddress_id();
                             break;
                         }
                     }
@@ -402,7 +438,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
                         }
                     } else {
-                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
+                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class, addId);
                         ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
                         serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
                         serviceProviderAddressDTO.setAddress_id(serviceProviderAddress.getAddress_id());
@@ -437,7 +473,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             ServiceProviderEntity existingSPByEmail = null;
 
 
-
             List<String> PermanentAddressKeys = new ArrayList<>();
             PermanentAddressKeys.add("permanent_district");
             PermanentAddressKeys.add("permanent_city");
@@ -449,8 +484,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (PermanentAddressKeys.contains(key))
                     KeysCount++;
             }
-            if (KeysCount > 0 && KeysCount < PermanentAddressKeys.size())
-            {
+            if (KeysCount > 0 && KeysCount < PermanentAddressKeys.size()) {
                 for (String key : PermanentAddressKeys) {
                     if (!updates.containsKey(key) || updates.get(key) == null || updates.get(key).toString().trim().isEmpty()) {
                         errorMessages.put(key, key + " is required to add or update permanent address");
@@ -460,13 +494,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (updates.containsKey("permanent_district") && updates.containsKey("permanent_state") && updates.containsKey("permanent_city") && updates.containsKey("permanent_pincode") && updates.containsKey("permanent_residential_address")) {
                 existingServiceProvider.setIsAcknowledged(false);
                 if (validatePAddressFields(updates).isEmpty()) {
-                    boolean flag=false;
-                    Long addId=0L;
-                    for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
-                    {
-                        if(serviceProviderAddress.getAddress_type_id()==5) {
+                    boolean flag = false;
+                    Long addId = 0L;
+                    for (ServiceProviderAddress serviceProviderAddress : existingServiceProvider.getSpAddresses()) {
+                        if (serviceProviderAddress.getAddress_type_id() == 5) {
                             flag = true;
-                            addId=serviceProviderAddress.getAddress_id();
+                            addId = serviceProviderAddress.getAddress_id();
                             break;
                         }
                     }
@@ -483,7 +516,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                             addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
                         }
                     } else {
-                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
+                        ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class, addId);
                         ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
                         serviceProviderAddress.setAddress_name("PERMANENT_ADDRESS");
                         serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
@@ -575,10 +608,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     // Null or empty check for each business field
                     for (String key : businessKeys) {
                         Object value = updates.get(key);
-                        if(key.equals("registration_number"))
+                        if (key.equals("registration_number"))
                             continue;
                         if (value == null || value.toString().trim().isEmpty()) {
-                            errorMessages.put(key,"Field '" + key + "' cannot be null or empty when is_running_business_unit is true");
+                            errorMessages.put(key, "Field '" + key + "' cannot be null or empty when is_running_business_unit is true");
                         }
                     }
                     existingServiceProvider.setBusiness_email((String)updates.get("business_email"));
@@ -606,17 +639,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 //                            }
 //                        }
 //                    }
-
-                    if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address")&& updates.containsKey("business_longitude")&& updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
+                    if (updates.containsKey("business_district") && updates.containsKey("business_state") && updates.containsKey("business_city") && updates.containsKey("business_pincode") && updates.containsKey("business_address") && updates.containsKey("business_longitude") && updates.containsKey("business_latitude") && updates.containsKey("business_geo_location")) {
                         existingServiceProvider.setIsAcknowledged(false);
                         if (validateBusinessAddressFields(updates).isEmpty()) {
-                            boolean flag=false;
-                            Long addId=0L;
-                            for(ServiceProviderAddress serviceProviderAddress:existingServiceProvider.getSpAddresses())
-                            {
-                                if(serviceProviderAddress.getAddress_type_id()==1) {
+                            boolean flag = false;
+                            Long addId = 0L;
+                            for (ServiceProviderAddress serviceProviderAddress : existingServiceProvider.getSpAddresses()) {
+                                if (serviceProviderAddress.getAddress_type_id() == 1) {
                                     flag = true;
-                                    addId=serviceProviderAddress.getAddress_id();
+                                    addId = serviceProviderAddress.getAddress_id();
                                     break;
                                 }
                             }
@@ -632,11 +663,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 serviceProviderAddress.setLongitude((Double) updates.get("business_longitude"));
                                 serviceProviderAddress.setLatitude((Double) updates.get("business_latitude"));
                                 serviceProviderAddress.setGeoLocation((String) updates.get("business_geo_location"));
-                                if (serviceProviderAddress.getAddress_line() != null || serviceProviderAddress.getCity() != null || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null || serviceProviderAddress.getLongitude()!=null || serviceProviderAddress.getLatitude()!=null || serviceProviderAddress.getGeoLocation()!=null) {
+                                if (serviceProviderAddress.getAddress_line() != null || serviceProviderAddress.getCity() != null || serviceProviderAddress.getDistrict() != null || serviceProviderAddress.getState() != null || serviceProviderAddress.getPincode() != null || serviceProviderAddress.getLongitude() != null || serviceProviderAddress.getLatitude() != null || serviceProviderAddress.getGeoLocation() != null) {
                                     addAddress(existingServiceProvider.getService_provider_id(), serviceProviderAddress);
                                 }
                             } else {
-                                ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class,addId);
+                                ServiceProviderAddress serviceProviderAddress = entityManager.find(ServiceProviderAddress.class, addId);
                                 ServiceProviderAddress serviceProviderAddressDTO = new ServiceProviderAddress();
                                 serviceProviderAddress.setAddress_name("OFFICE_ADDRESS");
                                 serviceProviderAddressDTO.setAddress_type_id(serviceProviderAddress.getAddress_type_id());
@@ -676,28 +707,25 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         }
                     }
 
-                        existingServiceProvider.setIsCFormAvailable((Boolean) updates.get("isCFormAvailable"));
-                        if(((Boolean) updates.get("isCFormAvailable")))
-                        {
-                            if (updates.get("registration_number") != null
-                                    && !((String) updates.get("registration_number")).trim().isEmpty()){
-                                existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
-                            }
-                            else
-                                errorMessages.put("registration_number","Registration Number can not be empty or null");
+                    existingServiceProvider.setIsCFormAvailable((Boolean) updates.get("isCFormAvailable"));
+                    if (((Boolean) updates.get("isCFormAvailable"))) {
+                        if (updates.get("registration_number") != null
+                                && !((String) updates.get("registration_number")).trim().isEmpty()) {
+                            existingServiceProvider.setRegistration_number((String) updates.get("registration_number"));
+                        } else
+                            errorMessages.put("registration_number", "Registration Number can not be empty or null");
 
 
-                        }
-                        else
-                            existingServiceProvider.setRegistration_number(null);
+                    } else
+                        existingServiceProvider.setRegistration_number(null);
 
-                        updates.remove("isCFormAvailable");
-                        updates.remove("registration_number");
+                    updates.remove("isCFormAvailable");
+                    updates.remove("registration_number");
 
                     existingServiceProvider.setNumber_of_employees((Integer) updates.get("number_of_employees"));
                     updates.remove("number_of_employees");
 
-                }  else {
+                } else {
                     existingServiceProvider.setIs_running_business_unit(false);
                     existingServiceProvider.setBusiness_name(null);
 
@@ -718,12 +746,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     existingServiceProvider.setLongitude(null);
                     existingServiceProvider.setBusiness_geo_location(null);
                     existingServiceProvider.setIsCFormAvailable(false);
-                    List<ServiceProviderDocument> serviceProviderDocuments= existingServiceProvider.getDocuments();
-                    for(ServiceProviderDocument serviceProviderDocument: serviceProviderDocuments)
-                    {
-                        if(serviceProviderDocument.getDocumentType().getDocument_type_id().equals(Constant.DOCUMENT_TYPE_C_FORM))
-                        {
-                            serviceProviderDocument.setIsArchived(true );
+                    List<ServiceProviderDocument> serviceProviderDocuments = existingServiceProvider.getDocuments();
+                    for (ServiceProviderDocument serviceProviderDocument : serviceProviderDocuments) {
+                        if (serviceProviderDocument.getDocumentType().getDocument_type_id().equals(Constant.DOCUMENT_TYPE_C_FORM)) {
+                            serviceProviderDocument.setIsArchived(true);
                         }
                     }
 
@@ -752,7 +778,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     try {
                         months = Integer.parseInt(workExpMonths.toString().trim());
                     } catch (NumberFormatException e) {
-                        errorMessages.put("work_experience_in_months","Invalid value for work_experience_in_months");
+                        errorMessages.put("work_experience_in_months", "Invalid value for work_experience_in_months");
                     }
                 }
 
@@ -761,7 +787,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 if (months != 0) {
 
                     if (workExp == null || workExp.toString().trim().isEmpty()) {
-                        errorMessages.put("work_experience_in","Work Experience description is required ");
+                        errorMessages.put("work_experience_in", "Work Experience description is required ");
                     }
                 } else {
 
@@ -788,10 +814,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             if ((existingSPByUsername != null) || existingSPByEmail != null) {
                 if (existingSPByUsername != null && !existingSPByUsername.getService_provider_id().equals(userId)) {
-                    errorMessages.put("user_name","Username is not available");
+                    errorMessages.put("user_name", "Username is not available");
                 }
                 if (existingSPByEmail != null && !existingSPByEmail.getService_provider_id().equals(userId)) {
-                    errorMessages.put("primary_email","Email already in use");
+                    errorMessages.put("primary_email", "Email already in use");
                 }
             }
             List<Skill> serviceProviderSkills = new ArrayList<>();
@@ -806,25 +832,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         for (int skill_id : skillList) {
                             Skill skill = entityManager.find(Skill.class, skill_id);
 
-                            if(skill.getSkill_id()==6 && skill.getSkill_name().equalsIgnoreCase("Any Other Expertise"))
-                            {
-                                if(!updates.containsKey("other_skill"))
-                                {
-                                    errorMessages.put("other_skill","You have to enter the other skill");
-                                }
-                                else {
-                                    String otherSkill = (String)updates.get("other_skill");
-                                    if(otherSkill==null || otherSkill.trim().isEmpty())
-                                    {
-                                        errorMessages.put("other_skill","other skill text field cannot be null or empty");
+                            if (skill.getSkill_id() == 6 && skill.getSkill_name().equalsIgnoreCase("Any Other Expertise")) {
+                                if (!updates.containsKey("other_skill")) {
+                                    errorMessages.put("other_skill", "You have to enter the other skill");
+                                } else {
+                                    String otherSkill = (String) updates.get("other_skill");
+                                    if (otherSkill == null || otherSkill.trim().isEmpty()) {
+                                        errorMessages.put("other_skill", "other skill text field cannot be null or empty");
                                     }
                                     assert existingServiceProvider != null;
                                     existingServiceProvider.setOtherSkill(otherSkill);
 
                                 }
-                            }
-                            else {
-                                 existingServiceProvider.setOtherSkill(null);
+                            } else {
+                                existingServiceProvider.setOtherSkill(null);
                             }
                             if (skill != null) {
                                 if (!serviceProviderSkills.contains(skill))
@@ -854,7 +875,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalSkills <= 4) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(8L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Technical Expertise Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Technical Expertise Score");
                         } else {
                             Integer totalTechnicalScores = totalSkills * scoringCriteriaToMap.getScore();
                             existingServiceProvider.setTechnicalExpertiseScore(totalTechnicalScores);
@@ -864,7 +885,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalSkills >= 5) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(9L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Technical Expertise Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Technical Expertise Score");
                         } else {
                             existingServiceProvider.setTechnicalExpertiseScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -886,15 +907,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             } else {
                 serviceProviderInfras = existingServiceProvider.getInfra();
             }
-            if(updates.containsKey("pfpNa")&& (Boolean) updates.get("pfpNa"))
-            {
-                    Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
-                    while (iterator.hasNext()) {
-                        ServiceProviderDocument document = iterator.next();
-                        if (document.getDocumentType().getDocument_type_id() == 3) {
-                            iterator.remove();
-                        }
+            if (updates.containsKey("pfpNa") && (Boolean) updates.get("pfpNa")) {
+                Iterator<ServiceProviderDocument> iterator = existingServiceProvider.getDocuments().iterator();
+                while (iterator.hasNext()) {
+                    ServiceProviderDocument document = iterator.next();
+                    if (document.getDocumentType().getDocument_type_id() == 3) {
+                        iterator.remove();
                     }
+                }
             }
             if (!languageList.isEmpty()) {
                 for (int language_id : languageList) {
@@ -918,7 +938,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (totalInfras >= 5) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(13L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -926,7 +946,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else if (totalInfras >= 2 && totalInfras <= 4) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(14L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -934,7 +954,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else if (totalInfras == 1) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(15L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Infra Score");
                         } else {
                             existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -943,7 +963,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 } else if (updates.containsKey("infra_list") && (updates.get("infra_list") instanceof List) && ((List<?>) updates.get("infra_list")).isEmpty()) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(16L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for Infra Score");
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Infra Score");
                     } else {
                         existingServiceProvider.setInfraScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -954,7 +974,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (existingServiceProvider.getPartTimeOrFullTime().equalsIgnoreCase("PART TIME")) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(18L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Part time or Full time Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Part time or Full time Score");
                         } else {
                             existingServiceProvider.setPartTimeOrFullTimeScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -963,7 +983,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (existingServiceProvider.getPartTimeOrFullTime().equalsIgnoreCase("FULL TIME")) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(17L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for Part time or Full time Score");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for Part time or Full time Score");
                         } else {
                             existingServiceProvider.setPartTimeOrFullTimeScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -979,7 +999,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (updates.containsKey("date_of_birth")) {
                 String dob = (String) updates.get("date_of_birth");
                 if (sharedUtilityService.isFutureDate(dob))
-                    errorMessages.put("date_of_birth","DOB cannot be in future");
+                    errorMessages.put("date_of_birth", "DOB cannot be in future");
             }
 
             if (updates.containsKey("secondary_email") && "".equals(updates.get("secondary_email"))) {
@@ -992,24 +1012,24 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String newAadhaarNumber = (String) updates.get("aadhaar_number");
 
                 if (newAadhaarNumber == null || newAadhaarNumber.trim().isEmpty()) {
-                    errorMessages.put("aadhaar_number","Aadhaar number cannot be empty");
+                    errorMessages.put("aadhaar_number", "Aadhaar number cannot be empty");
                 } else {
                     String existingAadhaarNumber = (String) entityManager.createQuery(
-                                        "SELECT sp.aadhaar_number FROM ServiceProviderEntity sp WHERE sp.service_provider_id = :id", String.class)
+                                    "SELECT sp.aadhaar_number FROM ServiceProviderEntity sp WHERE sp.service_provider_id = :id", String.class)
+                            .setParameter("id", userId)
+                            .getSingleResult();
+
+                    if (!newAadhaarNumber.equals(existingAadhaarNumber)) {
+                        Long aadhaarCount = entityManager.createQuery(
+                                        "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.aadhaar_number = :aadhaar_number AND sp.service_provider_id != :id", Long.class)
+                                .setParameter("aadhaar_number", newAadhaarNumber)
                                 .setParameter("id", userId)
                                 .getSingleResult();
 
-                    if (!newAadhaarNumber.equals(existingAadhaarNumber)) {
-                            Long aadhaarCount = entityManager.createQuery(
-                                            "SELECT COUNT(sp) FROM ServiceProviderEntity sp WHERE sp.aadhaar_number = :aadhaar_number AND sp.service_provider_id != :id", Long.class)
-                                    .setParameter("aadhaar_number", newAadhaarNumber)
-                                    .setParameter("id", userId)
-                                    .getSingleResult();
-
-                            if (aadhaarCount > 0) {
-                                errorMessages.put("aadhaar_number","Aadhaar number already exists");
-                            }
+                        if (aadhaarCount > 0) {
+                            errorMessages.put("aadhaar_number", "Aadhaar number already exists");
                         }
+                    }
 
                 }
             }
@@ -1018,7 +1038,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String newPanNumber = (String) updates.get("pan_number");
 
                 if (newPanNumber == null || newPanNumber.trim().isEmpty()) {
-                    errorMessages.put("pan_number","PAN number cannot be empty");
+                    errorMessages.put("pan_number", "PAN number cannot be empty");
                 } else {
                     // Fetch existing PAN number from DB for current record
                     String existingPanNumber = (String) entityManager.createQuery(
@@ -1035,7 +1055,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 .getSingleResult();
 
                         if (panCount > 0) {
-                            errorMessages.put("pan_number","PAN number already exists");
+                            errorMessages.put("pan_number", "PAN number already exists");
                         }
                     }
                 }
@@ -1054,7 +1074,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 boolean isNullable = field.isAnnotationPresent(Nullable.class);
                 field.setAccessible(true);
                 if (newValue.toString().isEmpty() && !isNullable)
-                    errorMessages.put(fieldName,fieldName + " cannot be null");
+                    errorMessages.put(fieldName, fieldName + " cannot be null");
                 if (newValue.toString().isEmpty() && isNullable)
                     continue;
                 if (newValue != null) {
@@ -1064,9 +1084,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         int max = sizeAnnotation.max();
                         if (newValue.toString().length() > max || newValue.toString().length() < min) {
                             if (max == min)
-                                errorMessages.put(fieldName,fieldName + " size should be of size " + max);
+                                errorMessages.put(fieldName, fieldName + " size should be of size " + max);
                             else
-                                errorMessages.put(fieldName,fieldName + " size should be in between " + min + " " + max);
+                                errorMessages.put(fieldName, fieldName + " size should be in between " + min + " " + max);
                             continue;
                         }
                     }
@@ -1075,13 +1095,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String message = emailAnnotation.message();
                         if (fieldName.equals("primary_email")) {
                             if (newValue.equals((String) updates.get("secondary_email")) || (existingServiceProvider.getSecondary_email() != null && newValue.equals(existingServiceProvider.getSecondary_email())))
-                                errorMessages.put("primary_email","primary and secondary email cannot be same");
+                                errorMessages.put("primary_email", "primary and secondary email cannot be same");
                         } else if (fieldName.equals("secondary_email")) {
                             if (newValue.equals((String) updates.get("primary_email")) || (existingServiceProvider.getPrimary_email() != null && newValue.equals(existingServiceProvider.getPrimary_email())))
-                                errorMessages.put("secondary_email","primary and secondary email cannot be same");
+                                errorMessages.put("secondary_email", "primary and secondary email cannot be same");
                         }
                         if (!sharedUtilityService.isValidEmail((String) newValue)) {
-                            errorMessages.put(fieldName,message.replace("{field}", fieldName));
+                            errorMessages.put(fieldName, message.replace("{field}", fieldName));
                             continue;
                         }
                     }
@@ -1090,13 +1110,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         String regex = patternAnnotation.regexp();
                         String message = patternAnnotation.message(); // Get custom message
                         if (!newValue.toString().matches(regex)) {
-                            errorMessages.put(fieldName,fieldName + " is invalid"); // Use a placeholder
+                            errorMessages.put(fieldName, fieldName + " is invalid"); // Use a placeholder
                             continue;
                         }
                     }
 
-                    if(fieldName.equalsIgnoreCase("first_name")|| fieldName.equalsIgnoreCase("last_name")|| fieldName.equalsIgnoreCase("father_name")|| fieldName.equalsIgnoreCase("mother_name")|| fieldName.equalsIgnoreCase("mobileNumber")|| fieldName.equalsIgnoreCase("primary_email"))
-                    {
+                    if (fieldName.equalsIgnoreCase("first_name") || fieldName.equalsIgnoreCase("last_name") || fieldName.equalsIgnoreCase("father_name") || fieldName.equalsIgnoreCase("mother_name") || fieldName.equalsIgnoreCase("mobileNumber") || fieldName.equalsIgnoreCase("primary_email")) {
                         existingServiceProvider.setIsAcknowledged(false);
                     }
 
@@ -1107,10 +1126,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
                             if (dob.isAfter(LocalDate.now())) {
-                                errorMessages.put("date_of_birth","Date of birth cannot be in the future");
+                                errorMessages.put("date_of_birth", "Date of birth cannot be in the future");
                             }
                         } catch (DateTimeParseException e) {
-                            errorMessages.put("date_of_birth","Invalid date format for " + fieldName + ". Expected format is DD-MM-YYYY.");
+                            errorMessages.put("date_of_birth", "Invalid date format for " + fieldName + ". Expected format is DD-MM-YYYY.");
                         }
                     }
                 }
@@ -1137,7 +1156,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 23) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(2L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1146,7 +1165,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 35) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(3L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1155,7 +1174,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         && existingServiceProvider.getWork_experience_in_months() <= 59) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(4L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1163,7 +1182,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 } else if (existingServiceProvider.getWork_experience_in_months() != null && existingServiceProvider.getWork_experience_in_months() >= 60) {
                     scoringCriteriaToMap = traverseListOfScoringCriteria(5L, scoringCriteriaList, existingServiceProvider);
                     if (scoringCriteriaToMap == null) {
-                        errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Work Experience Score");
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Work Experience Score");
                     } else {
                         existingServiceProvider.setWorkExperienceScore(scoringCriteriaToMap.getScore());
                         scoringCriteriaToMap = null;
@@ -1176,7 +1195,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     if (Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit())) {
                         scoringCriteriaToMap = traverseListOfScoringCriteria(1L, scoringCriteriaList, existingServiceProvider);
                         if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring businessScore");
+                            errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring businessScore");
                         } else {
                             existingServiceProvider.setBusinessUnitInfraScore(scoringCriteriaToMap.getScore());
                             scoringCriteriaToMap = null;
@@ -1185,7 +1204,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         existingServiceProvider.setBusinessUnitInfraScore(0);
                     }
                 }
-                Integer numberOfEmployees=0;
+                Integer numberOfEmployees = 0;
                 Object numEmpObj = updates.get("number_of_employees");
                 if (numEmpObj != null) {
                     if (numEmpObj instanceof Number) {
@@ -1199,54 +1218,48 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     } else {
                         throw new IllegalArgumentException("Unsupported type for number_of_employees: " + numEmpObj.getClass());
                     }
-                    if(Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit()))
-                    {
+                    if (Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit())) {
                         existingServiceProvider.setNumber_of_employees(Integer.parseInt((String) numEmpObj));
+                    } else {
+                        numberOfEmployees = 0;
                     }
-                    else{
-                        numberOfEmployees=0;
+                } else {
+                    if (Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit())) {
+                        numberOfEmployees = existingServiceProvider.getNumber_of_employees();
+                    } else {
+                        numberOfEmployees = 0;
                     }
-                }
-                else {
-                    if(Boolean.TRUE.equals(existingServiceProvider.getIs_running_business_unit()))
-                    {
-                        numberOfEmployees=existingServiceProvider.getNumber_of_employees();
-                    }
-                    else{
-                         numberOfEmployees=0;
-                     }
                 }
                 Boolean isRunning = existingServiceProvider.getIs_running_business_unit();
                 System.out.println(isRunning);
-                    if (numberOfEmployees != null && numberOfEmployees < 2 || !isRunning) {
-                        scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
-                        if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
-                        } else {
-                            existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
-                            scoringCriteriaToMap = null;
-                        }
-                    } else if (numberOfEmployees != null && numberOfEmployees >= 2
-                            && numberOfEmployees <= 4 && isRunning) {
-                        scoringCriteriaToMap = traverseListOfScoringCriteria(11L, scoringCriteriaList, existingServiceProvider);
-                        if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
-                        } else {
-                            existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
-                            scoringCriteriaToMap = null;
-                        }
-                    } else if (numberOfEmployees != null && numberOfEmployees > 4 && isRunning) {
-                        scoringCriteriaToMap = traverseListOfScoringCriteria(10L, scoringCriteriaList, existingServiceProvider);
-                        if (scoringCriteriaToMap == null) {
-                            errorMessages.put("scoringCriteria","Scoring Criteria is not found for scoring Staff Score");
-                        } else {
-                            existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
-                            scoringCriteriaToMap = null;
-                        }
+                if (numberOfEmployees != null && numberOfEmployees < 2 || !isRunning) {
+                    scoringCriteriaToMap = traverseListOfScoringCriteria(12L, scoringCriteriaList, existingServiceProvider);
+                    if (scoringCriteriaToMap == null) {
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Staff Score");
+                    } else {
+                        existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
+                        scoringCriteriaToMap = null;
                     }
-            }
-            else {
-                totalScore=totalScore- existingServiceProvider.getStaffScore();
+                } else if (numberOfEmployees != null && numberOfEmployees >= 2
+                        && numberOfEmployees <= 4 && isRunning) {
+                    scoringCriteriaToMap = traverseListOfScoringCriteria(11L, scoringCriteriaList, existingServiceProvider);
+                    if (scoringCriteriaToMap == null) {
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Staff Score");
+                    } else {
+                        existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
+                        scoringCriteriaToMap = null;
+                    }
+                } else if (numberOfEmployees != null && numberOfEmployees > 4 && isRunning) {
+                    scoringCriteriaToMap = traverseListOfScoringCriteria(10L, scoringCriteriaList, existingServiceProvider);
+                    if (scoringCriteriaToMap == null) {
+                        errorMessages.put("scoringCriteria", "Scoring Criteria is not found for scoring Staff Score");
+                    } else {
+                        existingServiceProvider.setStaffScore(scoringCriteriaToMap.getScore());
+                        scoringCriteriaToMap = null;
+                    }
+                }
+            } else {
+                totalScore = totalScore - existingServiceProvider.getStaffScore();
                 existingServiceProvider.setStaffScore(0);
                 existingServiceProvider.setBusinessUnitInfraScore(0);
             }
@@ -1267,14 +1280,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             existingServiceProvider.setTotalScore(0);
             existingServiceProvider.setTotalScore(totalScore);
-            if(existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
+            if (existingServiceProvider.getAutoScoring() && !existingServiceProvider.getApproved()) {
                 assignRank(existingServiceProvider, totalScore);
             }
-           if(updates.containsKey("isAcknowledged"))
-           {
-               Boolean value= (Boolean) updates.get("isAcknowledged");
-               existingServiceProvider.setIsAcknowledged(value);
-           }
+            if (updates.containsKey("isAcknowledged")) {
+                Boolean value = (Boolean) updates.get("isAcknowledged");
+                existingServiceProvider.setIsAcknowledged(value);
+            }
             if (!errorMessages.isEmpty()) {
                 restoreServiceProvider(existingServiceProvider, originalCopy);
                 String message = String.join(", ", errorMessages.values());
@@ -1282,7 +1294,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
             entityManager.merge(existingServiceProvider);
 
-            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,false);
+            Map<String, Object> serviceProviderMap = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider, false);
 
             return responseService.generateSuccessResponse("Service Provider Updated Successfully", serviceProviderMap, HttpStatus.OK);
         } catch (NoSuchFieldException e) {
@@ -1306,8 +1318,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     public void assignRank(ServiceProviderEntity existingServiceProvider, Integer totalScore) {
-        if(existingServiceProvider.getAutoScoring().equals(true))
-        {
+        if (existingServiceProvider.getAutoScoring().equals(true)) {
             if (existingServiceProvider.getType().equalsIgnoreCase("PROFESSIONAL")) {
                 ServiceProviderRank serviceProviderRank = serviceProviderTestService.assignRankingForProfessional(totalScore);
                 if (serviceProviderRank == null) {
@@ -1324,8 +1335,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
     }
 
-    public Map<String,String> validateAddressFields(Map<String, Object> updates) {
-        Map<String,String> errorMessages = new HashMap<>();
+    public Map<String, String> validateAddressFields(Map<String, Object> updates) {
+        Map<String, String> errorMessages = new HashMap<>();
         String state = (String) updates.get("state");
         String district = (String) updates.get("district");
         String pincode = (String) updates.get("pincode");
@@ -1337,20 +1348,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
-                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
+                errorMessages.put(fieldNames[i], fieldNames[i] + " cannot be empty");
             }
         }
 
         // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
         if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
-            errorMessages.put("pincode","Pincode should contain only numbers and should be of length 6");
+            errorMessages.put("pincode", "Pincode should contain only numbers and should be of length 6");
         }
 
         // Validate city format
         pattern = Constant.CITY_REGEXP;
         if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
-            errorMessages.put("city","Field city should only contain letters");
+            errorMessages.put("city", "Field city should only contain letters");
         }
 
         // Only parse and validate state/district if they're non-empty
@@ -1358,10 +1369,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String stateName = districtService.findStateById(Integer.parseInt(state));
                 if (stateName == null) {
-                    errorMessages.put("state","Invalid State");
+                    errorMessages.put("state", "Invalid State");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("state","Invalid Current State ID format");
+                errorMessages.put("state", "Invalid Current State ID format");
             }
         }
 
@@ -1369,18 +1380,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String districtName = districtService.findDistrictById(Integer.parseInt(district));
                 if (districtName == null) {
-                    errorMessages.put("district","Invalid District");
+                    errorMessages.put("district", "Invalid District");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("district","Invalid Current District ID format");
+                errorMessages.put("district", "Invalid Current District ID format");
             }
         }
 
         return errorMessages;
     }
 
-    public Map<String,String> validatePAddressFields(Map<String, Object> updates) {
-        Map<String,String> errorMessages = new HashMap<>();
+    public Map<String, String> validatePAddressFields(Map<String, Object> updates) {
+        Map<String, String> errorMessages = new HashMap<>();
         String state = (String) updates.get("permanent_state");
         String district = (String) updates.get("permanent_district");
         String pincode = (String) updates.get("permanent_pincode");
@@ -1398,20 +1409,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
-                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
+                errorMessages.put(fieldNames[i], fieldNames[i] + " cannot be empty");
             }
         }
 
         // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
         if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
-            errorMessages.put("permanent_pincode","Pincode should contain only numbers and should be of length 6");
+            errorMessages.put("permanent_pincode", "Pincode should contain only numbers and should be of length 6");
         }
 
         // Validate city format
         pattern = Constant.CITY_REGEXP;
         if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
-            errorMessages.put("permanent_city","Field city should only contain letters");
+            errorMessages.put("permanent_city", "Field city should only contain letters");
         }
 
         // Validate permanent_state
@@ -1419,10 +1430,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String stateName = districtService.findStateById(Integer.parseInt(state));
                 if (stateName == null) {
-                    errorMessages.put("permanent_state","Invalid State");
+                    errorMessages.put("permanent_state", "Invalid State");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("permanent_state","Invalid Permanent State ID format");
+                errorMessages.put("permanent_state", "Invalid Permanent State ID format");
             }
         }
 
@@ -1431,18 +1442,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String districtName = districtService.findDistrictById(Integer.parseInt(district));
                 if (districtName == null) {
-                    errorMessages.put("permanent_district","Invalid District");
+                    errorMessages.put("permanent_district", "Invalid District");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("permanent_district","Invalid Permanent District ID format");
+                errorMessages.put("permanent_district", "Invalid Permanent District ID format");
             }
         }
 
         return errorMessages;
     }
 
-    public Map<String,String> validateBusinessAddressFields(Map<String, Object> updates) {
-        Map<String,String> errorMessages = new HashMap<>();
+    public Map<String, String> validateBusinessAddressFields(Map<String, Object> updates) {
+        Map<String, String> errorMessages = new HashMap<>();
         String state = (String) updates.get("business_state");
         String district = (String) updates.get("business_district");
         String pincode = (String) updates.get("business_pincode");
@@ -1460,20 +1471,20 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
         for (int i = 0; i < fieldValues.length; i++) {
             if (fieldValues[i] == null || fieldValues[i].trim().isEmpty()) {
-                errorMessages.put(fieldNames[i],fieldNames[i] + " cannot be empty");
+                errorMessages.put(fieldNames[i], fieldNames[i] + " cannot be empty");
             }
         }
 
         // Validate pincode format
         String pattern = Constant.PINCODE_REGEXP;
         if (pincode != null && !pincode.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, pincode)) {
-            errorMessages.put("business_pincode","Pincode should contain only numbers and should be of length 6");
+            errorMessages.put("business_pincode", "Pincode should contain only numbers and should be of length 6");
         }
 
         // Validate city format
         pattern = Constant.CITY_REGEXP;
         if (city != null && !city.trim().isEmpty() && !java.util.regex.Pattern.matches(pattern, city)) {
-            errorMessages.put("business_city","Field city should only contain letters");
+            errorMessages.put("business_city", "Field city should only contain letters");
         }
 
         // Validate permanent_state
@@ -1481,10 +1492,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String stateName = districtService.findStateById(Integer.parseInt(state));
                 if (stateName == null) {
-                    errorMessages.put("business_state","Invalid State");
+                    errorMessages.put("business_state", "Invalid State");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("business_state","Invalid business State ID format");
+                errorMessages.put("business_state", "Invalid business State ID format");
             }
         }
 
@@ -1493,10 +1504,10 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 String districtName = districtService.findDistrictById(Integer.parseInt(district));
                 if (districtName == null) {
-                    errorMessages.put("business_district","Invalid District");
+                    errorMessages.put("business_district", "Invalid District");
                 }
             } catch (NumberFormatException e) {
-                errorMessages.put("business_district","Invalid business District ID format");
+                errorMessages.put("business_district", "Invalid business District ID format");
             }
         }
 
@@ -1509,15 +1520,15 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 latitude = Double.parseDouble((String) latObj);
             } catch (NumberFormatException e) {
-                errorMessages.put("business_latitude","Latitude must be a valid number");
+                errorMessages.put("business_latitude", "Latitude must be a valid number");
             }
         } else {
-            errorMessages.put("business_latitude","Latitude must be a valid number");
+            errorMessages.put("business_latitude", "Latitude must be a valid number");
         }
 
         if (latitude != null) {
             if (latitude > 90 || latitude < -90) {
-                errorMessages.put("business_latitude","Invalid latitude: must be between -90 and 90");
+                errorMessages.put("business_latitude", "Invalid latitude: must be between -90 and 90");
             }
         }
 
@@ -1530,20 +1541,19 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             try {
                 longitude = Double.parseDouble((String) longObj);
             } catch (NumberFormatException e) {
-                errorMessages.put("business_longitude","Longitude must be a valid number");
+                errorMessages.put("business_longitude", "Longitude must be a valid number");
             }
         } else {
-            errorMessages.put("business_longitude","Longitude must be a valid number");
+            errorMessages.put("business_longitude", "Longitude must be a valid number");
         }
 
         if (longitude != null) {
             if (longitude > 180 || longitude < -180) {
-                errorMessages.put("business_longitude","Invalid longitude: must be between -180 and 180");
+                errorMessages.put("business_longitude", "Invalid longitude: must be between -180 and 180");
             }
         }
         return errorMessages;
     }
-
 
     @Override
     public ServiceProviderEntity getServiceProviderById(Long userId) {
@@ -1657,16 +1667,16 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     //find service provider by phone and validate the password.
     public ResponseEntity<?> authenticateByPhone(String mobileNumber, String countryCode, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByPhone(mobileNumber, countryCode);
-            if(existingServiceProvider.getIsArchived())
-                return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
+        if (existingServiceProvider.getIsArchived())
+            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
     //find service provider by username and validate the password.
     public ResponseEntity<?> authenticateByUsername(String username, String password, HttpServletRequest request, HttpSession session) throws Exception {
         ServiceProviderEntity existingServiceProvider = findServiceProviderByUserName(username);
-        if(existingServiceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
+        if (existingServiceProvider.getIsArchived())
+            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
         return validateServiceProvider(existingServiceProvider, password, request, session);
     }
 
@@ -1676,8 +1686,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         if (serviceProvider == null) {
             return responseService.generateErrorResponse("No Records Found", HttpStatus.NOT_FOUND);
         }
-        if(serviceProvider.getIsArchived())
-            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
+        if (serviceProvider.getIsArchived())
+            return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.", HttpStatus.UNAUTHORIZED);
         if (passwordEncoder.matches(password, serviceProvider.getPassword())) {
             String ipAddress = request.getRemoteAddr();
             String userAgent = request.getHeader("User-Agent");
@@ -1686,7 +1696,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             String existingToken = serviceProvider.getToken();
 
-            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false);
+            Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false);
 
 
             if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
@@ -1878,7 +1888,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 String existingToken = existingServiceProvider.getToken();
 
 
-                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider,true);
+                Map<String, Object> serviceProviderResponse = sharedUtilityService.serviceProviderDetailsMap(existingServiceProvider, true);
                 if (existingToken != null && jwtUtil.validateToken(existingToken, ipAddress, userAgent)) {
 
 
@@ -1993,14 +2003,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public Map<String,String> updateAddress(long serviceProviderId, ServiceProviderAddress serviceProviderAddress, ServiceProviderAddress dto) throws Exception {
-        Map<String,String> errorList = new HashMap<>();
+    public Map<String, String> updateAddress(long serviceProviderId, ServiceProviderAddress serviceProviderAddress, ServiceProviderAddress dto) throws Exception {
+        Map<String, String> errorList = new HashMap<>();
         if (serviceProviderAddress == null) {
-            errorList.put("residential_address","Incomplete Details");
+            errorList.put("residential_address", "Incomplete Details");
         }
         ServiceProviderEntity existingServiceProvider = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
         if (existingServiceProvider == null) {
-            errorList.put("service_provider_id","Service Provider not found");
+            errorList.put("service_provider_id", "Service Provider not found");
         }
         ServiceProviderAddress addressToupdate = null;
         List<ServiceProviderAddress> addresses = existingServiceProvider.getSpAddresses();
@@ -2033,16 +2043,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 addressToupdate.setCity(dto.getCity());
             if (dto.getPincode() != null && !dto.getPincode().isEmpty())
                 addressToupdate.setPincode(dto.getPincode());
-            if(dto.getLongitude()!=null)
-            {
+            if (dto.getLongitude() != null) {
                 addressToupdate.setLongitude(dto.getLongitude());
             }
-            if(dto.getLatitude()!=null)
-            {
+            if (dto.getLatitude() != null) {
                 addressToupdate.setLatitude(dto.getLatitude());
             }
-            if(dto.getGeoLocation()!=null)
-            {
+            if (dto.getGeoLocation() != null) {
                 addressToupdate.setGeoLocation(dto.getGeoLocation());
             }
             existingServiceProvider.setSpAddresses(addresses);
@@ -2050,7 +2057,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         }
         return errorList;
     }
-
 
     @Transactional
     public ResponseEntity<?> searchServiceProviderBasedOnGivenFields(
@@ -2098,7 +2104,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false));
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false));
                 }
                 return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
             }
@@ -2136,14 +2142,14 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // Start building query
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT s.* FROM service_provider s ");
-                    if(state!=null||district!=null) {
-                        queryBuilder.append("JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id ")
-                                .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
-                    }
-                    if(qualificationType!=null) {
-                        queryBuilder.append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
-                    }
-                   queryBuilder.append("WHERE ");
+            if (state != null || district != null) {
+                queryBuilder.append("JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id ")
+                        .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
+            }
+            if (qualificationType != null) {
+                queryBuilder.append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
+            }
+            queryBuilder.append("WHERE ");
 
             // Add qualificationType filter
             if (qualificationType != null && !qualificationType.isEmpty()) {
@@ -2159,9 +2165,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                         .orElse(null);
                 if (serviceProviderEntity != null) {
                     List<Map<String, Object>> response = new ArrayList<>();
-                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity,false));
-                        return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
-                }else {
+                    response.add(sharedUtilityService.serviceProviderDetailsMap(serviceProviderEntity, false));
+                    return ResponseService.generateSuccessResponse("Service Providers", response, HttpStatus.OK);
+                } else {
                     // Return empty response
                     List<Map<String, Object>> response = new ArrayList<>();
                     return ResponseService.generateSuccessResponse("No Details found for the given mobile number", response, HttpStatus.OK);
@@ -2194,8 +2200,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 }
             }
 
-            String[] fieldNames = {"first_name", "last_name",  "role", "completed", "archived", "approved", "rejected", "type"};
-            Object[] fieldValues = {first_name, last_name,  role, completed, archived, approved, rejected, type};
+            String[] fieldNames = {"first_name", "last_name", "role", "completed", "archived", "approved", "rejected", "type"};
+            Object[] fieldValues = {first_name, last_name, role, completed, archived, approved, rejected, type};
             log.info("type is: {}", type);
             // Add fields dynamically
             for (int i = 0; i < fieldValues.length; i++) {
@@ -2219,7 +2225,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 queryBuilder.append("a.district IN :districts AND ");
             }
 
-            if(rank_id != null && !rank_id.isEmpty()) {
+            if (rank_id != null && !rank_id.isEmpty()) {
                 queryBuilder.append("s.rank_id IN :rankIds AND ");
             }
             // Remove last AND
@@ -2245,7 +2251,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (state != null && !state.isEmpty()) {
                 finalQuery.setParameter("states", state);
             }
-            if(rank_id != null && !rank_id.isEmpty()) {
+            if (rank_id != null && !rank_id.isEmpty()) {
                 finalQuery.setParameter("rankIds", rank_id);
             }
             if (district != null && !district.isEmpty()) {
@@ -2272,7 +2278,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             // Prepare response
             List<Map<String, Object>> response = new ArrayList<>();
             for (ServiceProviderEntity sp : listOfSp) {
-                response.add(sharedUtilityService.serviceProviderDetailsMap(sp,false));
+                response.add(sharedUtilityService.serviceProviderDetailsMap(sp, false));
             }
 
             log.info("end search");
@@ -2289,12 +2295,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             return ResponseService.generateErrorResponse("Error finding SP : " + exception.getMessage(), HttpStatus.EXPECTATION_FAILED);
         }
     }
-
-
-
-
-
-
 
     private boolean containsNonAlphabet(List<String> list) {
         for (String s : list) {
@@ -2316,10 +2316,18 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         return results;
     }
 
+    @Transactional
     public void serviceProviderTicketAssignedIncrement(ServiceProviderEntity serviceProvider) throws Exception {
         try {
+            if (serviceProvider == null) {
+                throw new IllegalArgumentException("Service Provider Not Found.");
+            }
+
             serviceProvider.setTicketAssigned(serviceProvider.getTicketAssigned() + 1);
             entityManager.merge(serviceProvider);
+        } catch (IllegalArgumentException illegalArgumentException) {
+            exceptionHandlingService.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException.getMessage());
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
             throw new Exception("Exception caught while incrementing ticketAssigned of SP: " + exception.getMessage());
@@ -2368,227 +2376,220 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     @Transactional
     public Map<String, Object> updateServiceProviderDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long customerId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes, Set<ServiceProviderDocument> serviceProviderDocumentToSave) throws Exception {
 
-            String dateFormat = "yyyy-MM-dd";
-            MultipartFile processedFile=null;
+        String dateFormat = "yyyy-MM-dd";
+        MultipartFile processedFile = null;
 
-            // Service Provider logic
-            ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
-            if (serviceProviderEntity == null) {
-                throw new NotFoundException("No data found for this serviceProvider");
+        // Service Provider logic
+        ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
+        if (serviceProviderEntity == null) {
+            throw new NotFoundException("No data found for this serviceProvider");
+        }
+
+        Map<String, Object> responseData = new HashMap<>();
+        List<String> deletedDocumentMessages = new ArrayList<>();
+
+        // Handle file uploads and deletions
+        for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
+            Integer fileNameId = entry.getKey();
+            List<MultipartFile> fileList = entry.getValue();
+
+            DocumentType documentTypeObj = entityManager.createQuery(Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
+                    .setParameter("documentTypeId", fileNameId)
+                    .getResultStream()
+                    .findFirst()
+                    .orElse(null);
+
+            if (documentTypeObj == null) {
+                throw new IllegalArgumentException("Unknown document type for file: " + fileNameId);
             }
 
-            Map<String, Object> responseData = new HashMap<>();
-            List<String> deletedDocumentMessages = new ArrayList<>();
+            if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                if (otherDocument == null) {
+                    throw new IllegalArgumentException("other Document name cannot be null for uploading other Documents");
+                }
+                if (otherDocument.trim().isEmpty()) {
+                    throw new IllegalArgumentException("other Document name cannot be empty");
+                }
+            }
 
-            // Handle file uploads and deletions
-            for (Map.Entry<Integer, List<MultipartFile>> entry : groupedFiles.entrySet()) {
-                Integer fileNameId = entry.getKey();
-                List<MultipartFile> fileList = entry.getValue();
+            if (documentTypeObj.getIs_qualification_document().equals(true) && qualificationDetailId == null) {
+                throw new IllegalArgumentException("Qualification Detail id cannot be null for uploading Qualification Documents");
+            }
 
-                DocumentType documentTypeObj = entityManager.createQuery(Constant.GET_DOCUMENT_TYPE_BY_DOCUMENT_TYPE_ID, DocumentType.class)
-                        .setParameter("documentTypeId", fileNameId)
+            if (documentTypeObj.getIs_issue_date_required().equals(true)) {
+                if (dateOfIssue == null) {
+                    throw new IllegalArgumentException("Date of issue cannot be null");
+                }
+                if (documentTypeObj.getIs_expiration_date_required().equals(true) && validUpto == null) {
+                    throw new IllegalArgumentException("Valid up to (expiration date of document) cannot be null");
+                }
+            }
+
+            for (MultipartFile file : fileList) {
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {  // If it's a Live Photo
+                    processedFile = documentStorageService.convertToJpg(file);
+                } else {
+                    documentStorageService.validateDocument(file, documentTypeObj);
+                }
+
+                ServiceProviderDocument existingDocument = entityManager.createQuery(
+                                Constant.GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class)
+                        .setParameter("serviceProviderEntity", serviceProviderEntity)
+                        .setParameter("documentType", documentTypeObj)
+
                         .getResultStream()
                         .findFirst()
                         .orElse(null);
 
-                if (documentTypeObj == null) {
-                    throw new IllegalArgumentException("Unknown document type for file: " + fileNameId);
+                // If live photograph first processed to jpg then upload.
+                if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {
+                    fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
+                } else {
+                    fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
                 }
 
-                if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID))
-                {
-                    if(otherDocument==null)
-                    {
-                        throw new IllegalArgumentException("other Document name cannot be null for uploading other Documents");
-                    }
-                    if(otherDocument.trim().isEmpty())
-                    {
-                        throw new IllegalArgumentException("other Document name cannot be empty");
-                    }
-                }
+                // Deletes file from file server.
+                if (removeFileTypes != null && removeFileTypes) {
+                    if (existingDocument != null && !Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID)) {
 
-                if (documentTypeObj.getIs_qualification_document().equals(true) && qualificationDetailId == null) {
-                        throw new IllegalArgumentException("Qualification Detail id cannot be null for uploading Qualification Documents");
-                    }
-
-                if (documentTypeObj.getIs_issue_date_required().equals(true)) {
-                    if (dateOfIssue == null) {
-                        throw new IllegalArgumentException("Date of issue cannot be null");
-                    }
-                    if (documentTypeObj.getIs_expiration_date_required().equals(true) && validUpto == null) {
-                        throw new IllegalArgumentException("Valid up to (expiration date of document) cannot be null");
+                        String filePath = existingDocument.getFilePath();
+                        if (filePath != null) {
+                            fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                        }
+                        existingDocument.setDocumentType(null);
+                        existingDocument.setName(null);
+                        existingDocument.setFilePath(null);
+                        existingDocument.setServiceProviderEntity(null);
+                        entityManager.persist(existingDocument);
+                        serviceProviderDocumentToSave.add(existingDocument);
+                        deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
+                        continue;
                     }
                 }
 
-                for (MultipartFile file : fileList) {
-                    if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID)) {  // If it's a Live Photo
-                        processedFile = documentStorageService.convertToJpg(file);
-                    }
-                    else {
-                        documentStorageService.validateDocument(file, documentTypeObj);
-                    }
-
-                    ServiceProviderDocument existingDocument = entityManager.createQuery(
-                                    Constant.GET_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class)
+                // For document type others.
+                if (Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID) && (!file.isEmpty() || file != null)) {
+                    String newFileName = file.getOriginalFilename();
+                    // Check for existing document with the same name
+                    ServiceProviderDocument existingOtherDocument = entityManager.createQuery(Constant.GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class
+                            )
                             .setParameter("serviceProviderEntity", serviceProviderEntity)
                             .setParameter("documentType", documentTypeObj)
-
+                            .setParameter("otherDocument", otherDocument != null ? otherDocument.toLowerCase() : null)  // Avoid NullPointerException
+                            .setParameter("documentName", newFileName)  // Ensure document name is included
                             .getResultStream()
                             .findFirst()
                             .orElse(null);
 
-                    // If live photograph first processed to jpg then upload.
-                    if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_LIVE_PHOTOGRAPH_ID))
-                    {
-                        fileUploadService.uploadFileOnFileServer(processedFile, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-                    }
-                    else {
-                        fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), customerId.toString(), role);
-                    }
-
-                    // Deletes file from file server.
-                    if (removeFileTypes != null && removeFileTypes) {
-                        if (existingDocument != null && !Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID)) {
-
-                            String filePath = existingDocument.getFilePath();
-                            if (filePath != null) {
-                                fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingDocument.getName(), role);
+                    if (existingOtherDocument == null) {
+                        ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                        if (documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID)) {
+                            serviceProviderDocument.setOtherDocument(otherDocument);
+                            entityManager.merge(serviceProviderDocument);
+                        }
+                        serviceProviderDocumentToSave.add(serviceProviderDocument);
+                    } // If document type other with same name already exists then.
+                    else if (existingOtherDocument != null) {
+                        String filePath = existingOtherDocument.getFilePath();
+                        if (filePath != null) {
+                            String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
+                            File oldFile = new File(absolutePath);
+                            String oldFileName = oldFile.getName();
+                            existingOtherDocument.setIsArchived(false);
+                            if (!newFileName.equals(oldFileName)) {
+                                fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingOtherDocument.getName(), role);
+                                documentStorageService.updateOrCreateServiceProvider(existingOtherDocument, file, documentTypeObj, customerId, role);
                             }
-                            existingDocument.setDocumentType(null);
-                            existingDocument.setName(null);
-                            existingDocument.setFilePath(null);
-                            existingDocument.setServiceProviderEntity(null);
-                            entityManager.persist(existingDocument);
-                            serviceProviderDocumentToSave.add(existingDocument);
-                            deletedDocumentMessages.add(documentTypeObj.getDocument_type_name() + " has been deleted.");
-                            continue;
+                        }
+                        entityManager.merge(existingOtherDocument);
+                        serviceProviderDocumentToSave.add(existingOtherDocument);
+                    }
+                }
+
+                // If the file is not empty and a document already exists, update the document
+                else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
+                    String filePath = existingDocument.getFilePath();
+                    if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
+                        QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);
+                        existingDocument.setIs_qualification_document(true);
+                        existingDocument.setQualificationDetails(qualificationDetails);
+                    }
+
+                    if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
+                        DocumentValidity documentValidity = null;
+                        if (existingDocument.getDocumentValidity() == null) {
+                            documentValidity = new DocumentValidity();
+                            validateDate(dateOfIssue, validUpto, dateFormat);
+                            documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                            if (validUpto == null) {
+                                documentValidity.setIs_valid_upto_na(true);
+                                documentValidity.setValid_upto(null);
+                            } else {
+                                documentValidity.setIs_valid_upto_na(false);
+                                documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
+                            }
+                            documentValidity.setServiceProviderDocument(existingDocument);
+                            existingDocument.setDocumentValidity(documentValidity);
+                            entityManager.persist(documentValidity);
+
+                        } else if (existingDocument.getDocumentValidity() != null) {
+                            documentValidity = existingDocument.getDocumentValidity();
+                            validateDate(dateOfIssue, validUpto, dateFormat);
+                            documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                            if (validUpto == null) {
+                                documentValidity.setIs_valid_upto_na(true);
+                                documentValidity.setValid_upto(null);
+                            } else {
+                                documentValidity.setIs_valid_upto_na(false);
+                                documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
+                            }
+                            documentValidity.setServiceProviderDocument(existingDocument);
+                            existingDocument.setDocumentValidity(documentValidity);
+                            entityManager.merge(documentValidity);
                         }
                     }
 
-                    // For document type others.
-                    if (Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID) && (!file.isEmpty() || file != null)) {
-                        String newFileName = file.getOriginalFilename();
-                        // Check for existing document with the same name
-                        ServiceProviderDocument existingOtherDocument = entityManager.createQuery(Constant.GET_OTHER_DOCUMENT_DATA_OF_SERVICE_PROVIDER_BY_DOCUMENT_TYPE_ID, ServiceProviderDocument.class
-                                )
-                                .setParameter("serviceProviderEntity", serviceProviderEntity)
-                                .setParameter("documentType", documentTypeObj)
-                                .setParameter("otherDocument", otherDocument != null ? otherDocument.toLowerCase() : null)  // Avoid NullPointerException
-                                .setParameter("documentName", newFileName)  // Ensure document name is included
-                                .getResultStream()
-                                .findFirst()
-                                .orElse(null);
-
-                        if (existingOtherDocument == null) {
-                            ServiceProviderDocument serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
-                            if(documentTypeObj.getDocument_type_id().equals(Constant.DOCUMENT_TYPE_OTHER_ID))
-                            {
-                                serviceProviderDocument.setOtherDocument(otherDocument);
-                                entityManager.merge(serviceProviderDocument);
-                            }
-                            serviceProviderDocumentToSave.add(serviceProviderDocument);
-                        } // If document type other with same name already exists then.
-                        else if (existingOtherDocument != null) {
-                            String filePath = existingOtherDocument.getFilePath();
-                            if (filePath != null) {
-                                String absolutePath = System.getProperty("user.dir") + "/../test/" + filePath;
-                                File oldFile = new File(absolutePath);
-                                String oldFileName = oldFile.getName();
-                                existingOtherDocument.setIsArchived(false);
-                                if (!newFileName.equals(oldFileName)) {
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), existingOtherDocument.getName(), role);
-                                    documentStorageService.updateOrCreateServiceProvider(existingOtherDocument, file, documentTypeObj, customerId, role);
-                                }
-                            }
-                            entityManager.merge(existingOtherDocument);
-                            serviceProviderDocumentToSave.add(existingOtherDocument);
-                        }
-                    }
-
-                    // If the file is not empty and a document already exists, update the document
-                    else if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
-                        String filePath = existingDocument.getFilePath();
-                        if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
-                            QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);
-                            existingDocument.setIs_qualification_document(true);
-                            existingDocument.setQualificationDetails(qualificationDetails);
-                        }
-
-                        if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
-                            DocumentValidity documentValidity = null;
-                            if (existingDocument.getDocumentValidity() == null) {
-                                documentValidity = new DocumentValidity();
-                                validateDate(dateOfIssue, validUpto, dateFormat);
-                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
-                                if (validUpto == null) {
-                                    documentValidity.setIs_valid_upto_na(true);
-                                    documentValidity.setValid_upto(null);
-                                } else {
-                                    documentValidity.setIs_valid_upto_na(false);
-                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
-                                }
-                                documentValidity.setServiceProviderDocument(existingDocument);
-                                existingDocument.setDocumentValidity(documentValidity);
-                                entityManager.persist(documentValidity);
-
-                            } else if (existingDocument.getDocumentValidity() != null) {
-                                documentValidity = existingDocument.getDocumentValidity();
-                                validateDate(dateOfIssue, validUpto, dateFormat);
-                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
-                                if (validUpto == null) {
-                                    documentValidity.setIs_valid_upto_na(true);
-                                    documentValidity.setValid_upto(null);
-                                } else {
-                                    documentValidity.setIs_valid_upto_na(false);
-                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
-                                }
-                                documentValidity.setServiceProviderDocument(existingDocument);
-                                existingDocument.setDocumentValidity(documentValidity);
-                                entityManager.merge(documentValidity);
-                            }
-                        }
-
-                        if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
+                    if (existingDocument != null && (!file.isEmpty() || file != null) && fileNameId != 13) {
 //                                String filePath = existingDocument.getFilePath();
-                            String fileName = existingDocument.getName();
-                            boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
+                        String fileName = existingDocument.getName();
+                        boolean isLivePhoto = documentTypeObj.getDocument_type_id().equals(3);
 
-                            // Additional validation before attempting to delete
-                            if (filePath != null && fileName != null && !fileName.isEmpty()) {
-                                try {
-                                    // For live photos, ensure consistent naming across both systems
-                                    if (isLivePhoto) {
-                                        // Extract file extension from the name if possible
-                                        String extension = "";
-                                        int lastDotIndex = fileName.lastIndexOf('.');
-                                        if (lastDotIndex > 0) {
-                                            extension = fileName.substring(lastDotIndex);
-                                        }
-
-                                        // Ensure we're using consistent naming format for live photos
-                                        // This assumes the same naming convention as used in documentStorageService.convertToJpg()
-                                        String expectedFileName = "live_photo" + extension;
-
-                                        if (!fileName.equals(expectedFileName)) {
-                                            log.info("Warning: Live photo name mismatch. Expected: " + expectedFileName + ", Actual: " + fileName);
-                                            // Use the expected name if they differ
-                                            fileName = expectedFileName;
-                                        }
+                        // Additional validation before attempting to delete
+                        if (filePath != null && fileName != null && !fileName.isEmpty()) {
+                            try {
+                                // For live photos, ensure consistent naming across both systems
+                                if (isLivePhoto) {
+                                    // Extract file extension from the name if possible
+                                    String extension = "";
+                                    int lastDotIndex = fileName.lastIndexOf('.');
+                                    if (lastDotIndex > 0) {
+                                        extension = fileName.substring(lastDotIndex);
                                     }
 
-                                    // Call the delete method with properly validated parameters
-                                    fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), fileName, role);
-                                    log.info("File successfully deleted");
+                                    // Ensure we're using consistent naming format for live photos
+                                    // This assumes the same naming convention as used in documentStorageService.convertToJpg()
+                                    String expectedFileName = "live_photo" + extension;
 
-                                } catch (Exception e) {
-                                    log.error("Error deleting file: {}", e.getMessage());
+                                    if (!fileName.equals(expectedFileName)) {
+                                        log.info("Warning: Live photo name mismatch. Expected: " + expectedFileName + ", Actual: " + fileName);
+                                        // Use the expected name if they differ
+                                        fileName = expectedFileName;
+                                    }
                                 }
-                            } else {
-                                log.info("Skipping file deletion - missing path or filename information");
-                            }
 
-                            // Continue with updating the document
-                            existingDocument.setIsArchived(false);
+                                // Call the delete method with properly validated parameters
+                                fileUploadService.deleteFile(customerId, documentTypeObj.getDocument_type_name(), fileName, role);
+                                log.info("File successfully deleted");
+
+                            } catch (Exception e) {
+                                log.error("Error deleting file: {}", e.getMessage());
+                            }
+                        } else {
+                            log.info("Skipping file deletion - missing path or filename information");
+                        }
+
+                        // Continue with updating the document
+                        existingDocument.setIsArchived(false);
 
                             /*try {
                                 // Always proceed with the document update regardless of delete success
@@ -2607,130 +2608,125 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                                 throw e; // Rethrow this exception as it's a critical failure
                             }*/
 
-                            // Always proceed with the document update regardless of delete success
-                            if (isLivePhoto) {
-                                documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
-                            }
-                            else {
-                                documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
-                            }
-
-                            entityManager.merge(existingDocument);
-                            serviceProviderDocumentToSave.add(existingDocument);
+                        // Always proceed with the document update regardless of delete success
+                        if (isLivePhoto) {
+                            documentStorageService.updateOrCreateServiceProvider(existingDocument, processedFile, documentTypeObj, customerId, role);
+                        } else {
+                            documentStorageService.updateOrCreateServiceProvider(existingDocument, file, documentTypeObj, customerId, role);
                         }
+
                         entityManager.merge(existingDocument);
                         serviceProviderDocumentToSave.add(existingDocument);
-                    } else {
-                        // If the file is not empty create the document
-                        if (!file.isEmpty() || file != null && (fileNameId != 13)) {
-                            ServiceProviderDocument serviceProviderDocument = null;
-                            if(documentTypeObj.getDocument_type_id().equals(3))
-                            {
-                                serviceProviderDocument = documentStorageService.createDocumentServiceProvider(processedFile, documentTypeObj, serviceProviderEntity, customerId, role);
-                            }
-                            else {
-                                serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
-                            }
+                    }
+                    entityManager.merge(existingDocument);
+                    serviceProviderDocumentToSave.add(existingDocument);
+                } else {
+                    // If the file is not empty create the document
+                    if (!file.isEmpty() || file != null && (fileNameId != 13)) {
+                        ServiceProviderDocument serviceProviderDocument = null;
+                        if (documentTypeObj.getDocument_type_id().equals(3)) {
+                            serviceProviderDocument = documentStorageService.createDocumentServiceProvider(processedFile, documentTypeObj, serviceProviderEntity, customerId, role);
+                        } else {
+                            serviceProviderDocument = documentStorageService.createDocumentServiceProvider(file, documentTypeObj, serviceProviderEntity, customerId, role);
+                        }
+                        serviceProviderDocumentToSave.add(serviceProviderDocument);
+                        if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
+                            QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);
+                            serviceProviderDocument.setIs_qualification_document(true);
+                            serviceProviderDocument.setQualificationDetails(qualificationDetails);
+                            entityManager.merge(serviceProviderDocument);
                             serviceProviderDocumentToSave.add(serviceProviderDocument);
-                            if (qualificationDetailId != null && documentTypeObj.getIs_qualification_document().equals(true)) {
-                                QualificationDetails qualificationDetails = findQualificationDetailForServiceProvider(qualificationDetailId, serviceProviderEntity);
-                                serviceProviderDocument.setIs_qualification_document(true);
-                                serviceProviderDocument.setQualificationDetails(qualificationDetails);
-                                entityManager.merge(serviceProviderDocument);
-                                serviceProviderDocumentToSave.add(serviceProviderDocument);
+                        }
+                        if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
+                            DocumentValidity documentValidity = new DocumentValidity();
+                            validateDate(dateOfIssue, validUpto, dateFormat);
+                            documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
+                            if (validUpto == null) {
+                                documentValidity.setIs_valid_upto_na(true);
+                                documentValidity.setValid_upto(null);
+                            } else {
+                                documentValidity.setIs_valid_upto_na(false);
+                                documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
                             }
-                            if (dateOfIssue != null && documentTypeObj.getIs_issue_date_required().equals(true)) {
-                                DocumentValidity documentValidity = new DocumentValidity();
-                                validateDate(dateOfIssue, validUpto, dateFormat);
-                                documentValidity.setDate_of_issue(convertStringToDate(dateOfIssue, "yyyy-MM-dd"));
-                                if (validUpto == null) {
-                                    documentValidity.setIs_valid_upto_na(true);
-                                    documentValidity.setValid_upto(null);
-                                } else {
-                                    documentValidity.setIs_valid_upto_na(false);
-                                    documentValidity.setValid_upto(convertStringToDate(validUpto, "yyyy-MM-dd"));
-                                }
-                                documentValidity.setServiceProviderDocument(serviceProviderDocument);
-                                entityManager.persist(documentValidity);
-                                serviceProviderDocument.setDocumentValidity(documentValidity);
-                                entityManager.merge(serviceProviderDocument);
-                                serviceProviderDocumentToSave.add(serviceProviderDocument);
-                            }
+                            documentValidity.setServiceProviderDocument(serviceProviderDocument);
+                            entityManager.persist(documentValidity);
+                            serviceProviderDocument.setDocumentValidity(documentValidity);
+                            entityManager.merge(serviceProviderDocument);
+                            serviceProviderDocumentToSave.add(serviceProviderDocument);
                         }
                     }
                 }
-
             }
-            List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
-            for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
-                if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
-                    if (document.getFilePath() != null && document.getDocumentType() != null) {
-                        Map<String, Object> documentDetails = new HashMap<>();
-                        documentDetails.put("documentId", document.getDocumentId());
-                        documentDetails.put("name", document.getName());
-                        documentDetails.put("filePath", document.getFilePath());
+        }
+        List<Map<String, Object>> filteredDocuments = new ArrayList<>();
 
-                        // Add qualification details if applicable
-                        if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
-                            documentDetails.put("qualification_detail_id", qualificationDetailId);
-                        }
+        for (ServiceProviderDocument document : serviceProviderDocumentToSave) {
+            if (document.getIsArchived() != null && !document.getIsArchived()) { // Exclude archived documents
+                if (document.getFilePath() != null && document.getDocumentType() != null) {
+                    Map<String, Object> documentDetails = new HashMap<>();
+                    documentDetails.put("documentId", document.getDocumentId());
+                    documentDetails.put("name", document.getName());
+                    documentDetails.put("filePath", document.getFilePath());
 
-                        // Add document validity details if applicable
-                        if (document.getDocumentValidity() != null) {
-                            Map<String, String> validityDetails = new HashMap<>();
-                            validityDetails.put("dateOfIssue", dateOfIssue);
-                            validityDetails.put("validUpto", validUpto);
+                    // Add qualification details if applicable
+                    if (Boolean.TRUE.equals(document.getIs_qualification_document()) && document.getQualificationDetails() != null) {
+                        documentDetails.put("qualification_detail_id", qualificationDetailId);
+                    }
 
-                            documentDetails.put("documentValidity", validityDetails);
-                        }
-                        String filePath;
+                    // Add document validity details if applicable
+                    if (document.getDocumentValidity() != null) {
+                        Map<String, String> validityDetails = new HashMap<>();
+                        validityDetails.put("dateOfIssue", dateOfIssue);
+                        validityDetails.put("validUpto", validUpto);
+
+                        documentDetails.put("documentValidity", validityDetails);
+                    }
+                    String filePath;
                         /*try {
                             filePath = documentStorageService.encrypt(document.getFilePath());
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }*/
-                        filePath = documentStorageService.encrypt(document.getFilePath());
+                    filePath = documentStorageService.encrypt(document.getFilePath());
 
-                        String fileUrl = fileService.getFileUrl(filePath, request);
-                        // Generate a file URL for the document
-                        documentDetails.put("fileUrl", fileUrl);
+                    String fileUrl = fileService.getFileUrl(filePath, request);
+                    // Generate a file URL for the document
+                    documentDetails.put("fileUrl", fileUrl);
 
-                        Map<String, Object> documentTypeResponse = new HashMap<>();
-                        documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                        if(otherDocument!=null && !otherDocument.trim().isEmpty())
-                        {
-                            documentTypeResponse.put("document_type_name", otherDocument);
-                        }
-                        else {
-                            documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
-                        }
-                        documentTypeResponse.put("description", document.getDocumentType().getDescription());
-                        documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
-                        documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
-                        documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
-                        documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
-                        documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
-                        documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
-                        documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
-
-                        documentDetails.put("documentType", documentTypeResponse);
-                        filteredDocuments.add(documentDetails);
+                    Map<String, Object> documentTypeResponse = new HashMap<>();
+                    documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
+                    if (otherDocument != null && !otherDocument.trim().isEmpty()) {
+                        documentTypeResponse.put("document_type_name", otherDocument);
+                    } else {
+                        documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
                     }
+                    documentTypeResponse.put("description", document.getDocumentType().getDescription());
+                    documentTypeResponse.put("is_qualification_document", document.getDocumentType().getIs_qualification_document());
+                    documentTypeResponse.put("is_issue_date_required", document.getDocumentType().getIs_issue_date_required());
+                    documentTypeResponse.put("is_expiration_date_required", document.getDocumentType().getIs_expiration_date_required());
+                    documentTypeResponse.put("required_document_types", document.getDocumentType().getRequired_document_types());
+                    documentTypeResponse.put("max_document_size", document.getDocumentType().getMax_document_size());
+                    documentTypeResponse.put("min_document_size", document.getDocumentType().getMin_document_size());
+                    documentTypeResponse.put("sort_order", document.getDocumentType().getSort_order());
+
+                    documentDetails.put("documentType", documentTypeResponse);
+                    filteredDocuments.add(documentDetails);
                 }
             }
+        }
 
 
-            log.info("Deleted Documents logs: {}", deletedDocumentMessages);
-            responseData.put("uploadedDocuments", filteredDocuments);
-            return responseData;
+        log.info("Deleted Documents logs: {}", deletedDocumentMessages);
+        responseData.put("uploadedDocuments", filteredDocuments);
+        return responseData;
     }
 
     @Transactional
     public Map<String, Object> updateServiceProviderTicketDocument(Map<Integer, List<MultipartFile>> groupedFiles, Long serviceProviderId, String otherDocument, Long qualificationDetailId, String dateOfIssue, String validUpto, String role, Boolean removeFileTypes, CustomServiceProviderTicket ticket, Set<ServiceProviderDocument> serviceProviderDocumentToSave) throws Exception {
         try {
 
-            MultipartFile processedFile=null;
+            MultipartFile processedFile = null;
 
             // Service Provider logic
             ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, serviceProviderId);
@@ -2770,7 +2766,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     fileUploadService.uploadFileOnFileServer(file, documentTypeObj.getDocument_type_name(), serviceProviderId.toString(), role);
 
                     if (removeFileTypes != null && removeFileTypes) {
-                        for(ServiceProviderDocument existingDocument: existingDocuments) {
+                        for (ServiceProviderDocument existingDocument : existingDocuments) {
                             if (existingDocument != null && !Objects.equals(fileNameId, Constant.DOCUMENT_TYPE_OTHER_ID)) {
 
                                 if (existingDocument.getFilePath() != null) {
@@ -2792,7 +2788,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     // If the file is not empty and a document already exists, update the document
                     if (existingDocuments != null && !existingDocuments.isEmpty() && fileNameId != 13) {
 
-                        for(ServiceProviderDocument existingDocument: existingDocuments) {
+                        for (ServiceProviderDocument existingDocument : existingDocuments) {
 
                             String filePath = existingDocument.getFilePath();
 
@@ -2862,11 +2858,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                         Map<String, Object> documentTypeResponse = new HashMap<>();
                         documentTypeResponse.put("document_type_id", document.getDocumentType().getDocument_type_id());
-                        if(otherDocument!=null && !otherDocument.trim().isEmpty())
-                        {
+                        if (otherDocument != null && !otherDocument.trim().isEmpty()) {
                             documentTypeResponse.put("document_type_name", otherDocument);
-                        }
-                        else {
+                        } else {
                             documentTypeResponse.put("document_type_name", document.getDocumentType().getDocument_type_name());
                         }
                         documentTypeResponse.put("description", document.getDocumentType().getDescription());
@@ -2913,17 +2907,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             throw new IllegalArgumentException("Qualification details with id " + qualificationDetailId + " does not exists");
         }
         return qualificationToFind;
-    }
-
-    public static Date convertStringToDate(String dateStr, String s) throws ParseException {
-        if (dateStr == null || dateStr.isEmpty()) {
-            throw new IllegalArgumentException("Date string cannot be null or empty");
-        }
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        dateFormat.setLenient(false);
-        return dateFormat.parse(dateStr);
     }
 
     private boolean isValidDateFormat(String dateStr, SimpleDateFormat dateFormat) {
@@ -2977,30 +2960,29 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                     .getResultList();
 
             // Iterate each Service Provider
-            for(ServiceProviderEntity serviceProvider: serviceProviderEntityNotAdminOverriddenList) {
+            for (ServiceProviderEntity serviceProvider : serviceProviderEntityNotAdminOverriddenList) {
 
                 log.info("service provider id is: {}", serviceProvider.getService_provider_id());
                 // If service provider eligibility is null then will update depending on logic (if Professional and completed more than or equal to 10 then make it eligible else not and for individual if his ticket completion number is more than or equal to 3 then make him eligible else not.
-                if(serviceProvider.getEligibleForReRanking() == null) {
-                    serviceProvider = updateServiceProviderEligibility(serviceProvider);
-                    if(serviceProvider.getEligibleForReRanking()) {
+
+                ServiceProviderReRankingEligibility serviceProviderReRankingEligibility = serviceProviderReRankingEligibilityService.getServiceProvideReRankingEligibilityByServiceProviderId(serviceProvider.getService_provider_id());
+                if (serviceProviderReRankingEligibility == null) {
+                    serviceProviderReRankingEligibility = updateServiceProviderEligibility(serviceProvider);
+                    if (serviceProviderReRankingEligibility.getEligibleForReRanking()) {
                         subsequentReRankingSP.add(serviceProvider);
                     } else {
                         firstTimeReRankingSP.add(serviceProvider);
                     }
-                }
-                else if(!serviceProvider.getEligibleForReRanking()) {
-                    serviceProvider = updateServiceProviderEligibility(serviceProvider);
-                    if(serviceProvider.getEligibleForReRanking()) {
+                } else if (!serviceProviderReRankingEligibility.getEligibleForReRanking()) {
+                    serviceProviderReRankingEligibility = updateServiceProviderEligibility(serviceProvider);
+                    if (serviceProviderReRankingEligibility.getEligibleForReRanking()) {
                         subsequentReRankingSP.add(serviceProvider);
                     } else {
                         firstTimeReRankingSP.add(serviceProvider);
                     }
-                }
-                else {
+                } else {
                     subsequentReRankingSP.add(serviceProvider);
                 }
-
             }
 
         } catch (IllegalArgumentException illegalArgumentException) {
@@ -3013,25 +2995,35 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
     }
 
     @Transactional
-    public ServiceProviderEntity updateServiceProviderEligibility(ServiceProviderEntity serviceProvider) throws Exception {
+    public ServiceProviderReRankingEligibility updateServiceProviderEligibility(ServiceProviderEntity serviceProvider) throws Exception {
         try {
-            if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_PROFESSIONAL)) {
-                if(serviceProvider.getTicketCompleted() <= Constant.PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT) {
-                    serviceProvider.setEligibleForReRanking(false);
+
+            if (serviceProvider == null) {
+                throw new IllegalArgumentException("Service Provider Not Found.");
+            }
+
+            ServiceProviderReRankingEligibilityDto serviceProviderReRankingEligibilityDto = new ServiceProviderReRankingEligibilityDto();
+            if (serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_PROFESSIONAL)) {
+                if (serviceProvider.getTicketCompleted() <= Constant.PROFESSIONAL_SERVICE_PROVIDER_NEW_LIMIT) {
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(false);
+//                    serviceProvider.setEligibleForReRanking(false);
                 } else {
-                    serviceProvider.setEligibleForReRanking(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(true);
+//                    serviceProvider.setEligibleForReRanking(true);
                 }
-            } else if(serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_INDIVIDUAL)) {
-                if(serviceProvider.getTicketCompleted() <= Constant.INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT) {
-                    serviceProvider.setEligibleForReRanking(false);
+            } else if (serviceProvider.getType().equals(Constant.SERVICE_PROVIDER_INDIVIDUAL)) {
+                if (serviceProvider.getTicketCompleted() <= Constant.INDIVIDUAL_SERVICE_PROVIDER_NEW_LIMIT) {
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(false);
+//                    serviceProvider.setEligibleForReRanking(false);
                 } else {
-                    serviceProvider.setEligibleForReRanking(true);
+                    serviceProviderReRankingEligibilityDto.setEligibleForReRanking(true);
+//                    serviceProvider.setEligibleForReRanking(true);
                 }
             } else {
                 throw new IllegalArgumentException("Service Provider w/o recognised Type found");
             }
 
-            return entityManager.merge(serviceProvider);
+            return serviceProviderReRankingEligibilityService.updateServiceProviderReRankingEligibility(serviceProvider, serviceProviderReRankingEligibilityDto);
 
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -3133,12 +3125,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         clone.setTicketCompleted(original.getTicketCompleted());
         clone.setTicketPending(original.getTicketPending());
         clone.setTicketAssigned(original.getTicketAssigned());
-        clone.setAutoScoring(original.getAutoScoring());
-        clone.setAdminOverridden(original.getAdminOverridden());
-        clone.setEligibleForReRanking(original.getEligibleForReRanking());
-        clone.setReviewTicketStatusScore(original.getReviewTicketStatusScore());
-        clone.setReviewTicketFeedbackScore(original.getReviewTicketFeedbackScore());
-        clone.setTimeCompletionScore(original.getTimeCompletionScore());
+//        clone.setAutoScoring(original.getAutoScoring());
+//        clone.setAdminOverridden(original.getAdminOverridden());
+//        clone.setEligibleForReRanking(original.getEligibleForReRanking());
+//        clone.setReviewTicketStatusScore(original.getReviewTicketStatusScore());
+//        clone.setReviewTicketFeedbackScore(original.getReviewTicketFeedbackScore());
+//        clone.setTimeCompletionScore(original.getTimeCompletionScore());
         clone.setIsAcknowledged(original.getIsAcknowledged());
 
         return clone;
@@ -3221,12 +3213,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
         target.setTicketCompleted(source.getTicketCompleted());
         target.setTicketPending(source.getTicketPending());
         target.setTicketAssigned(source.getTicketAssigned());
-        target.setAutoScoring(source.getAutoScoring());
-        target.setAdminOverridden(source.getAdminOverridden());
-        target.setEligibleForReRanking(source.getEligibleForReRanking());
-        target.setReviewTicketStatusScore(source.getReviewTicketStatusScore());
-        target.setReviewTicketFeedbackScore(source.getReviewTicketFeedbackScore());
-        target.setTimeCompletionScore(source.getTimeCompletionScore());
+//        target.setAutoScoring(source.getAutoScoring());
+//        target.setAdminOverridden(source.getAdminOverridden());
+//        target.setEligibleForReRanking(source.getEligibleForReRanking());
+//        target.setReviewTicketStatusScore(source.getReviewTicketStatusScore());
+//        target.setReviewTicketFeedbackScore(source.getReviewTicketFeedbackScore());
+//        target.setTimeCompletionScore(source.getTimeCompletionScore());
         target.setIsAcknowledged(source.getIsAcknowledged());
     }
 

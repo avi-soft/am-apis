@@ -563,6 +563,7 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                customProduct.setIsEdited(false);
                 if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
                     System.out.println("yes");
                     CustomProductState productState=entityManager.find(CustomProductState.class,5L);
@@ -649,7 +650,11 @@ public class ProductController extends CatalogEndpoint {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
-
+            customProduct.setIsEdited(true);
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3L)
+            {
+                customProduct.setIsEdited(false);
+            }
             entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -752,7 +757,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (offset < 0) {
@@ -873,7 +878,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {
@@ -940,7 +945,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {
@@ -1019,7 +1024,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestBody(required = false) FilterProductTitleDto titleDto)
     {
 

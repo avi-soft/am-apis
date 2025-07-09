@@ -6,6 +6,7 @@ import com.community.api.entity.Districts;
 import com.community.api.entity.StateCode;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import io.swagger.models.auth.In;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.util.List;
 
+@Slf4j
 @Service
 public class DistrictService {
     @Autowired
@@ -117,6 +119,7 @@ public class DistrictService {
 
             List<StateCode> stateCode = query.getResultList();
             if (stateCode.size() == 0 || stateCode == null) {
+                log.info("state is: {}", state);
                 throw new IllegalArgumentException("STATE NOT FOUND");
             }
             return stateCode.get(0);

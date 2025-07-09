@@ -2103,6 +2103,7 @@ BEGIN
 --            (38, 'Signature_Image','Signature image which service provider uploads to give skill test','50KB','30KB',FALSE,FALSE,FALSE,36,60.0,60.0,30.0,30.0,300.0);
 --    END IF;
 ----
+
 --    -- Check and insert into file_type_name table
 --    IF NOT EXISTS (SELECT 1 FROM filetype) THEN
 --        INSERT INTO filetype (file_type_id,file_type_name)
@@ -2253,6 +2254,62 @@ BEGIN
 --    		(2,'Pdf'),
 --    		(3,'Signature');
 --    END IF;
+
+    IF (SELECT COUNT(*) FROM institution) = 0 THEN
+    INSERT INTO institution (institution_id, institution_name, institution_location, institution_code, created_date, modified_date, created_by, modified_by,sort_order)
+    VALUES
+		(1,'Others','Others','Others',NOW(),NOW(),'SUPER_ADMIN','SUPER_ADMIN',1000000),
+        (2, 'Indian Institute of Technology Bombay', 'Mumbai', 'IITB', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',2),
+        (3, 'Indian Institute of Science', 'Bangalore', 'IISC', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',3),
+        (4, 'National Institute of Technology Tiruchirappalli', 'Tiruchirappalli', 'NITT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',4),
+        (5, 'Delhi Technological University', 'New Delhi', 'DTU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',5),
+        (6, 'Jawaharlal Nehru Technological University', 'Hyderabad', 'JNTUH', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',6),
+        (7, 'Banaras Hindu University', 'Varanasi', 'BHU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',7),
+        (8, 'University of Hyderabad', 'Hyderabad', 'UOH', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',8),
+        (9, 'Vellore Institute of Technology', 'Vellore', 'VIT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',9),
+        (10, 'Manipal Academy of Higher Education', 'Manipal', 'MAHE', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',10),
+        (11, 'Amity University', 'Noida', 'AU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',11),
+        (12, 'Birla Institute of Technology and Science', 'Pilani', 'BITS', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',12),
+        (13, 'SRM Institute of Science and Technology', 'Chennai', 'SRM', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',13),
+        (14, 'Christ University', 'Bangalore', 'CU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',14),
+        (15, 'Savitribai Phule Pune University', 'Pune', 'SPPU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',15),
+        (16, 'Indian Statistical Institute', 'Kolkata', 'ISI', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',16),
+        (17, 'Tata Institute of Fundamental Research', 'Mumbai', 'TIFR', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',17),
+        (18, 'National Law School of India University', 'Bangalore', 'NLSIU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',18),
+        (19, 'Indian Institute of Technology Kanpur', 'Kanpur', 'IITK', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',19),
+        (20, 'Indian Institute of Technology Delhi', 'New Delhi', 'IITD', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',20),
+        (21, 'Jamia Millia Islamia', 'New Delhi', 'JMI', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',21),
+        (22, 'Aligarh Muslim University', 'Aligarh', 'AMU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',22),
+        (23, 'Visva-Bharati University', 'Santiniketan', 'VBU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',23),
+        (24, 'Indian Institute of Management Ahmedabad', 'Ahmedabad', 'IIMA', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',24),
+        (25, 'Indian Institute of Management Bangalore', 'Bangalore', 'IIMB', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',25),
+        (26, 'Indian Institute of Technology Kharagpur', 'Kharagpur', 'IITKGP', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',26),
+        (27, 'Indian Institute of Technology Madras', 'Chennai', 'IITM', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',27),
+        (28, 'Indian Institute of Technology Guwahati', 'Guwahati', 'IITG', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',28),
+        (29, 'Indian School of Business', 'Hyderabad', 'ISB', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',29),
+        (30, 'University of Mysore', 'Mysore', 'UOM', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',30),
+        (31, 'Anna University', 'Chennai', 'AU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',31),
+        (32, 'University of Delhi', 'New Delhi', 'DU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',32),
+        (33, 'University of Calicut', 'Calicut', 'UOC', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',33),
+        (34, 'Guru Nanak Dev University', 'Amritsar', 'GNDU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',34),
+        (35, 'Punjab University', 'Chandigarh', 'PU', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',35),
+		(36, 'Jaypee Institute of Information and Technology', 'Noida', 'JIIT', NOW(), NOW(), 'SUPER_ADMIN', 'SUPER_ADMIN',36);
+	END IF;
+
+	 IF (SELECT COUNT(*) FROM random_image_type) = 0 THEN
+        INSERT INTO random_image_type (random_image_type_id, random_image_type_name)
+        VALUES
+    		(1,'Resized'),
+    		(2,'Pdf'),
+    		(3,'Signature');
+    END IF;
+
+    IF (SELECT COUNT(*) FROM logical_operator) = 0 THEN
+            INSERT INTO logical_operator (logical_operator_id, operator_name)
+            VALUES
+        		(1,'AND'),
+        		(2,'OR'),
+        END IF;
 ----
 --    -- Check and insert into vacancy_distribution_type table
 --    IF NOT EXISTS (SELECT 1 FROM vacancy_distribution_type) THEN

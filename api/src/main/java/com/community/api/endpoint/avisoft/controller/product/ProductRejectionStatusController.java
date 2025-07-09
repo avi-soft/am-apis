@@ -33,7 +33,7 @@ public class ProductRejectionStatusController {
     @GetMapping("/get-all-product-rejection-status")
     public ResponseEntity<?> getAllProductRejectionStatus(
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
         try {
             if(offset<0)
             {

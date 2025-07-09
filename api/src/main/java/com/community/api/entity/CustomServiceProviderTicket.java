@@ -63,7 +63,7 @@ public class CustomServiceProviderTicket {
     @JsonProperty("creator_user_id")
     private Long userId;
 
-    @Column(name = "archived")
+    @Column(name = "archived", columnDefinition = "BOOLEAN DEFAULT FALSE")
     @JsonProperty("archived")
     Boolean archived = false;
 
