@@ -18,7 +18,6 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -91,5 +90,29 @@ public class QualificationEligibility implements Serializable
     @CollectionTable(name = "highest_qualification_subject_names_in_product", joinColumns = @JoinColumn(name = "qualification_detail_id"))
     @Column(name = "subject_name")
     private List<String> highestQualificationSubjectNames;
+
+    @ManyToOne
+    @JoinColumn(name = "streams_relation_id")
+    private LogicalOperator streamsRelation;
+
+    @ManyToOne
+    @JoinColumn(name = "subjects_relation_id")
+    private LogicalOperator subjectsRelation;
+
+    @Column(name = "streams_mandatory", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean streamsMandatory = true;
+
+    @Column(name = "subjects_mandatory", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean subjectsMandatory = true;
+
+    @Column(name = "is_reserve_category_mandatory", columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean isReserveCategoryMandatory = true;
+
+    @ManyToOne
+    @JoinColumn(name = "qualification_relation_id")
+    private QualificationRelation qualificationRelation;
+
+    @Column(name = "is_certification_required",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isCertificationRequired= false;
 
 }

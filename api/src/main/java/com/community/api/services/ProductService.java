@@ -11,6 +11,7 @@ import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
 import com.community.api.dto.DistrictCategoryDistributionDto;
+import com.community.api.dto.QualificationRelationDto;
 import com.community.api.dto.ZoneDistributionDto;
 import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
@@ -3468,13 +3469,27 @@ public class ProductService {
                 }
             }
 
-            for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
+            for (int i = 0; i < postDto.getQualificationEligibility().size(); i++) {
+                QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibility().get(i);
                 Qualification qualificationDetails = entityManager.find(Qualification.class, qualificationEligibilityDto.getQualificationIds().get(0));
 
                 // Basic validations
                 if (qualificationEligibilityDto.getIsAppearing() == null) {
                     throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
                 }
+
+                if (i > 0) { // Not the first qualification
+                    if (qualificationEligibilityDto.getQualificationOperatorId()!= null) {
+                        validateQualificationOperator(qualificationEligibilityDto.getQualificationOperatorId(), qualificationDetails, postDto, i);
+                    }
+                } else {
+                    // For the first qualification, qualification operator should be null
+                    qualificationEligibilityDto.setQualificationOperatorId(null);
+                }
+
+                // Validate logical operators for streams and subjects
+                validateLogicalOperatorId(qualificationEligibilityDto.getStreamsRelationId(), "streams");
+                validateLogicalOperatorId(qualificationEligibilityDto.getSubjectsRelationId(), "subjects");
 
                 // Running field validations
                 validateRunningFields(qualificationEligibilityDto, qualificationDetails);
@@ -3485,14 +3500,14 @@ public class ProductService {
                 // Qualification validation
                 validateQualificationIds(qualificationEligibilityDto);
 
-                // Stream validation with mapping
-                validateStreamsWithMapping(qualificationEligibilityDto, qualificationDetails);
+                // Stream validation with mapping and logical operations
+                validateStreamsWithMappingAndLogic(qualificationEligibilityDto, qualificationDetails);
 
-                // Subject validation with mapping (different logic for qualification 1 & 2)
-                validateSubjectsWithMapping(qualificationEligibilityDto, qualificationDetails);
+                // Subject validation with mapping and logical operations
+                validateSubjectsWithMappingAndLogic(qualificationEligibilityDto, qualificationDetails);
 
                 // Reserve category validation
-                validateReserveCategory(qualificationEligibilityDto);
+                validateReserveCategoryWithMandatory(qualificationEligibilityDto);
 
                 // Final percentage range validation
                 validatePercentageRange(qualificationEligibilityDto);
@@ -3504,6 +3519,159 @@ public class ProductService {
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             throw new Exception(exception.getMessage() + "\n");
+        }
+    }
+
+    private void validateQualificationOperator(Long operatorId, Qualification currentQualification, PostDto postDto, int currentIndex) {
+        if (operatorId == null) {
+            throw new IllegalArgumentException("Operator ID is required for qualification " + currentQualification.getQualification_name());
+        }
+
+        LogicalOperator logicalOperator = entityManager.find(LogicalOperator.class, operatorId);
+        if (logicalOperator == null) {
+            throw new IllegalArgumentException("Invalid logical operator ID for qualification " + currentQualification.getQualification_name());
+        }
+
+        if (currentIndex > 0) {
+            QualificationEligibilityDto previousQualificationDto = postDto.getQualificationEligibility().get(currentIndex - 1);
+            Integer previousQualificationId = previousQualificationDto.getQualificationIds().get(0);
+
+            Qualification previousQualification = entityManager.find(Qualification.class, previousQualificationId);
+            if (previousQualification == null) {
+                throw new IllegalArgumentException("Previous qualification not found for qualification " + currentQualification.getQualification_name());
+            }
+        }
+    }
+
+    private void validateLogicalOperatorId(Long operatorId, String context) {
+        if (operatorId != null) {
+            LogicalOperator logicalOperator = entityManager.find(LogicalOperator.class, operatorId);
+            if (logicalOperator == null) {
+                throw new IllegalArgumentException("Invalid logical operator ID for " + context + ". Logical operator not found.");
+            }
+        }
+    }
+
+    private void validateStreamsWithMappingAndLogic(QualificationEligibilityDto dto, Qualification qualification) {
+        if (dto.getCustomStreamIds() != null && !dto.getCustomStreamIds().isEmpty()) {
+            // Check if qualification requires streams
+            if (!qualification.getIs_stream_required()) {
+                if (qualification.getQualification_id().equals(MATRICULATION_QUALIFICATION)) {
+                    dto.setCustomStreamIds(List.of(MATRICULATION_IMPLICIT_STREAM_ID));
+                } else if (dto.getStreamsMandatory()) {
+                    throw new IllegalArgumentException("Stream is not required for qualification: " + qualification.getQualification_name());
+                }
+            }
+
+            // Get valid streams for this qualification
+            List<CustomStream> validStreams = streamService.getStreamByQualificationId(qualification.getQualification_id());
+            Set<Long> validStreamIds = validStreams.stream()
+                    .map(CustomStream::getStreamId)
+                    .collect(Collectors.toSet());
+
+            Set<Long> streamIdSet = new HashSet<>();
+            List<Long> streamIds = dto.getCustomStreamIds();
+
+            for (Long streamId : streamIds) {
+                // Check if stream exists
+                CustomStream customStream = entityManager.find(CustomStream.class, streamId);
+                if (customStream == null) {
+                    throw new IllegalArgumentException("Stream with id " + streamId + " does not exist");
+                }
+
+                // Check if stream is valid for this qualification (except for "Others" stream ID 215)
+                if (streamId != 215 && !validStreamIds.contains(streamId)) {
+                    throw new IllegalArgumentException("Stream '" + customStream.getStreamName() +
+                            "' is not valid for qualification '" + qualification.getQualification_name() + "'");
+                }
+
+                streamIdSet.add(streamId);
+            }
+
+            if (streamIdSet.size() != streamIds.size()) {
+                throw new IllegalArgumentException("DUPLICATE STREAMS NOT ALLOWED");
+            }
+        }
+    }
+
+    // Enhanced subject validation with logical operations
+    private void validateSubjectsWithMappingAndLogic(QualificationEligibilityDto dto, Qualification qualification) {
+        Integer qualificationId = qualification.getQualification_id();
+
+        // For qualifications 1 and 2, use predefined subjects
+        if (qualificationId == 1 || qualificationId == 2) {
+            if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {
+
+                // Get valid subjects based on selected streams
+                Set<Long> validSubjectIds = new HashSet<>();
+                if (dto.getCustomStreamIds() != null && !dto.getCustomStreamIds().isEmpty()) {
+                    for (Long streamId : dto.getCustomStreamIds()) {
+                        List<CustomSubject> streamSubjects = subjectService.getSubjectsByStreamIds(streamId);
+                        validSubjectIds.addAll(streamSubjects.stream()
+                                .map(CustomSubject::getSubjectId)
+                                .collect(Collectors.toSet()));
+                    }
+                }
+
+                Set<Long> subjectIdsSet = new HashSet<>();
+                List<Long> subjectIds = dto.getCustomSubjectIds();
+
+                for (Long subjectId : subjectIds) {
+                    CustomSubject customSubject = entityManager.find(CustomSubject.class, subjectId);
+                    if (customSubject == null) {
+                        throw new IllegalArgumentException("Subject with id " + subjectId + " does not exist");
+                    }
+
+                    // Check if subject is valid for selected streams (except for "Others" subject ID 54)
+                    if (subjectId != 54 && !validSubjectIds.isEmpty() && !validSubjectIds.contains(subjectId)) {
+                        throw new IllegalArgumentException("Subject '" + customSubject.getSubjectName() +
+                                "' is not valid for the selected stream(s)");
+                    }
+
+                    subjectIdsSet.add(subjectId);
+                }
+
+                if (subjectIdsSet.size() != subjectIds.size()) {
+                    throw new IllegalArgumentException("DUPLICATE SUBJECTS NOT ALLOWED");
+                }
+
+            }
+
+            // For qualifications 1 and 2, manual subject names should not be used
+            if (dto.getHighestQualificationSubjectNames() != null && !dto.getHighestQualificationSubjectNames().isEmpty()) {
+                throw new IllegalArgumentException("Manual subject names are not allowed for qualification: " + qualification.getQualification_name() +
+                        ". Please select from predefined subjects.");
+            }
+        } else {
+            if (dto.getCustomSubjectIds() != null && !dto.getCustomSubjectIds().isEmpty()) {
+                throw new IllegalArgumentException("Predefined subjects are not allowed for qualification: " + qualification.getQualification_name() +
+                        ". Please use manual subject names.");
+            }
+            if (dto.getHighestQualificationSubjectNames() != null && !dto.getHighestQualificationSubjectNames().isEmpty()) {
+                Set<String> subjectNameSet = new HashSet<>();
+                for (String subjectName : dto.getHighestQualificationSubjectNames()) {
+                    if (subjectName == null || subjectName.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Subject name cannot be empty");
+                    }
+
+                    if (!subjectName.matches("^[a-zA-Z0-9 ,.!?';:()&-]*$")) {
+                        throw new IllegalArgumentException("Invalid subject name format: " + subjectName);
+                    }
+
+                    if (!subjectNameSet.add(subjectName.trim().toLowerCase())) {
+                        throw new IllegalArgumentException("Duplicate subject name found: " + subjectName);
+                    }
+                }
+            }
+        }
+    }
+
+    private void validateReserveCategoryWithMandatory(QualificationEligibilityDto dto) {
+        if (dto.getCustomReserveCategoryId() != null) {
+            CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, dto.getCustomReserveCategoryId());
+            if (customReserveCategory == null) {
+                throw new IllegalArgumentException("Reserve Category does not exist with id " + dto.getCustomReserveCategoryId());
+            }
         }
     }
 
@@ -3719,15 +3887,6 @@ public class ProductService {
                         throw new IllegalArgumentException("Duplicate subject name found: " + subjectName);
                     }
                 }
-            }
-        }
-    }
-
-    private void validateReserveCategory(QualificationEligibilityDto dto) {
-        if (dto.getCustomReserveCategoryId() != null) {
-            CustomReserveCategory customReserveCategory = entityManager.find(CustomReserveCategory.class, dto.getCustomReserveCategoryId());
-            if (customReserveCategory == null) {
-                throw new IllegalArgumentException("Reserve Category does not exist with id " + dto.getCustomReserveCategoryId());
             }
         }
     }
