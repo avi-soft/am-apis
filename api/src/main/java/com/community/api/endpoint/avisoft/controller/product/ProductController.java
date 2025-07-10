@@ -693,14 +693,17 @@ public class ProductController extends CatalogEndpoint {
             boolean allowExpiredAccess=false;
             boolean bypass=false;
             if(orderId!=null) {
+                System.out.println("yes yes");
                 Order order = orderService.findOrderById(orderId);
                 if (order == null)
                     return ResponseService.generateErrorResponse("Order not found", HttpStatus.BAD_REQUEST);
                 OrderItem orderItem=order.getOrderItems().get(0);
                 Product product=findProductFromItemAttribute(orderItem);
-                if(product.getId().equals(productId))
-                    bypass=true;
-
+                System.out.println("productId"+product.getId());
+                if(product.getId().equals(productId)) {
+                    System.out.println("yes yes");
+                    bypass = true;
+                }
             }
             if(authHeader!=null&&!bypass)
             {
@@ -723,7 +726,7 @@ public class ProductController extends CatalogEndpoint {
             Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
             boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess) {
+            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess||bypass) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
