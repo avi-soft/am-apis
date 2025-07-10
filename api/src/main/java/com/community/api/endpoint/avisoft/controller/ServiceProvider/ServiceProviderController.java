@@ -234,11 +234,6 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Permanent address is not filled", HttpStatus.BAD_REQUEST);
         else if (!hasCurrent)
             return ResponseService.generateErrorResponse("Current address is not filled", HttpStatus.BAD_REQUEST);
-         if(!hasBusinessAddress)
-            if(serviceProvider.getIs_running_business_unit().equals(true))
-            {
-                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
-            }
 
         if (serviceProvider.getIs_running_business_unit().equals(true)) {
             REQUIRED_FIELDS = Arrays.asList(
