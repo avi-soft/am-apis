@@ -209,6 +209,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
         boolean hasCurrent = false;
         boolean hasPermanent = false;
+        boolean hasBusinessAddress= false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
             if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
@@ -216,24 +217,35 @@ public class ServiceProviderController {
             } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
             }
+            else if(addr.getAddress_type_id()== OFFICE_ADDRESS_ID)
+            {
+                hasBusinessAddress=true;
+            }
         }
 
+        if(!hasBusinessAddress)
+            if(serviceProvider.getIs_running_business_unit().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+            }
         if (!hasCurrent && !hasPermanent)
             return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
         else if (!hasPermanent)
             return ResponseService.generateErrorResponse("Permanent address is not filled", HttpStatus.BAD_REQUEST);
         else if (!hasCurrent)
             return ResponseService.generateErrorResponse("Current address is not filled", HttpStatus.BAD_REQUEST);
+         if(!hasBusinessAddress)
+            if(serviceProvider.getIs_running_business_unit().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+            }
 
         if (serviceProvider.getIs_running_business_unit().equals(true)) {
             REQUIRED_FIELDS = Arrays.asList(
                     "business_name",
-                    "business_location",
                     "business_email",
                     "number_of_employees",
                     "isCFormAvailable",
-                    "latitude",
-                    "longitude",
                     "has_technical_knowledge",
                     "work_experience_in_months"
             );
