@@ -229,6 +229,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.", "authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
+
+
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId;
@@ -246,6 +248,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider == null) {
                 errorMessages.put("service_provider_id", "ServiceProvider with ID " + userId + " not found");
             }
+
+
+            // Define the expected date format
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
 
             if (existingServiceProvider != null) {
                 originalCopy = cloneServiceProvider(existingServiceProvider);
@@ -1119,7 +1126,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                       formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
                         existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
