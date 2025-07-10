@@ -57,15 +57,21 @@ BEGIN
 	    INTO v_product_active_end_date
 	    FROM blc_sku
 	    WHERE sku_id = v_sku_id;
-	   
+
+	   -- Conditionally update active_end_date for review tickets
+       IF p_is_review_ticket THEN
+           v_product_active_end_date := v_product_active_end_date + INTERVAL '4 days';
+       END IF;
+
 	    v_target_completion_date = CASE 
-                WHEN p_is_review_ticket THEN v_now + INTERVAL '2 hours'
+                WHEN p_is_review_ticket THEN v_now + INTERVAL '4 days'
                 WHEN p_is_primary_ticket THEN v_now + INTERVAL '4 hours'
                 ELSE NULL
         END IF;
         raise notice 'target completion date is: %', v_target_completion_date;
         raise notice 'product_active_end_date is: %', v_product_active_end_date;
-       raise notice 'product id is: %', v_product_id;
+        raise notice 'product id is: %', v_product_id;
+
         IF v_target_completion_date IS NOT NULL AND v_target_completion_date < v_product_active_end_date THEN
 	        -- Assign ticket state and status
 	        UPDATE custom_service_provider_ticket
@@ -76,7 +82,7 @@ BEGIN
 	            modified_date = v_now,
 	            ticket_assign_time = v_now,
 	            target_completion_time = CASE 
-	                WHEN p_is_review_ticket THEN v_now + INTERVAL '2 hours'
+	                WHEN p_is_review_ticket THEN v_now + INTERVAL '4 days'
 	                WHEN p_is_primary_ticket THEN v_now + INTERVAL '4 hours'
 	                ELSE NULL
 	            END
