@@ -601,6 +601,9 @@ public class ProductService {
                     // Access the embedded property correctly
                     jpql.append("AND p.archiveStatus.archived = 'Y' ");
                 }
+                else {
+                    jpql.append("AND p.archiveStatus.archived = 'N' ");
+                }
             }
             if (states != null && !states.isEmpty()) {
                 boolean containsStateLive = false;
@@ -716,10 +719,6 @@ public class ProductService {
                 jpql.append("AND s.activeEndDate IS NOT NULL AND s.activeEndDate <= CURRENT_TIMESTAMP ");
             } else if(Boolean.FALSE.equals(isExpired)) {
                 // Only non-expired products
-                jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
-            }
-            else if(Boolean.FALSE.equals(isArchived))
-            {
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
 
