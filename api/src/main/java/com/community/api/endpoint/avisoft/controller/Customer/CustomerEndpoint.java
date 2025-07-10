@@ -472,6 +472,10 @@ public class CustomerEndpoint {
                             errorMessages.put("heightCms","Height must be valid.");
                         }
                     }
+                    else if(height!=null && height.isEmpty())
+                    {
+                        customCustomer.setHeightCms(null);
+                    }
 
                     if (weightKgs != null && !weightKgs.isEmpty()) {
                         try {
@@ -484,6 +488,10 @@ public class CustomerEndpoint {
                         } catch (NumberFormatException e) {
                             errorMessages.put("weightKgs","Weight must be valid.");
                         }
+                    }
+                    else if(weightKgs != null && weightKgs.isEmpty())
+                    {
+                        customCustomer.setWeightKgs(null);
                     }
 
                     if (shoeSizeInches != null && !shoeSizeInches.isEmpty()) {
@@ -498,6 +506,10 @@ public class CustomerEndpoint {
                             errorMessages.put("shoeSizeInches","Shoe size must be valid.");
                         }
                     }
+                    else if(shoeSizeInches != null && shoeSizeInches.isEmpty())
+                    {
+                        customCustomer.setShoeSizeInches(null);
+                    }
 
                     if (waistSizeCms != null && !waistSizeCms.isEmpty()) {
                         try {
@@ -511,6 +523,10 @@ public class CustomerEndpoint {
                             errorMessages.put("waistSizeCms","Waist size must be valid.");
                         }
                     }
+                    else if(waistSizeCms != null && waistSizeCms.isEmpty())
+                    {
+                        customCustomer.setWaistSizeCms(null);
+                    }
                 }
             }
 
@@ -519,10 +535,27 @@ public class CustomerEndpoint {
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if (details.containsKey("workExperience")) {
                     Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
+                    if(workExperience<1)
+                    {
+                        customCustomer.setWorkExperienceScopeId(null);
+                    }
                     customCustomer.setWorkExperience(workExperience);
                 }
-            } else if (details.containsKey("workExperience")) {
-                errorMessages.put("workExperience","Give scope of work before adding work experience");
+            }
+            if (details.containsKey("workExperience")) {
+                Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
+                if(workExperience<1)
+                {
+                    customCustomer.setWorkExperienceScopeId(null);
+                }
+                else {
+                    if(!details.containsKey("workExperienceScopeId") && customCustomer.getWorkExperienceScopeId()==null) {
+                        {
+                            throw new IllegalArgumentException("Work experience scope id cannot be null if work experience > 0");
+                        }
+                    }
+                }
+                customCustomer.setWorkExperience(workExperience);
             }
 
             if (details.containsKey("sportCertificateId")) {
@@ -1137,7 +1170,7 @@ public class CustomerEndpoint {
             if ((customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("female")
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
                     || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male") && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female")))
-                    && details.containsKey("chestSizeCms")) {
+                    && details.containsKey("chestSizeCms") && !details.get("chestSizeCms").toString().trim().isEmpty()) {
                 errorMessages.put("chestSizeCms","Cannot add chest size for gender : Female");
             }
 
@@ -1145,10 +1178,11 @@ public class CustomerEndpoint {
                 errorMessages.put("chestSizeCms","Cannot add chest size without specifying gender");
             }
 
-            if (details.containsKey("chestSizeCms")) {
+            if (details.containsKey("chestSizeCms") && !details.get("chestSizeCms").toString().trim().isEmpty()) {
                 if (customCustomer.getGender().equals("Female")) {
                     errorMessages.put("chestSizeCms","Cannot add chest size with female");
-                } else {
+                }
+                else {
                     String chestSizeCms = (String) details.get("chestSizeCms");
                     if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
                         try {
@@ -1163,6 +1197,11 @@ public class CustomerEndpoint {
                         }
                     }
                     customCustomer.setChestSizeCms(Double.parseDouble(chestSizeCms));
+                }
+            }
+            else if (details.containsKey("chestSizeCms") && details.get("chestSizeCms").toString().trim().isEmpty()) {
+                {
+                    customCustomer.setChestSizeCms(null);
                 }
             }
 
@@ -1526,6 +1565,18 @@ public class CustomerEndpoint {
                     errorMessages.put("workExperienceScopeId","No Application scope found with this id");
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
+                if (details.containsKey("workExperience")) {
+                    Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
+                    if(workExperience==0)
+                    {
+                        customCustomer.setWorkExperienceScopeId(null);
+                    }
+                    customCustomer.setWorkExperience(workExperience);
+                }
+                else if(customCustomer.getWorkExperience()<1)
+                {
+                    customCustomer.setWorkExperienceScopeId(null);
+                }
             }
 
             if (isValidDate != null && isValidDate.equals(true)) {
