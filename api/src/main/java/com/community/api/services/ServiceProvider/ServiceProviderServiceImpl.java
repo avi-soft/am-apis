@@ -1126,7 +1126,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
-                       formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
                         existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);

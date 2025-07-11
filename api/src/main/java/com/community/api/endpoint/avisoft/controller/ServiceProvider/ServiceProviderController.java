@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static com.community.api.component.Constant.*;
+import static com.community.api.component.Constant.OFFICE_ADDRESS_ID;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
