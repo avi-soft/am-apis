@@ -22,9 +22,12 @@ BEGIN
         (max_ticket_size IS NOT NULL AND current_assigned + current_pending < max_ticket_size)
         OR (current_assigned + current_pending < (
             SELECT r.maximum_ticket_size
-            FROM service_provider sp
-            JOIN service_provider_rank r ON sp.rank_id = r.rank_id
-            WHERE sp.service_provider_id = p_service_provider_id
+                FROM service_provider_rank r
+                WHERE r.rank_id = (
+                    SELECT m.rank_id
+                    FROM service_provider_rank_mapping m
+                    WHERE m.service_provider_id = p_service_provider_id
+                )
         ))
     ) THEN
         -- Call create_ticket procedure
