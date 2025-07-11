@@ -554,9 +554,9 @@ public class ProductService {
     }
 
     public Map<String,Object> filterProducts(List<Long> states, List<Long> statuses, List<Long> categories,
-                                              List<Long> reserveCategories, String title, String displayTemplate,Double fee,
-                                              Integer post, Date startRange, Date endRange,
-                                              Boolean isExpired, Integer offset,Integer limit,Boolean all,Long createdById, List<Long> productIds) throws Exception {
+                                             List<Long> reserveCategories, String title, String displayTemplate,Double fee,
+                                             Integer post, Date startRange, Date endRange,
+                                             Boolean isExpired, Boolean isArchived,Integer offset,Integer limit,Boolean all,Long createdById, List<Long> productIds) throws Exception {
         try {
             StringBuilder count = new StringBuilder("SELECT COUNT(DISTINCT p) FROM CustomProduct p ");
             StringBuilder result = new StringBuilder("SELECT DISTINCT p FROM CustomProduct p ");
@@ -564,7 +564,14 @@ public class ProductService {
             if(fee != null || (reserveCategories != null && !reserveCategories.isEmpty())) {
                 jpql.append("JOIN CustomProductReserveCategoryFeePostRef r WITH r.customProduct.id = p.id ");
             }
-            jpql.append("WHERE p.del = 'N' ");
+            if(isArchived!=null && !isArchived)
+            {
+                jpql.append("WHERE p.del = 'N' ");
+            }
+            else if(isArchived==null)
+            {
+                jpql.append("WHERE p.del = 'N' ");
+            }
             // Base condition to allow easy AND appending
             Map<String ,Object>response=new HashMap<>();
             /*if(all)
@@ -589,7 +596,15 @@ public class ProductService {
             List<Category> categoryList = new ArrayList<>();
             List<CustomReserveCategory> customReserveCategoryList = new ArrayList<>();
 
-            // Conditionally build the query
+            if (isArchived != null) {
+                if (Boolean.TRUE.equals(isArchived)) {
+                    // Access the embedded property correctly
+                    jpql.append("AND p.archiveStatus.archived = 'Y' ");
+                }
+                else {
+                    jpql.append("AND p.archiveStatus.archived = 'N' ");
+                }
+            }
             if (states != null && !states.isEmpty()) {
                 boolean containsStateLive = false;
                 for (Long id : states) {
@@ -690,13 +705,13 @@ public class ProductService {
 
             // Filter for exact date match, ignoring time portion
             if (startRange != null) {
-                jpql.append("AND p.examDateFrom IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.examDateFrom) = FUNCTION('DATE', :startRange) ");
+                jpql.append("AND p.defaultSku.activeStartDate IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeStartDate) = FUNCTION('DATE', :startRange) ");
             }
 
             if (endRange != null) {
-                jpql.append("AND p.examDateTo IS NOT NULL ");
-                jpql.append("AND FUNCTION('DATE', p.examDateTo) = FUNCTION('DATE', :endRange) ");
+                jpql.append("AND p.defaultSku.activeEndDate IS NOT NULL ");
+                jpql.append("AND FUNCTION('DATE', p.defaultSku.activeEndDate) = FUNCTION('DATE', :endRange) ");
             }
 
             if (Boolean.TRUE.equals(isExpired)) {
@@ -784,7 +799,7 @@ public class ProductService {
         }
     }
 
-    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds) {
+    public ResponseEntity<?> filterProductsByRoleAndUserId(Integer roleId, Long userId, int page, int limit, boolean showDraftProducts, List<Long> states, List<Long> statuses, List<Long> categories, List<Long> reserveCategories, String title,String displayTemplate, Double fee, Integer post, Date dateFrom, Date dateTo, List<Long> productIds,Boolean isArchived) {
         try {
             Role role = null;
             if (roleId != null) {
@@ -824,7 +839,7 @@ public class ProductService {
             Map<String, Object> allProductsResponse = filterProducts(
                     states, statuses, categories, reserveCategories,
                     title,displayTemplate, fee, post, dateFrom, dateTo,
-                    isExpired, 0, Integer.MAX_VALUE, false, createdById, productIds
+                    isExpired,isArchived, 0, Integer.MAX_VALUE, false, createdById, productIds
             );
 
             @SuppressWarnings("unchecked")
