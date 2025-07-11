@@ -610,7 +610,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) List<Long> rank,
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "1000") int limit,
+            @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(required = false) Long ticketId,
             HttpServletRequest request) {
 

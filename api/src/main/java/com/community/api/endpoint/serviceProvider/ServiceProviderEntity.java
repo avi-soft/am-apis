@@ -118,7 +118,7 @@ public class ServiceProviderEntity {
     private String pan_number;
 
     @Column(name = "completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean completed;
+    private Boolean completed=false;
     @Column(name = "approved", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean approved = false;
 
