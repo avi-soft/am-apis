@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static com.community.api.component.Constant.*;
+import static com.community.api.component.Constant.OFFICE_ADDRESS_ID;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
@@ -209,6 +210,7 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
         boolean hasCurrent = false;
         boolean hasPermanent = false;
+        boolean hasBusinessAddress= false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
             if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
@@ -216,8 +218,17 @@ public class ServiceProviderController {
             } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
             }
+            else if(addr.getAddress_type_id()== OFFICE_ADDRESS_ID)
+            {
+                hasBusinessAddress=true;
+            }
         }
 
+        if(!hasBusinessAddress)
+            if(serviceProvider.getIs_running_business_unit().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+            }
         if (!hasCurrent && !hasPermanent)
             return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
         else if (!hasPermanent)
@@ -228,12 +239,9 @@ public class ServiceProviderController {
         if (serviceProvider.getIs_running_business_unit().equals(true)) {
             REQUIRED_FIELDS = Arrays.asList(
                     "business_name",
-                    "business_location",
                     "business_email",
                     "number_of_employees",
                     "isCFormAvailable",
-                    "latitude",
-                    "longitude",
                     "has_technical_knowledge",
                     "work_experience_in_months"
             );
@@ -659,7 +667,7 @@ public class ServiceProviderController {
 
             // Handle search by mobile number
             if (mobileNumber != null && !mobileNumber.isEmpty() && serviceProviderService.isValidMobileNumber(mobileNumber)) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type, limit, offset);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -683,7 +691,7 @@ public class ServiceProviderController {
             }
 
             if (user_name != null && !user_name.isEmpty()) {
-                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
+                ResponseEntity<SuccessResponse> response = (ResponseEntity<SuccessResponse>) serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type, limit, offset);
                 List<Map<String, Object>> resultList = new ArrayList<>();
                 if (response.getBody() != null && response.getBody().getData() != null) {
                     resultList = (List<Map<String, Object>>) response.getBody().getData();
@@ -737,11 +745,11 @@ public class ServiceProviderController {
 
             // First call with the provided order of first_name and last_name
             ResponseEntity<SuccessResponse> response1 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, first_name, last_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type, limit, offset);
 
             // Second call with swapped order of first_name and last_name
             ResponseEntity<SuccessResponse> response2 = (ResponseEntity<SuccessResponse>)
-                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type);
+                    serviceProviderService.searchServiceProviderBasedOnGivenFields(state, district, last_name, first_name, mobileNumber, test_status_id, ticketId, role, completed, suspended, approved, rejected, user_name, qualificationType, rank, type, limit, offset);
 
             // CHANGE: Use LinkedHashSet to maintain insertion order and remove duplicates
             Set<Map<String, Object>> mergedResults = new LinkedHashSet<>();
