@@ -626,9 +626,32 @@ public class TicketStateService {
 
                 if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     Product product = findProductFromItemAttribute(ticket.getOrder().getOrderItems().get(0));
-                    if (!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+
+                    /*log.info("product active open date is: {}", product.getActiveStartDate());
+                    log.info("product active end date is: {}", product.getActiveEndDate());*/
+
+                    if (!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) || !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
                         throw new IllegalArgumentException("Target Completion date must be between Product Open Date and Close Date.");
                     }
+                } else if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    Product product = findProductFromItemAttribute(ticket.getParentTicket().getOrder().getOrderItems().get(0));
+//                    if (!createTicketDTO.getTargetCompletionDate().after(product.getActiveStartDate()) && !createTicketDTO.getTargetCompletionDate().before(product.getActiveEndDate())) {
+//                        throw new IllegalArgumentException("Target Completion date must be between Product Open Date and 4 days after Close Date.");
+//                    }
+
+                    Date target = createTicketDTO.getTargetCompletionDate();
+                    Date start = product.getActiveStartDate();
+                    Date endPlus4Days = Date.from(
+                            product.getActiveEndDate().toInstant().plus(4, java.time.temporal.ChronoUnit.DAYS)
+                    );
+                    /*log.info("product active open date is: {}", product.getActiveStartDate());
+                    log.info("product active end date is: {}", product.getActiveEndDate());
+                    log.info("product new active endDate is: {}", endPlus4Days);*/
+
+                    if (target.before(start) || target.after(endPlus4Days)) {
+                        throw new IllegalArgumentException("Target Completion date must be between Product Open Date and 4 days after Close Date.");
+                    }
+
                 }
                 ticket.setTargetCompletionDate(createTicketDTO.getTargetCompletionDate());
             }
