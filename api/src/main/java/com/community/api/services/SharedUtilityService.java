@@ -877,7 +877,20 @@ public class SharedUtilityService {
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
         serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
         serviceProviderDetails.put("staff_score", serviceProvider.getStaffScore());
-        serviceProviderDetails.put("rank", serviceProvider.getRanking());
+
+        String rankIdQuery = "SELECT rank_id FROM service_provider_rank_mapping WHERE service_provider_id = :spId";
+        System.out.println(serviceProvider.getService_provider_id());
+        List<Object> results = entityManager.createNativeQuery(rankIdQuery)
+                .setParameter("spId", serviceProvider.getService_provider_id())
+                .getResultList();
+
+        ServiceProviderRank rank = null;
+        if (!results.isEmpty() && results.get(0) != null) {
+            Long rankId = ((BigInteger) results.get(0)).longValue();
+            rank = entityManager.find(ServiceProviderRank.class, rankId);
+        }
+
+        serviceProviderDetails.put("rank", rank);
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
