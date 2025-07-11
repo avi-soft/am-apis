@@ -2208,12 +2208,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
             if (role != null) {
                 queryBuilder.append("AND s.role = :role ");
-            } if (test_status_id != null) {
+            }
+            if (test_status_id != null) {
                     ServiceProviderTestStatus serviceProviderTestStatus= entityManager.find(ServiceProviderTestStatus.class,test_status_id);
                     if (serviceProviderTestStatus==null) {
                         throw new IllegalArgumentException("No Test Status is found with this id");
                     }
-                queryBuilder.append(" AND s.serviceProviderStatus.testStatusId = :testStatusId ");
+                queryBuilder.append(" AND s.serviceProviderStatus.test_status_id = :testStatusId ");
             }
             if (completed != null) {
                 queryBuilder.append("AND s.completed = :completed ");

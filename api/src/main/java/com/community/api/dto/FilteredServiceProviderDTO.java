@@ -32,7 +32,7 @@ import java.util.Map;
         private Map<String, Object> filteredAddress;
         private List<Map<String, Object>> skills;
         private Map<String, Object> rank;
-        private Map<String, Object> serviceProviderStatus;
-        private Integer totalScore;
-        private String partTimeOrFullTime;
+        private Map<String, Object> service_provider_status;
+        private Integer total_score;
+        private String part_time_or_full_time;
     }
