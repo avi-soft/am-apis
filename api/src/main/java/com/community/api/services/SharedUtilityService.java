@@ -165,8 +165,8 @@ public class SharedUtilityService {
                 }
             }
 
-        productDetails.put("available_posts",availablePosts);
-        productDetails.put("preference_order",postPreferenceOrder);
+            productDetails.put("available_posts",availablePosts);
+            productDetails.put("preference_order",postPreferenceOrder);
         }
         Double fee = reserveCategoryService.getReserveCategoryFee(product.getId(), reserveCategoryService.getCategoryByName(customer.getCategory()).getReserveCategoryId(),genderId);
         fee = null;
@@ -524,7 +524,7 @@ public class SharedUtilityService {
             customerDetailsForDesktop.put("dateUpdated", customer.getAuditable().getDateUpdated());
             customerDetailsForDesktop.put("updatedBy", customer.getAuditable().getUpdatedBy());
             customerDetailsForDesktop.put("username", customer.getUsername());
-        /*    customerDetailsForDesktop.put("password", customer.getPassword());*/
+            /*    customerDetailsForDesktop.put("password", customer.getPassword());*/
             customerDetailsForDesktop.put("emailAddress", customer.getEmailAddress());
             customerDetailsForDesktop.put("firstName", customer.getFirstName());
             customerDetailsForDesktop.put("lastName", customer.getLastName());
@@ -865,7 +865,7 @@ public class SharedUtilityService {
         serviceProviderDetails.put("whatsapp_number", serviceProvider.getWhatsapp_number());
         serviceProviderDetails.put("primary_email", serviceProvider.getPrimary_email());
         serviceProviderDetails.put("secondary_email", serviceProvider.getSecondary_email());
-       /* serviceProviderDetails.put("password", serviceProvider.getPassword());*/
+        /* serviceProviderDetails.put("password", serviceProvider.getPassword());*/
         serviceProviderDetails.put("is_running_business_unit", serviceProvider.getIs_running_business_unit());
         serviceProviderDetails.put("business_name", serviceProvider.getBusiness_name());
         serviceProviderDetails.put("business_email", serviceProvider.getBusiness_email());
@@ -877,7 +877,20 @@ public class SharedUtilityService {
         serviceProviderDetails.put("work_experience_in_months", serviceProvider.getWork_experience_in_months());
         serviceProviderDetails.put("service_provider_status", serviceProvider.getServiceProviderStatus());
         serviceProviderDetails.put("staff_score", serviceProvider.getStaffScore());
-        serviceProviderDetails.put("rank", serviceProvider.getRanking());
+
+        String rankIdQuery = "SELECT rank_id FROM service_provider_rank_mapping WHERE service_provider_id = :spId";
+        System.out.println(serviceProvider.getService_provider_id());
+        List<Object> results = entityManager.createNativeQuery(rankIdQuery)
+                .setParameter("spId", serviceProvider.getService_provider_id())
+                .getResultList();
+
+        ServiceProviderRank rank = null;
+        if (!results.isEmpty() && results.get(0) != null) {
+            Long rankId = ((BigInteger) results.get(0)).longValue();
+            rank = entityManager.find(ServiceProviderRank.class, rankId);
+        }
+
+        serviceProviderDetails.put("rank", rank);
         serviceProviderDetails.put("signedUp", serviceProvider.getSignedUp());
         serviceProviderDetails.put("skills", serviceProvider.getSkills());
         serviceProviderDetails.put("infra", serviceProvider.getInfra());
@@ -1441,7 +1454,7 @@ public class SharedUtilityService {
         ZonedDateTime today=null;
         if(asOfDate==null) {
             // Get today's date in the same time zone (IST)
-             today = ZonedDateTime.now(indiaZone);
+            today = ZonedDateTime.now(indiaZone);
         }
         else
         {
@@ -1549,47 +1562,47 @@ public class SharedUtilityService {
             customCustomer.setProfileComplete(false);
             throw new IllegalArgumentException("Both current as well as Permanent address should be provided");
         }
-       for(CustomerAddress customerAddress: addresses)
-       {
-           String addressName=null;
-           if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
-           {
-               addressName="Present Address";
-           }
-           else if(customerAddress.getAddressName().equalsIgnoreCase("PERMANENT_ADDRESS"))
-           {
-               addressName="Permanent Address";
-           }
-               if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
-               {
-               if(customerAddress.getAddress().getAddressLine1()==null || (customerAddress.getAddress().getAddressLine1()!=null && customerAddress.getAddress().getAddressLine1().trim().isEmpty()))
-               {
-                   customCustomer.setProfileComplete(false);
-                   throw new IllegalArgumentException("In Contact Details, "+ addressName+ " cannot be null or empty");
-               }
-               if(customerAddress.getAddress().getCity()==null || (customerAddress.getAddress().getCity()!=null && customerAddress.getAddress().getCity().trim().isEmpty()))
-               {
-                   customCustomer.setProfileComplete(false);
-                   throw new IllegalArgumentException("In Contact Details, City cannot be null or empty in "+ addressName);
-               }
-               if(customerAddress.getAddress().getCounty()==null || (customerAddress.getAddress().getCounty()!=null && customerAddress.getAddress().getCounty().trim().isEmpty()))
-               {
-                   customCustomer.setProfileComplete(false);
-                   throw new IllegalArgumentException("In Contact Details, District cannot be null or empty in "+ addressName);
-               }
-               if(customerAddress.getAddress().getStateProvinceRegion()==null || (customerAddress.getAddress().getStateProvinceRegion()!=null && customerAddress.getAddress().getStateProvinceRegion().trim().isEmpty()))
-               {
-                   customCustomer.setProfileComplete(false);
-                   throw new IllegalArgumentException("In Contact Details, State cannot be null or empty in "+ addressName);
-               }
-               if(customerAddress.getAddress().getPostalCode()==null || (customerAddress.getAddress().getPostalCode()!=null && customerAddress.getAddress().getPostalCode().trim().isEmpty()))
-               {
-                   customCustomer.setProfileComplete(false);
-                   throw new IllegalArgumentException("In Contact Details, Pin code cannot be null or empty in "+ addressName);
-               }
-           }
+        for(CustomerAddress customerAddress: addresses)
+        {
+            String addressName=null;
+            if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
+            {
+                addressName="Present Address";
+            }
+            else if(customerAddress.getAddressName().equalsIgnoreCase("PERMANENT_ADDRESS"))
+            {
+                addressName="Permanent Address";
+            }
+            if(customerAddress.getAddressName().equalsIgnoreCase("CURRENT_ADDRESS"))
+            {
+                if(customerAddress.getAddress().getAddressLine1()==null || (customerAddress.getAddress().getAddressLine1()!=null && customerAddress.getAddress().getAddressLine1().trim().isEmpty()))
+                {
+                    customCustomer.setProfileComplete(false);
+                    throw new IllegalArgumentException("In Contact Details, "+ addressName+ " cannot be null or empty");
+                }
+                if(customerAddress.getAddress().getCity()==null || (customerAddress.getAddress().getCity()!=null && customerAddress.getAddress().getCity().trim().isEmpty()))
+                {
+                    customCustomer.setProfileComplete(false);
+                    throw new IllegalArgumentException("In Contact Details, City cannot be null or empty in "+ addressName);
+                }
+                if(customerAddress.getAddress().getCounty()==null || (customerAddress.getAddress().getCounty()!=null && customerAddress.getAddress().getCounty().trim().isEmpty()))
+                {
+                    customCustomer.setProfileComplete(false);
+                    throw new IllegalArgumentException("In Contact Details, District cannot be null or empty in "+ addressName);
+                }
+                if(customerAddress.getAddress().getStateProvinceRegion()==null || (customerAddress.getAddress().getStateProvinceRegion()!=null && customerAddress.getAddress().getStateProvinceRegion().trim().isEmpty()))
+                {
+                    customCustomer.setProfileComplete(false);
+                    throw new IllegalArgumentException("In Contact Details, State cannot be null or empty in "+ addressName);
+                }
+                if(customerAddress.getAddress().getPostalCode()==null || (customerAddress.getAddress().getPostalCode()!=null && customerAddress.getAddress().getPostalCode().trim().isEmpty()))
+                {
+                    customCustomer.setProfileComplete(false);
+                    throw new IllegalArgumentException("In Contact Details, Pin code cannot be null or empty in "+ addressName);
+                }
+            }
 
-       }
+        }
         if(customCustomer.getMobileNumber()==null || (customCustomer.getMobileNumber()!=null &&customCustomer.getMobileNumber().trim().isEmpty()))
         {
             customCustomer.setProfileComplete(false);
@@ -1851,9 +1864,9 @@ public class SharedUtilityService {
             {
                 isLeftThumb=true;
             } if(document.getDocumentType().getDocument_type_id().equals(26)&& !document.getIsArchived())
-            {
-                isRightThumb=true;
-            }
+        {
+            isRightThumb=true;
+        }
             if(customCustomer.getBelongsToMinority().equals(true))
             {
                 if(document.getDocumentType().getDocument_type_id().equals(31)&& !document.getIsArchived())

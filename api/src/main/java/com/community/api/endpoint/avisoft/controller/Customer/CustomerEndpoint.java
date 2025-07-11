@@ -2432,7 +2432,7 @@ public class CustomerEndpoint {
                 CustomProduct product = entityManager.find(CustomProduct.class, productId);
                 if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(product, request, reserveCategoryService,
+                    wrapper.wrapDetails(order.getId(),product, request, reserveCategoryService,
                             reserveCategoryAgeService, genderService,
                             customer, sharedUtilityService);
                     appliedForms.add(wrapper);

@@ -1126,7 +1126,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
-                       formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
                         existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
@@ -2245,9 +2245,6 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (state != null && !state.isEmpty()) {
                 finalQuery.setParameter("states", state);
             }
-            if (rank_id != null && !rank_id.isEmpty()) {
-                finalQuery.setParameter("rankIds", rank_id);
-            }
             if (district != null && !district.isEmpty()) {
                 finalQuery.setParameter("districts", district);
             }
@@ -2277,6 +2274,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (type != null) {
                 finalQuery.setParameter("type", type);
             }
+
+            if (rank_id != null && !rank_id.isEmpty()) {
+                finalQuery.setParameter("rankIds", rank_id);
+            }
+
             if (qualificationType != null && !qualificationType.isEmpty()) {
                 finalQuery.setParameter("qualificationType", qualificationType);
             }
