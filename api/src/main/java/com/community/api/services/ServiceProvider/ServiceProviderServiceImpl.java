@@ -229,6 +229,8 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 return ResponseService.generateSuccessResponse("Authorization header is missing or invalid.", "authorizationHeader", HttpStatus.UNAUTHORIZED);
             }
+
+
             String jwtToken = authHeader.substring(7);
             List<String> deleteLogs = new ArrayList<>();
             Integer roleId;
@@ -246,6 +248,11 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (existingServiceProvider == null) {
                 errorMessages.put("service_provider_id", "ServiceProvider with ID " + userId + " not found");
             }
+
+
+            // Define the expected date format
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
 
             if (existingServiceProvider != null) {
                 originalCopy = cloneServiceProvider(existingServiceProvider);
@@ -1119,7 +1126,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
                     if (fieldName.equals("date_of_birth")) {
                         String dobString = (String) newValue;
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                        formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
                         existingServiceProvider.setIsAcknowledged(false);
                         try {
                             LocalDate dob = LocalDate.parse(dobString, formatter);
@@ -2073,7 +2080,9 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             String userName,
             List<Integer> qualificationType,
             List<Long> rank_id,
-            String type) {
+            String type,
+            int limit,
+            int offset) {
 
         try {
             log.info("inside search");
@@ -2099,6 +2108,13 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
                 Query query = entityManager.createQuery(
                         "SELECT s FROM ServiceProviderEntity s JOIN ServiceProviderAddress a ON s = a.serviceProviderEntity",
                         ServiceProviderEntity.class);
+
+                int pageSize = limit;
+                int pageNumber = offset;
+                int calculatedOffset = pageNumber * pageSize;
+
+                query.setFirstResult(calculatedOffset);
+                query.setMaxResults(pageSize);
                 List<ServiceProviderEntity> serviceProviderEntityList = query.getResultList();
                 List<Map<String, Object>> response = new ArrayList<>();
                 for (ServiceProviderEntity serviceProvider : serviceProviderEntityList) {
@@ -2139,7 +2155,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
 
             // Start building query
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("SELECT s.* FROM service_provider s ");
+            queryBuilder.append("SELECT s.* FROM service_provider s JOIN service_provider_rank_mapping rn ON s.service_provider_id = rn.service_provider_id ");
             if (state != null || district != null) {
                 queryBuilder.append("JOIN custom_service_provider_address a ON s.service_provider_id = a.service_provider_id ")
                         .append("LEFT JOIN qualification_details qd ON s.service_provider_id = qd.service_provider_id ");
@@ -2224,7 +2240,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
 
             if (rank_id != null && !rank_id.isEmpty()) {
-                queryBuilder.append("s.rank_id IN :rankIds AND ");
+                queryBuilder.append("rn.rank_id IN :rankIds AND ");
             }
             // Remove last AND
             String queryString = queryBuilder.toString();
@@ -2260,6 +2276,12 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             }
             System.out.println(queryString);
             // Execute query
+            int pageSize = limit;
+            int pageNumber = offset;
+            int calculatedOffset = pageNumber * pageSize;
+
+            finalQuery.setFirstResult(calculatedOffset);
+            finalQuery.setMaxResults(pageSize);
             List<ServiceProviderEntity> listOfSp = finalQuery.getResultList();
 
             // Ticket rejection filter
