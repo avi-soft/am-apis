@@ -265,7 +265,7 @@ public class CustomerEndpoint {
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
             String roleName = roleService.findRoleName(roleId);
             Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
-            Map<String,String> errorMessages = new LinkedHashMap<>();
+            Map<String, String> errorMessages = new LinkedHashMap<>();
 
             details = sanitizerService.sanitizeInputMap(details);
 
@@ -282,7 +282,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateSuccessResponse(message, errorMessages.keySet(), HttpStatus.BAD_REQUEST);
             }*/
             if (customerService == null) {
-                return ResponseService.generateSuccessResponse("Customer service is not initialized.","customerService", HttpStatus.INTERNAL_SERVER_ERROR);
+                return ResponseService.generateSuccessResponse("Customer service is not initialized.", "customerService", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
@@ -292,22 +292,22 @@ public class CustomerEndpoint {
                     Integer roleUpdating = jwtTokenUtil.extractRoleId(authToken);
                     Long userId = jwtTokenUtil.extractId(authToken);
                     if (roleUpdating != 5 || !userId.equals(customerId))
-                        return ResponseService.generateSuccessResponse("Forbidden Access","role", HttpStatus.UNAUTHORIZED);
+                        return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
                 } else {
-                    return ResponseService.generateSuccessResponse("Forbidden Access", "role",HttpStatus.UNAUTHORIZED);
+                    return ResponseService.generateSuccessResponse("Forbidden Access", "role", HttpStatus.UNAUTHORIZED);
                 }
             }
             if (customCustomer == null) {
-                return ResponseService.generateSuccessResponse("No data found for this customerId","customerId", HttpStatus.NOT_FOUND);
+                return ResponseService.generateSuccessResponse("No data found for this customerId", "customerId", HttpStatus.NOT_FOUND);
             }
             if (customCustomer.getArchived().equals(true)) {
-                return ResponseService.generateSuccessResponse("Your account is suspended. Please contact support.","archived", HttpStatus.FORBIDDEN);
+                return ResponseService.generateSuccessResponse("Your account is suspended. Please contact support.", "archived", HttpStatus.FORBIDDEN);
             }
             List<OtherItem> existingItems = customCustomer.getOtherItems();
             String secondaryMobileNumber = (String) details.get("secondaryMobileNumber");
             String mobileNumber = (String) details.get("mobileNumber");
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(customCustomer.getMobileNumber())) {
-                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
             }
             if (details.containsKey("interestedInDefence")) {
                 Boolean value = (Boolean) details.get("interestedInDefence");
@@ -319,9 +319,9 @@ public class CustomerEndpoint {
                 String stateCategoryName = (String) details.get("state_category");
                 if (hasStateCategory) {
                     if (!details.containsKey("category_state_name") || categoryStateName == null || categoryStateName.trim().isEmpty())
-                        errorMessages.put("category_state_name","Need to provide state for state level category");
+                        errorMessages.put("category_state_name", "Need to provide state for state level category");
                     if (!details.containsKey("state_category") || stateCategoryName == null || stateCategoryName.trim().isEmpty())
-                        errorMessages.put("state_category","State level category name required");
+                        errorMessages.put("state_category", "State level category name required");
                     customCustomer.setHasStateCategory(true);
                     customCustomer.setStateCategory(stateCategoryName);
                     customCustomer.setCategoryStateName(categoryStateName);
@@ -345,11 +345,11 @@ public class CustomerEndpoint {
                     try {
                         Long familyIncomeValue = Long.parseLong(incomeObj.toString().trim());
                         if (familyIncomeValue <= 0) {
-                            errorMessages.put("familyIncome","FamilyIncome must be greater than 0");
+                            errorMessages.put("familyIncome", "FamilyIncome must be greater than 0");
                         }
                         customCustomer.setFamilyIncome(familyIncomeValue);
                     } catch (NumberFormatException e) {
-                        errorMessages.put("familyIncome","Invalid value for familyIncome");
+                        errorMessages.put("familyIncome", "Invalid value for familyIncome");
                     }
                 }
             }
@@ -395,15 +395,15 @@ public class CustomerEndpoint {
                             if (heightStr != null && !heightStr.isEmpty()) {
                                 Double heightValue = Double.parseDouble(heightStr);
                                 if (heightValue < minHeight || heightValue > maxHeight) {
-                                    errorMessages.put("heightCms","Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                                    errorMessages.put("heightCms", "Height should be between " + minHeight + " and " + maxHeight + " cms.");
                                 } else {
                                     customCustomer.setHeightCms(heightValue);
                                 }
                             } else {
-                                errorMessages.put("heightCms","Height is required and must be a valid value.");
+                                errorMessages.put("heightCms", "Height is required and must be a valid value.");
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("heightCms","Height must be valid");
+                            errorMessages.put("heightCms", "Height must be valid");
                         }
 
                         try {
@@ -411,15 +411,15 @@ public class CustomerEndpoint {
                             if (weightStr != null && !weightStr.isEmpty()) {
                                 Double weightValue = Double.parseDouble(weightStr);
                                 if (weightValue < minWeight || weightValue > maxWeight) {
-                                    errorMessages.put("weightKgs","Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                                    errorMessages.put("weightKgs", "Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
                                 } else {
                                     customCustomer.setWeightKgs(weightValue);
                                 }
                             } else {
-                                errorMessages.put("weightKgs","Weight is required and must be a valid value.");
+                                errorMessages.put("weightKgs", "Weight is required and must be a valid value.");
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("weightKgs","Weight must be valid.");
+                            errorMessages.put("weightKgs", "Weight must be valid.");
                         }
 
                         try {
@@ -427,15 +427,15 @@ public class CustomerEndpoint {
                             if (shoeSizeStr != null && !shoeSizeStr.isEmpty()) {
                                 Double shoeSizeValue = Double.parseDouble(shoeSizeStr);
                                 if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                    errorMessages.put("shoeSizeInches","Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                                    errorMessages.put("shoeSizeInches", "Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
                                 } else {
                                     customCustomer.setShoeSizeInches(shoeSizeValue);
                                 }
                             } else {
-                                errorMessages.put("shoeSizeInches","Shoe size is required and must be a valid value.");
+                                errorMessages.put("shoeSizeInches", "Shoe size is required and must be a valid value.");
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("shoeSizeInches","Shoe size must be valid.");
+                            errorMessages.put("shoeSizeInches", "Shoe size must be valid.");
                         }
 
                         try {
@@ -443,15 +443,15 @@ public class CustomerEndpoint {
                             if (waistSizeStr != null && !waistSizeStr.isEmpty()) {
                                 Double waistSizeValue = Double.parseDouble(waistSizeStr);
                                 if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                    errorMessages.put("waistSizeCms","Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                                    errorMessages.put("waistSizeCms", "Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
                                 } else {
                                     customCustomer.setWaistSizeCms(waistSizeValue);
                                 }
                             } else {
-                                errorMessages.put("waistSizeCms","Waist size is required and must be a valid value.");
+                                errorMessages.put("waistSizeCms", "Waist size is required and must be a valid value.");
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("waistSizeCms","Waist size must be valid.");
+                            errorMessages.put("waistSizeCms", "Waist size must be valid.");
                         }
                     }
                 } else {
@@ -464,16 +464,14 @@ public class CustomerEndpoint {
                         try {
                             Double heightValue = Double.parseDouble(height);
                             if (heightValue < minHeight || heightValue > maxHeight) {
-                                errorMessages.put("heightCms","Height should be between " + minHeight + " and " + maxHeight + " cms.");
+                                errorMessages.put("heightCms", "Height should be between " + minHeight + " and " + maxHeight + " cms.");
                             } else {
                                 customCustomer.setHeightCms(heightValue);
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("heightCms","Height must be valid.");
+                            errorMessages.put("heightCms", "Height must be valid.");
                         }
-                    }
-                    else if(height!=null && height.isEmpty())
-                    {
+                    } else if (height != null && height.isEmpty()) {
                         customCustomer.setHeightCms(null);
                     }
 
@@ -481,16 +479,14 @@ public class CustomerEndpoint {
                         try {
                             Double weightValue = Double.parseDouble(weightKgs);
                             if (weightValue < minWeight || weightValue > maxWeight) {
-                                errorMessages.put("weightKgs","Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
+                                errorMessages.put("weightKgs", "Weight should be between " + minWeight + " and " + maxWeight + " kgs.");
                             } else {
                                 customCustomer.setWeightKgs(weightValue);
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("weightKgs","Weight must be valid.");
+                            errorMessages.put("weightKgs", "Weight must be valid.");
                         }
-                    }
-                    else if(weightKgs != null && weightKgs.isEmpty())
-                    {
+                    } else if (weightKgs != null && weightKgs.isEmpty()) {
                         customCustomer.setWeightKgs(null);
                     }
 
@@ -498,16 +494,14 @@ public class CustomerEndpoint {
                         try {
                             Double shoeSizeValue = Double.parseDouble(shoeSizeInches);
                             if (shoeSizeValue < minShoeSize || shoeSizeValue > maxShoeSize) {
-                                errorMessages.put("shoeSizeInches","Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
+                                errorMessages.put("shoeSizeInches", "Shoe size should be between " + minShoeSize + " and " + maxShoeSize + " inches.");
                             } else {
                                 customCustomer.setShoeSizeInches(shoeSizeValue);
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("shoeSizeInches","Shoe size must be valid.");
+                            errorMessages.put("shoeSizeInches", "Shoe size must be valid.");
                         }
-                    }
-                    else if(shoeSizeInches != null && shoeSizeInches.isEmpty())
-                    {
+                    } else if (shoeSizeInches != null && shoeSizeInches.isEmpty()) {
                         customCustomer.setShoeSizeInches(null);
                     }
 
@@ -515,16 +509,14 @@ public class CustomerEndpoint {
                         try {
                             Double waistSizeValue = Double.parseDouble(waistSizeCms);
                             if (waistSizeValue < minWaistSize || waistSizeValue > maxWaistSize) {
-                                errorMessages.put("waistSizeCms","Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
+                                errorMessages.put("waistSizeCms", "Waist size should be between " + minWaistSize + " and " + maxWaistSize + " cms.");
                             } else {
                                 customCustomer.setWaistSizeCms(waistSizeValue);
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("waistSizeCms","Waist size must be valid.");
+                            errorMessages.put("waistSizeCms", "Waist size must be valid.");
                         }
-                    }
-                    else if(waistSizeCms != null && waistSizeCms.isEmpty())
-                    {
+                    } else if (waistSizeCms != null && waistSizeCms.isEmpty()) {
                         customCustomer.setWaistSizeCms(null);
                     }
                 }
@@ -535,8 +527,7 @@ public class CustomerEndpoint {
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if (details.containsKey("workExperience")) {
                     Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
-                    if(workExperience<1)
-                    {
+                    if (workExperience < 1) {
                         customCustomer.setWorkExperienceScopeId(null);
                     }
                     customCustomer.setWorkExperience(workExperience);
@@ -544,12 +535,10 @@ public class CustomerEndpoint {
             }
             if (details.containsKey("workExperience")) {
                 Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
-                if(workExperience<1)
-                {
+                if (workExperience < 1) {
                     customCustomer.setWorkExperienceScopeId(null);
-                }
-                else {
-                    if(!details.containsKey("workExperienceScopeId") && customCustomer.getWorkExperienceScopeId()==null) {
+                } else {
+                    if (!details.containsKey("workExperienceScopeId") && customCustomer.getWorkExperienceScopeId() == null) {
                         {
                             throw new IllegalArgumentException("Work experience scope id cannot be null if work experience > 0");
                         }
@@ -591,17 +580,17 @@ public class CustomerEndpoint {
                         customCustomer.setDomicile(true);
                         customCustomer.setDomicileState(state);
                     } else {
-                        errorMessages.put("domicileState","cannot leave domicile state as null by opting for the domicile.");
+                        errorMessages.put("domicileState", "cannot leave domicile state as null by opting for the domicile.");
                     }
                 } else {
                     if ((details.containsKey("domicileState"))) {
-                        errorMessages.put("domicileState","cannot give domicile state w/o opting for the domicile.");
+                        errorMessages.put("domicileState", "cannot give domicile state w/o opting for the domicile.");
                     }
                     customCustomer.setDomicile(false);
                     customCustomer.setDomicileState(null);
                 }
             } else if (details.containsKey("domicileState")) {
-                errorMessages.put("domicileState","cannot give domicile state w/o opting for the domicile.");
+                errorMessages.put("domicileState", "cannot give domicile state w/o opting for the domicile.");
             }
 
             if (details.containsKey("hidePhoneNumber")) {
@@ -610,9 +599,9 @@ public class CustomerEndpoint {
                     errorMessages.putAll(validateHidePhoneNumber(details, customCustomer));
                 }
                 if (secondaryMobileNumber != null && !customCustomerService.isValidMobileNumber(secondaryMobileNumber))
-                    errorMessages.put("secondaryMobileNumber","Secondary mobile is invalid");
+                    errorMessages.put("secondaryMobileNumber", "Secondary mobile is invalid");
                 if (details.containsKey("whatsappNumber") && !customCustomerService.isValidMobileNumber((String) details.get("whatsappNumber")))
-                    errorMessages.put("whatsappNumber","Invalid Whatsapp NUmber");
+                    errorMessages.put("whatsappNumber", "Invalid Whatsapp NUmber");
                 if (errorMessages.isEmpty()) {
                     customCustomer.setSecondaryMobileNumber(secondaryMobileNumber);
                     customCustomer.setWhatsappNumber((String) details.get("whatsappNumber"));
@@ -625,15 +614,15 @@ public class CustomerEndpoint {
             // Validate mobile number
             if (mobileNumber != null && secondaryMobileNumber != null) {
                 if (mobileNumber.equalsIgnoreCase(secondaryMobileNumber)) {
-                    errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                    errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
                 }
             }
             if (mobileNumber != null && !customCustomerService.isValidMobileNumber(mobileNumber)) {
-                errorMessages.put("mobileNumber","Cannot update phoneNumber");
+                errorMessages.put("mobileNumber", "Cannot update phoneNumber");
             }
 
             if (mobileNumber != null && secondaryMobileNumber == null && mobileNumber.equalsIgnoreCase(customCustomer.getSecondaryMobileNumber())) {
-                errorMessages.put("mobileNumber","Primary and Secondary Mobile Numbers cannot be the same");
+                errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
             }
 
             // Check for existing username and email
@@ -644,7 +633,7 @@ public class CustomerEndpoint {
 
             if ((existingCustomerByUsername != null && !existingCustomerByUsername.getId().equals(customerId)) ||
                     (existingCustomerByEmail != null && !existingCustomerByEmail.getId().equals(customerId))) {
-                errorMessages.put("emailAddress","Email or Username already in use");
+                errorMessages.put("emailAddress", "Email or Username already in use");
             }
 
             // Update customer fields
@@ -658,41 +647,41 @@ public class CustomerEndpoint {
                 customCustomer.setFirstName((String) details.get("firstName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("firstName") && details.get("firstName").toString().isEmpty()) {
-                errorMessages.put("firstName","First name cannot be null");
+                errorMessages.put("firstName", "First name cannot be null");
             } else if (details.containsKey("firstName") && !sharedUtilityService.isAlphabetic((String) details.get("firstName"))) {
-                errorMessages.put("firstName","Invalid First name");
+                errorMessages.put("firstName", "Invalid First name");
             }
-            if (details.containsKey("lastName") && !details.get("lastName").toString().isEmpty()){
+            if (details.containsKey("lastName") && !details.get("lastName").toString().isEmpty()) {
                 customCustomer.setLastName((String) details.get("lastName"));
                 customCustomer.setIsAcknowledged(false);
-            }
-            else if (details.containsKey("lastName") && details.get("lastName").toString().isEmpty()) {
-                errorMessages.put("lastName","Last name cannot be null");
+            } else if (details.containsKey("lastName") && details.get("lastName").toString().isEmpty()) {
+                errorMessages.put("lastName", "Last name cannot be null");
             } else if (details.containsKey("lastName") && !sharedUtilityService.isAlphabetic((String) details.get("lastName"))) {
-                errorMessages.put("lastName","Invalid Last name");
+                errorMessages.put("lastName", "Invalid Last name");
             }
             if (details.containsKey("emailAddress") && ((String) details.get("emailAddress")).isEmpty())
-                errorMessages.put("emailAddress","email Address cannot be null");
-            if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty()){
+                errorMessages.put("emailAddress", "email Address cannot be null");
+            if (details.containsKey("emailAddress") && !((String) details.get("emailAddress")).isEmpty()) {
                 customCustomer.setIsAcknowledged(false);
-                customCustomer.setEmailAddress(emailAddress);}
+                customCustomer.setEmailAddress(emailAddress);
+            }
 
             if (details.containsKey("fathersName") && !details.get("fathersName").toString().isEmpty()) {
                 customCustomer.setFathersName((String) details.get("fathersName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("fathersName") && details.get("fathersName").toString().isEmpty()) {
-                errorMessages.put("fathersName","Father's name cannot be null");
+                errorMessages.put("fathersName", "Father's name cannot be null");
             } else if (details.containsKey("fathersName") && !sharedUtilityService.isAlphabetic((String) details.get("fathersName"))) {
-                errorMessages.put("fathersName","You entered invalid Father's name");
+                errorMessages.put("fathersName", "You entered invalid Father's name");
             }
 
             if (details.containsKey("mothersName") && !details.get("mothersName").toString().isEmpty()) {
                 customCustomer.setMothersName((String) details.get("mothersName"));
                 customCustomer.setIsAcknowledged(false);
             } else if (details.containsKey("mothersName") && details.get("mothersName").toString().isEmpty()) {
-                errorMessages.put("mothersName","Mother's name cannot be null");
+                errorMessages.put("mothersName", "Mother's name cannot be null");
             } else if (details.containsKey("mothersName") && !sharedUtilityService.isAlphabetic((String) details.get("mothersName"))) {
-                errorMessages.put("mothersName","You entered invalid Mother's name");
+                errorMessages.put("mothersName", "You entered invalid Mother's name");
             }
             // Handle dynamic fields
             details.remove("firstName");
@@ -726,13 +715,14 @@ public class CustomerEndpoint {
                         customCustomer.setIsAcknowledged(false);
                         customerAddress.getAddress().setAddressLine1(addressLine);
                         String stateName = districtService.findStateById(Integer.parseInt(state));
-                        if (stateName == null){
-                        errorMessages.put("currentState","Invalid State");}
+                        if (stateName == null) {
+                            errorMessages.put("currentState", "Invalid State");
+                        }
 
                         customerAddress.getAddress().setStateProvinceRegion(stateName);
                         String districtName = districtService.findDistrictById(Integer.parseInt(district));
-                        if (districtName == null){
-                            errorMessages.put("currentDistrict","Invalid district");
+                        if (districtName == null) {
+                            errorMessages.put("currentDistrict", "Invalid district");
 
                         }
                         customerAddress.getAddress().setCounty(districtName);
@@ -748,21 +738,22 @@ public class CustomerEndpoint {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("currentAddress"));
                     String stateName = districtService.findStateById(Integer.parseInt(state));
-                    if (stateName == null){
-                    errorMessages.put("currentState","Invalid State");}
+                    if (stateName == null) {
+                        errorMessages.put("currentState", "Invalid State");
+                    }
 
                     addressMap.put("state", stateName);
                     addressMap.put("city", details.get("currentCity"));
                     String districtName = districtService.findDistrictById(Integer.parseInt(district));
-                    if (districtName == null){
-                    errorMessages.put("currentDistrict","Invalid district");}
+                    if (districtName == null) {
+                        errorMessages.put("currentDistrict", "Invalid district");
+                    }
                     addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "CURRENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            } else if (!flag && containsCount != 0)
-            {
+            } else if (!flag && containsCount != 0) {
                 for (String key : keys) {
                     if (!details.containsKey(key) || details.get(key) == null || details.get(key).toString().trim().isEmpty()) {
                         errorMessages.put(key, key + " is required to add Current Address");
@@ -803,13 +794,14 @@ public class CustomerEndpoint {
                         customerAddress.getAddress().setAddressLine1(addressLine);
                         customCustomer.setIsAcknowledged(false);
                         String stateName = districtService.findStateById(Integer.parseInt(state));
-                        if (stateName == null){
-                        errorMessages.put("currentState","Invalid State");}
+                        if (stateName == null) {
+                            errorMessages.put("currentState", "Invalid State");
+                        }
 
                         customerAddress.getAddress().setStateProvinceRegion(stateName);
                         String districtName = districtService.findDistrictById(Integer.parseInt(district));
-                        if (districtName == null){
-                            errorMessages.put("currentDistrict","Invalid currentDistrict");
+                        if (districtName == null) {
+                            errorMessages.put("currentDistrict", "Invalid currentDistrict");
                         }
                         customerAddress.getAddress().setCounty(districtName);
                         customerAddress.getAddress().setPostalCode(pincode);
@@ -824,20 +816,22 @@ public class CustomerEndpoint {
                     Map<String, Object> addressMap = new HashMap<>();
                     addressMap.put("address", details.get("permanentAddress"));
                     String stateName = districtService.findStateById(Integer.parseInt(state));
-                    if (stateName == null){
-                    errorMessages.put("currentState","Invalid State");}
+                    if (stateName == null) {
+                        errorMessages.put("currentState", "Invalid State");
+                    }
 
                     addressMap.put("state", stateName);
                     addressMap.put("city", details.get("permanentCity"));
                     String districtName = districtService.findDistrictById(Integer.parseInt(district));
-                    if (districtName == null){
-                    errorMessages.put("currentDistrict","Invalid district");}
+                    if (districtName == null) {
+                        errorMessages.put("currentDistrict", "Invalid district");
+                    }
                     addressMap.put("district", districtName);
                     addressMap.put("pinCode", pincode);
                     addressMap.put("addressName", "PERMANENT_ADDRESS");
                     addAddress(customerId, addressMap);
                 }
-            } else if (!flagP && containsCount != 0){
+            } else if (!flagP && containsCount != 0) {
                 for (String key : keysP) {
                     if (!details.containsKey(key) || details.get(key) == null || details.get(key).toString().trim().isEmpty()) {
                         errorMessages.put(key, key + " is required to add Permanent Address");
@@ -880,7 +874,7 @@ public class CustomerEndpoint {
                         query.setParameter("adharNumber", adharNumber);
                         Integer result = ((Number) query.getSingleResult()).intValue();
                         if (result > 0) {
-                            errorMessages.put("adharNumber","Aadhar number already in use.");
+                            errorMessages.put("adharNumber", "Aadhar number already in use.");
                             details.remove("adharNumber");
                         }
                     }
@@ -890,7 +884,7 @@ public class CustomerEndpoint {
                     Integer result = ((Number) query.getSingleResult()).intValue();
                     System.out.println("result" + result);
                     if (result > 0) {
-                        errorMessages.put("adharNumber","Aadhar number already in use!!");
+                        errorMessages.put("adharNumber", "Aadhar number already in use!!");
                         details.remove("adharNumber");
                     }
                 }
@@ -907,7 +901,7 @@ public class CustomerEndpoint {
                 String nccCertificateValue = (String) details.get("nccCertificate");
 
                 if (!nccCertificateValue.equalsIgnoreCase("NCC Certificate A") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate B") && !nccCertificateValue.equalsIgnoreCase("NCC Certificate C")) {
-                    errorMessages.put("nccCertificate","You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C");
+                    errorMessages.put("nccCertificate", "You can add value for ncc certificate either NCC Certificate A or NCC Certificate B or  NCC Certificate C");
                 }
                 customCustomer.setNccCertificate(nccCertificateValue);
                 customCustomer.setIsNccCertificate(true);
@@ -923,7 +917,7 @@ public class CustomerEndpoint {
                 //}
                 int age = sharedUtilityServiceApi.calculateAge(dob);
                 if (age < 0)
-                    errorMessages.put("dob","Invalid date of birth");
+                    errorMessages.put("dob", "Invalid date of birth");
 //                else if (age < 8)
 //                    errorMessages.add("Your age should be greater than equal to 8");
                 else {
@@ -948,7 +942,7 @@ public class CustomerEndpoint {
                 Boolean isNccCertificate = (Boolean) details.get("isNccCertificate");
                 if (isNccCertificate.equals(true)) {
                     if (!details.containsKey("nccCertificate")) {
-                        errorMessages.put("nccCertificate","You have to select ncc certificate type");
+                        errorMessages.put("nccCertificate", "You have to select ncc certificate type");
                     }
                     customCustomer.setNccCertificate((String) details.get("nccCertificate"));
                 }
@@ -974,7 +968,7 @@ public class CustomerEndpoint {
             if (details.containsKey("nssCertificate")) {
                 String nssCertificateValue = (String) details.get("nssCertificate");
                 if (!nssCertificateValue.equalsIgnoreCase("NSS Certificate A") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate B") && !nssCertificateValue.equalsIgnoreCase("NSS Certificate C")) {
-                    errorMessages.put("nssCertificate","You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C");
+                    errorMessages.put("nssCertificate", "You can add value for ncc certificate either NSS Certificate A or NSS Certificate B or  NSS Certificate C");
                 }
                 customCustomer.setNssCertificate(nssCertificateValue);
                 customCustomer.setIsNssCertificate(true);
@@ -983,7 +977,7 @@ public class CustomerEndpoint {
                 Boolean isNssCertificate = (Boolean) details.get("isNssCertificate");
                 if (isNssCertificate.equals(true)) {
                     if (!details.containsKey("nssCertificate")) {
-                        errorMessages.put("nssCertificate","You have to select nss certificate type");
+                        errorMessages.put("nssCertificate", "You have to select nss certificate type");
                     }
                     customCustomer.setNssCertificate((String) details.get("nssCertificate"));
                 } else if (isNssCertificate.equals(false)) {
@@ -1012,46 +1006,46 @@ public class CustomerEndpoint {
                 Boolean isOtherCategory = (Boolean) details.get("isOtherOrStateCategory");
                 if (isOtherCategory.equals(true)) {
                     if (!details.containsKey("otherOrStateCategory")) {
-                        errorMessages.put("otherOrStateCategory","You have to enter other or State Category");
+                        errorMessages.put("otherOrStateCategory", "You have to enter other or State Category");
                     }
                     if (!details.containsKey("otherCategoryDateOfIssue")) {
-                        errorMessages.put("otherCategoryDateOfIssue","You have to enter date of issue for other or State Category ");
+                        errorMessages.put("otherCategoryDateOfIssue", "You have to enter date of issue for other or State Category ");
                     }
                     if (details.containsKey("otherOrStateCategory") && details.get("otherOrStateCategory").toString().trim().isEmpty()) {
-                        errorMessages.put("otherOrStateCategory","Other or state Category value cannot be empty  ");
+                        errorMessages.put("otherOrStateCategory", "Other or state Category value cannot be empty  ");
                     }
                     if (!details.get("otherOrStateCategory").toString().matches("^[a-zA-Z0-9 ]*$")) {
-                        errorMessages.put("otherOrStateCategory","Only alphanumeric characters are allowed in otherOrStateCategory");
+                        errorMessages.put("otherOrStateCategory", "Only alphanumeric characters are allowed in otherOrStateCategory");
                     }
                     if (details.containsKey("otherCategoryDateOfIssue") && details.get("otherCategoryDateOfIssue").toString().trim().isEmpty()) {
-                        errorMessages.put("otherCategoryDateOfIssue","OtherCategory DateOfIssue cannot be empty ");
+                        errorMessages.put("otherCategoryDateOfIssue", "OtherCategory DateOfIssue cannot be empty ");
                     }
                     if (details.containsKey("otherCategoryValidUpto")) {
                         String validUpto = (String) details.get("otherCategoryValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
+                            isValidDate = validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat, errorMessages, "otherCategoryDateOfIssue", "otherCategoryValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setOtherCategoryValidUpto(null);
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), null, dateFormat, errorMessages, "otherCategoryDateOfIssue", "otherCategoryValidUpto");
                         } else {
-                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
+                            validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat, errorMessages, "otherCategoryDateOfIssue", "otherCategoryValidUpto");
                             customCustomer.setOtherCategoryValidUpto(convertStringToSQLDate((String) details.get("otherCategoryValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat,errorMessages,"otherCategoryDateOfIssue","otherCategoryValidUpto");
+                        validateDate((String) details.get("otherCategoryDateOfIssue"), (String) details.get("otherCategoryValidUpto"), dateFormat, errorMessages, "otherCategoryDateOfIssue", "otherCategoryValidUpto");
                     }
                     customCustomer.setOtherOrStateCategory((String) details.get("otherOrStateCategory"));
                     customCustomer.setOtherCategoryDateOfIssue(convertStringToSQLDate((String) details.get("otherCategoryDateOfIssue"), dateFormat));
                 } else if (isOtherCategory.equals(false)) {
                     if (details.containsKey("otherOrStateCategory")) {
-                        errorMessages.put("otherOrStateCategory","OtherOrStateCategory cannot be given if isOtherCategory is false");
+                        errorMessages.put("otherOrStateCategory", "OtherOrStateCategory cannot be given if isOtherCategory is false");
                     }
                     if (details.containsKey("otherCategoryDateOfIssue")) {
-                        errorMessages.put("otherCategoryDateOfIssue","otherCategoryDateOfIssue key cannot be given if isOtherCategory is false");
+                        errorMessages.put("otherCategoryDateOfIssue", "otherCategoryDateOfIssue key cannot be given if isOtherCategory is false");
                     }
                     if (details.containsKey("otherCategoryValidUpto")) {
-                        errorMessages.put("otherCategoryValidUpto","otherCategoryValidUpto key cannot be given if isOtherCategory is false");
+                        errorMessages.put("otherCategoryValidUpto", "otherCategoryValidUpto key cannot be given if isOtherCategory is false");
                     }
                     customCustomer.setOtherOrStateCategory(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -1076,36 +1070,36 @@ public class CustomerEndpoint {
                 Boolean domicile = (Boolean) details.get("domicile");
                 if (domicile.equals(true)) {
                     if (!details.containsKey("domicileIssueDate")) {
-                        errorMessages.put("domicileIssueDate","You have to enter date of issue for domicile");
+                        errorMessages.put("domicileIssueDate", "You have to enter date of issue for domicile");
                     }
                     if (details.containsKey("domicileIssueDate") && details.get("domicileIssueDate").toString().trim().isEmpty()) {
-                        errorMessages.put("domicileIssueDate","domicile DateOfIssue cannot be empty ");
+                        errorMessages.put("domicileIssueDate", "domicile DateOfIssue cannot be empty ");
                     }
                     if (details.containsKey("domicileValidUpto")) {
                         String validUpto = (String) details.get("domicileValidUpto");
                         if (validUpto.isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
+                            isValidDateDomicile = validateDate((String) details.get("domicileIssueDate"), null, dateFormat, errorMessages, "domicileIssueDate", "domicileValidUpto");
                         } else if (validUpto.trim().isEmpty()) {
                             customCustomer.setDomicileValidUpto(null);
-                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
+                            validateDate((String) details.get("domicileIssueDate"), null, dateFormat, errorMessages, "domicileIssueDate", "domicileValidUpto");
                         } else {
-                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
+                            validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat, errorMessages, "domicileIssueDate", "domicileValidUpto");
                             customCustomer.setDomicileValidUpto(convertStringToSQLDate((String) details.get("domicileValidUpto"), dateFormat));
                         }
                     } else {
-                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat,errorMessages,"domicileIssueDate","domicileValidUpto");
+                        validateDate((String) details.get("domicileIssueDate"), (String) details.get("domicileValidUpto"), dateFormat, errorMessages, "domicileIssueDate", "domicileValidUpto");
                     }
                     customCustomer.setDomicileIssueDate(convertStringToSQLDate((String) details.get("domicileIssueDate"), dateFormat));
                 } else if (domicile.equals(false)) {
                     if (details.containsKey("domicileIssueDate")) {
-                        errorMessages.put("domicileIssueDate","domicileIssueDate key cannot be given if domicile is false");
+                        errorMessages.put("domicileIssueDate", "domicileIssueDate key cannot be given if domicile is false");
                     }
                     if (details.containsKey("domicileState")) {
-                        errorMessages.put("domicileState","domicileState key cannot be given if domicile is false");
+                        errorMessages.put("domicileState", "domicileState key cannot be given if domicile is false");
                     }
                     if (details.containsKey("domicileValidUpto")) {
-                        errorMessages.put("domicileValidUpto","domicileValidUpto key cannot be given if domicile is false");
+                        errorMessages.put("domicileValidUpto", "domicileValidUpto key cannot be given if domicile is false");
                     }
                     customCustomer.setDomicileState(null);
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -1171,35 +1165,33 @@ public class CustomerEndpoint {
                     || (customCustomer.getGender() == null && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female"))
                     || (customCustomer.getGender() != null && customCustomer.getGender().toLowerCase().equals("male") && details.containsKey("gender") && ((String) details.get("gender")).toLowerCase().equals("female")))
                     && details.containsKey("chestSizeCms") && !details.get("chestSizeCms").toString().trim().isEmpty()) {
-                errorMessages.put("chestSizeCms","Cannot add chest size for gender : Female");
+                errorMessages.put("chestSizeCms", "Cannot add chest size for gender : Female");
             }
 
-            if (customCustomer.getGender() == null && details.containsKey("chestSizeCms")){
-                errorMessages.put("chestSizeCms","Cannot add chest size without specifying gender");
+            if (customCustomer.getGender() == null && details.containsKey("chestSizeCms")) {
+                errorMessages.put("chestSizeCms", "Cannot add chest size without specifying gender");
             }
 
             if (details.containsKey("chestSizeCms") && !details.get("chestSizeCms").toString().trim().isEmpty()) {
                 if (customCustomer.getGender().equals("Female")) {
-                    errorMessages.put("chestSizeCms","Cannot add chest size with female");
-                }
-                else {
+                    errorMessages.put("chestSizeCms", "Cannot add chest size with female");
+                } else {
                     String chestSizeCms = (String) details.get("chestSizeCms");
                     if (chestSizeCms != null && !chestSizeCms.isEmpty()) {
                         try {
                             Double chestSizeValue = Double.parseDouble(chestSizeCms);
                             if (chestSizeValue < minChestSize || chestSizeValue > maxChestSize) {
-                                errorMessages.put("chestSizeCms","Chest size should be between " + minChestSize + " and " + maxChestSize + " cms.");
+                                errorMessages.put("chestSizeCms", "Chest size should be between " + minChestSize + " and " + maxChestSize + " cms.");
                             } else {
                                 customCustomer.setChestSizeCms(chestSizeValue);
                             }
                         } catch (NumberFormatException e) {
-                            errorMessages.put("chestSizeCms","Chest size must be valid.");
+                            errorMessages.put("chestSizeCms", "Chest size must be valid.");
                         }
                     }
                     customCustomer.setChestSizeCms(Double.parseDouble(chestSizeCms));
                 }
-            }
-            else if (details.containsKey("chestSizeCms") && details.get("chestSizeCms").toString().trim().isEmpty()) {
+            } else if (details.containsKey("chestSizeCms") && details.get("chestSizeCms").toString().trim().isEmpty()) {
                 {
                     customCustomer.setChestSizeCms(null);
                 }
@@ -1220,7 +1212,7 @@ public class CustomerEndpoint {
                 field.setAccessible(true);
                 if (newValue != null) {
                     if (newValue.toString().isEmpty() && !isNullable) {
-                        errorMessages.put(fieldName,fieldName + " cannot be null");
+                        errorMessages.put(fieldName, fieldName + " cannot be null");
                         continue;
                     }
                 }
@@ -1229,7 +1221,7 @@ public class CustomerEndpoint {
                     String regex = patternAnnotation.regexp();
                     String message = patternAnnotation.message(); // Get custom message
                     if (!newValue.toString().matches(regex)) {
-                        errorMessages.put(fieldName,patternAnnotation.message()); // Use a placeholder
+                        errorMessages.put(fieldName, patternAnnotation.message()); // Use a placeholder
                         continue;
                     }
                 }
@@ -1241,7 +1233,7 @@ public class CustomerEndpoint {
                     int min = sizeAnnotation.min();
                     int max = sizeAnnotation.max();
                     if (newValue.toString().length() > max || newValue.toString().length() < min) {
-                        errorMessages.put(fieldName,fieldName + " size should be between " + min + " and " + max);
+                        errorMessages.put(fieldName, fieldName + " size should be between " + min + " and " + max);
                         continue;
                     }
                 }
@@ -1253,7 +1245,7 @@ public class CustomerEndpoint {
                     if (newValue != null) {
                         long parsedValue = sharedUtilityService.parseToLong(newValue);
                         if (parsedValue < minValue) {
-                            errorMessages.put(fieldName,minAnnotation.message());
+                            errorMessages.put(fieldName, minAnnotation.message());
                         }
                     }
                 }
@@ -1267,7 +1259,7 @@ public class CustomerEndpoint {
                     if (newValue != null) {
                         long parsedValue = sharedUtilityService.parseToLong(newValue);
                         if (parsedValue > maxValue) {
-                            errorMessages.put(fieldName,maxAnnotation.message());
+                            errorMessages.put(fieldName, maxAnnotation.message());
                         }
                     }
                 }
@@ -1358,8 +1350,7 @@ public class CustomerEndpoint {
                 Boolean isOtherCategory = false;
                 List<CustomReserveCategory> reserveCategories = reserveCategoryService.getAllReserveCategory(null);
                 Long reserveCategoryToAddId = null;
-                if(reserveCategories!=null && !reserveCategories.isEmpty())
-                {
+                if (reserveCategories != null && !reserveCategories.isEmpty()) {
                     for (CustomReserveCategory customReserveCategory : reserveCategories) {
                         if (customReserveCategory.getReserveCategoryName().equalsIgnoreCase((String) details.get("category"))) {
                             reserveCategoryToAddId = customReserveCategory.getReserveCategoryId();
@@ -1436,8 +1427,7 @@ public class CustomerEndpoint {
                 }
 //
             } else if (!details.containsKey("category")) {
-                if(customCustomer.getCategory()!=null)
-                {
+                if (customCustomer.getCategory() != null) {
                     if (customCustomer.getCategory().equalsIgnoreCase("GEN")) {
                         customCustomer.setCategoryIssueDate(null);
                         customCustomer.setCategoryValidUpto(null);
@@ -1529,12 +1519,12 @@ public class CustomerEndpoint {
                                 disabilityPercentage = ((Integer) disabilityPercentageObj).doubleValue();
                             }
                             if (disabilityPercentage < 0.0 || disabilityPercentage > 100.0) {
-                                errorMessages.put("disabilityPercentage","disability percentage must be in range 1-100");
+                                errorMessages.put("disabilityPercentage", "disability percentage must be in range 1-100");
                             }
                             customCustomer.setDisabilityPercentage(disabilityPercentage);
                         }
                     } else {
-                        errorMessages.put("disabilityType","disability type is mandatory when disability is given");
+                        errorMessages.put("disabilityType", "disability type is mandatory when disability is given");
                     }
                 } else {
                     List<Document> customerDocuments = customCustomer.getDocuments();
@@ -1552,28 +1542,25 @@ public class CustomerEndpoint {
                     customCustomer.setDisabilityPercentage(0.0);
                 }
             } else if (details.containsKey("disabilityType")) {
-                errorMessages.put("disability","disability must be given in order to give disability Type");
+                errorMessages.put("disability", "disability must be given in order to give disability Type");
             } else if (details.containsKey("disabilityPercentage")) {
-                errorMessages.put("disability","disability must be given in order to give disability percentage");
+                errorMessages.put("disability", "disability must be given in order to give disability percentage");
             }
 
             if (details.containsKey("workExperienceScopeId")) {
                 Long scopeId = Long.parseLong(details.get("workExperienceScopeId").toString());
                 CustomApplicationScope customApplicationScope = applicationScopeService.getApplicationScopeById(scopeId);
                 if (customApplicationScope == null) {
-                    errorMessages.put("workExperienceScopeId","No Application scope found with this id");
+                    errorMessages.put("workExperienceScopeId", "No Application scope found with this id");
                 }
                 customCustomer.setWorkExperienceScopeId(customApplicationScope);
                 if (details.containsKey("workExperience")) {
                     Integer workExperience = Integer.parseInt(details.get("workExperience").toString());
-                    if(workExperience==0)
-                    {
+                    if (workExperience == 0) {
                         customCustomer.setWorkExperienceScopeId(null);
                     }
                     customCustomer.setWorkExperience(workExperience);
-                }
-                else if(customCustomer.getWorkExperience()<1)
-                {
+                } else if (customCustomer.getWorkExperience() < 1) {
                     customCustomer.setWorkExperienceScopeId(null);
                 }
             }
@@ -1617,9 +1604,8 @@ public class CustomerEndpoint {
             }
             customCustomer.setModifiedById(tokenUserId);
             customCustomer.setModifiedByRole(roleId);
-            if(details.containsKey("isAcknowledged"))
-            {
-                Boolean value= (Boolean) details.get("isAcknowledged");
+            if (details.containsKey("isAcknowledged")) {
+                Boolean value = (Boolean) details.get("isAcknowledged");
                 customCustomer.setIsAcknowledged(value);
             }
             if (!customCustomer.getEmailActive() && customCustomer.getEmailAddress() != null && errorMessages.isEmpty()) {
@@ -1642,47 +1628,45 @@ public class CustomerEndpoint {
             entityManager.merge(customCustomer);
             return ResponseService.generateSuccessResponse("User details updated successfully", sharedUtilityService.breakReferenceForCustomer(customCustomer, authHeader, httpServletRequest), HttpStatus.OK);
 
-        }
-        catch (IllegalArgumentException illegalArgumentException) {
+        } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandling.handleException(illegalArgumentException);
-            return ResponseService.generateSuccessResponse(illegalArgumentException.getMessage(),"illegalArgumentException",HttpStatus.BAD_REQUEST);
-        }
-        catch (ClassCastException classCastException) {
+            return ResponseService.generateSuccessResponse(illegalArgumentException.getMessage(), "illegalArgumentException", HttpStatus.BAD_REQUEST);
+        } catch (ClassCastException classCastException) {
             exceptionHandling.handleException(classCastException);
-            return ResponseService.generateSuccessResponse("Invalid Casting: " + classCastException.getMessage(),"classCastException", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("Invalid Casting: " + classCastException.getMessage(), "classCastException", HttpStatus.BAD_REQUEST);
         } catch (ParseException parseException) {
             exceptionHandling.handleException(parseException);
-            return ResponseService.generateSuccessResponse("Unparsable Exception: " + parseException.getMessage(),"parseException", HttpStatus.BAD_REQUEST);
-        }  catch (DataIntegrityViolationException dataIntegrityViolationException) {
+            return ResponseService.generateSuccessResponse("Unparsable Exception: " + parseException.getMessage(), "parseException", HttpStatus.BAD_REQUEST);
+        } catch (DataIntegrityViolationException dataIntegrityViolationException) {
             exceptionHandling.handleException(dataIntegrityViolationException);
-            return ResponseService.generateSuccessResponse("Error updating " + dataIntegrityViolationException.getMessage(),"dataIntegrityViolation", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("Error updating " + dataIntegrityViolationException.getMessage(), "dataIntegrityViolation", HttpStatus.BAD_REQUEST);
         } catch (ConstraintViolationException constraintViolationException) {
             exceptionHandling.handleException(constraintViolationException);
-            return ResponseService.generateSuccessResponse("Error updating " + constraintViolationException.getMessage(),"constraintViolation", HttpStatus.BAD_REQUEST);
+            return ResponseService.generateSuccessResponse("Error updating " + constraintViolationException.getMessage(), "constraintViolation", HttpStatus.BAD_REQUEST);
         } catch (NoSuchFieldException noSuchFieldException) {
             exceptionHandling.handleException(noSuchFieldException);
-            return ResponseService.generateSuccessResponse("No such field present :" + noSuchFieldException.getMessage(),"invalidField", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse("No such field present :" + noSuchFieldException.getMessage(), "invalidField", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception exception) {
             exceptionHandling.handleException(exception);
-            return ResponseService.generateSuccessResponse("Error updating " + exception.getMessage(),"generalException" ,HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateSuccessResponse("Error updating " + exception.getMessage(), "generalException", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public Map<String,String> validateHidePhoneNumber(Map<String, Object> details, CustomCustomer customer) {
-        Map<String,String> errorMessages = new HashMap<>();
+    public Map<String, String> validateHidePhoneNumber(Map<String, Object> details, CustomCustomer customer) {
+        Map<String, String> errorMessages = new HashMap<>();
         details = sanitizerService.sanitizeInputMap(details);
 
         if (((Boolean) details.get("hidePhoneNumber")).equals(true)) {
 
             if (details.containsKey("secondaryMobileNumber") && ((String) details.get("secondaryMobileNumber")).isEmpty()) {
-                errorMessages.put("secondaryMobileNumber","Need to provide Secondary Mobile Number when hiding primary Mobile Number");
+                errorMessages.put("secondaryMobileNumber", "Need to provide Secondary Mobile Number when hiding primary Mobile Number");
             }
 
             if (details.containsKey("whatsappNumber") && ((String) details.get("whatsappNumber")).isEmpty()) {
-                errorMessages.put("whatsappNumber","Whatsapp number cannot be null");
+                errorMessages.put("whatsappNumber", "Whatsapp number cannot be null");
             }
             if (details.containsKey("whatsappNumber") && ((String) details.get("whatsappNumber")).equals(customer.getMobileNumber())) {
-                errorMessages.put("whatsappNumber","Cannot set primary number as whatsapp number when hidden");
+                errorMessages.put("whatsappNumber", "Cannot set primary number as whatsapp number when hidden");
             }
         }
         return errorMessages;
@@ -1700,7 +1684,7 @@ public class CustomerEndpoint {
     @Transactional
     @Authorize(value = {Constant.roleUser, Constant.roleSuperAdmin, Constant.roleAdmin, Constant.roleServiceProvider, Constant.roleServiceProviderAdmin})
     @RequestMapping(value = "/get-customer-details/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest,@RequestParam(required = false)Long ticketId) {
+    public ResponseEntity<?> getUserDetails(@PathVariable Long customerId, @RequestHeader(value = "Authorization") String authHeader, HttpServletRequest httpServletRequest, @RequestParam(required = false) Long ticketId) {
         try {
             System.out.println("checkpoint1");
             String jwtToken = authHeader.substring(7);
@@ -1714,29 +1698,25 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
             CustomCustomer customCustomer = em.find(CustomCustomer.class, customerId);
             System.out.println("checkpoint3");
-            if(role.getRole_name().equals(roleServiceProvider)&&ticketId!=null)
-            {
-                CustomServiceProviderTicket ticket=em.find(CustomServiceProviderTicket.class,ticketId);
-                if(ticket==null)
-                    return ResponseService.generateErrorResponse("Invalid ticket",HttpStatus.BAD_REQUEST);
-                Order order=orderService.findOrderById(ticket.getOrder().getId());
-                if(!ticket.getAssignee().equals(tokenUserId)||!order.getCustomer().getId().equals(customerId)||(ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW)||ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
+            if (role.getRole_name().equals(roleServiceProvider) && ticketId != null) {
+                CustomServiceProviderTicket ticket = em.find(CustomServiceProviderTicket.class, ticketId);
+                if (ticket == null)
+                    return ResponseService.generateErrorResponse("Invalid ticket", HttpStatus.BAD_REQUEST);
+                Order order = orderService.findOrderById(ticket.getOrder().getId());
+                if (!ticket.getAssignee().equals(tokenUserId) || !order.getCustomer().getId().equals(customerId) || (ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_IN_REVIEW) || ticket.getTicketState().getTicketStateId().equals(TICKET_STATE_CLOSE)))
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-            }
-
-            else if(role.getRole_name().equals(roleServiceProvider))
-            {
+            } else if (role.getRole_name().equals(roleServiceProvider)) {
                 System.out.println("checkpoint4");
-                ServiceProviderEntity serviceProvider=entityManager.find(ServiceProviderEntity.class,tokenUserId);
-                if(serviceProvider==null)
+                ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, tokenUserId);
+                if (serviceProvider == null)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
                 System.out.println("here");
-                Query query=entityManager.createNativeQuery("Select count(customer_id) from customer_referrer where customer_id = :cid and service_provider_id =:sid");
-                query.setParameter("cid",customCustomer.getId());
-                query.setParameter("sid",serviceProvider.getService_provider_id());
-                if(((BigInteger)query.getSingleResult()).intValue()==0)
+                Query query = entityManager.createNativeQuery("Select count(customer_id) from customer_referrer where customer_id = :cid and service_provider_id =:sid");
+                query.setParameter("cid", customCustomer.getId());
+                query.setParameter("sid", serviceProvider.getService_provider_id());
+                if (((BigInteger) query.getSingleResult()).intValue() == 0)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-                System.out.println(((BigInteger)query.getSingleResult()).intValue());
+                System.out.println(((BigInteger) query.getSingleResult()).intValue());
             }
             if (customCustomer == null) {
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -1889,9 +1869,8 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("No data found for this customerId", HttpStatus.NOT_FOUND);
 
             }
-            if(customer.getUsername()!=null)
-            {
-                return ResponseService.generateErrorResponse("Username cannot be changed once created",HttpStatus.BAD_REQUEST);
+            if (customer.getUsername() != null) {
+                return ResponseService.generateErrorResponse("Username cannot be changed once created", HttpStatus.BAD_REQUEST);
             }
             Customer existingCustomerByUsername = null;
             existingCustomerByUsername = customerService.readCustomerByUsername(username);
@@ -2267,7 +2246,7 @@ public class CustomerEndpoint {
                 }
 
                 CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                customProductWrapper.wrapDetails(customProduct, request,reserveCategoryService,reserveCategoryAgeService,genderService,customer,sharedUtilityService);
+                customProductWrapper.wrapDetails(customProduct, request, reserveCategoryService, reserveCategoryAgeService, genderService, customer, sharedUtilityService);
                 listOfSavedProducts.add(customProductWrapper);
             }
 
@@ -2612,7 +2591,7 @@ public class CustomerEndpoint {
 
     @Transactional
     @PostMapping("/set-referrer/{customer_id}/{service_provider_id}")
-    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> setReferrerForCustomer(@PathVariable Long customer_id, @PathVariable Long service_provider_id, @RequestParam(value = "primary_referee", required = false, defaultValue = "true") Boolean primaryReferee, @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -2634,31 +2613,45 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Service Provider not found", HttpStatus.NOT_FOUND);
             List<CustomerReferrer> referrerSp = customCustomer.getMyReferrer();
             CustomerReferrer primaryRef = null;
+            CustomerReferrer existingRef = null;
             for (CustomerReferrer customerReferrer : referrerSp) {
                 if (customerReferrer.getPrimaryRef() != null && customerReferrer.getPrimaryRef()) {
                     primaryRef = customerReferrer;
                 }
-                if (customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id))
+                if (customerReferrer.getServiceProvider().getService_provider_id().equals(service_provider_id) && !primaryReferee) {
                     return ResponseService.generateErrorResponse("Selected Service Provider already set as Referrer", HttpStatus.BAD_REQUEST);
+                }
+                if(service_provider_id.equals(customerReferrer.getServiceProvider().getService_provider_id())) {
+                    existingRef = customerReferrer;
+                }
+            }
+            if (customCustomer.getPrimaryRef() == 0 || (customCustomer.getRegisteredBySp() && customCustomer.getCreatedByRole() != 4) || (customCustomer.getCreatedByRole()) == 5) {
+                if(primaryRef != null && primaryRef.getServiceProvider().getService_provider_id().equals(service_provider_id)) {
+                    throw new IllegalArgumentException("Selected Service Provider already set as Primary Referrer");
+                }
+                customCustomer.setPrimaryRef(service_provider_id);
             }
             if (!referrerSp.isEmpty() && primaryRef != null) {
                 primaryRef.setPrimaryRef(false);
                 entityManager.merge(primaryRef);
             }
-            if (customCustomer.getPrimaryRef() == 0 || (customCustomer.getRegisteredBySp() && customCustomer.getCreatedByRole() != 4) || (customCustomer.getCreatedByRole()) == 5) {
-                customCustomer.setPrimaryRef(service_provider_id);
+            if(existingRef != null && primaryReferee) {
+                existingRef.setPrimaryRef(true);
+                entityManager.merge(existingRef);
+            } else {
+                CustomerReferrer customerReferrer = new CustomerReferrer();
+                customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
+                customerReferrer.setCustomer(customCustomer);
+                customerReferrer.setServiceProvider(serviceProvider);
+                customCustomer.getMyReferrer().add(customerReferrer);
+                customerReferrer.setCreatedAt(LocalDateTime.now());
+                entityManager.persist(customerReferrer);
             }
-            CustomerReferrer customerReferrer = new CustomerReferrer();
-            customerReferrer.setPrimaryRef(true); // by raman and Kshitij will solve the complete issue of last referrer as primary referee.;
-            customerReferrer.setCustomer(customCustomer);
-            customerReferrer.setServiceProvider(serviceProvider);
-            customCustomer.getMyReferrer().add(customerReferrer);
-            customerReferrer.setCreatedAt(LocalDateTime.now());
-            entityManager.persist(customerReferrer);
 
             entityManager.merge(customCustomer);
-            return ResponseService.generateSuccessResponse("Referrer Set", sharedUtilityService.serviceProviderDetailsMap(serviceProvider,false), HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Referrer Set", sharedUtilityService.serviceProviderDetailsMap(serviceProvider, false), HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
@@ -2696,14 +2689,14 @@ public class CustomerEndpoint {
         return qualificationToFind;
     }
 
-    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString,Map<String,String> errorMessages, String dateOfIssueFieldName,String dateOfExpireFieldName) throws Exception {
+    public Boolean validateDate(String dateOfIssueStr, String validUptoStr, String dateFormatInString, Map<String, String> errorMessages, String dateOfIssueFieldName, String dateOfExpireFieldName) throws Exception {
         SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatInString);
         dateFormat.setLenient(false);
 
         try {
             // Validate format
             if (!isValidDateFormat(dateOfIssueStr, dateFormat)) {
-                errorMessages.put(dateOfIssueFieldName,"Date of Issue must be in " + dateFormatInString + " format");
+                errorMessages.put(dateOfIssueFieldName, "Date of Issue must be in " + dateFormatInString + " format");
             }
 
             Date dateOfIssue = dateFormat.parse(dateOfIssueStr);
@@ -2711,13 +2704,13 @@ public class CustomerEndpoint {
             if (validUptoStr != null) {
 
                 if (!isValidDateFormat(validUptoStr, dateFormat)) {
-                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date must be in " + dateFormatInString + " format");
+                    errorMessages.put(dateOfExpireFieldName, "Valid Upto Date must be in " + dateFormatInString + " format");
                 }
                 validUpto = dateFormat.parse(validUptoStr);
 
                 // Check if validUpto is before dateOfIssue
                 if (validUpto.before(dateOfIssue)) {
-                    errorMessages.put(dateOfExpireFieldName,"Valid Upto Date cannot be before Date of Issue " + dateFormatInString + " format");
+                    errorMessages.put(dateOfExpireFieldName, "Valid Upto Date cannot be before Date of Issue " + dateFormatInString + " format");
                 }
             }
             return true;
@@ -2987,8 +2980,8 @@ public class CustomerEndpoint {
                     List<Long> qualificationDetailIds = new ArrayList<>();
                     List<Integer> qualificationIds = new ArrayList<>();
 
-                    if(customCustomer.getQualificationDetailsList() != null && !customCustomer.getQualificationDetailsList().isEmpty()) {
-                        for(QualificationDetails qualificationDetails: customCustomer.getQualificationDetailsList()) {
+                    if (customCustomer.getQualificationDetailsList() != null && !customCustomer.getQualificationDetailsList().isEmpty()) {
+                        for (QualificationDetails qualificationDetails : customCustomer.getQualificationDetailsList()) {
                             qualificationDetailIds.add(qualificationDetails.getQualification_detail_id());
                             qualificationIds.add(qualificationDetails.getQualification_id());
                         }
@@ -3015,8 +3008,7 @@ public class CustomerEndpoint {
                                         customerBasicDetailsDto.setPermanent_district_id(districtIdValue);
                                     }
                                 }
-                            }
-                            else if("CURRENT_ADDRESS".equals(address.getAddressName())) {
+                            } else if ("CURRENT_ADDRESS".equals(address.getAddressName())) {
                                 String currentState = address.getAddress().getStateProvinceRegion();
                                 String currentDistrict = address.getAddress().getCounty();
 
@@ -3268,12 +3260,12 @@ public class CustomerEndpoint {
         int age = sharedUtilityService.calculateAge(customCustomer.getDob());
         Long reservedCategory = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
         Long genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
-        Double fee=null;
-        String ageLimit=null;
+        Double fee = null;
+        String ageLimit = null;
 
 
         List<BigInteger> res = entityManager.createNativeQuery(recosQuery)
-                .setParameter("customerId",customCustomer.getId())
+                .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
@@ -3283,7 +3275,7 @@ public class CustomerEndpoint {
                 .getResultList();
 
         BigInteger resultCount = (BigInteger) entityManager.createNativeQuery(recosCount)
-                .setParameter("customerId",customCustomer.getId())
+                .setParameter("customerId", customCustomer.getId())
                 .setParameter("qualificationIds", qualificationIds)
                 .setParameter("genderId", genderId)
                 .setParameter("reserveCategoryId", reservedCategory)
@@ -3329,7 +3321,7 @@ public class CustomerEndpoint {
                         fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), categoryId, Constant.GENDER_ALL);
                         System.out.println("Category match fee result: " + fee);
 
-                        if (fee!= null) {
+                        if (fee != null) {
                             flag++;
                             System.out.println("Found category match fee: " + fee);
                         } else {
@@ -3355,7 +3347,7 @@ public class CustomerEndpoint {
                 System.out.println("\nNo customer-specific fee found, checking fallbacks:");
 
                 System.out.println("Checking GEN+MALE (1L, 1L)");
-                fee= reserveCategoryService.getReserveCategoryFee(customProduct.getId(), 1L, 1L);
+                fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), 1L, 1L);
                 System.out.println("GEN+MALE fee result: " + fee);
 
                 if (fee == null) {
@@ -3398,7 +3390,7 @@ public class CustomerEndpoint {
                             }
                         }
                     }
-                }catch (Exception e) {
+                } catch (Exception e) {
                     System.out.println("\nERROR in customer-specific age lookup:");
                     e.printStackTrace();
                 }
@@ -3470,14 +3462,15 @@ public class CustomerEndpoint {
         response.put("currentPage", offset + 1);
         return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
     }
+
     private void setAgeLimit(CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult, SharedUtilityService sharedUtilityService) {
         String ageLimit;
         if (ageLimitResult == null) {
             ageLimit = "N/A";
             return;
         }
-        int[] ageLimits=null;
-        if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
+        int[] ageLimits = null;
+        if (ageLimitResult.getBornAfter() != null && ageLimitResult.getBornBefore() != null) {
             ageLimits = sharedUtilityService.calculateAgeRange(
                     ageLimitResult.getBornBefore(),
                     ageLimitResult.getBornAfter(),
@@ -3492,14 +3485,15 @@ public class CustomerEndpoint {
                 ? ageLimits[0] + "-" + ageLimits[1]
                 : "N/A";
     }
+
     private String getAgeLimits(CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult, SharedUtilityService sharedUtilityService) {
         String ageLimit;
         if (ageLimitResult == null) {
             ageLimit = "N/A";
             return ageLimit;
         }
-        int[] ageLimits=null;
-        if(ageLimitResult.getBornAfter()!=null&&ageLimitResult.getBornBefore()!=null) {
+        int[] ageLimits = null;
+        if (ageLimitResult.getBornAfter() != null && ageLimitResult.getBornBefore() != null) {
             ageLimits = sharedUtilityService.calculateAgeRange(
                     ageLimitResult.getBornBefore(),
                     ageLimitResult.getBornAfter(),
