@@ -282,6 +282,13 @@ public class TicketController {
                 OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
                 CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getOrder(), orderState, ticket, customerDetailsDTO);
                 wrapper.customWrapDetails(ticket, orderDto, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
+            } else if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_REVIEW_TICKET) && ticket.getParentTicket().getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getParentTicket().getOrder().getId());
+                Customer customer = customerService.readCustomerById(ticket.getParentTicket().getOrder().getCustomer().getId());
+                CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customer.getId());
+                OrderCustomerDetailsDTO customerDetailsDTO = new OrderCustomerDetailsDTO(customer.getId(), customer.getFirstName() + " " + customer.getLastName(), customer.getEmailAddress(), customCustomer.getMobileNumber(), addressFetcher.fetch(customer), customer.getUsername());
+                CombinedOrderDTO orderDto = orderDTOService.wrapOrder(ticket.getParentTicket().getOrder(), orderState, ticket.getParentTicket(), customerDetailsDTO);
+                wrapper.customWrapDetails(ticket, orderDto, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
             } else {
                 wrapper.customWrapDetails(ticket, null, entityManager, customTicketHistoryWrapperList, ticketDocumentWrapperSet);
             }
