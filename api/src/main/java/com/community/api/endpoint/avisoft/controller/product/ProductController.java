@@ -693,14 +693,17 @@ public class ProductController extends CatalogEndpoint {
             boolean allowExpiredAccess=false;
             boolean bypass=false;
             if(orderId!=null) {
+                System.out.println("yes yes");
                 Order order = orderService.findOrderById(orderId);
                 if (order == null)
                     return ResponseService.generateErrorResponse("Order not found", HttpStatus.BAD_REQUEST);
                 OrderItem orderItem=order.getOrderItems().get(0);
                 Product product=findProductFromItemAttribute(orderItem);
-                if(product.getId().equals(productId))
-                    bypass=true;
-
+                System.out.println("productId"+product.getId());
+                if(product.getId().equals(productId)) {
+                    System.out.println("yes yes");
+                    bypass = true;
+                }
             }
             if(authHeader!=null&&!bypass)
             {
@@ -723,7 +726,7 @@ public class ProductController extends CatalogEndpoint {
             Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
             boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess) {
+            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess||bypass) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
@@ -1012,6 +1015,7 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestParam(value = "isArchived", required = false) Boolean isArchived,
             @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
@@ -1071,7 +1075,7 @@ public class ProductController extends CatalogEndpoint {
                         state, rejection_status, categories, reserveCategories,
                         titleDto != null ? titleDto.getTitle() : null,
                         titleDto != null ? titleDto.getDisplayTemplate() : null,
-                        fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
+                        fee, post, dateFrom, dateTo, isExpired, isArchived, offset, limit, all, createdById, productIds
                 );
 
 
@@ -1080,7 +1084,7 @@ public class ProductController extends CatalogEndpoint {
                         state, rejection_status, categories, reserveCategories,
                         titleDto != null ? titleDto.getTitle() : null,
                         titleDto != null ? titleDto.getDisplayTemplate() : null,
-                        fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
+                        fee, post, dateFrom, dateTo, isExpired, isArchived, offset, limit, all, createdById, productIds
                 );
 
             }
@@ -1166,7 +1170,8 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
-            @RequestBody(required = false) FilterProductTitleDto titleDto) {
+            @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(value = "isArchived", required = false) Boolean isArchived) {
 
         try {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
@@ -1194,7 +1199,7 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
             return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories,  titleDto != null ? titleDto.getTitle() : null,
-                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds);
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds,isArchived);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
