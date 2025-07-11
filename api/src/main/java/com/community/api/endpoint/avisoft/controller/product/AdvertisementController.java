@@ -515,11 +515,16 @@ public class AdvertisementController {
 
             Long advertisementId = Long.parseLong(advertisementIdPath);
 
+
+
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
+
+            if(advertisement.getNotificationEndDate().toInstant().isAfter(new Date().toInstant()))
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
