@@ -126,7 +126,7 @@ public class RoleController {
         if(user.getRole() == 1)
             return ResponseService.generateErrorResponse("Cannot change Super Admin's role",HttpStatus.BAD_REQUEST);
         if (roleToBeId==user.getRole())
-            return ResponseService.generateErrorResponse("User already has role : "+role.getRole_name(),HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse("User already has role : "+role.getRole_name(),HttpStatus.OK);
         switch (roleToBeId)
         {
             case 1:
