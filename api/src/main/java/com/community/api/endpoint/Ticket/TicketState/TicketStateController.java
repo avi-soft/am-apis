@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
@@ -185,7 +186,12 @@ public class TicketStateController {
             System.out.println("parent ticket id is"+document.getServiceProviderTicket().getTicketId());
             System.out.println("uid is"+tokenUserId);
             Long assigneeId = document.getServiceProviderTicket().getAssignee();
-            Long linkedTicketId = ((BigInteger)query.getSingleResult()).longValue();
+            Long linkedTicketId =null;
+            try {
+                linkedTicketId = ((BigInteger) query.getSingleResult()).longValue();
+            } catch (NoResultException e) {
+                // No result found — linkedTicketId remains null
+            }
             CustomServiceProviderTicket linkedTicket=null;
             if(linkedTicketId!=null) {
                 linkedTicket = entityManager.find(CustomServiceProviderTicket.class, linkedTicketId);

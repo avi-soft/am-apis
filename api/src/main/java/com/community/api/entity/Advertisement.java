@@ -113,4 +113,8 @@ public class Advertisement implements Serializable {
     @Column(name = "adv_additional_comments", columnDefinition = "TEXT")
     @JsonProperty("adv_additional_comments")
     private String additionalComments;
+
+    @Column(name = "product_count", columnDefinition = "INTEGER DEFAULT 0")
+    private Integer productCount;
+
 }
