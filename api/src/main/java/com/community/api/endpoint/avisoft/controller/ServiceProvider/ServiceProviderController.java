@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
@@ -209,15 +208,25 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
         boolean hasCurrent = false;
         boolean hasPermanent = false;
+        boolean hasBusinessAddress= false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
-            if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
+            if (addr.getAddress_type_id() == Constant.CURRENT_ADDRESS_ID) {
                 hasCurrent = true;
-            } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
+            } else if (addr.getAddress_type_id() == Constant.PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
+            }
+            else if(addr.getAddress_type_id()== Constant.OFFICE_ADDRESS_ID)
+            {
+                hasBusinessAddress=true;
             }
         }
 
+        if(!hasBusinessAddress)
+            if(serviceProvider.getIs_running_business_unit().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+            }
         if (!hasCurrent && !hasPermanent)
             return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
         else if (!hasPermanent)
@@ -228,12 +237,9 @@ public class ServiceProviderController {
         if (serviceProvider.getIs_running_business_unit().equals(true)) {
             REQUIRED_FIELDS = Arrays.asList(
                     "business_name",
-                    "business_location",
                     "business_email",
                     "number_of_employees",
                     "isCFormAvailable",
-                    "latitude",
-                    "longitude",
                     "has_technical_knowledge",
                     "work_experience_in_months"
             );

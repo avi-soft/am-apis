@@ -71,7 +71,10 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -268,6 +271,25 @@ public class CustomerEndpoint {
             Map<String, String> errorMessages = new LinkedHashMap<>();
 
             details = sanitizerService.sanitizeInputMap(details);
+
+            String dobStr = (String)details.get("dob");
+
+            // Define the expected date format
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+            try {
+                LocalDate dob = LocalDate.parse(dobStr, formatter);
+                LocalDate today = LocalDate.now();
+
+                // Check if DOB is not in the future
+                if(dob.isAfter(today))
+                    errorMessages.put("dob","DOB cannot be of future");
+
+            } catch (DateTimeParseException e) {
+                // Invalid date format
+                errorMessages.put("dob","Invalid DOB");
+
+            }
 
             /*Iterator<String> iterator = details.keySet().iterator();
             while (iterator.hasNext()) {
@@ -2389,7 +2411,7 @@ public class CustomerEndpoint {
                 CustomProduct product = entityManager.find(CustomProduct.class, productId);
                 if (product != null && product.getArchived() != 'Y') {
                     CustomProductWrapper wrapper = new CustomProductWrapper();
-                    wrapper.wrapDetails(product, request, reserveCategoryService,
+                    wrapper.wrapDetails(order.getId(),product, request, reserveCategoryService,
                             reserveCategoryAgeService, genderService,
                             customer, sharedUtilityService);
                     appliedForms.add(wrapper);
