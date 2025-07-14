@@ -324,6 +324,8 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        if(advertisementToUpdate.getArchived().equals('Y'))
+            throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
