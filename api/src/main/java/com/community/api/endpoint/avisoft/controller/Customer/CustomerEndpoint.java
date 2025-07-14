@@ -276,19 +276,20 @@ public class CustomerEndpoint {
 
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            if(dobStr!=null) {
+                try {
+                    LocalDate dob = LocalDate.parse(dobStr, formatter);
+                    LocalDate today = LocalDate.now();
 
-            try {
-                LocalDate dob = LocalDate.parse(dobStr, formatter);
-                LocalDate today = LocalDate.now();
+                    // Check if DOB is not in the future
+                    if (dob.isAfter(today))
+                        errorMessages.put("dob", "DOB cannot be of future");
 
-                // Check if DOB is not in the future
-                if(dob.isAfter(today))
-                    errorMessages.put("dob","DOB cannot be of future");
+                } catch (DateTimeParseException e) {
+                    // Invalid date format
+                    errorMessages.put("dob", "Invalid DOB");
 
-            } catch (DateTimeParseException e) {
-                // Invalid date format
-                errorMessages.put("dob","Invalid DOB");
-
+                }
             }
 
             /*Iterator<String> iterator = details.keySet().iterator();
