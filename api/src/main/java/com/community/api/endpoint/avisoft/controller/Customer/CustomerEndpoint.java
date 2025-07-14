@@ -276,6 +276,7 @@ public class CustomerEndpoint {
 
             // Define the expected date format
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
             if(dobStr!=null) {
                 try {
                     LocalDate dob = LocalDate.parse(dobStr, formatter);
