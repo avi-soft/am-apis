@@ -3505,7 +3505,9 @@ public class CustomerEndpoint {
     }
 
 
-    public ResponseEntity<?> getSavedFormsWrapper(Long customerId,List<CustomProduct> customProducts, Integer offset, Integer limit) {
+    public ResponseEntity<?> getSavedFormsWrapper(Long customerId,List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
+        try
+        {
             Customer customer = customerService.readCustomerById(customerId);
             if (customer == null)
                 return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
@@ -3636,6 +3638,16 @@ public class CustomerEndpoint {
             response.put("totalPages", totalPages);
             response.put("currentPage", offset + 1);
             return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
-
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException);
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            throw new Exception(e);
+        }
     }
 }
