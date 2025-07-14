@@ -21,10 +21,11 @@ BEGIN
 --     Iterate through filtered service providers
     FOR service_provider_record IN
         SELECT sp.service_provider_id, spr.rank_name, spr.rank_id
-        FROM service_provider sp
-        JOIN service_provider_rank spr ON sp.rank_id = spr.rank_id
-        WHERE sp.service_provider_id = ANY(available_service_provider_ids)
-          AND sp.is_active = TRUE
+            FROM service_provider sp
+            JOIN service_provider_rank_mapping m ON sp.service_provider_id = m.service_provider_id
+            JOIN service_provider_rank spr ON m.rank_id = spr.rank_id
+            WHERE sp.service_provider_id = ANY(available_service_provider_ids)
+              AND sp.is_active = TRUE
     LOOP
         CASE service_provider_record.rank_id
             WHEN 1 THEN rank1a := array_append(rank1a, service_provider_record.service_provider_id);

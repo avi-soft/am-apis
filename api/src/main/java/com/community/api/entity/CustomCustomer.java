@@ -1,8 +1,6 @@
-
 package com.community.api.entity;
 
 import com.community.api.utils.Document;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -16,8 +14,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.broadleafcommerce.profile.core.domain.CustomerImpl;
 
-import javax.persistence.*;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -27,11 +23,11 @@ import javax.persistence.InheritanceType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.Pattern;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -326,8 +322,6 @@ public class CustomCustomer extends CustomerImpl {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CustomerReferrer> myReferrer = new ArrayList<>();
 
-
-
     @Column(name = "order_count",columnDefinition = "BIGINT DEFAULT 0")
     private Integer numberOfOrders;
 
@@ -346,33 +340,32 @@ public class CustomCustomer extends CustomerImpl {
     @Column(name = "modified_by_id", columnDefinition = "BIGINT DEFAULT 0")
     private Long modifiedById;
 
-//    public List<CustomerReferrer> getMyReferrer() {
-//        // Get the list of referrers
-//        List<CustomerReferrer> referrers = this.myReferrer;
-//
-//        // Sort the referrers based on their bandwidth
-//        referrers.sort((r1, r2) -> {
-//            // Get the max ticket size from rank if max_ticket_size is not available
-//
-//            Integer maxTicketSize1 = r1.getServiceProvider().getMaximumTicketSize() != null ? r1.getServiceProvider().getMaximumTicketSize() : r1.getServiceProvider().getRanking().getMaximumTicketSize();
-//            Integer maxTicketSize2 = r2.getServiceProvider().getMaximumTicketSize() != null ? r2.getServiceProvider().getMaximumTicketSize() : r2.getServiceProvider().getRanking().getMaximumTicketSize();
-//
-//            // Avoid division by zero by ensuring maxTicketSize is not 0
-//            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
-//            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
-//
-//            // Calculate bandwidth for both referrers
-//            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending()) / maxTicketSize1 * 100;
-//            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending()) / maxTicketSize2 * 100;
-//
-//            // Sort by bandwidth (descending order)
-//            return Double.compare(bandwidth2, bandwidth1); // for descending order
-//        });
-//
-//        // Return the sorted list
-//        Collections.reverse(referrers);
-//        return referrers;
-//    }
+    /*public List<CustomerReferrer> getMyReferrer() {
+        // Get the list of referrers
+        List<CustomerReferrer> referrers = this.myReferrer;
+
+        // Sort the referrers based on their bandwidth
+        referrers.sort((r1, r2) -> {
+            // Get the max ticket size from rank if max_ticket_size is not available
+            Integer maxTicketSize1 = r1.getServiceProvider().getMaximumTicketSize() != null ? r1.getServiceProvider().getMaximumTicketSize() : r1.getServiceProvider().getRanking().getMaximumTicketSize();
+            Integer maxTicketSize2 = r2.getServiceProvider().getMaximumTicketSize() != null ? r2.getServiceProvider().getMaximumTicketSize() : r2.getServiceProvider().getRanking().getMaximumTicketSize();
+
+            // Avoid division by zero by ensuring maxTicketSize is not 0
+            if (maxTicketSize1 == 0) maxTicketSize1 = 1;
+            if (maxTicketSize2 == 0) maxTicketSize2 = 1;
+
+            // Calculate bandwidth for both referrers
+            double bandwidth1 = (double) (r1.getServiceProvider().getTicketAssigned() + r1.getServiceProvider().getTicketPending()) / maxTicketSize1 * 100;
+            double bandwidth2 = (double) (r2.getServiceProvider().getTicketAssigned() + r2.getServiceProvider().getTicketPending()) / maxTicketSize2 * 100;
+
+            // Sort by bandwidth (descending order)
+            return Double.compare(bandwidth2, bandwidth1); // for descending order
+        });
+
+        // Return the sorted list
+        Collections.reverse(referrers);
+        return referrers;
+    }*/
 
     @ManyToOne
     @JoinColumn(name = "work_experience_scope_id")
