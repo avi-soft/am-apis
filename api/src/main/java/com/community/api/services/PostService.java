@@ -342,7 +342,7 @@ public class PostService {
                     }
 
                     // qualification relation handling -  using previous qualification internally
-                    if (i > 0 && qualificationEligibilityDto.getQualificationOperatorId() != null) {
+                    if ( qualificationEligibilityDto.getQualificationOperatorId() != null) {
                         QualificationRelation qualificationRelation = new QualificationRelation();
 
                         // Set the logical operator
@@ -350,11 +350,13 @@ public class PostService {
                         qualificationRelation.setLogicalOperator(operator);
 
                         // Get the previous qualification from the list (automatically set)
-                        QualificationEligibilityDto previousQualificationDto = postDto.getQualificationEligibility().get(i - 1);
-                        Integer previousQualificationId = previousQualificationDto.getQualificationIds().get(0);
-                        Qualification previousQualification = entityManager.find(Qualification.class, previousQualificationId);
-                        qualificationRelation.setQualification(previousQualification);
-
+                        if(i>0)
+                        {
+                            QualificationEligibilityDto previousQualificationDto = postDto.getQualificationEligibility().get(i - 1);
+                            Integer previousQualificationId = previousQualificationDto.getQualificationIds().get(0);
+                            Qualification previousQualification = entityManager.find(Qualification.class, previousQualificationId);
+                            qualificationRelation.setQualification(previousQualification);
+                        }
                         entityManager.persist(qualificationRelation);
                         entityManager.flush();
                         qualificationRequirement.setQualificationRelation(qualificationRelation);
