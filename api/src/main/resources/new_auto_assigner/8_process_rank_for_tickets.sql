@@ -34,12 +34,13 @@ BEGIN
 	FOREACH sp_id IN ARRAY ranked_service_provider_ids LOOP
 		-- Fetch SP capacity
 		SELECT COALESCE(sp.maximum_ticket_size, spr.maximum_ticket_size),
-			   sp.ticket_assigned,
-			   sp.ticket_pending
-		INTO sp_max_ticket_size, sp_ticket_assigned, sp_ticket_pending
-		FROM service_provider sp
-		LEFT JOIN service_provider_rank spr ON sp.rank_id = spr.rank_id
-		WHERE sp.service_provider_id = sp_id;
+               sp.ticket_assigned,
+               sp.ticket_pending
+        INTO sp_max_ticket_size, sp_ticket_assigned, sp_ticket_pending
+        FROM service_provider sp
+        LEFT JOIN service_provider_rank_mapping m ON sp.service_provider_id = m.service_provider_id
+        LEFT JOIN service_provider_rank spr ON m.rank_id = spr.rank_id
+        WHERE sp.service_provider_id = sp_id;
 
 		-- Skip if max ticket size not set
 		IF sp_max_ticket_size IS NULL OR sp_max_ticket_size = 0 THEN

@@ -21,10 +21,16 @@ BEGIN
            COALESCE(maximum_ticket_size, ranking_maximum_ticket_size)
     INTO v_is_active, v_current_total, v_max_tickets
     FROM (
-        SELECT sp.is_active, sp.ticket_assigned, sp.ticket_pending, 
-               sp.maximum_ticket_size, r.maximum_ticket_size AS ranking_maximum_ticket_size
+        SELECT sp.is_active,
+               sp.ticket_assigned,
+               sp.ticket_pending,
+               sp.maximum_ticket_size,
+               r.maximum_ticket_size AS ranking_maximum_ticket_size
         FROM service_provider sp
-        LEFT JOIN service_provider_rank r ON r.rank_id = sp.rank_id
+        LEFT JOIN service_provider_rank_mapping m
+               ON sp.service_provider_id = m.service_provider_id
+        LEFT JOIN service_provider_rank r
+               ON m.rank_id = r.rank_id
         WHERE sp.service_provider_id = p_service_provider_id
     ) AS sub;
 
@@ -57,15 +63,21 @@ BEGIN
 	    INTO v_product_active_end_date
 	    FROM blc_sku
 	    WHERE sku_id = v_sku_id;
-	   
+
+	   -- Conditionally update active_end_date for review tickets
+       IF p_is_review_ticket THEN
+           v_product_active_end_date := v_product_active_end_date + INTERVAL '4 days';
+       END IF;
+
 	    v_target_completion_date = CASE 
-                WHEN p_is_review_ticket THEN v_now + INTERVAL '2 hours'
+                WHEN p_is_review_ticket THEN v_now + INTERVAL '4 days'
                 WHEN p_is_primary_ticket THEN v_now + INTERVAL '4 hours'
                 ELSE NULL
         END IF;
         raise notice 'target completion date is: %', v_target_completion_date;
         raise notice 'product_active_end_date is: %', v_product_active_end_date;
-       raise notice 'product id is: %', v_product_id;
+        raise notice 'product id is: %', v_product_id;
+
         IF v_target_completion_date IS NOT NULL AND v_target_completion_date < v_product_active_end_date THEN
 	        -- Assign ticket state and status
 	        UPDATE custom_service_provider_ticket
@@ -76,7 +88,7 @@ BEGIN
 	            modified_date = v_now,
 	            ticket_assign_time = v_now,
 	            target_completion_time = CASE 
-	                WHEN p_is_review_ticket THEN v_now + INTERVAL '2 hours'
+	                WHEN p_is_review_ticket THEN v_now + INTERVAL '4 days'
 	                WHEN p_is_primary_ticket THEN v_now + INTERVAL '4 hours'
 	                ELSE NULL
 	            END

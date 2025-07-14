@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
@@ -212,12 +211,12 @@ public class ServiceProviderController {
         boolean hasBusinessAddress= false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
-            if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
+            if (addr.getAddress_type_id() == Constant.CURRENT_ADDRESS_ID) {
                 hasCurrent = true;
-            } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
+            } else if (addr.getAddress_type_id() == Constant.PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
             }
-            else if(addr.getAddress_type_id()== OFFICE_ADDRESS_ID)
+            else if(addr.getAddress_type_id()== Constant.OFFICE_ADDRESS_ID)
             {
                 hasBusinessAddress=true;
             }
