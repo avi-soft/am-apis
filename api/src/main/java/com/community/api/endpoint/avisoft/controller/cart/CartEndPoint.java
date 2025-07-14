@@ -11,22 +11,26 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
-import com.community.api.entity.OrderDTO;
 import com.community.api.entity.Post;
 import com.community.api.entity.RazorpayDetails;
 import com.community.api.entity.Role;
-import com.community.api.services.*;
+import com.community.api.services.CartService;
+import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.GenderService;
+import com.community.api.services.OrderDTOService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.ProductReserveCategoryFeePostRefService;
+import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
+import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
-import net.bytebuddy.asm.Advice;
-import org.aspectj.weaver.ast.Or;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
 import org.broadleafcommerce.common.money.Money;
@@ -34,17 +38,13 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
-import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
-import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
-import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.core.order.service.call.OrderItemRequest;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 import org.broadleafcommerce.profile.core.domain.Customer;
-import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +67,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -75,12 +74,10 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import java.util.ArrayList;
-import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -90,7 +87,6 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
-import static org.apache.commons.codec.digest.HmacUtils.hmacSha256;
 
 @RestController
 @RequestMapping(value = "/cart",
@@ -855,7 +851,7 @@ public class CartEndPoint extends BaseEndpoint {
                     //orderState.setOrderStatusId(orderStatusId);
                     //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
-                    customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), authHeader);
+                    customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), false, authHeader);
                     individualOrders.add(individualOrder);
                 }
             }
