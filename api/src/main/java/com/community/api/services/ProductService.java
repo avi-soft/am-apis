@@ -721,7 +721,7 @@ public class ProductService {
                 // Only non-expired products
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
-
+            jpql.append("AND p.del = 'N' ");
             jpql.append("ORDER BY p.createdDate DESC ");
 
             TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql.toString().replace("ORDER BY p.createdDate DESC ", "")).toString(),Long.class);
