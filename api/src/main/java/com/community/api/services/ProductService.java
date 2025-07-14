@@ -3501,7 +3501,7 @@ public class ProductService {
                     }
                 } else {
                     // For the first qualification, qualification operator should be null
-                    qualificationEligibilityDto.setQualificationOperatorId(null);
+                    qualificationEligibilityDto.setQualificationOperatorId(Constant.AND_OPERATOR_ID);
                 }
 
                 // Validate logical operators for streams and subjects

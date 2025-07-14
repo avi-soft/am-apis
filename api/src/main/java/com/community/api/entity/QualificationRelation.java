@@ -29,7 +29,7 @@ public class QualificationRelation implements Serializable {
     private LogicalOperator logicalOperator;
     
     @ManyToOne
-    @JoinColumn(name = "qualification_id", nullable = false)
+    @JoinColumn(name = "qualification_id")
     private Qualification qualification;
 
 }
