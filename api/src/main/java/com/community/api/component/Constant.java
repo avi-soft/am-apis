@@ -10,6 +10,7 @@ public class Constant {
     public static final long MAX_REFERRER_FILE_SIZE = 9 * 1024 * 1024;
     public static final Integer PERMANENT_ADDRESS_ID=5;
     public static final Integer CURRENT_ADDRESS_ID=2;
+    public static final Integer OFFICE_ADDRESS_ID=1;
     public static final long MAX_FILE_SIZE_FOR_OVERALL_DOCUMENTS = 1 * 1024 * 1024;
     public static final int RANDOM_RESIZED_DOCUMENT_TYPE_ID= 33;
     public static final int RANDOM_PDF_DOCUMENT_TYPE_ID= 34;
@@ -98,6 +99,7 @@ public class Constant {
     public static String GET_INSTITUTION_COUNT="SELECT COUNT(*) FROM Institution";
     public static String GET_TYPING_TEXT_COUNT = "SELECT COUNT(*) FROM TypingText";
     public static String GET_FILE_TYPE_COUNT = "SELECT COUNT(*) FROM FileType";
+    public static Integer CUSTOMER_ROLE_ID= 5;
 
     public static String GET_ORDER_ITEM_PRODUCT="Select p.product_id from custom_order_item_product p where p.order_item_id =:orderItemId";
     public static String CANNOT_ADD_MORE_THAN_ONE_FORM="You can only add one of this form. Please choose a different form if you need more";
@@ -262,6 +264,7 @@ public class Constant {
 
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.ticketId = :ticketId";
     public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_ORDER_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.order = :orderId";
+    public static final String GET_CUSTOM_SERVICE_PROVIDER_TICKET_BY_PARENT_TICKET_ID = "SELECT c FROM CustomServiceProviderTicket c WHERE c.parentTicket = :parentTicketId";
     public static final String GET_PRIMARY_TICKET="SELECT c.ticket_id from custom_service_provider_ticket c where c.order_id =:orderId and c.ticket_type_id = 1";
     public static final String GET_TICKET_STATUS_LINKED_WITH_TICKET_STATE="SELECT c.ticket_status_id from order_ticket_linkage c WHERE c.ticket_state_id =:ticketStateId AND c.ticket_type_id = :ticketTypeId";
     public static final String GET_TICKET_STATE_LINKED_WITH_TICKET_STATE = "SELECT t.ticket_state_id_to from ticket_state_linkage t WHERE t.ticket_state_id_from = :ticketStateIdFrom AND t.role_id IN :roleIds AND t.ticket_type_id = :ticketTypeId";
@@ -277,7 +280,7 @@ public class Constant {
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false";
     public static final String FETCH_DOCUMENT_TO_ARCHIVE_ID_FOR_QUALIFICATION = "Select documentid FROM %s WHERE %s = :userId AND document_type_id = :documentTypeId AND archived = false AND qualification_detail_id = :qualificationDetailId";
     public static final String GET_TICKET_HISTORY_BY_TICKET_ID = "SELECT * FROM custom_ticket_history WHERE ticket_id = :ticketId ORDER BY modified_date DESC";
-    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c join custom_state_codes s on c.division_id = s.state_id where c.zone_id =:zoneId and s.archived = false Order by division_id ASC";
+    public static final String GET_DIVISION_BY_ZONE="SELECT c.division_id from zone_divisions c join custom_state_codes s on c.division_id = s.state_id where c.archived=false and c.zone_id =:zoneId and s.archived = false Order by division_id ASC";
     public static final String GET_ALL_ZONES="SELECT z FROM Zone z where archived = :archived";
     public static final String GET_ZONE_LINKED_TO_DIVISION="SELECT z.zone_id from zone_divisions z where z.division_id =:divisionId";
     public static final String NO_CATEGORY="N/A";

@@ -83,6 +83,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @Slf4j
 @RequestMapping(value = "/orders", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
@@ -139,7 +140,7 @@ public class OrderController {
 
 /*    @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit) {
         try {
             CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
             if (customCustomer == null)
@@ -189,7 +190,7 @@ public class OrderController {
 
     @Transactional
     @RequestMapping(value = "get-order-history/{customerId}", method = RequestMethod.GET)
-    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> getOrderHistory(@RequestHeader(value = "Authorization") String authHeader, @PathVariable Long customerId, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(value = "product_name", required = false) String productName) {
 
         try {
 
@@ -306,7 +307,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin})
     @Transactional
     @RequestMapping(value = "show-all-orders", method = RequestMethod.GET)
-    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "10") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
+    public ResponseEntity<?> showDetails(@RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "order_state", required = false) List<Integer> orderStateIds, @RequestParam(defaultValue = "oldest-to-latest") String sort, @RequestParam(defaultValue = "0") int offset, @RequestParam(defaultValue = "1000") int limit, @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo, @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom, @RequestParam(value = "product_name", required = false) String productName) {
         try {
             if (offset < 0 || limit <= 0) {
                 throw new IllegalArgumentException("Offset or Limit invalid");
@@ -729,7 +730,7 @@ public class OrderController {
 
     @Transactional
     @GetMapping("/{orderId}/availableSp")
-    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getEligibleSp(@PathVariable Long orderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit) {
         try {
             List<ServiceProviderEntity> result = customOrderService.availableSp(orderId, page, limit);
             return ResponseService.generateSuccessResponse("List of available Sp", result, HttpStatus.OK);
@@ -810,7 +811,7 @@ public class OrderController {
     @Authorize(value = {Constant.roleSuperAdmin, Constant.roleAdmin})
     @PutMapping("cancel-order/{orderIdString}")
     public ResponseEntity<?> cancelOrder(@PathVariable String orderIdString,
-                                         @RequestParam(value = "refund-amount", defaultValue = "0.0") Double refundAmount,
+                                         @RequestParam(value = "refund_amount", defaultValue = "0.0") Double refundAmount,
                                          @RequestHeader(value = "Authorization") String authHeader) {
         try {
             String jwtToken = authHeader.substring(7);
@@ -842,20 +843,22 @@ public class OrderController {
                 throw new IllegalArgumentException("Order state is already been cancelled.");
             }
 
-            OrderItem orderItem = order.getOrderItems().get(0);
-            Product product = findProductFromItemAttribute(orderItem);
+            if(customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_SUCCESS.getOrderStateId()) || customOrderState.getOrderStateId().equals(Constant.ORDER_STATE_REFUND_FAIL.getOrderStateId())) {
+                throw new IllegalArgumentException("Order cannot be cancelled when refund is failed or success");
+            }
 
-            CustomProduct customProduct = productService.getCustomProductByCustomProductId(product.getId());
+            OrderItem orderItem = order.getOrderItems().get(0);
 
             // Here we need to add a max amount as well depending on what customer paid.
-            if(refundAmount < 0.0 && refundAmount <= order.getTotal().doubleValue() -  customProduct.getPlatformFee()) {
+            if(refundAmount < 0.0 || refundAmount > order.getTotal().doubleValue()) {
                 throw new IllegalArgumentException("Refund Amount cannot be < 0 and greater than actual amount of the product.");
             }
+
             // Updating archived ticket logic.
-            /*CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
+            CustomServiceProviderTicket ticket = serviceProviderTicketService.fetchTicketByOrderId(orderId);
             if(ticket != null) {
                 serviceProviderTicketService.deleteTicket(ticket);
-            }*/
+            }
             customOrderService.updateOrderState(customOrderState, Constant.ORDER_STATE_CANCELLED, refundAmount, tokenUserId, role);
             return ResponseService.generateSuccessResponse("Updated order", getOrderByOrderId(orderId, authHeader).getBody(), HttpStatus.OK);
 

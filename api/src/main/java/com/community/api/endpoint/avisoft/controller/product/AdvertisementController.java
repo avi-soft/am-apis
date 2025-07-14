@@ -32,6 +32,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -81,6 +82,9 @@ public class AdvertisementController {
 
     @Autowired
     RoleService roleService;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     @Autowired
     SharedUtilityService sharedUtilityService;
@@ -254,9 +258,10 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
+
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -277,15 +282,10 @@ public class AdvertisementController {
                 if (advertisement == null) {
                     return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.BAD_REQUEST);
                 }
-
-                if (advertisement.getArchived() != 'Y' &&
-                        ((advertisement.getNotificationEndDate() == null) ||
-                                (advertisement.getNotificationEndDate().after(new Date())))) {
-
                     AdvertisementWrapper wrapper = new AdvertisementWrapper();
                     wrapper.wrapDetails(advertisement, null, null);
                     responses.add(wrapper);
-                }
+
             }
 
             // Manual Pagination
@@ -325,7 +325,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             @RequestParam(defaultValue = "false",required = false)Boolean ext) {
 
         try {
@@ -515,11 +515,15 @@ public class AdvertisementController {
 
             Long advertisementId = Long.parseLong(advertisementIdPath);
 
+
+
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
+
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
@@ -539,9 +543,11 @@ public class AdvertisementController {
             Long modifierUserId = productService.getUserIdByToken(authHeader);
             advertisement.setModifierId(modifierUserId);
             advertisement.setModifierRole(role);
+            advertisement.setArchived('Y');
+            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement("+advertisementId.toString()+")");
             entityManager.merge(advertisement);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", advertisement, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -557,7 +563,7 @@ public class AdvertisementController {
             @RequestParam(value = "category", required = false) String categories,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
 
         try {
             CustomCustomer customCustomer = null;

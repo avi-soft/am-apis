@@ -11,21 +11,26 @@ import com.community.api.entity.CustomCustomer;
 import com.community.api.entity.CustomOrderState;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomerReferrer;
-import com.community.api.entity.ErrorResponse;
 import com.community.api.entity.OrderCustomerDetailsDTO;
-import com.community.api.entity.OrderDTO;
 import com.community.api.entity.Post;
 import com.community.api.entity.RazorpayDetails;
-import com.community.api.services.*;
+import com.community.api.entity.Role;
+import com.community.api.services.CartService;
+import com.community.api.services.CustomerAddressFetcher;
+import com.community.api.services.GenderService;
+import com.community.api.services.OrderDTOService;
+import com.community.api.services.OrderStatusByStateService;
+import com.community.api.services.ProductReserveCategoryFeePostRefService;
+import com.community.api.services.ReserveCategoryService;
+import com.community.api.services.ResponseService;
+import com.community.api.services.RoleService;
+import com.community.api.services.SharedUtilityService;
 import com.community.api.services.exception.ExceptionHandlingImplement;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
-import net.bytebuddy.asm.Advice;
-import org.aspectj.weaver.ast.Or;
 import org.broadleafcommerce.common.currency.domain.BroadleafCurrency;
 import org.broadleafcommerce.common.currency.service.BroadleafCurrencyService;
 import org.broadleafcommerce.common.money.Money;
@@ -33,17 +38,13 @@ import org.broadleafcommerce.common.persistence.Status;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.broadleafcommerce.core.order.domain.Order;
-import org.broadleafcommerce.core.order.domain.OrderAttribute;
 import org.broadleafcommerce.core.order.domain.OrderAttributeImpl;
-import org.broadleafcommerce.core.order.domain.OrderImpl;
 import org.broadleafcommerce.core.order.domain.OrderItem;
-import org.broadleafcommerce.core.order.domain.OrderItemAttribute;
 import org.broadleafcommerce.core.order.service.OrderItemService;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.broadleafcommerce.core.order.service.call.OrderItemRequest;
 import org.broadleafcommerce.core.order.service.type.OrderStatus;
 import org.broadleafcommerce.profile.core.domain.Customer;
-import org.broadleafcommerce.profile.core.domain.CustomerAddress;
 import org.broadleafcommerce.profile.core.service.CustomerService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +67,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -74,12 +74,10 @@ import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 import java.math.BigInteger;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import java.util.ArrayList;
-import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -89,7 +87,6 @@ import java.util.stream.Collectors;
 
 import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
-import static org.apache.commons.codec.digest.HmacUtils.hmacSha256;
 
 @RestController
 @RequestMapping(value = "/cart",
@@ -608,6 +605,7 @@ public class CartEndPoint extends BaseEndpoint {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandling.handleException(e);
+            e.printStackTrace();
             return ResponseService.generateErrorResponse("Error deleting", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -616,6 +614,11 @@ public class CartEndPoint extends BaseEndpoint {
     @RequestMapping(value = "place-order/{customerId}", method = RequestMethod.POST)
     public ResponseEntity<?> placeOrder(@PathVariable Long customerId, @RequestBody Map<String, Object> map, @RequestHeader(value = "Authorization") String authHeader) {
         try {
+
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            Role role = roleService.getRoleByRoleId(roleId);
+
             if(!verifyUser(authHeader,customerId))
                 return ResponseService.generateErrorResponse("Forbidden Access",HttpStatus.FORBIDDEN);
             CustomProduct customProduct = null;
@@ -840,11 +843,14 @@ public class CartEndPoint extends BaseEndpoint {
                         return ResponseService.generateErrorResponse("Error creating order : RAZORPAY_EXCEPTION", HttpStatus.INTERNAL_SERVER_ERROR);
                     orderState.setOrderStateId((ORDER_STATE_CREATED.getOrderStateId()));
                     orderState.setOrderId(individualOrder.getId());
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(customerId);
+                    orderState.setModifierRole(role);
                     // Integer orderStatusId=orderStatusByStateService.getOrderStatusByOrderStateId(ORDER_STATE_NEW.getOrderStateId()).get(0).getOrderStatusId();
                     //orderState.setOrderStatusId(orderStatusId);
                     //orderState.setOrderStatusId(orderStatusId);
                     entityManager.persist(orderState);
-                    customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), authHeader);
+                    customerEndpoint.setReferrerForCustomer(customerId, customProduct.getUserId(), false, authHeader);
                     individualOrders.add(individualOrder);
                 }
             }
@@ -948,9 +954,11 @@ public class CartEndPoint extends BaseEndpoint {
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_NEW.getOrderStateId());
                 customOrderState.setOrderStatusId(1);
+                customOrderState.setModifiedDate(new Date());
                 order.setSubmitDate(new Date());
 
                 OrderItem orderItem = order.getOrderItems().get(0);
+                System.out.println("Order item"+orderItem.getId());
                 Product product = findProductFromItemAttribute(orderItem);
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
                 customProduct.getPurchasedBy().add(customCustomer.getId());
@@ -970,12 +978,28 @@ public class CartEndPoint extends BaseEndpoint {
                         customCustomer.getMyReferrer().add(customerReferrer);
                     }
                 }
-                System.out.println("calling removal");
-                Order cart=orderService.findCartForCustomer(customer);
-                cart.getOrderItems().remove(orderItem);
-                entityManager.merge(cart);
-                System.out.println("removal done");
-                entityManager.merge(customCustomer);
+                try {
+                    System.out.println("calling removal");
+                    Order cart = orderService.findCartForCustomer(customer);
+                    OrderItem orderItemToRemove = null;
+                    for (OrderItem orderItem1 : cart.getOrderItems()) {
+                        System.out.println("order item id current "+orderItem.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem).getId());
+                        System.out.println("order item inside current "+orderItem1.getId());
+                        System.out.println(findProductFromItemAttribute(orderItem1).getId());
+                        if (findProductFromItemAttribute(orderItem).getId().equals(findProductFromItemAttribute(orderItem1).getId())) {
+                            orderItemToRemove = orderItem1;
+                            break;
+                        }
+                    }
+                    cartService.removeItemFromCart(cart, orderItemToRemove.getId());
+                    entityManager.merge(cart);
+                    System.out.println("removal done");
+                    entityManager.merge(customCustomer);
+                }catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
             } else if ((failed)||"failed".equalsIgnoreCase(status)) {
                 isFailed = true;
                 details.setVerified(true);
@@ -986,6 +1010,7 @@ public class CartEndPoint extends BaseEndpoint {
                 order.setStatus(orderStatus);
                 customOrderState.setOrderStateId(ORDER_STATE_FAILED.getOrderStateId());
                 customOrderState.setOrderStatusId(null);
+                customOrderState.setModifiedDate(new Date());
                 order.setSubmitDate(new Date());
                 entityManager.merge(order);
             } else {
@@ -1184,6 +1209,33 @@ public class CartEndPoint extends BaseEndpoint {
         String roleName= roleService.findRoleName(roleId);
         Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
         return roleUser.equals(roleName) && tokenUserId.equals(userId);
+    }
+    @Transactional
+    public void removeCartItems(Long customerId, Long orderItemId) {
+        Customer customer = customerService.readCustomerById(customerId);
+        Order cart = orderService.findCartForCustomer(customer);
+
+        if (cart == null || cart.getOrderItems() == null) {
+            System.out.println("No items found");
+            return;
+        }
+
+        OrderItem orderItemToRemove = null;
+        for (OrderItem orderItem : cart.getOrderItems()) {
+            if (orderItem.getId().equals(orderItemId)) {
+                orderItemToRemove = orderItem;
+                break;
+            }
+        }
+
+        if (orderItemToRemove != null) {
+            cart.getOrderItems().remove(orderItemToRemove); // remove from list
+            entityManager.remove(entityManager.contains(orderItemToRemove) ? orderItemToRemove : entityManager.merge(orderItemToRemove)); // remove from DB
+            entityManager.merge(cart); // optional if cascade is set
+            System.out.println("Item removed successfully.");
+        } else {
+            System.out.println("Item not found in cart.");
+        }
     }
     }
 

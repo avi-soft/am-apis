@@ -1,15 +1,12 @@
 package com.community.api.endpoint.avisoft.controller.product;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
-import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
-import com.community.api.entity.CustomGender;
-import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.ProductEvents;
@@ -17,8 +14,6 @@ import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
 
 import com.community.api.entity.CustomProductState;
-import com.community.api.entity.CustomSubject;
-import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSector;
 import com.community.api.entity.Post;
 
@@ -41,7 +36,6 @@ import com.community.api.services.PostExecutionService;
 import com.community.api.services.ApplicationScopeService;
 import com.community.api.services.PhysicalRequirementDtoService;
 import com.community.api.services.SharedUtilityService;
-import lombok.Lombok;
 import org.broadleafcommerce.common.persistence.Status;
 
 import org.broadleafcommerce.core.catalog.domain.Category;
@@ -49,6 +43,9 @@ import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.domain.Sku;
 
 import org.broadleafcommerce.core.catalog.service.type.ProductType;
+import org.broadleafcommerce.core.order.domain.Order;
+import org.broadleafcommerce.core.order.domain.OrderItem;
+import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -62,7 +59,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,16 +70,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
@@ -133,6 +124,9 @@ public class ProductController extends CatalogEndpoint {
 
     @Autowired
     SharedUtilityService sharedUtilityService;
+
+    @Autowired
+    OrderService orderService;
 
     @Value("${origin.url}")
     private String origin;
@@ -191,6 +185,8 @@ public class ProductController extends CatalogEndpoint {
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
+
+
 
             Advertisement advertisement = productService.validateAdvertisement(addProductDto);
 
@@ -568,6 +564,7 @@ public class ProductController extends CatalogEndpoint {
             {
                 System.out.println("hello");
                 customProduct.setIsApproved(true);
+                customProduct.setIsEdited(false);
                 if(customProduct.getGoLiveDate().equals(new Date())||customProduct.getGoLiveDate().before(new Date())) {
                     System.out.println("yes");
                     CustomProductState productState=entityManager.find(CustomProductState.class,5L);
@@ -648,7 +645,11 @@ public class ProductController extends CatalogEndpoint {
                 CustomProductState productState=entityManager.find(CustomProductState.class,2L);
                 customProduct.setProductState(productState);
             }
-
+            customProduct.setIsEdited(true);
+            if(addProductDto.getProductState()!=null&&addProductDto.getProductState()==3L)
+            {
+                customProduct.setIsEdited(false);
+            }
             entityManager.merge(customProduct);
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
@@ -666,7 +667,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath, @RequestHeader(value = "Authorization",required = false) String authHeader) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath,@RequestParam(name = "orderId",required = false)Long orderId, @RequestHeader(value = "Authorization",required = false) String authHeader) {
 
         try {
             Integer roleId=5;
@@ -692,7 +693,21 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
             boolean allowExpiredAccess=false;
-            if(authHeader!=null)
+            boolean bypass=false;
+            if(orderId!=null) {
+                System.out.println("yes yes");
+                Order order = orderService.findOrderById(orderId);
+                if (order == null)
+                    return ResponseService.generateErrorResponse("Order not found", HttpStatus.BAD_REQUEST);
+                OrderItem orderItem=order.getOrderItems().get(0);
+                Product product=findProductFromItemAttribute(orderItem);
+                System.out.println("productId"+product.getId());
+                if(product.getId().equals(productId)) {
+                    System.out.println("yes yes");
+                    bypass = true;
+                }
+            }
+            if(authHeader!=null&&!bypass)
             {
                 allowExpiredAccess =
                         roleId == 1 || roleId == 2 ||
@@ -713,7 +728,7 @@ public class ProductController extends CatalogEndpoint {
             Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
             boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess) {
+            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess||bypass) {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
@@ -739,7 +754,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-products")
     public ResponseEntity<?> retrieveProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (offset < 0) {
@@ -860,7 +875,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-new-state-products")
     public ResponseEntity<?> getAllNewStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {
@@ -927,7 +942,7 @@ public class ProductController extends CatalogEndpoint {
     @GetMapping("/get-all-live-state-products")
     public ResponseEntity<?> getAllLiveStateProducts(
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
 
         try {
             if (catalogService == null) {
@@ -990,24 +1005,26 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    @GetMapping("/get-filter-products")
+    @PostMapping("/get-filter-products")
     public ResponseEntity<?> getFilterProducts(
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
             @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
             @RequestParam(value = "state", required = false) List<Long> state,
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
             @RequestParam(value = "category", required = false) List<Long> categories,
-            @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
             @RequestParam(value = "isExpired", required = false) boolean isExpired,
+            @RequestParam(value = "isArchived", required = false) Boolean isArchived,
             @RequestParam(value = "all", required = false, defaultValue = "false") boolean all,
             @RequestHeader(name = "Authorization") String authHeader,
             @RequestParam(name = "myProducts", defaultValue = "false", required = false) Boolean myProducts,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit,
+            @RequestBody(required = false) FilterProductTitleDto titleDto)
+    {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -1058,13 +1075,20 @@ public class ProductController extends CatalogEndpoint {
                 // Fetch filtered products
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, isExpired, offset, limit, all, createdById, productIds
+                        titleDto != null ? titleDto.getTitle() : null,
+                        titleDto != null ? titleDto.getDisplayTemplate() : null,
+                        fee, post, dateFrom, dateTo, isExpired, isArchived, offset, limit, all, createdById, productIds
                 );
+
+
             } else {
                 opresponse = productService.filterProducts(
                         state, rejection_status, categories, reserveCategories,
-                        title, fee, post, dateFrom, dateTo, null, offset, limit, all, createdById, productIds
+                        titleDto != null ? titleDto.getTitle() : null,
+                        titleDto != null ? titleDto.getDisplayTemplate() : null,
+                        fee, post, dateFrom, dateTo, isExpired, isArchived, offset, limit, all, createdById, productIds
                 );
+
             }
             products = (List<CustomProduct>) opresponse.get("products");
             if (products.isEmpty()) {
@@ -1133,7 +1157,7 @@ public class ProductController extends CatalogEndpoint {
         }
     }
 
-    @GetMapping("/get-all")
+    @PostMapping("/get-all")
     public ResponseEntity<?> getAllProductsByServiceProvider(
             @RequestHeader(value = "Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int offset,
@@ -1143,12 +1167,13 @@ public class ProductController extends CatalogEndpoint {
             @RequestParam(value = "rejection_status", required = false) List<Long> rejection_status,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "product_ids", required = false) List<Long> productIds,
-            @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "fee", required = false) Double fee,
             @RequestParam(value = "post", required = false) Integer post,
             @RequestParam(value = "reserve_categories", required = false) List<Long> reserveCategories,
             @RequestParam(value = "date_from", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateFrom,
-            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo) {
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dateTo,
+            @RequestBody(required = false) FilterProductTitleDto titleDto,
+            @RequestParam(value = "isArchived", required = false) Boolean isArchived) {
 
         try {
             if (authHeader == null || !authHeader.startsWith(Constant.BEARER_CONST)) {
@@ -1175,7 +1200,8 @@ public class ProductController extends CatalogEndpoint {
                     dateTo = dateFormat.parse(dateFormat.format(dateTo));
                 }
             }
-            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories, title, fee, post, dateFrom, dateTo, productIds);
+            return productService.filterProductsByRoleAndUserId(roleId, userId, offset, limit, showDraftProducts, state, rejection_status, categories, reserveCategories,  titleDto != null ? titleDto.getTitle() : null,
+                    titleDto != null ? titleDto.getDisplayTemplate() : null, fee, post, dateFrom, dateTo, productIds,isArchived);
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
             return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
@@ -1257,6 +1283,11 @@ public class ProductController extends CatalogEndpoint {
     public CustomProduct getProductWithPurchasers(Long id) {
         CustomProduct product = entityManager.find(CustomProduct.class,id);
         product.getPurchasedBy().size(); // triggers initialization
+        return product;
+    }
+    public Product findProductFromItemAttribute(OrderItem orderItem) {
+        Long productId = Long.parseLong(orderItem.getOrderItemAttributes().get("productId").getValue());
+        Product product = catalogService.findProductById(productId);
         return product;
     }
 }

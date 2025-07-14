@@ -16,6 +16,7 @@ import org.broadleafcommerce.core.catalog.domain.CategoryImpl;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityManager;
@@ -234,9 +235,10 @@ public class AdvertisementService {
             throw new Exception("Failed to save Advertisement: " + e.getMessage(), e);
         }
     }
-
+ @Autowired
+    JdbcTemplate jdbcTemplate;
     public List<Advertisement> filterAdvertisements(String title, List<Long> categories, List<Long> subCategories) throws Exception {
-
+        jdbcTemplate.execute("CALL update_advertisement_product_counts()");
         try {
 
             // Initialize the JPQL query
@@ -280,11 +282,12 @@ public class AdvertisementService {
                 }
                 jpql.append("AND a.category IN :subCategories ");
             }
+            jpql.append(" AND a.productCount > 0 AND (a.notificationEndDate is null or a.notificationEndDate > CURRENT_TIMESTAMP) AND a.archived = 'N' ");
 
                 if (title != null && !title.isEmpty()) {
                     jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
                 }
-
+            System.out.println(jpql);
                 // Create the query with the final JPQL string
                 TypedQuery<Advertisement> query = entityManager.createQuery(jpql.toString(), Advertisement.class);
 
@@ -321,12 +324,15 @@ public class AdvertisementService {
         {
             throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" not found");
         }
+        if(advertisementToUpdate.getArchived().equals('Y'))
+            throw new IllegalArgumentException("Advertisement with id "+ advertisementId+" is archived");
         if(advertisementToUpdate.getCategory()!=null)
         {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                throw new IllegalArgumentException("Advertisement cannot be once it is linked with any product ");
+                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
+                    throw new IllegalArgumentException("Cannot edit advertisement start date once live");
             }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());

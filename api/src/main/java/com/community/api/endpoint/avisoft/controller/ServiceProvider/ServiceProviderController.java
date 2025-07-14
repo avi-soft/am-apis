@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.community.api.component.Constant.*;
 import static com.community.api.services.ServiceProvider.ServiceProviderServiceImpl.getLongList;
 
 @Slf4j
@@ -209,15 +208,25 @@ public class ServiceProviderController {
             return ResponseService.generateErrorResponse("Highest qualification not filled",HttpStatus.BAD_REQUEST);*/
         boolean hasCurrent = false;
         boolean hasPermanent = false;
+        boolean hasBusinessAddress= false;
 
         for (ServiceProviderAddress addr : serviceProvider.getSpAddresses()) {
-            if (addr.getAddress_type_id() == CURRENT_ADDRESS_ID) {
+            if (addr.getAddress_type_id() == Constant.CURRENT_ADDRESS_ID) {
                 hasCurrent = true;
-            } else if (addr.getAddress_type_id() == PERMANENT_ADDRESS_ID) {
+            } else if (addr.getAddress_type_id() == Constant.PERMANENT_ADDRESS_ID) {
                 hasPermanent = true;
+            }
+            else if(addr.getAddress_type_id()== Constant.OFFICE_ADDRESS_ID)
+            {
+                hasBusinessAddress=true;
             }
         }
 
+        if(!hasBusinessAddress)
+            if(serviceProvider.getIs_running_business_unit().equals(true))
+            {
+                return ResponseService.generateErrorResponse("Business address is not filled",HttpStatus.BAD_REQUEST);
+            }
         if (!hasCurrent && !hasPermanent)
             return ResponseService.generateErrorResponse("Both current and permanent address are not filled", HttpStatus.BAD_REQUEST);
         else if (!hasPermanent)
@@ -228,12 +237,9 @@ public class ServiceProviderController {
         if (serviceProvider.getIs_running_business_unit().equals(true)) {
             REQUIRED_FIELDS = Arrays.asList(
                     "business_name",
-                    "business_location",
                     "business_email",
                     "number_of_employees",
                     "isCFormAvailable",
-                    "latitude",
-                    "longitude",
                     "has_technical_knowledge",
                     "work_experience_in_months"
             );
@@ -412,7 +418,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) String spAdmin,
             @RequestParam(required = false) String sp,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "1000") int limit,
             HttpServletRequest request) {
         try {
             if (offset < 0) {
@@ -556,7 +562,7 @@ public class ServiceProviderController {
     @GetMapping("/get-all-service-providers-with-completed-test")
     public ResponseEntity<?> getAllServiceProvidersWithCompletedTest(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam(defaultValue = "1000") int limit) {
         try {
             int startPosition = page * limit;
 
@@ -602,7 +608,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) List<Long> rank,
             @RequestParam(required = false) String type,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit,
+            @RequestParam(value = "limit", defaultValue = "30") int limit,
             @RequestParam(required = false) Long ticketId,
             HttpServletRequest request) {
 
@@ -805,7 +811,7 @@ public class ServiceProviderController {
             @RequestParam(required = false) Boolean registeredByMe,
             HttpServletRequest httpServletRequest,
             @RequestParam(value = "offset", defaultValue = "0") int offset,
-            @RequestParam(value = "limit", defaultValue = "10") int limit) {
+            @RequestParam(value = "limit", defaultValue = "1000") int limit) {
         try {
             ServiceProviderEntity serviceProvider = entityManager.find(ServiceProviderEntity.class, service_provider_id);
             if (serviceProvider == null) {
@@ -857,7 +863,7 @@ public class ServiceProviderController {
 
     @Transactional
     @GetMapping("/{serviceProviderId}/order-requests")
-    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
+    public ResponseEntity<?> allOrderRequestsBySPId(@PathVariable Long serviceProviderId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "1000") int limit, @RequestParam(defaultValue = "all") String requestStatus) {
         try {
             int startPosition = page * limit;
             Query query = null;
@@ -1176,7 +1182,7 @@ public class ServiceProviderController {
     @Transactional
     @Authorize(value = {Constant.roleSuperAdmin})
     @GetMapping("get-admins")
-    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "30", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
+    public ResponseEntity<?> returnAdmins(@RequestParam(defaultValue = "1000", required = false) int limit, @RequestParam(defaultValue = "0", required = false) int page) throws Exception {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ServiceProviderEntity> cq = cb.createQuery(ServiceProviderEntity.class);
         Root<ServiceProviderEntity> root = cq.from(ServiceProviderEntity.class);

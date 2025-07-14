@@ -194,6 +194,9 @@ public class CustomProduct extends ProductImpl {
     @Column(name = "is_multiple_post_same_fee",columnDefinition = "BOOLEAN DEFAULT FALSE")
     protected Boolean isMultiplePostSameFee;
 
+    @Column(name = "is_edited",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    protected Boolean isEdited;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
@@ -217,7 +220,6 @@ public class CustomProduct extends ProductImpl {
 
     @Column(name = "soft_delete", columnDefinition = "VARCHAR DEFAULT 'N'")
     private String del;
-
 
     @ElementCollection
     @CollectionTable(name = "product_purchasers",
