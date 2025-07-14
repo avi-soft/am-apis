@@ -329,7 +329,8 @@ public class AdvertisementService {
             List<CustomProduct> customProducts = productService.getAllProductsByAdvertisementId(advertisementToUpdate);
             if(customProducts!=null && !customProducts.isEmpty())
             {
-                throw new IllegalArgumentException("Advertisement cannot be once it is linked with any product ");
+                if(!advertisementDto.getNotificationStartDate().equals(advertisementToUpdate.getNotificationStartDate()))
+                    throw new IllegalArgumentException("Cannot edit advertisement start date once live");
             }
         }
         advertisementToUpdate.setAdditionalComments(advertisementDto.getAdditionalComments());

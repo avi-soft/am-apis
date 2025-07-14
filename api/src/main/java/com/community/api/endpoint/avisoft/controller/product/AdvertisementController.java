@@ -523,7 +523,6 @@ public class AdvertisementController {
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
 
-            if(advertisement.getNotificationEndDate().toInstant().isAfter(new Date().toInstant()))
 
 
             if (advertisement == null) {
@@ -544,9 +543,11 @@ public class AdvertisementController {
             Long modifierUserId = productService.getUserIdByToken(authHeader);
             advertisement.setModifierId(modifierUserId);
             advertisement.setModifierRole(role);
+            advertisement.setArchived('Y');
+            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement("+advertisementId.toString()+")");
             entityManager.merge(advertisement);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", advertisement, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
