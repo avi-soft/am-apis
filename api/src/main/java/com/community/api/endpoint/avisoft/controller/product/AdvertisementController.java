@@ -515,11 +515,15 @@ public class AdvertisementController {
 
             Long advertisementId = Long.parseLong(advertisementIdPath);
 
+
+
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
+
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
@@ -539,9 +543,11 @@ public class AdvertisementController {
             Long modifierUserId = productService.getUserIdByToken(authHeader);
             advertisement.setModifierId(modifierUserId);
             advertisement.setModifierRole(role);
+            advertisement.setArchived('Y');
+            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement("+advertisementId.toString()+")");
             entityManager.merge(advertisement);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", advertisement, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);

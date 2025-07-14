@@ -186,6 +186,8 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
+
+
             Advertisement advertisement = productService.validateAdvertisement(addProductDto);
 
             Long categoryId = advertisement.getCategory().getDefaultParentCategory().getId();
