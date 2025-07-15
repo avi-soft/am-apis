@@ -283,8 +283,9 @@ public class AdvertisementService {
                 jpql.append("AND a.category IN :subCategories ");
             }
             if(!all) {
-                jpql.append(" AND a.productCount > 0 AND (a.notificationEndDate is null or a.notificationEndDate > CURRENT_TIMESTAMP) AND a.archived = 'N' ");
+                jpql.append(" AND a.productCount > 0 AND (a.notificationEndDate is null or a.notificationEndDate > CURRENT_TIMESTAMP)  ");
             }
+            jpql.append(" AND a.archived = 'N' ");
                 if (title != null && !title.isEmpty()) {
                     jpql.append("AND LOWER(a.title) LIKE LOWER(:title) ");
                 }
