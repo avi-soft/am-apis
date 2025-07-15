@@ -3520,8 +3520,8 @@ public class CustomerEndpoint {
                 qualificationIds.add(qualificationDetail.getQualification_id());
             }
             int age = sharedUtilityService.calculateAge(customCustomer.getDob());
-            Long reservedCategory = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-            Long genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+//            Long reservedCategory = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+            Long genderId = null;
             Double fee = null;
             String ageLimit = null;
 
@@ -3533,8 +3533,20 @@ public class CustomerEndpoint {
 
                 if (customCustomer != null) {
                     try {
-                        categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
-                        genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+                        if(customCustomer.getCategory()!=null)
+                        {
+                            categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                        }
+                        else {
+                            categoryId=RESERVED_CATEGORY_ALL;
+                        }
+                        if(customCustomer.getGender()!=null)
+                        {
+                            genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+                        }
+                        else {
+                            genderId=GENDER_ALL;
+                        }
 
                         // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
                         fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), categoryId, genderId);
