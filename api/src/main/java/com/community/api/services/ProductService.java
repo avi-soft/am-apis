@@ -721,7 +721,7 @@ public class ProductService {
                 // Only non-expired products
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
-
+            jpql.append("AND p.del = 'N' ");
             jpql.append("ORDER BY p.createdDate DESC ");
 
             TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql.toString().replace("ORDER BY p.createdDate DESC ", "")).toString(),Long.class);
@@ -3501,7 +3501,7 @@ public class ProductService {
                     }
                 } else {
                     // For the first qualification, qualification operator should be null
-                    qualificationEligibilityDto.setQualificationOperatorId(null);
+                    qualificationEligibilityDto.setQualificationOperatorId(Constant.AND_OPERATOR_ID);
                 }
 
                 // Validate logical operators for streams and subjects
@@ -4749,10 +4749,14 @@ public class ProductService {
 
     public Advertisement validateAdvertisement(AddProductDto addProductDto) throws Exception {
         try {
+
             if (addProductDto.getAdvertisement() != null) {
                 Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
                 if (advertisement == null) {
                     throw new IllegalArgumentException("Advertisement not found with this id.");
+                }
+                if ('Y' == advertisement.getArchived() || advertisement.getNotificationEndDate().before(new Date())) {
+                    throw new IllegalArgumentException("Advertisement is either archived or expired");
                 }
                 return advertisement;
             }

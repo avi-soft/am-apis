@@ -21,10 +21,16 @@ BEGIN
            COALESCE(maximum_ticket_size, ranking_maximum_ticket_size)
     INTO v_is_active, v_current_total, v_max_tickets
     FROM (
-        SELECT sp.is_active, sp.ticket_assigned, sp.ticket_pending, 
-               sp.maximum_ticket_size, r.maximum_ticket_size AS ranking_maximum_ticket_size
+        SELECT sp.is_active,
+               sp.ticket_assigned,
+               sp.ticket_pending,
+               sp.maximum_ticket_size,
+               r.maximum_ticket_size AS ranking_maximum_ticket_size
         FROM service_provider sp
-        LEFT JOIN service_provider_rank r ON r.rank_id = sp.rank_id
+        LEFT JOIN service_provider_rank_mapping m
+               ON sp.service_provider_id = m.service_provider_id
+        LEFT JOIN service_provider_rank r
+               ON m.rank_id = r.rank_id
         WHERE sp.service_provider_id = p_service_provider_id
     ) AS sub;
 
