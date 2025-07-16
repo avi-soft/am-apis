@@ -4755,7 +4755,7 @@ public class ProductService {
                 if (advertisement == null) {
                     throw new IllegalArgumentException("Advertisement not found with this id.");
                 }
-                if ('Y' == advertisement.getArchived() || advertisement.getNotificationEndDate().before(new Date())) {
+                if ('Y' == advertisement.getArchived() ||(advertisement.getNotificationEndDate()!=null&& advertisement.getNotificationEndDate().before(new Date()))) {
                     throw new IllegalArgumentException("Advertisement is either archived or expired");
                 }
                 return advertisement;
