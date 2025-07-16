@@ -652,12 +652,14 @@ public class ProductController extends CatalogEndpoint {
             }
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
+                List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
                 entityManager.merge(customProduct);
-                wrapper.wrapDetails(customProduct, null, null, productReserveCategoryFeePostRefService);
+                wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("Product is updated and saved as Draft successfully", wrapper, HttpStatus.OK);
             } else if (saveAsDraft && !customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
+                List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
                 entityManager.merge(customProduct);
-                wrapper.wrapDetails(customProduct, null, null, productReserveCategoryFeePostRefService);
+                wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("Product is updated successfully", wrapper, HttpStatus.OK);
             } else if (!saveAsDraft) {
                 if (customProduct.getProductState().getProductState().equalsIgnoreCase(PRODUCT_STATE_DRAFT)) {

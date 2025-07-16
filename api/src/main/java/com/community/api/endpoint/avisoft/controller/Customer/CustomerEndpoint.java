@@ -2449,6 +2449,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
+            if(customer.getCategory()==null||customer.getCategory().isEmpty()||customer.getGender()==null||customer.getGender().isEmpty())
+                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations",HttpStatus.OK);
             if (customer == null) {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
