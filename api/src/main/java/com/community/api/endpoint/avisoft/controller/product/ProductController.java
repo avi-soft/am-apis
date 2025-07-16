@@ -7,6 +7,7 @@ import com.community.api.dto.*;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
+import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.ProductEvents;
@@ -388,6 +389,7 @@ public class ProductController extends CatalogEndpoint {
             CustomProduct originalProduct = (CustomProduct) deepCopy(customProduct); // Deep clone before mutation
             Product product = catalogService.findProductById(customProduct.getId());
 
+
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(Constant.PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
@@ -574,6 +576,80 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
             CustomProductWrapper wrapper = new CustomProductWrapper();
+            if(saveAsDraft)
+            {
+                if(addProductDto.getMetaTitle().isEmpty()||addProductDto.getMetaTitle()==null)
+                    return ResponseService.generateErrorResponse("Title is required", HttpStatus.FORBIDDEN);
+                customProduct.setDisplayTemplate(addProductDto.getDisplayTemplate());
+                customProduct.setMetaTitle(addProductDto.getMetaTitle());
+                customProduct.setDisplayTemplate(addProductDto.getDisplayTemplate());
+                customProduct.setActiveStartDate(addProductDto.getActiveStartDate());
+                customProduct.setActiveEndDate(addProductDto.getActiveEndDate());
+                customProduct.setGoLiveDate(addProductDto.getGoLiveDate());
+                customProduct.setModificationDateFrom(addProductDto.getModificationDateFrom());
+                customProduct.setModificationDateTo(addProductDto.getModificationDateTo());
+                customProduct.setExamDateFrom(addProductDto.getExamDateFrom());
+                customProduct.setExamDateTo(addProductDto.getExamDateTo());
+                CustomApplicationScope applicationScope=null;
+                if(addProductDto.getApplicationScope()!=null) {
+                    applicationScope= entityManager.find(CustomApplicationScope.class, addProductDto.getApplicationScope());
+                    if(applicationScope==null)
+                        return ResponseService.generateErrorResponse("Application scope not found",HttpStatus.BAD_REQUEST);
+                }
+
+                customProduct.setCustomApplicationScope(applicationScope);
+                customProduct.setLateDateToPayFee(addProductDto.getLastDateToPayFee());
+                customProduct.setPlatformFee(addProductDto.getPlatformFee());
+                customProduct.setAdmitCardDateFrom(addProductDto.getAdmitCardDateFrom());
+                customProduct.setAdmitCardDateTo(addProductDto.getAdmitCardDateTo());
+                customProduct.setFormComplexity(addProductDto.getFormComplexity());
+                customProduct.setPriorityLevel(addProductDto.getPriorityLevel());
+                CustomSector sector=null;
+                if(addProductDto.getSector()!=null) {
+                    sector= entityManager.find(CustomSector.class, addProductDto.getSector());
+                    if(sector==null)
+                        return ResponseService.generateErrorResponse("Sector not found",HttpStatus.BAD_REQUEST);
+                }
+                Advertisement advertisement=null;
+                if(addProductDto.getAdvertisement()!=null) {
+                    advertisement= entityManager.find(Advertisement.class, addProductDto.getAdvertisement());
+                    if(advertisement==null)
+                        return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.BAD_REQUEST);
+                }
+                customProduct.setAdvertisement(advertisement);
+                customProduct.setSector(sector);
+                customProduct.setSectorRunningField(addProductDto.getSectorRunningField());
+                customProduct.setSelectionCriteria(addProductDto.getSelectionCriteria());
+                customProduct.setDownloadSyllabusLink(addProductDto.getDownloadSyllabusLink());
+                customProduct.setDownloadNotificationLink(addProductDto.getDownloadNotificationLink());
+                customProduct.setOtherInfo(addProductDto.getOtherInfo());
+                customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
+                customProduct.setAdditionalComments(addProductDto.getAdditionalComments());
+                customProduct.setAnswerKeyAvailableDate(addProductDto.getAnswerKeyAvailableDate());
+                customProduct.setResultDeclarationDate(addProductDto.getResultDeclarationDate());
+                customProduct.setTentativeVerificationFrom(addProductDto.getTentativeVerificationFrom());
+                customProduct.setTentativeVerificationTo(addProductDto.getTentativeVerificationTo());
+                customProduct.setCounsellingDate(addProductDto.getCounsellingDate());
+                customProduct.setExamCenterAvailableDate(addProductDto.getExamCenterAvailableDate());
+                customProduct.setFeeAdditionalComments(addProductDto.getFeeAdditionalComments());
+                customProduct.setIsLateDateToPayFeeNa(addProductDto.getIsLateDateToPayFeeNa());
+                customProduct.setIsModificationDateFromNa(addProductDto.getIsModificationDateFromNa());
+                customProduct.setIsModificationDateToNa(addProductDto.getIsModificationDateToNa());
+                customProduct.setIsAdmitCardDateFromNa(addProductDto.getIsAdmitCardDateFromNa());
+                customProduct.setIsAdmitCardDateToNa(addProductDto.getIsAdmitCardDateToNa());
+                customProduct.setIsExamDateFromNa(addProductDto.getIsExamDateFromNa());
+                customProduct.setIsExamDateToNa(addProductDto.getIsExamDateToNa());
+                customProduct.setIsTentativeVerificationFromNa(addProductDto.getIsTentativeVerificationFromNa());
+                customProduct.setIsTentativeVerificationToNa(addProductDto.getIsTentativeVerificationToNa());
+                customProduct.setIsAnswerKeyAvailableDateNa(addProductDto.getIsAnswerKeyAvailableDateNa());
+                customProduct.setIsResultDeclarationDateNa(addProductDto.getIsResultDeclarationDateNa());
+                customProduct.setIsCounsellingDateNa(addProductDto.getIsCounsellingDateNa());
+                customProduct.setIsExamCenterAvailableDateNa(addProductDto.getIsExamCenterAvailableDateNa());
+                CustomProductState customProductState=entityManager.find(CustomProductState.class,7L);
+                customProduct.setProductState(customProductState);
+
+                    postService.savePosts(addProductDto.getPosts(),product);
+            }
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
                 entityManager.merge(customProduct);
