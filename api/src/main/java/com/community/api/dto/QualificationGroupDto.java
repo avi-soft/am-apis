@@ -13,6 +13,6 @@ public class QualificationGroupDto {
     private Long qualificationGroupId;
     private Integer groupOrder;
     private String groupName;
-    private List<QualificationEligibilityDto> qualificationEligibilityInGroup = new ArrayList<>();
+    private List<QualificationEligibilityDto> qualificationGroups = new ArrayList<>();
     private String additionalComments;
 }

@@ -3477,13 +3477,13 @@ public class ProductService {
 
             // Validate each qualification group
             for (QualificationGroupDto groupDto : postDto.getQualificationEligibility()) {
-                if (groupDto.getQualificationEligibilityInGroup() == null || groupDto.getQualificationEligibilityInGroup().isEmpty()) {
+                if (groupDto.getQualificationGroups() == null || groupDto.getQualificationGroups().isEmpty()) {
                     throw new IllegalArgumentException("Qualification group cannot be empty: " + groupDto.getGroupName());
                 }
 
                 Set<QualificationEligibilityDto> seenSet = new HashSet<>();
 
-                for (QualificationEligibilityDto dto : groupDto.getQualificationEligibilityInGroup()) {
+                for (QualificationEligibilityDto dto : groupDto.getQualificationGroups()) {
                     // Get qualification details
                     if (dto.getQualificationIds() == null || dto.getQualificationIds().isEmpty()) {
                         throw new IllegalArgumentException("Qualification ID is required");
