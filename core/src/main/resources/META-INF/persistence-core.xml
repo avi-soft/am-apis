@@ -119,6 +119,7 @@
         <class>com.community.api.entity.ServiceProviderReRankingEligibility</class>
         <class>com.community.api.entity.LogicalOperator</class>
         <class>com.community.api.entity.QualificationRelation</class>
+        <class>com.community.api.entity.QualificationGroup</class>
         <exclude-unlisted-classes/>
     </persistence-unit>
 

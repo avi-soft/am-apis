@@ -470,10 +470,10 @@ public class CartEndPoint extends BaseEndpoint {
                             continue;
                         }
                         totalPlatformFee =totalPlatformFee+ customProduct.getPlatformFee();
-                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
-                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
+//                        EligibilityResult result = cartService.checkCustomerEligibilityDetailed(customCustomer, customProduct, false);
+//                        Map<String, Object> productDetails = sharedUtilityService.createProductResponseMap(product, orderItem, customCustomer, genderService.getGenderByName(customCustomer.getGender()).getGenderId(),result);
 
-                        products.add(productDetails);
+//                        products.add(productDetails);
                         individualFee = null;
 
 // 1. Check for ALL category and ALL gender
