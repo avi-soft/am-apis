@@ -69,8 +69,8 @@ public class QualificationEligibility implements Serializable
     private Boolean isPercentage;
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @JoinColumn(name = "qualification_group_id")
+    private QualificationGroup qualificationGroup;
 
     @Column(name = "is_appearing")
     @JsonProperty("isAppearing")

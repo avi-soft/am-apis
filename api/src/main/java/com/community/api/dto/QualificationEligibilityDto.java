@@ -25,9 +25,6 @@ public class QualificationEligibilityDto {
     private Long customReserveCategoryId;
     private String reserveCatIdRunningField;
     private Long percentage;
-
-    private Long postId;
-
     private Double cgpa;
 
     private Boolean isPercentage;
