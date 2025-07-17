@@ -29,7 +29,7 @@ public class QualificationGroup implements Serializable {
     private Integer groupOrder;
 
     @OneToMany(mappedBy = "qualificationGroup", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QualificationEligibility> qualificationEligibilityInGroup = new ArrayList<>();
+    private List<QualificationEligibility> qualificationGroups = new ArrayList<>();
 
     @Column(name = "additional_comments", columnDefinition = "text")
     private String additionalComments;

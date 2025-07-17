@@ -38,7 +38,7 @@ public class QualificationGroupService {
         QualificationGroupDto currentGroup = new QualificationGroupDto();
         currentGroup.setGroupOrder(1);
         currentGroup.setGroupName("Group 1");
-        currentGroup.getQualificationEligibilityInGroup().add(qualifications.get(0));
+        currentGroup.getQualificationGroups().add(qualifications.get(0));
 
         // Process remaining qualifications
         for (int i = 1; i < qualifications.size(); i++) {
@@ -51,9 +51,9 @@ public class QualificationGroupService {
                 currentGroup = new QualificationGroupDto();
                 currentGroup.setGroupOrder(groups.size() + 1);
                 currentGroup.setGroupName("Group " + (groups.size() + 1));
-                currentGroup.getQualificationEligibilityInGroup().add(qualifications.get(i));
+                currentGroup.getQualificationGroups().add(qualifications.get(i));
             } else {
-                currentGroup.getQualificationEligibilityInGroup().add(qualifications.get(i));
+                currentGroup.getQualificationGroups().add(qualifications.get(i));
             }
         }
 
@@ -65,7 +65,7 @@ public class QualificationGroupService {
     public boolean validateQualificationGroups(PostDto postDto) throws Exception {
         try {
             for (QualificationGroupDto group : postDto.getQualificationEligibility()) {
-                for (QualificationEligibilityDto qualification : group.getQualificationEligibilityInGroup()) {
+                for (QualificationEligibilityDto qualification : group.getQualificationGroups()) {
                     productService.validateQualificationRequirement(postDto);
                 }
             }
@@ -85,7 +85,7 @@ public class QualificationGroupService {
             entityManager.persist(group);
             entityManager.flush();
 
-            for (QualificationEligibilityDto qualificationDto : groupDto.getQualificationEligibilityInGroup()) {
+            for (QualificationEligibilityDto qualificationDto : groupDto.getQualificationGroups()) {
                 saveQualificationEligibility(qualificationDto, group);
             }
         }
@@ -183,7 +183,7 @@ public class QualificationGroupService {
         List<QualificationEligibilityDto> result = new ArrayList<>();
 
         for (QualificationGroup group : groups) {
-            List<QualificationEligibility> qualifications = group.getQualificationEligibilityInGroup();
+            List<QualificationEligibility> qualifications = group.getQualificationGroups();
 
             for (int i = 0; i < qualifications.size(); i++) {
                 QualificationEligibility qualification = qualifications.get(i);
@@ -265,10 +265,10 @@ public class QualificationGroupService {
             dto.setAdditionalComments(group.getAdditionalComments());
 
             List<QualificationEligibilityDto> qualificationDtos = new ArrayList<>();
-            for (QualificationEligibility qualification : group.getQualificationEligibilityInGroup()) {
+            for (QualificationEligibility qualification : group.getQualificationGroups()) {
                 qualificationDtos.add(convertToDto(qualification));
             }
-            dto.setQualificationEligibilityInGroup(qualificationDtos);
+            dto.setQualificationGroups(qualificationDtos);
 
             result.add(dto);
         }
