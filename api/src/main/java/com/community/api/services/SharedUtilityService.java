@@ -1159,13 +1159,14 @@ public class SharedUtilityService {
                                 Map<String, Object> documentDetails = new HashMap<>();
                                 documentDetails.put("documentId", document.getDocumentId());
                                 documentDetails.put("name", document.getName());
+                                String filePath=null;
                              /*   documentDetails.put("filePath", document.getFilePath());*/
                                 try {
-                                    String filePath = documentStorageService.encrypt(document.getFilePath());
+                                    filePath = documentStorageService.encrypt(document.getFilePath());
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 }
-                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                String fileUrl = fileService.getFileUrl(filePath, request);
                                 documentDetails.put("fileUrl", fileUrl);
                                 filteredDocument=documentDetails;
                             }
