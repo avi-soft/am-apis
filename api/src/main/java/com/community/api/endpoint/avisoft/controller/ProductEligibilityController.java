@@ -39,13 +39,13 @@ public class ProductEligibilityController {
     @Autowired
     ExceptionHandlingImplement exceptionHandlingImplement;
 
-    @GetMapping("/check/{customerId}/{productId}")
+ /*   @GetMapping("/check/{customerId}/{productId}")
     public ResponseEntity<?> checkEligibility(
             @PathVariable Long customerId,
             @PathVariable Long productId,
             @RequestParam(defaultValue = "false") boolean includeAllReasons,
             @RequestHeader(value = "Authorization") String authHeader) {
-        
+
         try {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -107,5 +107,5 @@ public class ProductEligibilityController {
             exceptionHandlingImplement.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
-    }
+    }*/
 }

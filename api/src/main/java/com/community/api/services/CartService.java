@@ -57,7 +57,7 @@ public class CartService {
         return false;
     }
 
-    public EligibilityResult checkCustomerEligibilityDetailed(CustomCustomer customer, CustomProduct product, boolean includeAllReasons) {
+   /* public EligibilityResult checkCustomerEligibilityDetailed(CustomCustomer customer, CustomProduct product, boolean includeAllReasons) {
         EligibilityResult result = new EligibilityResult();
 
         if (customer == null || product == null) {
@@ -1187,5 +1187,5 @@ public class CartService {
     public boolean isCustomerEligibleForProduct(CustomCustomer customer, CustomProduct product) {
         EligibilityResult result = checkCustomerEligibilityDetailed(customer, product, false);
         return result.getStatus() == EligibilityStatus.ELIGIBLE || result.getStatus() == EligibilityStatus.ELIGIBLE_WITH_WARNINGS;
-    }
+    }*/
 }

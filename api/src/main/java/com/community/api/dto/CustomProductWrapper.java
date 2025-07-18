@@ -4,8 +4,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
-import javax.persistence.Column;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 
@@ -291,7 +289,12 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
-                postProjectionDTO.setQualificationEligibility(post.getQualificationEligibility());
+                List<QualificationGroup> qualificationGroups = post.getQualificationEligibility();
+                for (QualificationGroup group : qualificationGroups) {
+                    System.out.println("------------------------------");
+                    System.out.println(group.getQualificationGroups().size());
+                }
+                postProjectionDTO.setQualificationEligibility(qualificationGroups);
                 postProjectionDTO.setStateDistributions(post.getStateDistributions());
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
