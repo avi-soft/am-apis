@@ -1159,7 +1159,12 @@ public class SharedUtilityService {
                                 Map<String, Object> documentDetails = new HashMap<>();
                                 documentDetails.put("documentId", document.getDocumentId());
                                 documentDetails.put("name", document.getName());
-                                documentDetails.put("filePath", document.getFilePath());
+                             /*   documentDetails.put("filePath", document.getFilePath());*/
+                                try {
+                                    String filePath = documentStorageService.encrypt(document.getFilePath());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
                                 String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
                                 documentDetails.put("fileUrl", fileUrl);
                                 filteredDocument=documentDetails;
@@ -1250,7 +1255,12 @@ public class SharedUtilityService {
                                 Map<String, Object> documentDetails = new HashMap<>();
                                 documentDetails.put("documentId", serviceProviderDocument.getDocumentId());
                                 documentDetails.put("name", serviceProviderDocument.getName());
-                                documentDetails.put("filePath", serviceProviderDocument.getFilePath());
+                                /*   documentDetails.put("filePath", document.getFilePath());*/
+                                try {
+                                    String filePath = documentStorageService.encrypt(serviceProviderDocument.getFilePath());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
                                 String fileUrl = fileService.getFileUrl(serviceProviderDocument.getFilePath(), request);
                                 documentDetails.put("fileUrl", fileUrl);
                                 filteredDocument=documentDetails;
