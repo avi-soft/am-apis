@@ -5,11 +5,13 @@ import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
 import com.community.api.endpoint.avisoft.controller.ServiceProviderActionController;
+import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
 import com.community.api.entity.Advertisement;
 import com.community.api.entity.CustomApplicationScope;
 import com.community.api.entity.CustomJobGroup;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
+import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.ProductEvents;
 import com.community.api.entity.StateCode;
 import com.community.api.entity.Role;
@@ -647,8 +649,47 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsExamCenterAvailableDateNa(addProductDto.getIsExamCenterAvailableDateNa());
                 CustomProductState customProductState=entityManager.find(CustomProductState.class,7L);
                 customProduct.setProductState(customProductState);
+                productService.validatePostRequirement(addProductDto, roleId, userId);
+                postList = postService.savePosts(addProductDto.getPosts(), product);
+                List<Post> postsToDelete = new ArrayList<>(customProduct.getPosts());
 
-                    postService.savePosts(addProductDto.getPosts(),product);
+                for (Post post : postsToDelete) {
+                    // First handle the @ManyToOne relationship in CustomProductReserveCategoryBornBeforeAfterRef
+                    CustomProductReserveCategoryBornBeforeAfterRef ref =
+                            productReserveCategoryBornBeforeAfterRefService.findByPost(post);
+
+                    if (ref != null) {
+                        // Clear the @ManyToOne relationship
+                        ref.setPost(null);
+                        entityManager.merge(ref);
+                    }
+
+                    // Clear the @ManyToMany relationship from Post
+                    if (post.getAgeRequirement() != null) {
+                        post.getAgeRequirement().clear();
+                        entityManager.merge(post);
+                    }
+                    if (post.getReligion() != null) {
+                        post.getReligion().clear();
+                        entityManager.merge(post);
+                    }
+
+                    // Remove the post from custom product
+                    post.setProduct(null);
+                    customProduct.getPosts().remove(post);
+                    entityManager.remove(entityManager.contains(post) ? post : entityManager.merge(post));
+                }
+                entityManager.flush();
+                if (addProductDto.getReservedCategory() != null) {
+                    productService.deleteOldReserveCategoryMapping(customProduct);
+                    productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
+                }
+                if (addProductDto.getPosts() != null) {
+                    if (!addProductDto.getPosts().isEmpty()) {
+                        postExecutionService.savePostsWithoutAgeRequirement(customProduct, postList);
+                        postService.updatePostAgeRequirements(addProductDto.getPosts(), customProduct, postList);
+                    }
+                }
             }
 
             if (saveAsDraft && customProduct.getProductState().getProductState().equalsIgnoreCase("DRAFT")) {
@@ -745,14 +786,14 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @GetMapping("/get-product-by-id/{productId}")
-    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath,@RequestParam(name = "orderId",required = false)Long orderId, @RequestHeader(value = "Authorization",required = false) String authHeader) {
+    public ResponseEntity<?> retrieveProductById(@PathVariable("productId") String productIdPath,@RequestParam(name = "orderId",required = false)Long orderId, @RequestHeader(value = "Authorization",required = false) String authHeader,@RequestParam(name = "ticketId",required = false)Long ticketId) {
 
         try {
-            Integer roleId=5;
-            Long userId=null;
-            if(authHeader!=null) {
+            Integer roleId = 5;
+            Long userId = null;
+            if (authHeader != null) {
                 String jwtToken = authHeader.substring(7);
-                roleId= jwtTokenUtil.extractRoleId(jwtToken);
+                roleId = jwtTokenUtil.extractRoleId(jwtToken);
                 userId = jwtTokenUtil.extractId(jwtToken);
             }
             String recOrigin = request.getHeader("Origin");
@@ -770,23 +811,46 @@ public class ProductController extends CatalogEndpoint {
             if (customProduct == null) {
                 return ResponseService.generateErrorResponse(PRODUCTNOTFOUND, HttpStatus.NOT_FOUND);
             }
-            boolean allowExpiredAccess=false;
-            boolean bypass=false;
-            if(orderId!=null) {
+            boolean allowExpiredAccess = false;
+            boolean bypass = false;
+            if (orderId != null) {
                 System.out.println("yes yes");
                 Order order = orderService.findOrderById(orderId);
                 if (order == null)
                     return ResponseService.generateErrorResponse("Order not found", HttpStatus.BAD_REQUEST);
-                OrderItem orderItem=order.getOrderItems().get(0);
-                Product product=findProductFromItemAttribute(orderItem);
-                System.out.println("productId"+product.getId());
-                if(product.getId().equals(productId)) {
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Product product = findProductFromItemAttribute(orderItem);
+                System.out.println("productId" + product.getId());
+                if (product.getId().equals(productId)) {
                     System.out.println("yes yes");
                     bypass = true;
                 }
             }
-            if(authHeader!=null&&!bypass)
-            {
+            if (roleId!=5&&ticketId != null) {
+
+                System.out.println("yes yes");
+                CustomServiceProviderTicket ticket = entityManager.find(CustomServiceProviderTicket.class,ticketId);
+                if (ticket == null)
+                    return ResponseService.generateErrorResponse("Ticket not found", HttpStatus.BAD_REQUEST);
+                ServiceProviderEntity entity=entityManager.find(ServiceProviderEntity.class,userId);
+                if(!ticket.getAssignee().equals(userId))
+                    return ResponseService.generateErrorResponse("Ticket does not belong to specified user", HttpStatus.BAD_REQUEST);
+                Order order=ticket.getOrder();
+                if(order==null)
+                {
+                    order=ticket.getParentTicket().getOrder();
+                }
+                if(order==null)
+                    return ResponseService.generateErrorResponse("No products linked to ticket",HttpStatus.BAD_REQUEST);
+                OrderItem orderItem = order.getOrderItems().get(0);
+                Product product = findProductFromItemAttribute(orderItem);
+                System.out.println("productId" + product.getId());
+                if (product.getId().equals(productId)) {
+                    System.out.println("yes yes");
+                    bypass = true;
+                }
+            }
+            if (authHeader != null && !bypass) {
                 allowExpiredAccess =
                         roleId == 1 || roleId == 2 ||
                                 (customProduct.getCreatoRole() != null &&
@@ -803,20 +867,29 @@ public class ProductController extends CatalogEndpoint {
 
             boolean isArchived = ((Status) customProduct).getArchived() == 'Y';
             Instant now = Instant.now();
-            Instant expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
-            boolean isExpired = expiry.isBefore(now);
+            Instant expiry = null;
+            if (customProduct.getActiveEndDate() != null) {
+                expiry = customProduct.getDefaultSku().getActiveEndDate().toInstant();
+                boolean isExpired = expiry.isBefore(now);
 
-            if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId()!=6) || allowExpiredAccess||bypass) {
+                if ((!isArchived && !isExpired && customProduct.getProductState().getProductStateId() != 6) || allowExpiredAccess || bypass) {
+                    CustomProductWrapper wrapper = new CustomProductWrapper();
+                    List<Post> postList = customProduct.getPosts();
+                    List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
+                    wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
+                    return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
+                } else {
+                    return ResponseService.generateErrorResponse("PRODUCT IS EITHER ARCHIVED OR EXPIRED", HttpStatus.NOT_FOUND);
+                }
+
+            } else {
                 CustomProductWrapper wrapper = new CustomProductWrapper();
                 List<Post> postList = customProduct.getPosts();
                 List<PostProjectionDTO> postProjectionDTOS = getPosts(postList);
                 wrapper.wrapDetails(customProduct, postList, postProjectionDTOS, productReserveCategoryFeePostRefService);
                 return ResponseService.generateSuccessResponse("PRODUCT FOUND", wrapper, HttpStatus.OK);
-            } else {
-                return ResponseService.generateErrorResponse("PRODUCT IS EITHER ARCHIVED OR EXPIRED", HttpStatus.NOT_FOUND);
             }
-
-        } catch (NumberFormatException numberFormatException) {
+        }catch(NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException illegalArgumentException) {
