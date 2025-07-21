@@ -31,6 +31,7 @@ public class PostProjectionDTO {
     @JsonProperty("reserve_category_age")
     List<ReserveCategoryAgeDto>reserveCategoryAge;
     private List<QualificationGroup> qualificationEligibility;
+    private List<QualificationGroupDto> qualificationEligibilitydto;
    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements ;
     @JsonProperty("post_additional_comments")
     String additionalComments;

@@ -1,11 +1,11 @@
 package com.community.api.dto;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 
 import com.community.api.component.Constant;
 import com.community.api.entity.*;
@@ -289,12 +289,7 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
                 postProjectionDTO.setAdditionalComments(post.getAdditionalComments());
                 postProjectionDTO.setPostTotalVacancies(post.getPostTotalVacancies());
                 postProjectionDTO.setVacancyDistributionTypeIds(post.getVacancyDistributionTypes());
-                List<QualificationGroup> qualificationGroups = post.getQualificationEligibility();
-                for (QualificationGroup group : qualificationGroups) {
-                    System.out.println("------------------------------");
-                    System.out.println(group.getQualificationGroups().size());
-                }
-                postProjectionDTO.setQualificationEligibility(qualificationGroups);
+                postProjectionDTO.setQualificationEligibilitydto(postDtos.get(postDtoIndex).getQualificationEligibility());
                 postProjectionDTO.setStateDistributions(post.getStateDistributions());
                 postProjectionDTO.setZoneDistributions(post.getZoneDistributions());
                 postProjectionDTO.setGenderWiseDistribution(post.getGenderWiseDistribution());
