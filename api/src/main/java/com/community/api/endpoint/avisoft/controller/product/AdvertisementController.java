@@ -140,9 +140,18 @@ public class AdvertisementController {
 
     @PutMapping("/update/{advertisementId}")
     @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
-    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId) {
+    public ResponseEntity<?> updateAdvertisement(@RequestBody AddAdvertisementDto addAdvertisementDto,@PathVariable Long advertisementId,@RequestHeader(value = "Authorization")String authHeader) {
         try {
+            String jwtToken = authHeader.substring(7);
+            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+            String roleName = roleService.findRoleName(roleId);
+            Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+
             Advertisement advertisement=advertisementService.updateAdvertisement(addAdvertisementDto,advertisementId);
+            if(roleName.equals(Constant.roleServiceProvider)&&(!advertisement.getUserId().equals(tokenUserId)))
+            {
+                return ResponseService.generateErrorResponse("Not Authorized to update advertisement",HttpStatus.FORBIDDEN);
+                }
             if (advertisement.getArchived() != 'Y') {
                 List<CustomProductWrapper> products = new ArrayList<>();
 
@@ -252,16 +261,31 @@ public class AdvertisementController {
         }
     }
 
+    @Authorize(value = {Constant.roleAdmin, Constant.roleSuperAdmin,Constant.roleAdminServiceProvider, Constant.roleServiceProvider})
     @GetMapping("/get-filter-advertisement")
     public ResponseEntity<?> getFilterAdvertisements(
             @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "creatorId", required = false) Long creatorId,
             @RequestParam(value = "category", required = false) List<Long> categories,
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
+            @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
+            @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "1000") int limit) {
+            @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
         try {
-
+            if(preview) {
+                String jwtToken = authHeader.substring(7);
+                Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
+                String roleName = roleService.findRoleName(roleId);
+                Long tokenUserId = jwtTokenUtil.extractId(jwtToken);
+                if (roleName.equals(Constant.roleServiceProvider))
+                {
+                    if(creatorId!=null&&(!creatorId.equals(tokenUserId)))
+                        throw new IllegalArgumentException("Not authorized to preview advertisements");
+                    creatorId=tokenUserId;
+                }
+            }
             if(offset<0)
             {
                 throw new IllegalArgumentException("Offset for pagination cannot be a negative number");
@@ -270,7 +294,7 @@ public class AdvertisementController {
             {
                 throw new IllegalArgumentException("Limit for pagination cannot be a negative number or 0");
             }
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories,subCategories);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(title, categories,subCategories,creatorId,all);
 
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
@@ -392,7 +416,7 @@ public class AdvertisementController {
                 response.put("currentPage", offset);
                 return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY", response, HttpStatus.OK);
             }
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null,null,false);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }
@@ -507,6 +531,7 @@ public class AdvertisementController {
         }
     }
 
+    @Authorize(value = {Constant.roleSuperAdmin,Constant.roleAdmin})
     @DeleteMapping("/delete/{advertisementId}")
     @Transactional
     public ResponseEntity<?> deleteProduct(@PathVariable("advertisementId") String advertisementIdPath,
@@ -515,11 +540,15 @@ public class AdvertisementController {
 
             Long advertisementId = Long.parseLong(advertisementIdPath);
 
+
+
             if (catalogService == null) {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
             Advertisement advertisement = entityManager.find(Advertisement.class, advertisementId); // Find the Custom Product
+
+
 
             if (advertisement == null) {
                 return ResponseService.generateErrorResponse("Advertisement Not Found", HttpStatus.NOT_FOUND);
@@ -539,9 +568,11 @@ public class AdvertisementController {
             Long modifierUserId = productService.getUserIdByToken(authHeader);
             advertisement.setModifierId(modifierUserId);
             advertisement.setModifierRole(role);
+            advertisement.setArchived('Y');
+            jdbcTemplate.execute("CALL archive_skus_and_products_for_advertisement("+advertisementId.toString()+")");
             entityManager.merge(advertisement);
 
-            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", "DELETED", HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("ADVERTISEMENT DELETED SUCCESSFULLY", advertisement, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
@@ -577,7 +608,7 @@ public class AdvertisementController {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null);
+            List<Advertisement> advertisements = advertisementService.filterAdvertisements(null, longList,null,null,false);
             if (advertisements.isEmpty()) {
                 return ResponseService.generateSuccessResponse("NO ADVERTISEMENT FOUND WITH THE GIVEN CRITERIA", advertisements, HttpStatus.OK);
             }

@@ -11,7 +11,7 @@ import com.community.api.dto.CategoryDistributionDto;
 import com.community.api.dto.DistrictDistributionDto;
 import com.community.api.dto.PostDto;
 import com.community.api.dto.DistrictCategoryDistributionDto;
-import com.community.api.dto.QualificationRelationDto;
+import com.community.api.dto.QualificationGroupDto;
 import com.community.api.dto.ZoneDistributionDto;
 import com.community.api.dto.StateDistributionDto;
 import com.community.api.dto.GenderDistributionDto;
@@ -66,6 +66,9 @@ public class ProductService {
     protected SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     @Resource(name = "blCatalogService")
     protected CatalogService catalogService;
+
+    @Autowired
+    QualificationGroupService qualificationGroupService;
      @Autowired
      QualificationDetailsService qualificationDetailsService;
     @Autowired
@@ -721,7 +724,7 @@ public class ProductService {
                 // Only non-expired products
                 jpql.append("AND (s.activeEndDate IS NOT NULL AND s.activeEndDate > CURRENT_TIMESTAMP) ");
             }
-
+            jpql.append("AND p.del = 'N' ");
             jpql.append("ORDER BY p.createdDate DESC ");
 
             TypedQuery<Long> queryToCount = entityManager.createQuery(count.append(jpql.toString().replace("ORDER BY p.createdDate DESC ", "")).toString(),Long.class);
@@ -3468,67 +3471,61 @@ public class ProductService {
 
     public boolean validateQualificationRequirement(PostDto postDto) throws Exception {
         try {
-            Set<QualificationEligibilityDto> seenSet = new HashSet<>();
-            if (postDto.getQualificationEligibility() == null) {
+            if (postDto.getQualificationEligibility() == null || postDto.getQualificationEligibility().isEmpty()) {
                 return true;
             }
 
-            for (QualificationEligibilityDto dto : postDto.getQualificationEligibility()) {
-                // Get qualification details
-                Qualification qualificationDetails = entityManager.find(Qualification.class, dto.getQualificationIds().get(0));
-                if (qualificationDetails == null) {
-                    throw new IllegalArgumentException("Qualification not found");
+            // Validate each qualification group
+            for (QualificationGroupDto groupDto : postDto.getQualificationEligibility()) {
+                if (groupDto.getQualificationGroups() == null || groupDto.getQualificationGroups().isEmpty()) {
+                    throw new IllegalArgumentException("Qualification group cannot be empty: " + groupDto.getGroupName());
                 }
 
-                // Check for duplicates
-                if (!seenSet.add(dto)) {
-                    throw new IllegalArgumentException("Duplicate Qualification Eligibility found for the post : " + postDto.getPostName());
-                }
-            }
+                Set<QualificationEligibilityDto> seenSet = new HashSet<>();
 
-            for (int i = 0; i < postDto.getQualificationEligibility().size(); i++) {
-                QualificationEligibilityDto qualificationEligibilityDto = postDto.getQualificationEligibility().get(i);
-                Qualification qualificationDetails = entityManager.find(Qualification.class, qualificationEligibilityDto.getQualificationIds().get(0));
-
-                // Basic validations
-                if (qualificationEligibilityDto.getIsAppearing() == null) {
-                    throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
-                }
-
-                if (i > 0) { // Not the first qualification
-                    if (qualificationEligibilityDto.getQualificationOperatorId()!= null) {
-                        validateQualificationOperator(qualificationEligibilityDto.getQualificationOperatorId(), qualificationDetails, postDto, i);
+                for (QualificationEligibilityDto dto : groupDto.getQualificationGroups()) {
+                    // Get qualification details
+                    if (dto.getQualificationIds() == null || dto.getQualificationIds().isEmpty()) {
+                        throw new IllegalArgumentException("Qualification ID is required");
                     }
-                } else {
-                    // For the first qualification, qualification operator should be null
-                    qualificationEligibilityDto.setQualificationOperatorId(null);
+
+                    Qualification qualificationDetails = entityManager.find(Qualification.class, dto.getQualificationIds().get(0));
+                    if (qualificationDetails == null) {
+                        throw new IllegalArgumentException("Qualification not found");
+                    }
+
+                    // Check for duplicates within the group
+                    if (!seenSet.add(dto)) {
+                        throw new IllegalArgumentException("Duplicate Qualification Eligibility found in group: " + groupDto.getGroupName());
+                    }
+
+                    // Basic validations
+                    if (dto.getIsAppearing() == null) {
+                        throw new IllegalArgumentException("Need to specify whether appearing or pass for qualification " + qualificationDetails.getQualification_name());
+                    }
+
+                    // Validate logical operators for streams and subjects
+                    validateLogicalOperatorId(dto.getStreamsRelationId(), "streams");
+                    validateLogicalOperatorId(dto.getSubjectsRelationId(), "subjects");
+
+                    validateRunningFields(dto, qualificationDetails);
+
+                    validatePercentageAndCgpa(dto, qualificationDetails);
+
+                    validateQualificationIds(dto);
+
+                    validateStreamsWithMappingAndLogic(dto, qualificationDetails);
+
+                    validateSubjectsWithMappingAndLogic(dto, qualificationDetails);
+
+                    validateQualificationOperator(dto.getQualificationOperatorId(),qualificationDetails);
+
+                    validateReserveCategoryWithMandatory(dto);
+
+                    validatePercentageRange(dto);
                 }
-
-                // Validate logical operators for streams and subjects
-                validateLogicalOperatorId(qualificationEligibilityDto.getStreamsRelationId(), "streams");
-                validateLogicalOperatorId(qualificationEligibilityDto.getSubjectsRelationId(), "subjects");
-
-                // Running field validations
-                validateRunningFields(qualificationEligibilityDto, qualificationDetails);
-
-                // Percentage/CGPA validation
-                validatePercentageAndCgpa(qualificationEligibilityDto, qualificationDetails);
-
-                // Qualification validation
-                validateQualificationIds(qualificationEligibilityDto);
-
-                // Stream validation with mapping and logical operations
-                validateStreamsWithMappingAndLogic(qualificationEligibilityDto, qualificationDetails);
-
-                // Subject validation with mapping and logical operations
-                validateSubjectsWithMappingAndLogic(qualificationEligibilityDto, qualificationDetails);
-
-                // Reserve category validation
-                validateReserveCategoryWithMandatory(qualificationEligibilityDto);
-
-                // Final percentage range validation
-                validatePercentageRange(qualificationEligibilityDto);
             }
+
             return true;
         } catch (IllegalArgumentException illegalArgumentException) {
             exceptionHandlingService.handleException(illegalArgumentException);
@@ -3539,7 +3536,7 @@ public class ProductService {
         }
     }
 
-    private void validateQualificationOperator(Long operatorId, Qualification currentQualification, PostDto postDto, int currentIndex) {
+    private void validateQualificationOperator(Long operatorId, Qualification currentQualification) {
         if (operatorId == null) {
             throw new IllegalArgumentException("Operator ID is required for qualification " + currentQualification.getQualification_name());
         }
@@ -3547,16 +3544,6 @@ public class ProductService {
         LogicalOperator logicalOperator = entityManager.find(LogicalOperator.class, operatorId);
         if (logicalOperator == null) {
             throw new IllegalArgumentException("Invalid logical operator ID for qualification " + currentQualification.getQualification_name());
-        }
-
-        if (currentIndex > 0) {
-            QualificationEligibilityDto previousQualificationDto = postDto.getQualificationEligibility().get(currentIndex - 1);
-            Integer previousQualificationId = previousQualificationDto.getQualificationIds().get(0);
-
-            Qualification previousQualification = entityManager.find(Qualification.class, previousQualificationId);
-            if (previousQualification == null) {
-                throw new IllegalArgumentException("Previous qualification not found for qualification " + currentQualification.getQualification_name());
-            }
         }
     }
 
@@ -3990,13 +3977,8 @@ public class ProductService {
             {
                 validatePhysicalRequirement(postDto, null);
             }
-            if(postDto.getQualificationEligibility()!=null&&!postDto.getQualificationEligibility().isEmpty()) {
-                for (QualificationEligibilityDto qualificationEligibilityDto : postDto.getQualificationEligibility()) {
-                    if (qualificationEligibilityDto.getQualificationIds() != null) {
-                        validateQualificationRequirement(postDto);
-                    }
-                }
-            }
+            if (postDto.getQualificationEligibility() != null && !postDto.getQualificationEligibility().isEmpty()) {
+                qualificationGroupService.validateQualificationGroups(postDto);}
         }
         return true;
     }
@@ -4749,10 +4731,14 @@ public class ProductService {
 
     public Advertisement validateAdvertisement(AddProductDto addProductDto) throws Exception {
         try {
+
             if (addProductDto.getAdvertisement() != null) {
                 Advertisement advertisement = advertisementService.getAdvertisementById(addProductDto.getAdvertisement());
                 if (advertisement == null) {
                     throw new IllegalArgumentException("Advertisement not found with this id.");
+                }
+                if ('Y' == advertisement.getArchived() ||(advertisement.getNotificationEndDate()!=null&& advertisement.getNotificationEndDate().before(new Date()))) {
+                    throw new IllegalArgumentException("Advertisement is either archived or expired");
                 }
                 return advertisement;
             }

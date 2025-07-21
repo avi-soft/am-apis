@@ -69,7 +69,7 @@ public class Post implements Serializable {
     private GenderWiseDistribution genderWiseDistribution;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<QualificationEligibility>qualificationEligibility;
+    private List<QualificationGroup> qualificationEligibility = new ArrayList<>();
 
     @JsonIgnore
     @ManyToOne

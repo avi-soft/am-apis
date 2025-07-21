@@ -3,7 +3,7 @@ package com.community.api.dto;
 import com.community.api.entity.CustomProductGenderPhysicalRequirementRef;
 import com.community.api.entity.GenderWiseDistribution;
 import com.community.api.entity.OtherDistribution;
-import com.community.api.entity.QualificationEligibility;
+import com.community.api.entity.QualificationGroup;
 import com.community.api.entity.StateDistribution;
 import com.community.api.entity.VacancyDistributionType;
 import com.community.api.entity.ZoneDistribution;
@@ -30,7 +30,8 @@ public class PostProjectionDTO {
     private String duration;
     @JsonProperty("reserve_category_age")
     List<ReserveCategoryAgeDto>reserveCategoryAge;
-    private List<QualificationEligibility> qualificationEligibility;
+    private List<QualificationGroup> qualificationEligibility;
+    private List<QualificationGroupDto> qualificationEligibilitydto;
    private List<CustomProductGenderPhysicalRequirementRef> physicalRequirements ;
     @JsonProperty("post_additional_comments")
     String additionalComments;
