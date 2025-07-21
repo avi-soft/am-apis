@@ -401,6 +401,7 @@ public class ServiceProviderServiceImpl implements ServiceProviderService {
             if (secondaryMobileNumber != null && mobileNumber == null && secondaryMobileNumber.equalsIgnoreCase(existingServiceProvider.getMobileNumber())) {
                 errorMessages.put("mobileNumber", "Primary and Secondary Mobile Numbers cannot be the same");
             }
+            updates.remove("mobileNumber");
             List<String> addresskeys = new ArrayList<>();
             addresskeys.add("district");
             addresskeys.add("city");
