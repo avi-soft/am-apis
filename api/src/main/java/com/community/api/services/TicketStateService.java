@@ -23,7 +23,6 @@ import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.broadleafcommerce.core.catalog.domain.Product;
 import org.broadleafcommerce.core.catalog.service.CatalogService;
-import org.broadleafcommerce.core.order.domain.Order;
 import org.broadleafcommerce.core.order.domain.OrderItem;
 import org.broadleafcommerce.core.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -341,6 +340,18 @@ public class TicketStateService {
                             throw new IllegalArgumentException("Ticket state with id " + Constant.TICKET_STATE_TO_DO + "not found");
                         }
                         ticket.setTicketState(customTicketState);
+                        if(ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                            CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+
+                            if(orderState == null) {
+                                throw new IllegalArgumentException("No Order found with this primary ticket.");
+                            }
+                            orderState.setOrderStateId(4);
+                            orderState.setModifiedDate(new Date());
+                            orderState.setModifierUserId(tokenUserId);
+                            orderState.setModifierRole(tokenRole);
+                            entityManager.merge(orderState);
+                        }
                     }
                 } else
                     throw new IllegalArgumentException("Assignee and role must be provided together.");
@@ -376,6 +387,13 @@ public class TicketStateService {
                 } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_CLOSE) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                     CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
                     orderState.setOrderStateId(7);
+                    orderState.setModifiedDate(new Date());
+                    orderState.setModifierUserId(tokenUserId);
+                    orderState.setModifierRole(tokenRole);
+                    entityManager.merge(orderState);
+                } else if (ticketState.getTicketStateId().equals(Constant.TICKET_STATE_RETURNED) && ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+                    CustomOrderState orderState = entityManager.find(CustomOrderState.class, ticket.getOrder().getId());
+                    orderState.setOrderStateId(3);
                     orderState.setModifiedDate(new Date());
                     orderState.setModifierUserId(tokenUserId);
                     orderState.setModifierRole(tokenRole);
@@ -657,7 +675,7 @@ public class TicketStateService {
             }
 
             // As only primary ticket will be linked to the order.
-            if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
+            /*if (ticket.getTicketType().getTicketTypeId().equals(Constant.TICKET_TYPE_ID_OF_PRIMARY_TICKET)) {
                 Order order = orderService.findOrderById(ticket.getOrder().getId());
                 order.getOrderAttributes().get("product_id");
                 CustomOrderState orderState = entityManager.find(CustomOrderState.class, order.getId());
@@ -672,7 +690,7 @@ public class TicketStateService {
                     orderState.setModifierRole(tokenRole);
                     entityManager.merge(orderState);
                 }
-            }
+            }*/
 
             LocalDateTime localDateTime = LocalDateTime.now();
             Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());

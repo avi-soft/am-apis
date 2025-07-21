@@ -473,7 +473,7 @@ public class SharedUtilityService {
                         Map<String, Object> documentDetails = new HashMap<>();
                         documentDetails.put("documentId", document.getDocumentId());
                         documentDetails.put("name", document.getName());
-                        documentDetails.put("filePath", document.getFilePath());
+                       /* documentDetails.put("filePath", document.getFilePath());*/
                         if(document.getIs_qualification_document().equals(true) && document.getQualificationDetails()!=null)
                         {
                             documentDetails.put("qualification_detail_id",document.getQualificationDetails().getQualification_detail_id());
@@ -771,7 +771,7 @@ public class SharedUtilityService {
                         Map<String, Object> documentDetails = new HashMap<>();
                         documentDetails.put("documentId", document.getDocumentId());
                         documentDetails.put("name", document.getName());
-                        documentDetails.put("filePath", document.getFilePath());
+
 
                         if (document.getIs_qualification_document().equals(true) && document.getQualificationDetails() != null) {
                             documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
@@ -957,7 +957,7 @@ public class SharedUtilityService {
                     Map<String, Object> documentDetails = new HashMap<>();
                     documentDetails.put("documentId", document.getDocumentId());
                     documentDetails.put("name", document.getName());
-                    documentDetails.put("filePath", document.getFilePath());
+                   /* documentDetails.put("filePath", document.getFilePath());*/
 
                     if (document.getIs_qualification_document().equals(true) && document.getQualificationDetails() != null) {
                         documentDetails.put("qualification_detail_id", document.getQualificationDetails().getQualification_detail_id());
@@ -1160,8 +1160,14 @@ public class SharedUtilityService {
                                 Map<String, Object> documentDetails = new HashMap<>();
                                 documentDetails.put("documentId", document.getDocumentId());
                                 documentDetails.put("name", document.getName());
-                                documentDetails.put("filePath", document.getFilePath());
-                                String fileUrl = fileService.getFileUrl(document.getFilePath(), request);
+                                String filePath=null;
+                             /*   documentDetails.put("filePath", document.getFilePath());*/
+                                try {
+                                    filePath = documentStorageService.encrypt(document.getFilePath());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                                String fileUrl = fileService.getFileUrl(filePath, request);
                                 documentDetails.put("fileUrl", fileUrl);
                                 filteredDocument=documentDetails;
                             }
@@ -1251,8 +1257,14 @@ public class SharedUtilityService {
                                 Map<String, Object> documentDetails = new HashMap<>();
                                 documentDetails.put("documentId", serviceProviderDocument.getDocumentId());
                                 documentDetails.put("name", serviceProviderDocument.getName());
-                                documentDetails.put("filePath", serviceProviderDocument.getFilePath());
-                                String fileUrl = fileService.getFileUrl(serviceProviderDocument.getFilePath(), request);
+                                String filePath=null;
+                                /*   documentDetails.put("filePath", document.getFilePath());*/
+                                try {
+                                   filePath = documentStorageService.encrypt(serviceProviderDocument.getFilePath());
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                                String fileUrl = fileService.getFileUrl(filePath, request);
                                 documentDetails.put("fileUrl", fileUrl);
                                 filteredDocument=documentDetails;
                             }

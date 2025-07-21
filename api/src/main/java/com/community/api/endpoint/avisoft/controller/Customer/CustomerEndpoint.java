@@ -280,11 +280,9 @@ public class CustomerEndpoint {
                 try {
                     LocalDate dob = LocalDate.parse(dobStr, formatter);
                     LocalDate today = LocalDate.now();
-
                     // Check if DOB is not in the future
                     if (dob.isAfter(today))
                         errorMessages.put("dob", "DOB cannot be of future");
-
                 } catch (DateTimeParseException e) {
                     // Invalid date format
                     errorMessages.put("dob", "Invalid DOB");
@@ -2259,7 +2257,7 @@ public class CustomerEndpoint {
                 return ResponseService.generateErrorResponse("Customer with this ID not found", HttpStatus.NOT_FOUND);
             }
 
-            List<CustomProductWrapper> listOfSavedProducts = new ArrayList<>();
+            List<CustomProduct> listOfSavedProducts = new ArrayList<>();
 
             for (Product product : customer.getSavedForms()) {
                 CustomProduct customProduct = entityManager.find(CustomProduct.class, product.getId());
@@ -2268,40 +2266,12 @@ public class CustomerEndpoint {
                         || customProduct.getActiveEndDate().before(new Date())) {
                     continue;
                 }
-
-                CustomProductWrapper customProductWrapper = new CustomProductWrapper();
-                customProductWrapper.wrapDetails(customProduct, request, reserveCategoryService, reserveCategoryAgeService, genderService, customer, sharedUtilityService);
-                listOfSavedProducts.add(customProductWrapper);
+               /* CustomProductWrapper customProductWrapper = new CustomProductWrapper();
+                customProductWrapper.wrapDetails(customProduct, request, reserveCategoryService, reserveCategoryAgeService, genderService, customer, sharedUtilityService);*/
+                listOfSavedProducts.add(customProduct);
             }
 
-            // Calculate pagination details
-            int totalItems = listOfSavedProducts.size();
-            int totalPages = (int) Math.ceil((double) totalItems / limit);
-            int currentPage = offset;
-
-            if (offset >= totalPages && offset != 0) {
-                return ResponseService.generateErrorResponse("No more saved forms available", HttpStatus.BAD_REQUEST);
-            }
-
-            int fromIndex = offset * limit;
-            int toIndex = Math.min(fromIndex + limit, totalItems);
-
-            List<CustomProductWrapper> paginatedList = (fromIndex < totalItems)
-                    ? listOfSavedProducts.subList(fromIndex, toIndex)
-                    : Collections.emptyList(); // Return empty list if offset exceeds total items
-
-            // Response Map
-            Map<String, Object> response = new HashMap<>();
-            response.put("forms", paginatedList);
-            response.put("totalItems", totalItems);
-            response.put("totalPages", totalPages);
-            response.put("currentPage", currentPage);
-
-            return ResponseService.generateSuccessResponse(
-                    paginatedList.isEmpty() ? "Saved forms list is empty" : "Forms retrieved successfully",
-                    response,
-                    HttpStatus.OK
-            );
+           return getSavedFormsWrapper(customer_id,listOfSavedProducts,offset,limit);
 
         } catch (NumberFormatException e) {
             return ResponseService.generateErrorResponse("Invalid customerId: expected a Long", HttpStatus.BAD_REQUEST);
@@ -2477,6 +2447,8 @@ public class CustomerEndpoint {
             }
 
             CustomCustomer customer = entityManager.find(CustomCustomer.class, customer_id);
+            if(customer.getCategory()==null||customer.getCategory().isEmpty()||customer.getGender()==null||customer.getGender().isEmpty())
+                return ResponseService.generateErrorResponse("Need to provide Category and Gender to enable Recommendations",HttpStatus.OK);
             if (customer == null) {
                 return ResponseService.generateErrorResponse("Customer with this id not found", HttpStatus.NOT_FOUND);
             }
@@ -3534,4 +3506,162 @@ public class CustomerEndpoint {
         return ageLimit;
     }
 
+
+    public ResponseEntity<?> getSavedFormsWrapper(Long customerId,List<CustomProduct> customProducts, Integer offset, Integer limit) throws Exception {
+        try
+        {
+            Customer customer = customerService.readCustomerById(customerId);
+            if (customer == null)
+                return ResponseService.generateErrorResponse("Customer not found", HttpStatus.NOT_FOUND);
+            CustomCustomer customCustomer = entityManager.find(CustomCustomer.class, customerId);
+            List<QualificationDetails> qualificationDetails = customCustomer.getQualificationDetailsList();
+            List<Integer> qualificationIds = new ArrayList<>();
+            for (QualificationDetails qualificationDetail : qualificationDetails) {
+                qualificationIds.add(qualificationDetail.getQualification_id());
+            }
+            int age = sharedUtilityService.calculateAge(customCustomer.getDob());
+//            Long reservedCategory = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+            Long genderId = null;
+            Double fee = null;
+            String ageLimit = null;
+
+            List<ProductDetailsDTO> wrappers = new ArrayList<>();
+            for (CustomProduct customProduct : customProducts) {
+                genderId = 1L;  // Default to 1 (MALE)
+                Long categoryId = 1L; // Default to 1 (GEN)
+                int flag = 0;
+
+                if (customCustomer != null) {
+                    try {
+                        if(customCustomer.getCategory()!=null)
+                        {
+                            categoryId = reserveCategoryService.getCategoryByName(customCustomer.getCategory()).getReserveCategoryId();
+                        }
+                        else {
+                            categoryId=RESERVED_CATEGORY_ALL;
+                        }
+                        if(customCustomer.getGender()!=null)
+                        {
+                            genderId = genderService.getGenderByName(customCustomer.getGender()).getGenderId();
+                        }
+                        else {
+                            genderId=GENDER_ALL;
+                        }
+
+                        // 1. Most specific: Exact category + gender (e.g., SC + MALE = 50)
+                        fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), categoryId, genderId);
+
+                        if (fee != null) {
+                            flag++;
+                        } else {
+                            fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), categoryId, Constant.GENDER_ALL);
+                            if (fee != null) {
+                                flag++;
+                            } else {
+                                // 3. ALL categories + Customer's gender
+                                fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), Constant.RESERVED_CATEGORY_ALL, genderId);
+                                if (fee != null) {
+                                    flag++;
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("\nERROR in customer-specific fee lookup:");
+                        e.printStackTrace();
+                    }
+                }
+
+                // 4. Final fallbacks
+                if (fee == null) {
+                    fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), 1L, 1L);
+                    if (fee == null) {
+                        fee = reserveCategoryService.getReserveCategoryFee(
+                                customProduct.getId(), Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+                    }
+
+                    if (fee != null) {
+                        flag++;
+                    } else {
+                        fee = 0.0;
+                    }
+                }
+                CustomProductReserveCategoryBornBeforeAfterRef ageLimitResult = null;
+
+                if (customCustomer != null) {
+                    try {
+                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+                        if (ageLimitResult == null) {
+                            ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, genderId);
+
+                            if (ageLimitResult == null) {
+                                ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, categoryId, Constant.GENDER_ALL);
+
+                                if (ageLimitResult == null) {
+                                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                                            customProduct, Constant.RESERVED_CATEGORY_ALL, genderId);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("\nERROR in customer-specific age lookup:");
+                        e.printStackTrace();
+                    }
+                }
+
+                // Final fallback for age
+                if (ageLimitResult == null) {
+                    ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(
+                            customProduct, Constant.RESERVED_CATEGORY_ALL, Constant.GENDER_ALL);
+                }
+
+                // Set age limit if found
+                if (ageLimitResult != null) {
+                    setAgeLimit(ageLimitResult, sharedUtilityService);
+                    flag++;
+                }
+                if (flag < 2) {
+                    if (fee == null) {
+                        fee = reserveCategoryService.getReserveCategoryFee(customProduct.getId(), 1L, 1L);
+                        if (fee == null) {
+                            fee = 0.0;
+                        }
+                    }
+
+                    if (ageLimit == null) {
+                        ageLimitResult = reserveCategoryAgeService.fetchAgeLimitByCategory(customProduct, 1L, 1L);
+                        if (ageLimitResult != null) {
+                            setAgeLimit(ageLimitResult, sharedUtilityService);
+                        }
+                    }
+                }
+                ProductDetailsDTO dto = new ProductDetailsDTO();
+                dto.setFee(fee);
+                dto.setAgeLimit(getAgeLimits(ageLimitResult, sharedUtilityService));
+                dto.setId(customProduct.getId());
+                dto.setTotalVacanicies(customProduct.getTotalVacanciesInProduct());
+                dto.setMetaTitle(customProduct.getMetaTitle());
+                dto.setDisplayTemplate(customProduct.getDisplayTemplate());
+                dto.setActiveEndDate(customProduct.getActiveEndDate());
+                dto.setActiveStartDate(customProduct.getActiveStartDate());
+                wrappers.add(dto);
+            }
+            Map<String, Object> response = new HashMap<>();
+            response.put("forms", wrappers);
+            response.put("totalItems", customProducts.size());
+            long totalPages = (customProducts.size() + limit - 1) / limit;
+            response.put("totalPages", totalPages);
+            response.put("currentPage", offset + 1);
+            return ResponseService.generateSuccessResponse("Found products", response, HttpStatus.OK);
+        }
+        catch (IllegalArgumentException illegalArgumentException)
+        {
+            exceptionHandling.handleException(illegalArgumentException);
+            throw new IllegalArgumentException(illegalArgumentException);
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            throw new Exception(e);
+        }
+    }
 }

@@ -12,8 +12,6 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 public class QualificationEligibilityDto {
-    
-    private Long qualificationEligibilityId;
 
     private List<Integer> qualificationIds;
     private List<Long> customSubjectIds;
@@ -25,9 +23,6 @@ public class QualificationEligibilityDto {
     private Long customReserveCategoryId;
     private String reserveCatIdRunningField;
     private Long percentage;
-
-    private Long postId;
-
     private Double cgpa;
 
     private Boolean isPercentage;

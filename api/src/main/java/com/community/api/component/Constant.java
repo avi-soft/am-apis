@@ -18,6 +18,7 @@ public class Constant {
     public static final int RESIZED_IMAGE_DOCUMENT_TYPE_ID= 36;
     public static final int UPLOADED_PDF_DOCUMENT_TYPE_ID= 37;
     public static final int SIGNATURE_IMAGE_DOCUMENT_TYPE_ID= 38;
+    public static final Long AND_OPERATOR_ID= 1L;
     public static String COUNTRY_CODE = "+91";
     public static String PHONE_QUERY = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode";
     public static String PHONE_QUERY_OTP = "SELECT c FROM CustomCustomer c WHERE c.mobileNumber = :mobileNumber AND c.countryCode = :countryCode AND c.otp=:otp";
