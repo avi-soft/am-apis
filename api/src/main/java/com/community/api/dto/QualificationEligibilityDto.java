@@ -12,8 +12,6 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 public class QualificationEligibilityDto {
-    
-    private Long qualificationEligibilityId;
 
     private List<Integer> qualificationIds;
     private List<Long> customSubjectIds;
