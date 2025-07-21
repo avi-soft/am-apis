@@ -1,6 +1,7 @@
 package com.community.api.endpoint.avisoft.controller.product;
 
 import com.broadleafcommerce.rest.api.endpoint.catalog.CatalogEndpoint;
+import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
 import com.community.api.component.JwtUtil;
 import com.community.api.dto.*;
@@ -60,6 +61,7 @@ import com.community.api.services.exception.ExceptionHandlingService;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -175,6 +177,7 @@ public class ProductController extends CatalogEndpoint {
             HttpServletRequest request,
             @RequestBody AddProductDto addProductDto,
             @RequestHeader(value = "Authorization") String authHeader,
+
             @RequestParam(value = "saveDraft", required = false, defaultValue = "false") boolean saveDraft) {
 
         try {
@@ -189,12 +192,21 @@ public class ProductController extends CatalogEndpoint {
                 return ResponseService.generateErrorResponse(Constant.CATALOG_SERVICE_NOT_INITIALIZED, HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-
-
-            Advertisement advertisement = productService.validateAdvertisement(addProductDto);
-
-            Long categoryId = advertisement.getCategory().getDefaultParentCategory().getId();
-            Category category = productService.validateCategory(categoryId);
+            Advertisement advertisement=null;
+            if(!saveDraft) {
+                advertisement = productService.validateAdvertisement(addProductDto);
+            }
+            else
+            {
+                if(addProductDto.getAdvertisement()!=null)
+                    advertisement=entityManager.find(Advertisement.class,addProductDto.getAdvertisement());
+            }
+            Long categoryId=null;
+            if(advertisement!=null)
+                categoryId = advertisement.getCategory().getDefaultParentCategory().getId();
+            Category category=null;
+            if(categoryId!=null)
+                category = productService.validateCategory(categoryId);
 
             if (!saveDraft) {
                 productService.addProductDtoValidation(addProductDto);
@@ -276,19 +288,29 @@ public class ProductController extends CatalogEndpoint {
                         }
                     }
                 }
-                productService.validateReserveCategory(addProductDto);
+
+                    productService.validateReserveCategory(addProductDto);
             } else if (saveDraft) {
                 if (addProductDto.getReservedCategory() != null) {
-                    productService.validateReserveCategory(addProductDto);
+                    /*productService.validateReserveCategory(addProductDto);*/
                 }
             }
-            CustomSector customSector = productService.validateSector(addProductDto);
+            CustomSector customSector=null;
+            if(!saveDraft) {
+                 customSector = productService.validateSector(addProductDto);
 
-            productService.validateSelectionCriteria(addProductDto);
+                productService.validateSelectionCriteria(addProductDto);
 
-            productService.validateAdmitCardDates(addProductDto);
-            productService.validateModificationDates(addProductDto);
-            productService.validateLastDateToPayFee(addProductDto);
+                productService.validateAdmitCardDates(addProductDto);
+                productService.validateModificationDates(addProductDto);
+                productService.validateLastDateToPayFee(addProductDto);
+            }
+            else
+            {
+                if(addProductDto.getSector()!=null)
+                     customSector = entityManager.find(CustomSector.class,addProductDto.getSector());
+            }
+
 
             if (!saveDraft) {
                 productService.validateLinks(addProductDto);
@@ -301,7 +323,8 @@ public class ProductController extends CatalogEndpoint {
                 }
             }
 
-            productService.validateFormComplexity(addProductDto);
+            if(!saveDraft)
+                productService.validateFormComplexity(addProductDto);
 
             Role role = productService.getRoleByToken(authHeader);
             Long creatorUserId = productService.getUserIdByToken(authHeader);
@@ -312,11 +335,15 @@ public class ProductController extends CatalogEndpoint {
                     postList = postService.savePosts(addProductDto.getPosts(), product);
                 }
             } else if (saveDraft && addProductDto.getPosts() != null) {
-                productService.validatePostRequirement(addProductDto, roleId, userId);
+                //productService.validatePostRequirement(addProductDto, roleId, userId);
                 postList = postService.savePosts(addProductDto.getPosts(), product);
             }
-            productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
-
+            if(addProductDto.getActiveStartDate()!=null)
+                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, product.getActiveStartDate(), currentDate);
+            else
+            {
+                productService.saveCustomProduct(product, addProductDto, customProductState, role, creatorUserId, currentDate, currentDate);
+            }
             if (!saveDraft) {
                 productReserveCategoryFeePostRefService.saveFeeAndPost(addProductDto.getReservedCategory(), product);
             } else if (saveDraft) {
@@ -339,6 +366,7 @@ public class ProductController extends CatalogEndpoint {
                     }
                     postExecutionService.savePostsToCustomProduct(addProductDto.getPosts(), product, postList);
                 }
+
                 if (reserveCategoryService != null) {
                     wrapper.wrapDetailsAddProduct(product, addProductDto, customProductState, applicationScope, creatorUserId, role, reserveCategoryService, stateCode, customSector, currentDate, advertisement, genderService, entityManager, postList, addProductDto.getPosts(), totalVacanciesInProduct, (long) addProductDto.getPosts().size());
                 } else {
@@ -372,7 +400,7 @@ public class ProductController extends CatalogEndpoint {
 
     @Transactional
     @PutMapping("/update/{productId}")
-    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft) {
+    public ResponseEntity<?> updateProduct(HttpServletRequest request, @RequestBody AddProductDto addProductDto, @PathVariable Long productId, @RequestHeader(value = "Authorization") String authHeader, @RequestParam(value = "saveAsDraft", required = false, defaultValue = "false") boolean saveAsDraft,@RequestParam(value = "resubmit", required = false, defaultValue = "false") boolean resubmit) {
 
         try {
             String jwtToken = authHeader.substring(7);
@@ -770,6 +798,14 @@ public class ProductController extends CatalogEndpoint {
                 customProduct.setIsEdited(false);
             }
             entityManager.merge(customProduct);
+            if(resubmit)
+            {
+                CustomProductState productState=entityManager.find(CustomProductState.class,9L);
+                customProduct.setProductState(productState);
+                entityManager.merge(customProduct);
+                wrapper.wrapDetails(customProduct, null, postProjectionDTOS, productReserveCategoryFeePostRefService);
+                return ResponseService.generateSuccessResponse("Product Re-submitted Successfully", wrapper, HttpStatus.OK);
+            }
             return ResponseService.generateSuccessResponse("Product Updated Successfully", wrapper, HttpStatus.OK);
 
         } catch (NumberFormatException numberFormatException) {
@@ -1307,6 +1343,26 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    @Transactional
+    @Authorize(value = {roleSuperAdmin,roleAdmin})
+    @PutMapping("{productId}/return-product")
+    private ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
+    {
+        Product product=catalogService.findProductById(productId);
+        if(product == null)
+            return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
+        if(returnProduct.containsKey("comment")&&(((String)(returnProduct.get("comment"))).isEmpty()))
+        {
+            return ResponseService.generateErrorResponse("Comment is required while creating ticket",HttpStatus.NOT_FOUND);
+        }
+        CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
+        CustomProductState state=entityManager.find(CustomProductState.class,8L);
+        customProduct.setProductState(state);
+        entityManager.merge(customProduct);
+        return ResponseService.generateSuccessResponse("Product returned successfully",customProduct,HttpStatus.OK);
+    }
+
 
     @PostMapping("/get-all")
     public ResponseEntity<?> getAllProductsByServiceProvider(

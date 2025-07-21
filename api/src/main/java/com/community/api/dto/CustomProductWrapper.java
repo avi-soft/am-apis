@@ -202,7 +202,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.displayTemplate = product.getDisplayTemplate();
         this.active = product.isActive();
         this.activeGoLiveDate = addProductDto.getGoLiveDate();
-        this.categoryName = product.getDefaultCategory().getName();
+        if(product.getDefaultCategory()!=null)
+            this.categoryName = product.getDefaultCategory().getName();
+        else
+            this.categoryName=null;
         this.priorityLevel = addProductDto.getPriorityLevel();
         this.isEdited=false;
         this.archived = 'N';
@@ -387,7 +390,8 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.totalVacanciesInProduct=totalVacanciesInProduct;
         this.state = state;
         AdvertisementWrapper advertisementWrapper = new AdvertisementWrapper();
-        advertisementWrapper.wrapDetails(advertisement, null);
+        if(addProductDto.getAdvertisement()!=null)
+            advertisementWrapper.wrapDetails(advertisement, null);
         this.advertisement = advertisementWrapper;
 
         if (product.getDefaultCategory() != null) {
@@ -471,7 +475,10 @@ public class CustomProductWrapper extends BaseWrapper implements APIWrapper<Prod
         this.active = customProduct.isActive();
         this.activeGoLiveDate = customProduct.getGoLiveDate();
         this.resultDeclarationDate=customProduct.getResultDeclarationDate();
-        this.categoryName = customProduct.getDefaultCategory().getName();
+        if(customProduct.getDefaultCategory()!=null)
+            this.categoryName = customProduct.getDefaultCategory().getName();
+        else
+            this.categoryName=null;
         this.isEdited=customProduct.getIsEdited();
         this.priorityLevel = customProduct.getPriorityLevel();
         this.archived = customProduct.getArchived();
