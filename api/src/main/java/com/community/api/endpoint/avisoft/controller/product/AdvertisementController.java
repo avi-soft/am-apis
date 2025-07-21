@@ -270,7 +270,7 @@ public class AdvertisementController {
             @RequestParam(value = "subCategory", required = false) List<Long> subCategories,
             @RequestParam(value = "all",required = false,defaultValue = "false")Boolean all,
             @RequestParam(value = "preview",required = false,defaultValue = "false")Boolean preview,
-            @RequestParam(value = "id",required = false,defaultValue = "false")Long id,
+            @RequestParam(value = "id",required = false)Long id,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "1000") int limit,@RequestHeader(value = "Authorization")String authHeader) {
 
