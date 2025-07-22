@@ -74,6 +74,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
@@ -582,7 +583,7 @@ public class ProductController extends CatalogEndpoint {
             {
                 productReserveCategoryBornBeforeAfterRefService.saveBornBeforeAndBornAfter(addProductDto.getReserveCategoryAge(),product,pos);
             }*/
-            if (addProductDto.getIsResubmitProduct() != null) {
+            if (resubmit) {
                 if (addProductDto.getIsResubmitProduct().equals(true)) {
                     CustomProductState customProductState = entityManager.find(CustomProductState.class, 9L);
                     if (customProductState == null) {
@@ -1343,23 +1344,29 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
-
-    @Transactional
+    @PersistenceContext
+    private EntityManager em;
     @Authorize(value = {roleSuperAdmin,roleAdmin})
+    @Transactional
     @PutMapping("{productId}/return-product")
-    private ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
+    public ResponseEntity<?>returnProduct(@PathVariable Long productId,@RequestBody Map<String,String>returnProduct)
     {
-        Product product=catalogService.findProductById(productId);
-        if(product == null)
+        CustomProduct customProduct=em.find(CustomProduct.class,productId);
+        if(customProduct == null)
             return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
         if(returnProduct.containsKey("comment")&&(((String)(returnProduct.get("comment"))).isEmpty()))
         {
             return ResponseService.generateErrorResponse("Comment is required while creating ticket",HttpStatus.NOT_FOUND);
         }
-        CustomProduct customProduct=entityManager.find(CustomProduct.class,productId);
-        CustomProductState state=entityManager.find(CustomProductState.class,8L);
+
+        if(customProduct.getProductState().getProductStateId().equals(8L))
+        {
+            return ResponseService.generateErrorResponse("Product has already been returned",HttpStatus.BAD_REQUEST);
+        }
+        CustomProductState state=em.find(CustomProductState.class,8L);
         customProduct.setProductState(state);
-        entityManager.merge(customProduct);
+        customProduct.setRejectionComment((String)(returnProduct.get("comment")));
+        em.merge(customProduct);
         return ResponseService.generateSuccessResponse("Product returned successfully",customProduct,HttpStatus.OK);
     }
 
