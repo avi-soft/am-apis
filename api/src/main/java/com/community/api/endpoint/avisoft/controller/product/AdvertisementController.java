@@ -313,6 +313,7 @@ public class AdvertisementController {
                     response.put("totalItems", 1);
                     response.put("totalPages", 1);
                     response.put("currentPage", 1);
+                    return ResponseService.generateSuccessResponse("ADVERTISEMENT RETRIEVED SUCCESSFULLY",response, HttpStatus.OK);
                 }
                 else
                     return ResponseService.generateErrorResponse("Advertisement not found",HttpStatus.OK);
