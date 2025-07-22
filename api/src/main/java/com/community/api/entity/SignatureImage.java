@@ -31,10 +31,7 @@ public class SignatureImage {
     @Column(name="file_path")
     private String file_path;
 
-    @Column(name = "image_size")
-    private String image_size;
-
-    @JsonIgnore
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProvider;

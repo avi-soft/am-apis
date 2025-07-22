@@ -12,8 +12,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import com.broadleafcommerce.rest.api.wrapper.ProductWrapper;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -54,15 +52,11 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
     protected Character archived;
     @JsonProperty("display_template")
     protected String displayTemplate;
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("total_products")
     Integer totalProducts;
 
     @JsonProperty("products")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     List<CustomProductWrapper> products;
-
 
     public void wrapDetailsCategory(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
 
@@ -79,7 +73,7 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         this.archived = ((Status) category).getArchived();
         this.products = products;
         if (products == null) {
-            this.totalProducts = null;
+            this.totalProducts = 0;
         } else {
             this.totalProducts = products.size();
         }
@@ -106,39 +100,7 @@ public class CustomCategoryWrapper extends BaseWrapper implements APIWrapper<Cat
         }
 
     }
-    /*public void wrapDetailsCategoryNew(Category category, List<CustomProductWrapper> products, HttpServletRequest request) {
 
-        this.id = category.getId();
-        this.name = category.getName();
-        this.products = products;
-        if (products == null) {
-            this.totalProducts = null;
-        } else {
-            this.totalProducts = products.size();
-        }
-
-        Integer productLimit = (Integer) request.getAttribute("productLimit");
-        Integer productOffset = (Integer) request.getAttribute("productOffset");
-        Integer subcategoryLimit = (Integer) request.getAttribute("subcategoryLimit");
-        Integer subcategoryOffset = (Integer) request.getAttribute("subcategoryOffset");
-        if (productLimit != null && productOffset == null) {
-            productOffset = 1;
-        }
-
-        if (productLimit != null && productOffset != null) {
-            SearchService searchService = this.getSearchService();
-            SearchCriteria searchCriteria = new SearchCriteria();
-            searchCriteria.setPage(productOffset);
-            searchCriteria.setPageSize(productLimit);
-            searchCriteria.setFilterCriteria(new HashMap());
-
-        }
-
-        if (category instanceof Status) {
-            this.archived = ((Status) category).getArchived();
-        }
-
-    }*/
     @Override
     public void wrapDetails(Category category, HttpServletRequest httpServletRequest) {
 

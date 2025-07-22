@@ -1,215 +1,85 @@
 package com.community.api.endpoint.avisoft.controller.Subject;
 
-import com.community.api.annotation.Authorize;
 import com.community.api.component.Constant;
-import com.community.api.component.JwtUtil;
+import com.community.api.dto.AddStreamDto;
 import com.community.api.dto.AddSubjectDto;
-import com.community.api.entity.CustomStream;
 import com.community.api.entity.CustomSubject;
-import com.community.api.entity.Role;
 import com.community.api.services.ResponseService;
-import com.community.api.services.RoleService;
 import com.community.api.services.SubjectService;
 import com.community.api.services.exception.ExceptionHandlingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.persistence.EntityManager;
-import javax.validation.Valid;
 import java.util.List;
-
-
 
 @RestController
 public class SubjectController {
 
     private final ExceptionHandlingService exceptionHandlingService;
     private final SubjectService subjectService;
-    private final RoleService roleService;
-    private final JwtUtil jwtTokenUtil;
-    private final EntityManager entityManager;
 
     @Autowired
-    public SubjectController(ExceptionHandlingService exceptionHandlingService, SubjectService subjectService, RoleService roleService, JwtUtil jwtTokenUtil, EntityManager entityManager) {
+    public SubjectController(ExceptionHandlingService exceptionHandlingService, SubjectService subjectService) {
         this.exceptionHandlingService = exceptionHandlingService;
         this.subjectService = subjectService;
-        this.roleService = roleService;
-        this.jwtTokenUtil = jwtTokenUtil;
-        this.entityManager = entityManager;
     }
 
     @PostMapping("/add-subject")
-    public ResponseEntity<?> addSubject(@Valid @RequestBody AddSubjectDto addSubjectDto, @RequestHeader(value = "Authorization") String authHeader) {
+    public ResponseEntity<?> addSubject(@RequestBody AddSubjectDto addSubjectDto, @RequestHeader(value = "Authorization") String authHeader) {
         try{
             if(!subjectService.validiateAuthorization(authHeader)) {
-                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A SUBJECT", HttpStatus.UNAUTHORIZED);
+                return ResponseService.generateErrorResponse("NOT AUTHORIZED TO ADD A STREAM", HttpStatus.UNAUTHORIZED);
             }
 
             subjectService.validateAddSubjectDto(addSubjectDto);
-            String jwtToken = authHeader.substring(7);
+            subjectService.saveSubject(addSubjectDto);
 
-            Long creatorId = jwtTokenUtil.extractId(jwtToken);
-            Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Role creatorRole = roleService.getRoleByRoleId(roleId);
-
-            CustomSubject customSubject = subjectService.saveSubject(addSubjectDto, creatorId, creatorRole);
-
-            if(customSubject == null) {
-                return ResponseService.generateErrorResponse("SOMETHING WENT WRONG", HttpStatus.BAD_REQUEST);
-            }
-            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", customSubject, HttpStatus.OK);
-        } catch (MethodArgumentNotValidException methodArgumentNotValidException) {
-            exceptionHandlingService.handleException(methodArgumentNotValidException);
-            return ResponseService.generateErrorResponse(  "Method Argument Not Valid Exception Caught: " + methodArgumentNotValidException.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception exception) {
+            return ResponseService.generateSuccessResponse("SUCCESSFULLY ADDED", addSubjectDto, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @GetMapping("/get-all-subject")
-    public ResponseEntity<?> getAllSubject(@RequestParam(required = false,defaultValue = "false") Boolean archived) {
+    public ResponseEntity<?> getAllSubject() {
         try {
-            List<CustomSubject> subjectList = subjectService.getAllSubject(archived);
+            List<CustomSubject> subjectList = subjectService.getAllSubject();
             if (subjectList.isEmpty()) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
+                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
             }
             return ResponseService.generateSuccessResponse("SUBJECTS FOUND", subjectList, HttpStatus.OK);
-        } catch (Exception exception) {
+        } catch (IllegalArgumentException e) {
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @GetMapping("/get-subject-by-id/{subjectIdString}")
-    public ResponseEntity<?> getSubjectById(@PathVariable String subjectIdString) {
+    @GetMapping("/get-subject-by-id/{subjectId}")
+    public ResponseEntity<?> getSubjectById(@PathVariable Long subjectId) {
         try {
-            Long subjectId = Long.parseLong(subjectIdString);
-            CustomSubject subject = subjectService.getSubjectBySubjectId(subjectId);
-            if (subject == null) {
-                return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.OK);
-            }
-            return ResponseService.generateSuccessResponse("SUBJECT FOUND", subject, HttpStatus.OK);
-        } catch (NumberFormatException numberFormatException) {
-            exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse("Invalid SubjectId: " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @DeleteMapping("/remove-subject-by-id/{subjectIdString}")
-    public ResponseEntity<?> removeSubjectBySubjectId(@PathVariable String subjectIdString) {
-        try {
-
-            Long subjectId = Long.parseLong(subjectIdString);
             CustomSubject subject = subjectService.getSubjectBySubjectId(subjectId);
             if (subject == null) {
                 return ResponseService.generateErrorResponse("NO SUBJECT FOUND", HttpStatus.NOT_FOUND);
             }
-            subjectService.removeSubjectById(subject);
-            return ResponseService.generateSuccessResponse("SUBJECT SUCCESSFULLY ARCHIVED", subject, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("SUBJECTS FOUND", subject, HttpStatus.OK);
         } catch (NumberFormatException numberFormatException) {
             exceptionHandlingService.handleException(numberFormatException);
-            return ResponseService.generateErrorResponse("Invalid SubjectId: " + numberFormatException.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            exceptionHandlingService.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse(illegalArgumentException.getMessage(), HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + numberFormatException.getMessage(), HttpStatus.NOT_FOUND);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
             return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/get-subjects-by-steam-id/{streamId}")
-    public ResponseEntity<?> getSubjectsByStream(@PathVariable Long streamId) {
-        try {
-            List<CustomSubject> subjectList = subjectService.getSubjectsByStreamIds(streamId);
-            if (subjectList.isEmpty()) {
-                return ResponseService.generateSuccessResponse("LIST OF SUBJECTS IS EMPTY IN STREAM WITH ID "+ streamId, subjectList,HttpStatus.OK);
-            }
-            return ResponseService.generateSuccessResponse("SUBJECTS FOUND IN STREAM WITH ID "+ streamId,subjectList, HttpStatus.OK);
-        } catch (Exception exception) {
-            exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    @Authorize(value = {Constant.roleSuperAdmin})
-    @PutMapping("subject/{subjectId}/edit")
-    public ResponseEntity<?> editSubject(
-            @PathVariable Long subjectId,
-            @RequestBody CustomSubject subject,
-            @RequestParam(required = false)List<Long>streamIds) {
-        try {
-            CustomSubject existingSubject = entityManager.find(CustomSubject.class, subjectId);
-            if (existingSubject == null) {
-                return ResponseService.generateErrorResponse("Subject not found", HttpStatus.BAD_REQUEST);
-            }
-
-            return ResponseService.generateSuccessResponse(
-                    "Subject updated successfully",
-                    subjectService.editSubject(subjectId,streamIds, subject),
-                    HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse("Cannot edit subject: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Cannot edit subject: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @Authorize(value = {Constant.roleSuperAdmin})
-    @DeleteMapping("subject/{subjectId}/manage")
-    public ResponseEntity<?> manageSubject(
-            @PathVariable Long subjectId,
-            @RequestParam(defaultValue = "true") Boolean archive) {
-        try {
-            CustomSubject subject = entityManager.find(CustomSubject.class, subjectId);
-            if (subject == null) {
-                return ResponseService.generateErrorResponse("Subject not found", HttpStatus.BAD_REQUEST);
-            }
-
-            return ResponseService.generateSuccessResponse(
-                    "Subject archive status updated successfully",
-                    subjectService.manageSubject(subjectId, archive),
-                    HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse("Cannot update subject: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Cannot update subject: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("subject/{subjectId}/streams")
-    public ResponseEntity<?> getStreamsForSubject(@PathVariable Long subjectId) {
-        try {
-            List<CustomStream> streams = subjectService.getStreamsForSubject(subjectId);
-            return ResponseService.generateSuccessResponse(
-                    "Streams retrieved successfully for subject",
-                    streams,
-                    HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return ResponseService.generateErrorResponse("Error retrieving streams", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

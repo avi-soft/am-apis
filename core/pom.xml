@@ -5,10 +5,6 @@
         <artifactId>boot-community-demo</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-    </properties>
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>boot-community-demo-core</artifactId>
@@ -22,7 +18,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
     <dependency>
             <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-framework</artifactId>

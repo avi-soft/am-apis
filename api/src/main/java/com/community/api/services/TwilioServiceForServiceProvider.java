@@ -50,25 +50,31 @@ public class TwilioServiceForServiceProvider {
 
         try {
             Twilio.init(accountSid, authToken);
+            String completeMobileNumber = countryCode + mobileNumber;
             String otp = generateOTP();
+
+
             ServiceProviderEntity existingServiceProvider = serviceProviderService.findServiceProviderByPhone(mobileNumber,countryCode);
 
             if (existingServiceProvider == null) {
+                System.out.println(existingServiceProvider + " existingServiceProvider");
                 existingServiceProvider = new ServiceProviderEntity();
+                // Populate other necessary fields
                 existingServiceProvider.setCountry_code(countryCode);
                 existingServiceProvider.setMobileNumber(mobileNumber);
                 existingServiceProvider.setOtp(otp);
                 entityManager.persist(existingServiceProvider);
             } else {
-                if(existingServiceProvider.getIsArchived())
-                    return ResponseService.generateErrorResponse("Your account is supsended ,please contact support.",HttpStatus.UNAUTHORIZED);
+                System.out.println(existingServiceProvider + " existingServiceProvider");
                 existingServiceProvider.setOtp(null);
                 existingServiceProvider.setOtp(otp);
                 entityManager.merge(existingServiceProvider);
             }
-
-            String maskedNumber = this.genereateMaskednumber(mobileNumber);
-            return responseService.generateSuccessResponse("Otp has been sent successfully on " + maskedNumber,otp,HttpStatus.OK);
+            Map<String,Object> details=new HashMap<>();
+            // details.put("message",ApiConstants.OTP_SENT_SUCCESSFULLY);
+            details.put("status",ApiConstants.STATUS_SUCCESS);
+            details.put("otp",otp);
+            return responseService.generateSuccessResponse(ApiConstants.OTP_SENT_SUCCESSFULLY,details,HttpStatus.OK);
 
         } catch (ApiException e) {
             exceptionHandling.handleApiException(e);
@@ -77,20 +83,6 @@ public class TwilioServiceForServiceProvider {
             exceptionHandling.handleException(e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error sending OTP: " + e.getMessage());
         }
-    }
-    public synchronized String genereateMaskednumber(String mobileNumber){
-        String lastFourDigits = mobileNumber.substring(mobileNumber.length() - 4);
-
-        int numXs = mobileNumber.length() - 4;
-
-        StringBuilder maskBuilder = new StringBuilder();
-        for (int i = 0; i < numXs; i++) {
-            maskBuilder.append('x');
-        }
-        String mask = maskBuilder.toString();
-
-        String maskedNumber = mask + lastFourDigits;
-        return  maskedNumber;
     }
 
     private synchronized String generateOTP() {

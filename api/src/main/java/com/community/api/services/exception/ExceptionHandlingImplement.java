@@ -19,6 +19,4 @@ public interface ExceptionHandlingImplement {
     String handleException(Exception e);
 
     String handleException(HttpStatus status, Exception e);
-
-    ResponseEntity<?> handleInvalidJwt(Exception ex);
 }

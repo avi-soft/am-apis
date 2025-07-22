@@ -147,16 +147,4 @@ public class PrivilegeService {
             return Collections.emptyList();
         }
     }
-
-    public Privileges getPrivilegeByName(String privilegeName) {
-        List<Privileges> results = entityManager.createQuery(
-                        "SELECT p FROM Privileges p WHERE p.privilege_name = :privilegeName", Privileges.class)
-                .setParameter("privilegeName", privilegeName)
-                .setMaxResults(1)
-                .getResultList();
-
-        return results.isEmpty() ? null : results.get(0);
-    }
-
-
 }

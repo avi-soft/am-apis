@@ -31,7 +31,6 @@ import com.community.core.config.StringFactoryBean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +40,6 @@ import java.util.Properties;
  * @author Elbert Bautista (elbertbautista)
  */
 @Configuration
-@EnableAsync
 @Import({CoreConfig.class, ApiSecurityConfig.class})
 public class ApiConfig {
 

@@ -39,28 +39,13 @@ public class QualificationDetailsController
     }
 
     @PostMapping("/add/{id}")
-    public ResponseEntity<?> addQualificationDetail(@PathVariable Long id , @Valid @RequestBody QualificationDetails qualificationDetails,   @RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers, @RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers, @RequestParam(value = "institutionOthers", required = false) String institutionOthers, @RequestHeader(value = "Authorization") String authHeader,@RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
+    public ResponseEntity<?> addQualificationDetail(@PathVariable Long id , @Valid @RequestBody QualificationDetails qualificationDetails, @RequestHeader(value = "Authorization") String authHeader) throws EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
         try{
-
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId=jwtTokenUtil.extractId(jwtToken);
-            if(roleId==5&&!userId.equals(id))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            }
-            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
-            {
-               return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
-            }
-            else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
-            {
-                jwtToken = authHeader.substring(7);
-                roleId = 5;
-            }
-            role = roleService.getRoleByRoleId(roleId).getRole_name();
-            QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
+             role = roleService.getRoleByRoleId(roleId).getRole_name();
+            QualificationDetails newQualificationDetails = qualificationDetailsService.addQualificationDetails(id , qualificationDetails,role);
             return ResponseService.generateSuccessResponse("Qualification Details is added successfully for "+role,newQualificationDetails,HttpStatus.CREATED);
         }
         catch (CustomerDoesNotExistsException e)
@@ -95,20 +80,8 @@ public class QualificationDetailsController
         {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId=jwtTokenUtil.extractId(jwtToken);
-            if(roleId==5&&!userId.equals(id))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            }
-//            else
-//            {
-//                roleId=5;
-//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
             List<Map<String, Object>> qualificationDetails = qualificationDetailsService.getQualificationDetailsByCustomerId(id,role);
-
-
-
             if(qualificationDetails.isEmpty())
             {
                 return ResponseService.generateSuccessResponse("Qualification Details list is empty for "+role,qualificationDetails,HttpStatus.OK);
@@ -138,16 +111,8 @@ public class QualificationDetailsController
         {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId=jwtTokenUtil.extractId(jwtToken);
-            if(roleId==5&&!userId.equals(id))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            }
-//            else
-//            {
-//                roleId=5;
-//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
+
             QualificationDetails qualificationDetailsToDelete = qualificationDetailsService.deleteQualificationDetail(id,qualificationDetailId,role);
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is deleted successfully for "+ role, qualificationDetailsToDelete);
         }
@@ -173,32 +138,14 @@ public class QualificationDetailsController
     }
 
     @PutMapping("/update/{id}/{qualificationDetailId}")
-    public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestParam(value = "boardUniversityOthers", required = false) String boardUniversityOthers,@RequestParam(value = "streamOthers", required = false) String streamOthers,@RequestParam(value = "qualificationOthers", required = false) String qualificationOthers,@RequestParam(value = "institutionOthers", required = false) String institutionOthers,@RequestHeader(value = "Authorization") String authHeader, @RequestHeader(value = "extAuth",required = false)String extAuth,@RequestParam(required = false) Boolean extUp) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
+    public ResponseEntity<?> updateQualificationDetailById(@PathVariable Long id, @PathVariable Long qualificationDetailId, @Valid @RequestBody UpdateQualificationDto qualification,@RequestHeader(value = "Authorization") String authHeader) throws EntityDoesNotExistsException, EntityAlreadyExistsException, ExaminationDoesNotExistsException, CustomerDoesNotExistsException {
         String role=null;
         try
         {
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
-            Long userId=jwtTokenUtil.extractId(jwtToken);
-            if(roleId==5&&!userId.equals(id))
-            {
-                return ResponseService.generateErrorResponse("Forbidden",HttpStatus.FORBIDDEN);
-            }
-            if((extUp!=null&&extUp)&&extAuth==null&&roleId==4)
-            {
-                return ResponseService.generateErrorResponse("Forbidden to update the resource",HttpStatus.FORBIDDEN);
-            }
-            else if((extUp!=null&&extUp)&&(roleId==1||roleId==2))
-            {
-                jwtToken = authHeader.substring(7);
-                roleId = 5;
-            }
-//            else
-//            {
-//                roleId=5;
-//            }
             role = roleService.getRoleByRoleId(roleId).getRole_name();
-            QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,boardUniversityOthers,streamOthers,qualificationOthers,institutionOthers,roleId,role);
+            QualificationDetails qualificationDetailsToUpdate = qualificationDetailsService.updateQualificationDetail( id,qualificationDetailId,qualification,role);
             return responseService.generateResponse(HttpStatus.OK,"Qualification Detail is updated successfully for "+ role, qualificationDetailsToUpdate);
         }
         catch (CustomerDoesNotExistsException e)

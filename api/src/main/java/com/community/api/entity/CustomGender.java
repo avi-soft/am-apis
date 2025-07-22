@@ -3,10 +3,7 @@ package com.community.api.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.stereotype.Service;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -18,8 +15,6 @@ import javax.persistence.Table;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
 public class CustomGender {
     @Id
     @Column(name="gender_id")
@@ -33,9 +28,4 @@ public class CustomGender {
     @Column(name="gender_name")
     @JsonProperty("gender_name")
     protected String genderName;
-
-    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
-    @JsonProperty("archived")
-    protected Boolean archived;
-
 }

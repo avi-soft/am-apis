@@ -3,9 +3,7 @@ package com.community.api.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,8 +15,6 @@ import javax.persistence.Table;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
 public class CustomReserveCategory {
 
     @Id
@@ -30,8 +26,6 @@ public class CustomReserveCategory {
     @JsonProperty("reserve_category_name")
     protected String reserveCategoryName;
 
-
-
     @Column(name = "reserve_category_description")
     @JsonProperty("reserve_category_description")
     protected String reserveCategoryDescription;
@@ -40,10 +34,4 @@ public class CustomReserveCategory {
     @JsonProperty("default_category")
     protected Boolean isReservedCategory;
 
-    @Column(name = "sort_order",nullable = false)
-    private Integer sortOrder = Integer.MAX_VALUE;
-
-    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
-    @JsonProperty("archived")
-    protected Boolean archived=false;
 }

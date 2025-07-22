@@ -15,9 +15,7 @@ import javax.persistence.*;
 @Setter
 public class Districts {
     @Id
-    private Integer district_id;
+    private int district_id;
     private String district_name;
     private String state_code;
-    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean archived;
 }
