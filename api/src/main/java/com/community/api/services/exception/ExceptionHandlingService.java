@@ -1,6 +1,5 @@
 package com.community.api.services.exception;
 
-import com.community.api.services.ResponseService;
 import com.twilio.exception.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.context.request.WebRequest;
 
 import javax.validation.ConstraintViolationException;
 import java.util.HashMap;
@@ -61,10 +59,6 @@ public class ExceptionHandlingService implements ExceptionHandlingImplement {
             return "Something went wrong: " + e.getMessage();
         }
 
-    }
-    @Override
-    public ResponseEntity<?> handleInvalidJwt(Exception ex) {
-        return ResponseService.generateErrorResponse("Invalid JWT Token",HttpStatus.UNAUTHORIZED);
     }
 
     public String handleException(HttpStatus status, Exception e) {

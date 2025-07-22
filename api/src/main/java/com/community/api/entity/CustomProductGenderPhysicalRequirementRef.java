@@ -1,14 +1,11 @@
 package com.community.api.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -16,31 +13,34 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
-import java.io.Serializable;
 
 @Entity
 @Table(name = "custom_product_gender_physical_requirement_reference")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CustomProductGenderPhysicalRequirementRef  implements Serializable {
+public class CustomProductGenderPhysicalRequirementRef {
 
     @Id
-    @Column(name = "physical_requirement_id")
+    @Column(name = "product_gender_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long physicalRequirementId;
+    Long productGenderId;
 
     @ManyToOne
+    @NotNull
+    @JoinColumn(name = "product_id")
+    protected CustomProduct customProduct;
+
+    @ManyToOne
+    @NotNull
     @JoinColumn(name = "gender_id")
     protected CustomGender customGender;
 
-
-    private String genderRunningfield;
-
+    @NotNull
     @Column(name = "height")
     Double height;
 
-
+    @NotNull
     @Column(name = "weight")
     Double weight;
 
@@ -53,14 +53,4 @@ public class CustomProductGenderPhysicalRequirementRef  implements Serializable 
     @Column(name = "chest_size")
     Double chestSize;
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @NotNull
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
-
-    @JsonIgnore
-    @Column(name = "additional_comments", columnDefinition = "text")
-    @JsonProperty("additional_comments")
-    private String additionalComments;
 }

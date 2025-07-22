@@ -1,13 +1,9 @@
 package com.community.api.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -15,12 +11,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
-import javax.print.attribute.standard.MediaSize;
 import javax.validation.constraints.NotNull;
-import java.io.Serializable;
 import java.util.Date;
 
 @Entity
@@ -28,7 +20,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CustomProductReserveCategoryBornBeforeAfterRef implements Serializable {
+public class CustomProductReserveCategoryBornBeforeAfterRef {
 
     @Id
     @Column(name = "product_reserve_category_id")
@@ -37,16 +29,11 @@ public class CustomProductReserveCategoryBornBeforeAfterRef implements Serializa
 
     @ManyToOne
     @NotNull
-    @JsonIgnore
     @JoinColumn(name = "product_id")
     protected CustomProduct customProduct;
 
-    @Column(name = "category_running_field")
-    String categoryRunningField;
-    @Column(name = "gender_running_field")
-    String genderRunningField;
-
     @ManyToOne
+    @NotNull
     @JoinColumn(name = "reserve_category_id")
     protected CustomReserveCategory customReserveCategory;
 
@@ -55,28 +42,4 @@ public class CustomProductReserveCategoryBornBeforeAfterRef implements Serializa
 
     @Column(name = "born_after")
     Date bornAfter;
-
-    @ManyToOne
-    @JoinColumn(name = "gender_id")
-    protected CustomGender gender;
-
-    @Column(name = "maximum_age")
-    protected Integer maximumAge;
-    @Column(name = "minimum_age")
-    protected Integer minimumAge;
-    @Column(name = "born_before_after")
-    protected Boolean bornBeforeAfter;
-    @Column(name = "as_of_date")
-    Date asOfDate;
-
-    @JsonIgnore
-    @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "post_id")
-    private Post post;
-
-    @JsonIgnore
-    @Column(name = "additional_comments", columnDefinition = "text")
-    @JsonProperty("additional_comments")
-    private String additionalComments;
-
 }

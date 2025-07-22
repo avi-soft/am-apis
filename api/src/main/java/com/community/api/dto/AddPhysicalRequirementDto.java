@@ -1,6 +1,5 @@
 package com.community.api.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,8 +12,6 @@ public class AddPhysicalRequirementDto {
 
     @JsonProperty("gender_id")
     Long genderId;
-    @JsonProperty("gender_running_field")
-    String genderRunningField;
     @JsonProperty("height")
     Double height;
     @JsonProperty("weight")
@@ -25,7 +22,5 @@ public class AddPhysicalRequirementDto {
     Double waistSize;
     @JsonProperty("chest_size")
     Double chestSize;
-    @JsonIgnore
-    private String additionalComments;
 
 }

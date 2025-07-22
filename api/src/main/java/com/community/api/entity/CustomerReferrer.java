@@ -1,23 +1,12 @@
 package com.community.api.entity;
 
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,7 +21,6 @@ public class CustomerReferrer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-   @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private CustomCustomer customer;
@@ -41,8 +29,6 @@ public class CustomerReferrer {
     @JoinColumn(name = "service_provider_id")
     private ServiceProviderEntity serviceProvider;
 
-    @Column(name = "primary_ref")
-    private Boolean primaryRef;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

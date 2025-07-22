@@ -1,7 +1,6 @@
 package com.community.api.endpoint.Ticket.TicketStatus;
 
 import com.community.api.component.Constant;
-import com.community.api.entity.CustomServiceProviderTicket;
 import com.community.api.entity.CustomTicketStatus;
 import com.community.api.entity.CustomTicketType;
 import com.community.api.services.ResponseService;
@@ -13,8 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 @RestController
@@ -50,9 +49,7 @@ public class TicketStatusController {
             return ResponseService.generateSuccessResponse("TICKET STATUS FOUND", ticketStatus, HttpStatus.OK);
         } catch (Exception exception) {
             exceptionHandlingService.handleException(exception);
-            return ResponseService.generateErrorResponse(Constant
-                    .SOME_EXCEPTION_OCCURRED + " : " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseService.generateErrorResponse(Constant.SOME_EXCEPTION_OCCURRED + ": " + exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

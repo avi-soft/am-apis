@@ -23,14 +23,14 @@ public class TypingTextController
     }
 
     @GetMapping("/get-all")
-    public ResponseEntity<?> getAllRandomImages(@RequestParam(required = false,defaultValue = "false")Boolean archived)
+    public ResponseEntity<?> getAllRandomImages()
     {
-        List<TypingText> randomTypingTexts= typingTextService.getAllRandomTypingTexts(archived);
+        List<TypingText> randomTypingTexts= typingTextService.getAllRandomTypingTexts();
         if(randomTypingTexts.isEmpty())
         {
-            return ResponseService.generateSuccessResponse(archived?"archived Typing Text list is empty":"Unarchived Typing Text list is empty",randomTypingTexts, HttpStatus.OK);
+            return ResponseService.generateSuccessResponse("Typing Text list is empty",randomTypingTexts, HttpStatus.OK);
         }
-        return ResponseService.generateSuccessResponse(archived?"Archived Typing Text list is found":"Unarchived Typing Text list is found",randomTypingTexts,HttpStatus.OK);
+        return ResponseService.generateSuccessResponse("Typing Text list is found",randomTypingTexts,HttpStatus.OK);
     }
 
     @PostMapping("/add-all")
@@ -48,44 +48,6 @@ public class TypingTextController
         {
             exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @DeleteMapping("/manage/{typingTextId}")
-    public ResponseEntity<?>  deleteTypingTexts(@PathVariable Long typingTextId,@RequestParam(defaultValue = "false") Boolean archive)
-    {
-        try {
-            TypingText typingTextToDelete = typingTextService.archiveOrUnarchiveTypingText(typingTextId, archive);
-            String message = archive ? "Typing text is archived successfully" : "Typing text is unarchived successfully";
-            return ResponseService.generateSuccessResponse(message, typingTextToDelete,HttpStatus.OK);
-        }
-        catch (IllegalArgumentException e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }catch (Exception e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @PutMapping("/update/{typingTextId}")
-    public ResponseEntity<?> updateTypingText(@RequestBody TypingText typingText,@PathVariable Long typingTextId)
-    {
-        try
-        {
-            TypingText typingTextToUpdate= typingTextService.updateTypingText(typingText,typingTextId);
-            return ResponseService.generateSuccessResponse("Typing text is updated successfully", typingTextToUpdate,HttpStatus.OK);
-        }
-        catch (IllegalArgumentException illegalArgumentException)
-        {
-            exceptionHandling.handleException(illegalArgumentException);
-            return ResponseService.generateErrorResponse( illegalArgumentException.getMessage(),HttpStatus.BAD_REQUEST);
-        }catch (Exception e)
-        {
-            exceptionHandling.handleException(e);
-            return ResponseService.generateErrorResponse("Something went wrong", HttpStatus.BAD_REQUEST);
         }
     }
 }

@@ -1,12 +1,9 @@
 package com.community.api.endpoint.avisoft.controller;
 import com.community.api.component.JwtUtil;
-import com.community.api.services.CustomCustomerService;
-import com.community.api.services.DocumentStorageService;
-import com.community.api.services.RateLimiterService;
-import com.community.api.services.ResponseService;
-import com.community.api.services.SanitizerService;
+import com.community.api.services.*;
 import io.github.bucket4j.Bucket;
 import io.jsonwebtoken.security.Keys;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +13,14 @@ import com.community.api.services.exception.ExceptionHandlingImplement;
 
 import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Map;
@@ -91,6 +95,7 @@ public class TestController {
         return "Documents inserted successfully";
     }
 
+
     @PostMapping("/alter/document")
     @Transactional
     public String alterDocument(@RequestParam String userId) {
@@ -135,6 +140,7 @@ public class TestController {
         }
     }
 
+
     @PostMapping("/add-column-to-a-table/{entityName}/{columnName}/{dataType}")
     @Transactional
     public String addColumn(@PathVariable String entityName,@PathVariable String columnName,@PathVariable String dataType) {
@@ -149,6 +155,7 @@ public class TestController {
         }
     }
 
+
     @PostMapping("/add/typing-text")
     public String addTypingText(@RequestParam String userId) {
         documentStorageService.saveAllTypingTexts();
@@ -160,20 +167,87 @@ public class TestController {
        return ResponseService.generateSuccessResponse("Sanitized map",sanitizerService.sanitizeInputMap(map),HttpStatus.OK);
 
     }
+    @GetMapping("/download-file-test")
+    public void downloadFile( HttpServletRequest request, HttpServletResponse response) {
 
-    @PostMapping("/sanitize")
-    public Map<String, Object> testSanitize(@RequestBody Map<String, Object> requestBody) {
-        System.out.println("Received request: " + requestBody);
+        try {
+            String fileUrl = "http://192.168.0.138:8080/avisoftdocument/service_provider/RandomImages/pexels-fotios-photos-1540258.jpg";
 
-        // Sanitize the incoming request body
-        Map<String, Object> sanitizedData = sanitizerService.sanitizeInputMap(requestBody);
+            URL url = new URL(fileUrl);
+            System.out.println("Downloading file: " + fileUrl);
 
-        // Log sanitized data
-        System.out.println("Sanitized request: " + sanitizedData);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
 
-        return sanitizedData;
+            int responseCode = connection.getResponseCode();
+
+
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                response.setContentType("application/octet-stream");
+
+                // Extract the file name from the URL
+                String fileName = url.getPath().substring(url.getPath().lastIndexOf('/') + 1);
+
+                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+                response.setContentLength(connection.getContentLength());
+
+                try (InputStream inputStream = connection.getInputStream();
+                     OutputStream outputStream = response.getOutputStream()) {
+                    IOUtils.copy(inputStream, outputStream);
+                    outputStream.flush(); // Ensure all data is sent
+                }
+            } else {
+                System.out.println("Error: " + connection.getResponseMessage());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
+    @GetMapping("/download-file")
+    public void downloadFileNew(@RequestParam("filePath") String filePath, HttpServletRequest request, HttpServletResponse response) {
+        try {
+            URL url = new URL(filePath);
 
+            // Use URI to handle special characters
+
+//            URL url = uri.toURL();
+
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+
+
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                response.setContentType("application/octet-stream");
+
+                // Extract the file name from the URL
+                String fileName = url.getPath().substring(url.getPath().lastIndexOf('/') + 1);
+
+                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+                response.setContentLength(connection.getContentLength());
+
+                try (InputStream inputStream = connection.getInputStream();
+                     OutputStream outputStream = response.getOutputStream()) {
+                    IOUtils.copy(inputStream, outputStream);
+                    outputStream.flush(); // Ensure all data is sent
+                }
+            } else {
+
+            }
+        } catch (IOException e) {
+            exceptionHandling.handleException(e);
+
+        }catch (Exception e) {
+            exceptionHandling.handleException(e);
+
+        }
+
+    }
     @PostMapping("/altercolumnDocument")
     @Transactional
     public String altercolumnDocument() {

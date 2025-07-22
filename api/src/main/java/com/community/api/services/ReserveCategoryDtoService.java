@@ -4,7 +4,6 @@ import com.community.api.dto.ReserveCategoryDto;
 import com.community.api.entity.CustomProductReserveCategoryBornBeforeAfterRef;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.google.common.annotations.GwtCompatible;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,9 +20,6 @@ public class ReserveCategoryDtoService {
     private ProductReserveCategoryBornBeforeAfterRefService productReserveCategoryBornBeforeAfterRefService;
     private ProductReserveCategoryFeePostRefService productReserveCategoryFeePostRefService;
     private ReserveCategoryService reserveCategoryService;
-
-    @Autowired
-    GenderService genderService;
 
     @PersistenceContext
     public void setEntityManager(EntityManager entityManager) {
@@ -56,18 +52,23 @@ public class ReserveCategoryDtoService {
             List<CustomProductReserveCategoryFeePostRef> customProductReserveCategoryFeePostRefList = productReserveCategoryFeePostRefService.getProductReserveCategoryFeeAndPostByProductId(productId);
 
             List<ReserveCategoryDto> reserveCategoryDtoList = new ArrayList<>();
+            for(int customProductReserveCategoryBornBeforeAfterRefListIndex = 0; customProductReserveCategoryBornBeforeAfterRefListIndex < customProductReserveCategoryBornBeforeAfterRefList.size(); customProductReserveCategoryBornBeforeAfterRefListIndex++) {
                 for(int customProductReserveCategoryFeePostRefListIndex = 0; customProductReserveCategoryFeePostRefListIndex < customProductReserveCategoryFeePostRefList.size(); customProductReserveCategoryFeePostRefListIndex++) {
+                    if(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomReserveCategory().getReserveCategoryId().equals(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getCustomReserveCategory().getReserveCategoryId()) && customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomProduct().getId().equals(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getCustomProduct().getId())) {
                         ReserveCategoryDto reserveCategoryDto = new ReserveCategoryDto();
-                        reserveCategoryDto.setReserveCategoryId(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryFeePostRefListIndex).getProductReservedCategoryId());
                         reserveCategoryDto.setProductId(productId);
-                        reserveCategoryDto.setReserveCategory(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryFeePostRefListIndex).getCustomReserveCategory().getReserveCategoryName());
+                        reserveCategoryDto.setReserveCategoryId(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getCustomReserveCategory().getReserveCategoryId());
+                        reserveCategoryDto.setReserveCategory(reserveCategoryService.getReserveCategoryById(reserveCategoryDto.getReserveCategoryId()).getReserveCategoryName());
                         reserveCategoryDto.setPost(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getPost());
                         reserveCategoryDto.setFee(customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getFee());
-                        Long genderId=customProductReserveCategoryFeePostRefList.get(customProductReserveCategoryFeePostRefListIndex).getGender().getGenderId();
-                        reserveCategoryDto.setGenderName(genderService.getGenderByGenderId(genderId).getGenderName());
-                        reserveCategoryDto.setGenderId(genderId);
+                        reserveCategoryDto.setBornBefore(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getBornBefore());
+                        reserveCategoryDto.setBornAfter(customProductReserveCategoryBornBeforeAfterRefList.get(customProductReserveCategoryBornBeforeAfterRefListIndex).getBornAfter());
+
                         reserveCategoryDtoList.add(reserveCategoryDto);
+                        break;
+                    }
                 }
+            }
             return reserveCategoryDtoList;
 
         } catch(Exception exception) {

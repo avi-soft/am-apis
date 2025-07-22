@@ -50,6 +50,86 @@ public class ProductGenderPhysicalRequirementService {
         }
     }
 
+    @Transactional
+    public void savePhysicalRequirement(List<AddPhysicalRequirementDto> addPhysicalRequirementDtoList, Product product) {
+        try {
+            for (AddPhysicalRequirementDto addPhysicalRequirementDto : addPhysicalRequirementDtoList) {
+
+                CustomGender customGender = genderService.getGenderByGenderId(addPhysicalRequirementDto.getGenderId());
+
+                Double height = addPhysicalRequirementDto.getHeight();
+                Double weight = addPhysicalRequirementDto.getWeight();
+                Double shoeSize = addPhysicalRequirementDto.getShoeSize();
+                Double waistSize = addPhysicalRequirementDto.getWaistSize();
+                Double chestSize = addPhysicalRequirementDto.getChestSize();
+
+                StringBuilder sql = new StringBuilder("INSERT INTO custom_product_gender_physical_requirement_reference (product_id, gender_id, height, weight");
+                List<Object> parameters = new ArrayList<>();
+
+                // Mandatory fields
+                parameters.add(product.getId());
+                parameters.add(customGender.getGenderId());
+                parameters.add(height);
+                parameters.add(weight);
+
+                if (shoeSize != null) {
+                    sql.append(", shoe_size");
+                    parameters.add(shoeSize);
+                }
+
+                if (waistSize != null) {
+                    sql.append(", waist_size");
+                    parameters.add(waistSize);
+                }
+
+                if (chestSize != null) {
+                    sql.append(", chest_size");
+                    parameters.add(chestSize);
+                }
+
+                // Complete the query
+                sql.append(") VALUES (?, ?, ?, ?");
+
+                // Add placeholders for optional parameters
+                for (int i = 4; i < parameters.size(); i++) {
+                    sql.append(", ?");
+                }
+                // Close the statement
+                sql.append(")");
+
+                // Create and set parameters in the query
+                Query query = entityManager.createNativeQuery(sql.toString());
+                query.setParameter(1, product.getId());
+                query.setParameter(2, customGender.getGenderId());
+                query.setParameter(3, height);
+                query.setParameter(4, weight);
+
+                for (int i = 0; i < parameters.size() - 4; i++) {
+                    query.setParameter(i + 5, parameters.get(i + 4));
+                }
+
+/*                Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_GENDER_PHYSICAL_REQUIREMENT);
+
+                query.setParameter("productId", product.getId());
+                query.setParameter("genderId", customGender.getGenderId());
+                query.setParameter("height", height);
+                query.setParameter("weight", weight);
+                query.setParameter("shoeSize", shoeSize);
+                query.setParameter("waistSize", waistSize);
+                query.setParameter("chestSize", chestSize);*/
+
+                int affectedRows = query.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new RuntimeException("ERROR INSERTING VALUES IN MAPPING TABLE OF CUSTOMPRODUCTGENDERPHYSICALREQUIREMENTREF");
+                }
+            }
+
+        } catch (Exception exception) {
+            exceptionHandlingService.handleException(exception);
+        }
+    }
+
     public CustomProductGenderPhysicalRequirementRef getCustomProductGenderPhysicalRequirementRefByProductIdAndGenderId(Long productId, Long genderId) {
 
         try {

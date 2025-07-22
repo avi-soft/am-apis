@@ -3,6 +3,7 @@ package com.community.api.services;
 import com.community.api.component.Constant;
 import com.community.api.dto.UpdateTestStatus;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
+import com.community.api.entity.ServiceProviderRank;
 import com.community.api.entity.ServiceProviderTestStatus;
 import com.community.api.services.exception.ExceptionHandlingImplement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +51,7 @@ public class ServiceProviderTestStatusService {
                     return responseService.generateErrorResponse("Test Status id "+ updateTestStatus.getTest_status_id()+" Not found", HttpStatus.NOT_FOUND);
                 }
                 if (Objects.nonNull(updateTestStatus.getTest_status_id())) {
-                    existingServiceProvider.setServiceProviderStatus(serviceProviderTestStatus);
+                    existingServiceProvider.setTestStatus(serviceProviderTestStatus);
                 }
             }
             entityManager.merge(existingServiceProvider);

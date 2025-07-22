@@ -22,18 +22,9 @@ public class TypingTextService
     private EntityManager entityManager;
 
     @Transactional
-    public List<TypingText> getAllRandomTypingTexts(Boolean archived)
+    public List<TypingText> getAllRandomTypingTexts()
     {
         TypedQuery<TypingText> typedQuery= entityManager.createQuery(Constant.GET_ALL_RANDOM_TYPING_TEXT,TypingText.class);
-        typedQuery.setParameter("archived",archived);
-        List<TypingText> typingTexts = typedQuery.getResultList();
-        return typingTexts;
-    }
-
-    @Transactional
-    public List<TypingText> getAllArchivedNonArchivedRandomTypingTexts()
-    {
-        TypedQuery<TypingText> typedQuery= entityManager.createQuery(Constant.GET_ALL_ARCHIVE_UNARCHIVE_RANDOM_TYPING_TEXT,TypingText.class);
         List<TypingText> typingTexts = typedQuery.getResultList();
         return typingTexts;
     }
@@ -45,83 +36,27 @@ public class TypingTextService
         for(TypingText typedText : typingTexts)
         {
             TypingText typingTextToAdd =new TypingText();
-            long id = findMaxId() + 1;
+            long id = findCount() + 1;
             if (typedText.getText() == null || typedText.getText().trim().isEmpty()) {
                 throw new IllegalArgumentException("Typing text cannot be empty or consist only of whitespace");
             }
-            String[] words = typedText.getText().split("\\s+");
-            if (words.length < 30) {
-                throw new IllegalArgumentException("Typing text must contain at least 30 words. Current word count: " + words.length);
-            }
-            List<TypingText> existingTypingText = getAllArchivedNonArchivedRandomTypingTexts();
+            List<TypingText> existingTypingText = getAllRandomTypingTexts();
             for (TypingText existingTypingText1: existingTypingText) {
-                if (existingTypingText1.getText().trim().equalsIgnoreCase(typedText.getText().trim())) {
-                    throw new IllegalArgumentException("Typing Text with name '"+typedText.getText().trim()+"' already exists");
+                if (existingTypingText1.getText().equalsIgnoreCase(typedText.getText())) {
+                    throw new IllegalArgumentException("Typing Text with name '"+typedText.getText()+"' already exists");
                 }
             }
             typingTextToAdd.setId(id);
-            typingTextToAdd.setText(typedText.getText().trim());
+            typingTextToAdd.setText(typedText.getText());
             typingTextsListToAdd.add(typingTextToAdd);
             entityManager.persist(typingTextToAdd);
         }
         return typingTextsListToAdd;
     }
 
-    public long findMaxId() {
-        return  entityManager.createQuery("SELECT COALESCE(MAX(t.id), 0) FROM TypingText t", Long.class).getSingleResult();
-    }
-
-    @Transactional
-    public TypingText archiveOrUnarchiveTypingText(Long typingTextId, Boolean archive)
-    {
-        TypingText typingText= entityManager.find(TypingText.class,typingTextId);
-        if(typingText==null)
-        {
-            throw new IllegalArgumentException("No typing text exists in db with id "+ typingTextId);
-        }
-        if (archive) {
-            if(typingText.getArchived().equals(true))
-            {
-                throw new IllegalArgumentException("Typing text is already archived");
-            }
-            typingText.setArchived(true);
-        } else {
-            if (!typingText.getArchived()) {
-                throw new IllegalArgumentException("Typing text already unarchived");
-            }
-            typingText.setArchived(false);
-        }
-        entityManager.merge(typingText);
-        return typingText;
-    }
-
-    @Transactional
-    public TypingText updateTypingText(TypingText typingText, Long typingTextId)
-    {
-        TypingText typingTextToUpdate= entityManager.find(TypingText.class,typingTextId);
-        if(typingTextToUpdate==null)
-        {
-            throw new IllegalArgumentException("Typing text not found");
-        }
-
-        if(typingText.getText()!=null)
-        {
-            if (typingText.getText().trim().isEmpty()) {
-                throw new IllegalArgumentException("Typing text cannot be empty or consist only of whitespace");
-            }
-            String[] words = typingText.getText().split("\\s+");
-            if (words.length < 30) {
-                throw new IllegalArgumentException("Typing text must contain at least 30 words. Current word count: " + words.length);
-            }
-            List<TypingText> existingTypingText = getAllArchivedNonArchivedRandomTypingTexts();
-            for (TypingText existingTypingText1: existingTypingText) {
-                if (existingTypingText1.getText().trim().equalsIgnoreCase(typingText.getText().trim()) && !existingTypingText1.getId().equals(typingTextId)) {
-                    throw new IllegalArgumentException("Typing Text with name '"+typingText.getText().trim()+"' already exists");
-                }
-            }
-            typingTextToUpdate.setText(typingText.getText().trim());
-        }
-        entityManager.merge(typingTextToUpdate);
-        return typingTextToUpdate;
+    public long findCount() {
+        String queryString = Constant.GET_TYPING_TEXT_COUNT;
+        TypedQuery<Long> query = entityManager.createQuery(queryString, Long.class);
+        return query.getSingleResult();
     }
 }

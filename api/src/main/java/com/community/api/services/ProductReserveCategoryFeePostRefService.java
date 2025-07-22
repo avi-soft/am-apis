@@ -2,7 +2,6 @@ package com.community.api.services;
 
 import com.community.api.component.Constant;
 import com.community.api.dto.AddReserveCategoryDto;
-import com.community.api.entity.CustomGender;
 import com.community.api.entity.CustomProduct;
 import com.community.api.entity.CustomProductReserveCategoryFeePostRef;
 import com.community.api.entity.CustomReserveCategory;
@@ -25,9 +24,6 @@ public class ProductReserveCategoryFeePostRefService {
 
     @PersistenceContext
     protected EntityManager entityManager;
-
-    @Autowired
-    private GenderService genderService;
 
     @Autowired
     public void setExceptionHandlingService(ExceptionHandlingService exceptionHandlingService) {
@@ -64,25 +60,15 @@ public class ProductReserveCategoryFeePostRefService {
         try {
 
             for (AddReserveCategoryDto addReserveCategoryDto : addReserveCategoryDtoList) {
-                System.out.println("Number of post are :"+addReserveCategoryDto.getPost());
                 CustomReserveCategory reserveCategory = reserveCategoryService.getReserveCategoryById(addReserveCategoryDto.getReserveCategory());
-                CustomGender gender=genderService.getGenderByGenderId(addReserveCategoryDto.getGender());
+
                 Query query = entityManager.createNativeQuery(Constant.ADD_PRODUCT_RESERVECATEOGRY_FEE_POST);
                 query.setParameter("productId", product.getId());
-                if (reserveCategory != null) {
-                    query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
-                }
-                else
-                    query.setParameter("reserveCategoryId",0);
-                query.setParameter("running_field",addReserveCategoryDto.getRunningField());
-                query.setParameter("gender_running_field",addReserveCategoryDto.getGenderRunningField());
+                query.setParameter("reserveCategoryId", reserveCategory.getReserveCategoryId());
                 query.setParameter("fee", addReserveCategoryDto.getFee());
                 query.setParameter("post", addReserveCategoryDto.getPost());
-                query.setParameter("genderId",gender.getGenderId());
-                query.setParameter("fee_additional_comments",addReserveCategoryDto.getAdditionalComment());
-                query.setParameter("is_other_or_state_category",addReserveCategoryDto.getIsOtherOrStateCategory());
-                query.setParameter("other_or_state_category",addReserveCategoryDto.getOtherOrStateCategory());
                 int affectedRows = query.executeUpdate();
+
                 if (affectedRows == 0) {
                     throw new RuntimeException("Error inserting values in mapping table of CustomProductReserveCategoryFeePostRef");
                 }
