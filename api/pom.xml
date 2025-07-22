@@ -17,7 +17,7 @@
     <description>API Module For Customized Broadleaf Commerce Site</description>
 
     <properties>
-        <debug.port>8002</debug.port>
+        <debug.port>8003</debug.port>
         <jersey.version>2.34</jersey.version>
     </properties>
 
@@ -32,8 +32,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>10</source>
-                    <target>10</target>
+                    <source>15</source>
+                    <target>15</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
@@ -78,11 +84,40 @@
             <groupId>com.broadleafcommerce</groupId>
             <artifactId>broadleaf-rest-api</artifactId>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework/spring-web -->
+        <!-- Spring Boot Web (for MultipartFile) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-        <!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
+        <!-- Spring Boot WebFlux (for WebClient) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <version>3.3.4</version>
+        </dependency>
+
+        <!-- Spring Boot Starter (common starter for Spring Boot) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Optional: For logging purposes, add a logging dependency -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency><!-- broadleaf-boot-starter-sol is used for making connection  and working as datasource-->
         <dependency>
             <groupId>com.broadleafcommerce</groupId>
             <artifactId>broadleaf-boot-starter-solr</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-jpa -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-jpa</artifactId>
+            <version>3.4.4</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -134,7 +169,7 @@
         <dependency>
             <groupId>org.modelmapper</groupId>
             <artifactId>modelmapper</artifactId>
-            <version>3.1.1</version> <!-- or latest compatible version -->
+            <version>3.1.0</version> <!-- or latest compatible version -->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -155,35 +190,86 @@
             <version>1.3.3</version>
         </dependency>
 
+
+
         <dependency>
 
             <groupId>org.broadleafcommerce</groupId>
             <artifactId>broadleaf-profile</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>xml-apis</groupId>
+            <artifactId>xml-apis</artifactId>
+            <version>1.4.01</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.4</version>
+        </dependency>
 
-       <!-- <dependency>
+        <!-- <dependency>
 
-            <groupId>org.liquibase</groupId>
+             <groupId>org.liquibase</groupId>
 
-            <artifactId>liquibase-core</artifactId>
-            <version>4.24.0</version>
-            <exclusions>
-                <exclusion>
+             <artifactId>liquibase-core</artifactId>
+             <version>4.24.0</version>
+             <exclusions>
+                 <exclusion>
+                     <groupId>org.yaml</groupId>
+                     <artifactId>snakeyaml</artifactId>
+                 </exclusion>
+             </exclusions>
+         </dependency>-->
+
+        <!--       <dependency>
+
                     <groupId>org.yaml</groupId>
                     <artifactId>snakeyaml</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>-->
+                    <version>2.0</version>
 
-<!--       <dependency>
-
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.0</version>
-
+                </dependency>
+        -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
         </dependency>
--->
+
+        <!-- AspectJ compiler (if you need compile-time weaving) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.9</version> <!-- Use the latest version -->
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-crypto</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.im4java</groupId>
+            <artifactId>im4java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
 
     </dependencies>
 </project>

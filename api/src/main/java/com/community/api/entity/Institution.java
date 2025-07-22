@@ -1,0 +1,52 @@
+package com.community.api.entity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "institution")
+public class Institution
+{
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long institution_id;
+
+    @Column(name="institution_name",nullable = false)
+    private String institution_name;
+
+    @Column(name = "institution_location", nullable = false)
+    private String institution_address;
+
+    @Column(name = "institution_code",nullable = false)
+    private String institution_code;
+
+    @Column(name = "created_date", updatable = false)
+    private String created_date;
+
+    @Column(name = "sort_order", nullable = false)
+    private Long sortOrder;
+
+    @Column(name = "modified_date")
+    private String modified_date;
+
+    @Column(name = "created_by")
+    private String created_by;
+
+    @Column(name = "modified_by")
+    private String modified_by;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived;
+}

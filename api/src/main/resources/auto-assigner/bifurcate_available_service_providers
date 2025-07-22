@@ -1,0 +1,63 @@
+-- PROCEDURE: public.bifurcate_available_service_providers()
+
+-- DROP PROCEDURE IF EXISTS public.bifurcate_available_service_providers();
+
+CREATE OR REPLACE PROCEDURE public.bifurcate_available_service_providers(
+	OUT rank1a bigint[],
+	OUT rank1b bigint[],
+	OUT rank1c bigint[],
+	OUT rank1d bigint[],
+	OUT rank2a bigint[],
+	OUT rank2b bigint[],
+	OUT rank2c bigint[],
+	OUT rank2d bigint[])
+LANGUAGE 'plpgsql'
+AS $BODY$
+DECLARE
+    -- Declare a record to hold service provider details
+    service_provider_record RECORD;
+BEGIN
+    -- Initialize all output arrays to empty
+    rank1a := ARRAY[]::BIGINT[];
+    rank1b := ARRAY[]::BIGINT[];
+    rank1c := ARRAY[]::BIGINT[];
+    rank1d := ARRAY[]::BIGINT[];
+    rank2a := ARRAY[]::BIGINT[];
+    rank2b := ARRAY[]::BIGINT[];
+    rank2c := ARRAY[]::BIGINT[];
+    rank2d := ARRAY[]::BIGINT[];
+
+    -- Iterate over available service providers, joining with the service_provider_rank table
+    FOR service_provider_record IN
+        SELECT sp.service_provider_id, spr.rank_name
+        FROM service_provider sp
+        JOIN service_provider_rank spr ON sp.rank_id = spr.rank_id
+        WHERE sp.is_active = TRUE  -- Assuming `is_available` is a boolean column in `service_provider`
+    LOOP
+        -- Bifurcate based on rank_name
+        CASE service_provider_record.rank_name
+            WHEN '1a' THEN
+                rank1a := array_append(rank1a, service_provider_record.service_provider_id);
+            WHEN '1b' THEN
+                rank1b := array_append(rank1b, service_provider_record.service_provider_id);
+            WHEN '1c' THEN
+                rank1c := array_append(rank1c, service_provider_record.service_provider_id);
+            WHEN '1d' THEN
+                rank1d := array_append(rank1d, service_provider_record.service_provider_id);
+            WHEN '2a' THEN
+                rank2a := array_append(rank2a, service_provider_record.service_provider_id);
+            WHEN '2b' THEN
+                rank2b := array_append(rank2b, service_provider_record.service_provider_id);
+            WHEN '2c' THEN
+                rank2c := array_append(rank2c, service_provider_record.service_provider_id);
+            WHEN '2d' THEN
+                rank2d := array_append(rank2d, service_provider_record.service_provider_id);
+            ELSE
+                -- Handle unrecognized ranks (optional)
+                RAISE NOTICE 'Unrecognized rank: %', service_provider_record.rank_name;
+        END CASE;
+    END LOOP;
+END;
+$BODY$;
+ALTER PROCEDURE public.bifurcate_available_service_providers()
+    OWNER TO postgres;

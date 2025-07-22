@@ -8,6 +8,7 @@ import com.community.api.services.ServiceProviderTestService;
 import com.community.api.services.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,15 +39,13 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
-        }
-        catch (IllegalArgumentException e)
-        {
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
         {
-            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -59,18 +58,57 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
+        catch (RuntimeException e)
+        {
+            exceptionHandling.handleException(e);
+            throw new RuntimeException(e.getMessage());
+        }
+        catch (Exception e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/upload-pdf/{serviceProviderId}/{testId}")
+    public ResponseEntity<?> uploadPdfImage(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("pdfFile")MultipartFile pdfFile , HttpServletRequest request)
+    {
+        try
+        {
+            Map<String,Object> test = testService.uploadPdf(serviceProviderId,testId, pdfFile,request);
+            return responseService.generateResponse(HttpStatus.OK,"Pdf is uploaded",test);
+        }
+        catch (EntityDoesNotExistsException e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
+        }
+        catch (EntityNotFoundException e)
+        {
+            exceptionHandling.handleException(e);
+            return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
+        }
+        catch (IllegalArgumentException e)
+        {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Something went wrong",HttpStatus.BAD_REQUEST);
         }
     }
@@ -84,14 +122,17 @@ public class ServiceProviderTestController {
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -102,22 +143,25 @@ public class ServiceProviderTestController {
     }
 
     @PostMapping("/upload-resized-signature/{serviceProviderId}/{testId}")
-    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request) throws Exception {
+    public ResponseEntity<?> uploadResizedSignature(@PathVariable Long serviceProviderId,@PathVariable Long testId, @RequestParam("resizedSignature") MultipartFile resizedSignature,HttpServletRequest request,@RequestHeader(name = "Authorization") String authHeader) throws Exception {
         try
         {
-            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request);
+            Map<String,Object> test = testService.uploadSignatureImage(serviceProviderId,testId, resizedSignature,request,authHeader);
             return responseService.generateResponse(HttpStatus.OK,"Signature image is uploaded",test);
         }
         catch (EntityDoesNotExistsException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Service Provider does not exist",HttpStatus.NOT_FOUND);
         }
         catch (EntityNotFoundException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse("Test does not exist",HttpStatus.NOT_FOUND);
         }
         catch (IllegalArgumentException e)
         {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
         catch (Exception e)
@@ -131,7 +175,7 @@ public class ServiceProviderTestController {
     public ResponseEntity<?> getAllTests(
             @PathVariable Long serviceProviderId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int limit) throws EntityNotFoundException, EntityDoesNotExistsException {
+            @RequestParam(defaultValue = "1000") int limit) throws EntityNotFoundException, EntityDoesNotExistsException {
 
         try {
             List<ServiceProviderTest> serviceProviderTests = testService.getServiceProviderTestByServiceProviderId(serviceProviderId, page, limit);
@@ -142,8 +186,10 @@ public class ServiceProviderTestController {
 
             return responseService.generateSuccessResponse("List of service provider tests: ", serviceProviderTests, HttpStatus.OK);
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }  catch (Exception e) {
 
@@ -160,8 +206,10 @@ public class ServiceProviderTestController {
             return testService.getCompletedServiceProviderTest(serviceProviderId,request);
 
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         }  catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
 
@@ -178,8 +226,10 @@ public class ServiceProviderTestController {
         try {
             return testService.givePointsForImageUpload(serviceProviderId,giveUploadedImageScoreDTO);
         } catch (EntityDoesNotExistsException e) {
+            exceptionHandling.handleException(e);
             return responseService.generateErrorResponse("Service provider not found: " + e.getMessage(), HttpStatus.NOT_FOUND);
         } catch (IllegalArgumentException e) {
+            exceptionHandling.handleException(e);
             return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
         catch (Exception e) {

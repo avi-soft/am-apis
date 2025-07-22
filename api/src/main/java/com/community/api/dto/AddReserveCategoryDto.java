@@ -1,10 +1,13 @@
 package com.community.api.dto;
 
+import com.community.api.entity.CustomGender;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.Column;
 import java.util.Date;
 
 @Data
@@ -17,8 +20,21 @@ public class AddReserveCategoryDto {
     Integer post;
     @JsonProperty("reserve_category_id")
     Long reserveCategory;
-    @JsonProperty("born_before")
+  /*  @JsonProperty("born_before")
     Date bornBefore;
     @JsonProperty("born_after")
-    Date bornAfter;
+    Date bornAfter;*/
+    @JsonProperty("gender_id")
+    Long gender;
+    @JsonProperty("running_field")
+    String runningField;
+    @JsonProperty("gender_running_field")
+    String genderRunningField;
+    @JsonIgnore
+    @JsonProperty("fee_additional_comments")
+    String additionalComment;
+    @JsonProperty("is_other_or_state_category")
+     Boolean isOtherOrStateCategory;
+    @JsonProperty("other_or_state_category")
+     String otherOrStateCategory;
 }

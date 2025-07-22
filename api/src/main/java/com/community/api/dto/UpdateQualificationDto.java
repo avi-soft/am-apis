@@ -1,11 +1,18 @@
 package com.community.api.dto;
 
+import com.community.api.entity.SubjectDetail;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
-import javax.validation.constraints.*;
+import javax.validation.constraints.Size;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Max;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -14,55 +21,56 @@ public class UpdateQualificationDto
 {
     private Long id;
 
-    @NotBlank(message = "Institution name is required")
-    @Size(max = 255, message = "Institution name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Institution name cannot contain numeric values")
-    private String institution_name;
+    private Long institution_id;
 
-    //    @Min(value = 1900, message = "Year of passing should not be before 1900")
-//    @Max(value = 9999, message = "Year of passing should be a valid 4-digit year")
-    private Long year_of_passing;
+    private String date_of_passing;
 
-    @NotBlank(message = "Board or University is required")
-    @Size(max = 255, message = "Board or University name should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Board or University cannot contain numeric values")
-    private String board_or_university;
+    private Long board_university_id;
 
-    private Long examination_role_number;
+    private List<Long> subject_ids;
 
-    private Long examination_registration_number;
+    private Long stream_id;
 
-    @NotBlank(message = "Subject name is required")
+    private Boolean qualification_is_ongoing;
+
+    private String institution_address;
+
+    @Min(value = 0, message = "Overall cumulative Percentage must not be less than 0")
+    @Max(value = 100, message = "Overall cumulative Percentage must not be greater than 100")
+    private Double cumulative_percentage_value;
+
+    private String total_marks;
+
+    private String marks_obtained;
+
+    private Integer qualification_id;
     @Size(max = 255, message = "Subject name should not exceed 255 characters")
     @Pattern(regexp = "^[^\\d]*$", message = "Subject name cannot contain numeric values")
     private String subject_name;
 
-    @NotBlank(message = "Stream is required")
-    @Size(max = 255, message = "Stream should not exceed 255 characters")
-    @Pattern(regexp = "^[^\\d]*$", message = "Stream cannot contain numeric values")
-    private String stream;
+    private String examination_role_number;
 
-    @NotBlank(message = "Grade or percentage value is required")
-    @Pattern(regexp = "^(100|[1-9]?[0-9](\\\\.\\\\d*)?)$|^[A-Za-z]+$", message = "Grade or percentage value must be either a number  (up to 100) or a valid grade")
-    @Size(max = 10, message = "Grade or percentage value should not exceed 10 characters")
-    private String grade_or_percentage_value;
+    private String examination_registration_number;
 
-    @Min(value = 1, message = "Total marks must be greater than zero")
-    private Long total_marks;
+    private String other_stream;
 
-    @Min(value = 0, message = "Marks obtained cannot be negative")
-    private Long marks_obtained;
+    private String other_board_university;
 
-    @NotNull(message = "Qualification id is required")
-    private Integer qualification_id;
+    private String other_qualification;
+    private Boolean is_grade;
+    private Double cumulative_cgpa_value;
 
-    @AssertTrue(message = "Total marks cannot be less than marks obtained")
-    private boolean isMarksTotalValid() {
-        return total_marks >= marks_obtained;
-    }
+    private String grade_value;
+    private Long course_duration_in_months;
+    private List<String> highest_qualification_subject_names;
+    List<String> otherSubjects=new ArrayList<>();
 
-//    @AssertTrue(message = "Year of passing must be less than or equal to the current year")
-//    private boolean isYearOfPassingValid() {
-//        return year_of_passing <= Year.now().getValue();
-//    }
+    private Boolean is_division;
+
+    private String division_value;
+
+    private String total_marks_type;
+    private String subject_marks_type;
+    private List<SubjectDetail> subject_details = new ArrayList<>();
+
 }

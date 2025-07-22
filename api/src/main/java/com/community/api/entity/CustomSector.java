@@ -10,15 +10,16 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "custom_sector")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CustomSector {
+public class CustomSector implements Serializable {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "sector_id")
     protected Long sectorId;
 
@@ -27,4 +28,7 @@ public class CustomSector {
 
     @Column(name = "sector_description")
     protected String sectorDescription;
+
+    @Column(name = "archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    protected Boolean archived = false;
 }

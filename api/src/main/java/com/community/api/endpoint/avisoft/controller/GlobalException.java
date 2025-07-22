@@ -3,31 +3,34 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.social.NotAuthorizedException;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import javax.jms.TransactionRolledBackException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
-@ControllerAdvice
+@RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 
 public class GlobalException {
+
+
 
     @ExceptionHandler(value = {  HttpRequestMethodNotSupportedException.class })
     public ResponseEntity<ErrorResponse> handleNotFoundRequests(Exception ex, WebRequest request) {
@@ -79,10 +82,17 @@ public class GlobalException {
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
         return generateErrorResponse("Invalid argument", HttpStatus.BAD_REQUEST,ex.getMessage());
     }
-
+    @ExceptionHandler(value = {TransactionRolledBackException.class})
+    public ResponseEntity<ErrorResponse> handleTransactionRollback(TransactionRolledBackException ex, WebRequest request) {
+        return generateErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST,ex.getMessage());
+    }
+    @ExceptionHandler(value = {UnexpectedRollbackException.class})
+    public ResponseEntity<ErrorResponse> handleUnexpectedRollback(UnexpectedRollbackException ex, WebRequest request) {
+        return generateErrorResponse("Internal Server error", HttpStatus.BAD_REQUEST,ex.getMessage());
+    }
     @ExceptionHandler(value = { RuntimeException.class })
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, WebRequest request) {
-        return generateErrorResponse("Runtime exception" , HttpStatus.INTERNAL_SERVER_ERROR,ex.getMessage());
+        return generateErrorResponse("Runtime exception " , HttpStatus.UNAUTHORIZED,ex.getMessage());
     }
 
     public static ResponseEntity<ErrorResponse> generateErrorResponse(String message, HttpStatus status,String trace) {

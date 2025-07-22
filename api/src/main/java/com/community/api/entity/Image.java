@@ -1,10 +1,12 @@
 package com.community.api.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Data
@@ -29,5 +31,16 @@ public class Image {
 
     @Column(name="file_path")
     private String file_path;
+
+    @Column(name = "image_size")
+    private String image_size;
+
+    @Column(name="archived",columnDefinition = "BOOLEAN DEFAULT FALSE")
+    @JsonProperty("archived")
+    protected Boolean archived=false;
+
+    @ManyToOne
+    @JoinColumn(name = "random_image_type_id", referencedColumnName = "random_image_type_id")
+    private RandomImageType randomImageType;
 
 }
