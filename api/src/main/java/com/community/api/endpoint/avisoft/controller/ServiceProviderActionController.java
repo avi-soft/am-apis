@@ -6,7 +6,15 @@ import com.community.api.configuration.ImageSizeConfig;
 import com.community.api.dto.CommunicationRequest;
 import com.community.api.dto.FormDataOnly;
 import com.community.api.endpoint.serviceProvider.ServiceProviderEntity;
-import com.community.api.entity.*;
+import com.community.api.entity.ActionLog;
+import com.community.api.entity.CommunicationContent;
+import com.community.api.entity.ContentFile;
+import com.community.api.entity.CustomAdmin;
+import com.community.api.entity.CustomCustomer;
+import com.community.api.entity.CustomMode;
+import com.community.api.entity.CustomProduct;
+import com.community.api.entity.CustomerReferrer;
+import com.community.api.entity.FileType;
 import com.community.api.services.DocumentStorageService;
 import com.community.api.services.EmailService;
 import com.community.api.services.FileService;
@@ -14,60 +22,79 @@ import com.community.api.services.PrivilegeService;
 import com.community.api.services.ResponseService;
 import com.community.api.services.RoleService;
 import com.community.api.services.exception.ExceptionHandlingService;
-import com.twilio.rest.proxy.v1.service.ShortCodeUpdater;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
-import org.broadleafcommerce.common.persistence.Status;
-import org.broadleafcommerce.core.catalog.domain.Category;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.hibernate.Hibernate;
 import org.springframework.transaction.annotation.Transactional;
 import org.hibernate.jpa.QueryHints;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @RestController
 @RequestMapping("/service-provider-actions")
 public class ServiceProviderActionController {
 
     @Autowired
+    private final JwtUtil jwtTokenUtil;
+    @Autowired
+    private final RoleService roleService;
+    @Autowired
+    ExceptionHandlingService exceptionHandlingService;
+    @Autowired
+    HttpServletRequest request;
+    @Autowired
     private DocumentStorageService fileUploadService;
     @PersistenceContext
     private EntityManager entityManager;
     @Autowired
-    ExceptionHandlingService exceptionHandlingService;
-
-    @Autowired
     private EmailService emailService;
-
-
     @Autowired
     private FileService fileService;
-    @Autowired
-    private final JwtUtil jwtTokenUtil;
-
-    @Autowired
-    private final RoleService roleService;
-
     @Autowired
     private PrivilegeService privilegeService;
 
     @Autowired
-    HttpServletRequest request;
+    @Qualifier("blMailSender")
+    private JavaMailSender mailSender;
+
+    @Value("${email.from}")
+    private String fromEmail;
 
     public ServiceProviderActionController(JwtUtil jwtTokenUtil, RoleService roleService) {
         this.jwtTokenUtil = jwtTokenUtil;
@@ -78,17 +105,17 @@ public class ServiceProviderActionController {
 //    private WhatsappService whatsappService; //  need to implement this later
 
 
-    @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Transactional
     public ResponseEntity<?> communicateWithCustomers(
             @FormDataOnly CommunicationRequest request,
             @RequestParam Integer role,
-            @RequestHeader(value = "Authorization") String authHeader){
+            @RequestHeader(value = "Authorization") String authHeader) {
         try {
-            if(role==null)
-                return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
-            if(roleService.findRoleName(role)==null)
-                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.BAD_REQUEST);
+            if (role == null)
+                return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
+            if (roleService.findRoleName(role) == null)
+                return ResponseService.generateErrorResponse("Invalid role specified", HttpStatus.BAD_REQUEST);
             // Validate service provider
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -134,12 +161,12 @@ public class ServiceProviderActionController {
             for (Long customerId : customerIdsList) {
                 if (roleId >= role)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-                if (role!= 1 && role != 5) {
+                if (role != 1 && role != 5) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
-                    if (serviceProviderEntity == null||serviceProviderEntity.getRole()!=role) {
+                    if (serviceProviderEntity == null || serviceProviderEntity.getRole() != role) {
                         if (role == 2)
                             return ResponseService.generateErrorResponse("Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
-                        if (role== 3)
+                        if (role == 3)
                             return ResponseService.generateErrorResponse("Service Provider Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
                         if (role == 4)
                             return ResponseService.generateErrorResponse("Service Provider with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
@@ -377,8 +404,7 @@ public class ServiceProviderActionController {
                         HttpStatus.OK
                 );
 
-            }else
-            {
+            } else {
                 List<ServiceProviderEntity> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(ServiceProviderEntity.class, id))
                         .filter(Objects::nonNull)
@@ -489,11 +515,9 @@ public class ServiceProviderActionController {
 
 
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
@@ -566,13 +590,10 @@ public class ServiceProviderActionController {
                 contentFile.setCommunicationContent(content);
                 fileUploadService.uploadFileOnFileServer(file, "Communications", "", "SERVICE_PROVIDER");
                 contentFiles.add(contentFile);
-            }
-            catch (IllegalArgumentException e)
-            {
+            } catch (IllegalArgumentException e) {
                 exceptionHandlingService.handleException(e);
                 throw new IllegalArgumentException(e.getMessage());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 exceptionHandlingService.handleException(e);
                 throw new RuntimeException("Failed to process file: " + file.getOriginalFilename(), e);
             }
@@ -591,7 +612,7 @@ public class ServiceProviderActionController {
         }
         if (file.getSize() > Constant.MAX_REFERRER_FILE_SIZE) {
             String maxFileSize = ImageSizeConfig.convertBytesToReadableSize(Constant.MAX_REFERRER_FILE_SIZE);
-            throw new IllegalArgumentException("File size should be below "+ maxFileSize);
+            throw new IllegalArgumentException("File size should be below " + maxFileSize);
         }
         // Construct the file path
         String dbPath = "avisoftdocument/SERVICE_PROVIDER/Communications" + purpose;
@@ -671,15 +692,13 @@ public class ServiceProviderActionController {
     private Map<String, Object> convertToDTO(ActionLog actionLog) {
         Map<String, Object> dto = new HashMap<>();
         dto.put("actionLogId", actionLog.getActionLogId());
-        if(actionLog.getCustomersWithEmail()!=null||actionLog.getCustomersWithoutEmail()!=null) {
+        if (actionLog.getCustomersWithEmail() != null || actionLog.getCustomersWithoutEmail() != null) {
             List<Long> customerIds = Stream.concat(
                     actionLog.getCustomersWithEmail().stream().map(CustomCustomer::getId),
                     actionLog.getCustomersWithoutEmail().stream().map(CustomCustomer::getId)
             ).collect(Collectors.toList());
             dto.put("customerIds", customerIds);
-        }
-        else
-        {
+        } else {
             List<Long> customerIds = Stream.concat(
                     actionLog.getSpwithEmail().stream().map(ServiceProviderEntity::getService_provider_id),
                     actionLog.getSpWithoutEmail().stream().map(ServiceProviderEntity::getService_provider_id)
@@ -687,18 +706,16 @@ public class ServiceProviderActionController {
             dto.put("userIds", customerIds);
         }
         dto.put("deliveryStatus", actionLog.getDeliveryStatus());
-        if(actionLog.getServiceProvider()!=null)
-        {
+        if (actionLog.getServiceProvider() != null) {
             dto.put("serviceProviderId", actionLog.getServiceProvider().getService_provider_id());
         }
-        if(actionLog.getAdmin()!=null)
-        {
+        if (actionLog.getAdmin() != null) {
             dto.put("adminId", actionLog.getAdmin().getService_provider_id());
         }
-        dto.put("roleId",actionLog.getRole().getRole_id());
+        dto.put("roleId", actionLog.getRole().getRole_id());
         dto.put("actionTimestamp", actionLog.getActionTimestamp());
         dto.put("modes", actionLog.getCustomModes().stream().map(CustomMode::getCustomModeId).collect(Collectors.toList()));
-        dto.put("content",actionLog.getContent());
+        dto.put("content", actionLog.getContent());
         return dto;
     }
 
@@ -727,13 +744,12 @@ public class ServiceProviderActionController {
                 }
 
                 jpql = """
-            SELECT DISTINCT al FROM ActionLog al
-            LEFT JOIN FETCH al.content c
-            WHERE al.serviceProvider.service_provider_id = :userId
-            ORDER BY al.actionTimestamp DESC
-            """;
-            }
-            else if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdmin) ||
+                        SELECT DISTINCT al FROM ActionLog al
+                        LEFT JOIN FETCH al.content c
+                        WHERE al.serviceProvider.service_provider_id = :userId
+                        ORDER BY al.actionTimestamp DESC
+                        """;
+            } else if (roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdmin) ||
                     roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleSuperAdmin) ||
                     roleService.findRoleName(roleId).equalsIgnoreCase(Constant.roleAdminServiceProvider)) {
                 CustomAdmin customAdmin = entityManager.find(CustomAdmin.class, userId);
@@ -742,13 +758,12 @@ public class ServiceProviderActionController {
                 }
 
                 jpql = """
-            SELECT DISTINCT al FROM ActionLog al
-            LEFT JOIN FETCH al.content c
-            WHERE al.admin.admin_id = :userId
-            ORDER BY al.actionTimestamp DESC
-            """;
-            }
-            else {
+                        SELECT DISTINCT al FROM ActionLog al
+                        LEFT JOIN FETCH al.content c
+                        WHERE al.admin.admin_id = :userId
+                        ORDER BY al.actionTimestamp DESC
+                        """;
+            } else {
                 return ResponseService.generateErrorResponse("Invalid role", HttpStatus.FORBIDDEN);
             }
 
@@ -775,13 +790,13 @@ public class ServiceProviderActionController {
             // Count total records for pagination
             String countJpql = roleService.findRoleName(roleId).equals(Constant.SERVICE_PROVIDER) ?
                     """
-                    SELECT COUNT(DISTINCT al) FROM ActionLog al
-                    WHERE al.serviceProvider.service_provider_id = :userId
-                    """ :
+                            SELECT COUNT(DISTINCT al) FROM ActionLog al
+                            WHERE al.serviceProvider.service_provider_id = :userId
+                            """ :
                     """
-                    SELECT COUNT(DISTINCT al) FROM ActionLog al
-                    WHERE al.admin.admin_id = :userId
-                    """;
+                            SELECT COUNT(DISTINCT al) FROM ActionLog al
+                            WHERE al.admin.admin_id = :userId
+                            """;
 
             Long totalRecords = entityManager.createQuery(countJpql, Long.class)
                     .setParameter("userId", userId)
@@ -800,8 +815,7 @@ public class ServiceProviderActionController {
                     response,
                     HttpStatus.OK
             );
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             throw new RuntimeException("Failed to retrieve communication history", e);
         }
@@ -852,9 +866,9 @@ public class ServiceProviderActionController {
                 .map(customer -> {
                     Map<String, Object> recipientInfo = new HashMap<>();
                     recipientInfo.put("userId", customer.getId());
-                    String name=(customer.getFirstName()!=null ?customer.getFirstName() : "") + " " + (customer.getLastName()!=null ? customer.getLastName():"");
-                    recipientInfo.put("name",name.trim());
-                    recipientInfo.put("emailAddress", customer.getEmailAddress()!=null ? customer.getEmailAddress():"");
+                    String name = (customer.getFirstName() != null ? customer.getFirstName() : "") + " " + (customer.getLastName() != null ? customer.getLastName() : "");
+                    recipientInfo.put("name", name.trim());
+                    recipientInfo.put("emailAddress", customer.getEmailAddress() != null ? customer.getEmailAddress() : "");
                     return recipientInfo;
                 })
                 .collect(Collectors.toList());
@@ -893,20 +907,21 @@ public class ServiceProviderActionController {
             throw new Exception("ERRORS WHILE VALIDATING AUTHORIZATION: " + exception.getMessage() + "\n");
         }
     }
+
     @Async
-  /*  @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)*/
+    /*  @PostMapping(value="/communicate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)*/
     @Transactional
     public ResponseEntity<?> communicateWithCustomersDummy(
             @FormDataOnly CommunicationRequest request,
             @RequestParam Integer role,
             @RequestHeader(value = "Authorization") String authHeader,
-            @RequestParam(value = "bypass",defaultValue = "false")Boolean bypass){
+            @RequestParam(value = "bypass", defaultValue = "false") Boolean bypass) {
         try {
             System.out.println("I have been called");
-            if(role==null)
-                return ResponseService.generateErrorResponse("Need to specify the role you want to email to",HttpStatus.BAD_REQUEST);
-            if(roleService.findRoleName(role)==null)
-                return ResponseService.generateErrorResponse("Invalid role specified",HttpStatus.BAD_REQUEST);
+            if (role == null)
+                return ResponseService.generateErrorResponse("Need to specify the role you want to email to", HttpStatus.BAD_REQUEST);
+            if (roleService.findRoleName(role) == null)
+                return ResponseService.generateErrorResponse("Invalid role specified", HttpStatus.BAD_REQUEST);
             // Validate service provider
             String jwtToken = authHeader.substring(7);
             Integer roleId = jwtTokenUtil.extractRoleId(jwtToken);
@@ -950,14 +965,14 @@ public class ServiceProviderActionController {
                 return ResponseService.generateErrorResponse("You have to select atleast one user to communicate with", HttpStatus.BAD_REQUEST);
             }
             for (Long customerId : customerIdsList) {
-                if (roleId >= role&&!bypass)
+                if (roleId >= role && !bypass)
                     return ResponseService.generateErrorResponse("Forbidden", HttpStatus.FORBIDDEN);
-                if (role!= 1 && role != 5) {
+                if (role != 1 && role != 5) {
                     ServiceProviderEntity serviceProviderEntity = entityManager.find(ServiceProviderEntity.class, customerId);
-                    if (serviceProviderEntity == null||serviceProviderEntity.getRole()!=role) {
+                    if (serviceProviderEntity == null || serviceProviderEntity.getRole() != role) {
                         if (role == 2)
                             return ResponseService.generateErrorResponse("Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
-                        if (role== 3)
+                        if (role == 3)
                             return ResponseService.generateErrorResponse("Service Provider Admin with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
                         if (role == 4)
                             return ResponseService.generateErrorResponse("Service Provider with id " + customerId + " does not exist", HttpStatus.NOT_FOUND);
@@ -1086,7 +1101,7 @@ public class ServiceProviderActionController {
                     .collect(Collectors.toList());
             actionLog.setCustomModes(modeList);
             actionLog.setActionTimestamp(LocalDateTime.now());
-            System.out.println("Role is"+role);
+            System.out.println("Role is" + role);
             if (role == 5) {
                 List<CustomCustomer> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(CustomCustomer.class, id))
@@ -1195,8 +1210,7 @@ public class ServiceProviderActionController {
                         HttpStatus.OK
                 );
 
-            }else
-            {
+            } else {
                 List<ServiceProviderEntity> allCustomers = customerIdsList.stream()
                         .map(id -> entityManager.find(ServiceProviderEntity.class, id))
                         .filter(Objects::nonNull)
@@ -1307,17 +1321,97 @@ public class ServiceProviderActionController {
 
 
             }
-        }
-        catch (IllegalArgumentException e)
-        {
+        } catch (IllegalArgumentException e) {
             exceptionHandlingService.handleException(e);
-            return ResponseService.generateErrorResponse(e.getMessage(),HttpStatus.BAD_REQUEST);
+            return ResponseService.generateErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             exceptionHandlingService.handleException(e);
             return ResponseService.generateErrorResponse(
                     "Failed to process communication: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
+        }
+    }
+
+    @Async
+    public void sendRejectionMail(ServiceProviderEntity serviceProvider, CustomProduct customProduct, String status) {
+        try {
+
+            if(serviceProvider.getPrimary_email() == null) {
+                log.info("Service provider primary email does not exists.");
+                return;
+            }
+            String imageUrl = null;
+            String rejectionMessage = null;
+            if(customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_RESUBMIT)) {
+                rejectionMessage = customProduct.getRejectionComment();
+                imageUrl = "https://png.pngtree.com/png-vector/20220111/ourmid/pngtree-returned-concept-returned-miscellaneous-vector-png-image_15673670.png";
+            } else if(customProduct.getProductState().getProductState().equals(Constant.PRODUCT_STATE_REJECTED)) {
+                rejectionMessage = customProduct.getRejectionStatus().getRejectionStatus();
+                imageUrl = "data:image/png;base64,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";
+            } else {
+                rejectionMessage = "n/a";
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String subject = status + " Product Alert";
+            String htmlContent = String.format(
+                    """
+                    <html>
+                        <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #f8f9fa; padding: 20px; color: #333; line-height: 1.6;">
+                            <div style="max-width: 700px; margin: auto; background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                <div style="text-align: center; margin-bottom: 25px;">
+                                    <img src=%s alt="Rejected Icon" width="100" style="margin-bottom: 20px;" />
+                                    <h2 style="color: #e74c3c; margin: 10px 0; font-size: 24px;">Product Submission %s</h2>
+                                    <p style="color: #7f8c8d; margin: 0;">We regret to inform you that your product has not been approved</p>
+                                </div>
+                                
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #e74c3c; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 0; font-weight: 500;">Product Title: <strong>%s</strong></p>
+                                    <p style="margin: 8px 0 0;">Reason for %s: <strong>%s</strong></p>
+                                </div>
+                                
+                                <div style="margin: 30px 0 20px;">
+                                    <p style="margin: 0 0 15px;">If you believe this was a mistake or you wish to correct the issues:</p>
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        <li style="margin-bottom: 8px;">Review your submission thoroughly.</li>
+                                        <li style="margin-bottom: 8px;">Ensure all mandatory fields and documents are complete.</li>
+                                        <li style="margin-bottom: 8px;">Reach out to our support team if needed.</li>
+                                    </ul>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px;">
+                                    <a href="https://dev-am-service-provider.vercel.app/get-product" style="background-color: #3498db; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Product Details</a>
+                                </div>
+                                
+                                <div style="text-align: center; margin-top: 30px; color: #95a5a6; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                                    <p style="margin: 5px 0;">Thank you for using our platform</p>
+                                    <p style="margin: 5px 0;">System Administrator • %tF</p>
+                                </div>
+                            </div>
+                        </body>
+                    </html>
+                    """,
+                    imageUrl,
+                    status,
+                    customProduct.getDisplayTemplate(),
+                    status,
+                    rejectionMessage,
+                    LocalDate.now()
+            );
+
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(serviceProvider.getPrimary_email());
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // true = isHtml
+
+            mailSender.send(mimeMessage);
+
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
         }
     }
 }
