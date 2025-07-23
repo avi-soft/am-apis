@@ -518,7 +518,15 @@ public class ProductController extends CatalogEndpoint {
                 }
                 customProduct.setIsMultiplePostSameFee(addProductDto.getIsMultiplePostSameFee());
             }
-
+            if (addProductDto.getProductState() == 3 || addProductDto.getProductState() == 4) {
+                if (roleId == 4) {
+                    return ResponseService.generateErrorResponse("Access denied: You are not authorized to approve or reject products", HttpStatus.UNAUTHORIZED);
+                }
+                long existingState = customProduct.getProductState().getProductStateId();
+                if (existingState != 1 && existingState != 2 && existingState != 9) {
+                    throw new IllegalArgumentException("Action not allowed: Product must be in 'New', 'Modified', or 'Resubmitted' state to be approved or rejected");
+                }
+            }
             List<Post> postList = new ArrayList<>();
             if (addProductDto.getPosts() != null) {
                 if (!addProductDto.getPosts().isEmpty()) {
@@ -585,11 +593,17 @@ public class ProductController extends CatalogEndpoint {
             }*/
             if (resubmit) {
                 if (addProductDto.getIsResubmitProduct().equals(true)) {
+
+                    if(customProduct.getProductState().getProductStateId()!=8)
+                    {
+                        throw new IllegalArgumentException("Custom Resubmit product as its state is "+customProduct.getProductState().getProductState());
+                    }
                     CustomProductState customProductState = entityManager.find(CustomProductState.class, 9L);
                     if (customProductState == null) {
                         throw new IllegalArgumentException("Custom Product with this state does not exit");
                     }
                     customProduct.setProductState(customProductState);
+                    customProduct.setRejectionComment(null);
                 }
             }
             System.out.println("product_state id is"+addProductDto.getProductState());
@@ -1356,13 +1370,15 @@ public class ProductController extends CatalogEndpoint {
             return ResponseService.generateErrorResponse("Product not found",HttpStatus.NOT_FOUND);
         if(returnProduct.containsKey("comment")&&(((String)(returnProduct.get("comment"))).isEmpty()))
         {
-            return ResponseService.generateErrorResponse("Comment is required while creating ticket",HttpStatus.NOT_FOUND);
+            return ResponseService.generateErrorResponse("Comment is required while returning products",HttpStatus.NOT_FOUND);
         }
-
         if(customProduct.getProductState().getProductStateId().equals(8L))
         {
             return ResponseService.generateErrorResponse("Product has already been returned",HttpStatus.BAD_REQUEST);
         }
+        if(customProduct.getProductState().getProductStateId()!=1&&customProduct.getProductState().getProductStateId()!=2)
+            return ResponseService.generateErrorResponse("Cannot return product as its state is "+customProduct.getProductState().getProductState(),HttpStatus.BAD_REQUEST);
+
         CustomProductState state=em.find(CustomProductState.class,8L);
         customProduct.setProductState(state);
         customProduct.setRejectionComment((String)(returnProduct.get("comment")));

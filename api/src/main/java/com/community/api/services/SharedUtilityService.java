@@ -1810,7 +1810,7 @@ public class SharedUtilityService {
         {
             throw new IllegalArgumentException("In Miscellaneous Details, you have to select whether you are Phd passed or not");
         }
-        if(customCustomer.getWorkExperience()!=null)
+        if(customCustomer.getWorkExperience()!=null&&customCustomer.getWorkExperience()!=0)
         {
             if(customCustomer.getWorkExperienceScopeId()==null)
             {
